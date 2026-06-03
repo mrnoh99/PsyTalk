@@ -1,0 +1,8 @@
+// ===== Project 레벨 build.gradle.kts =====
+// 모든 플러그인을 여기서 버전과 함께 선언 (apply false)
+plugins {
+    id("com.android.application") version "8.13.2" apply false
+    id("org.jetbrains.kotlin.android") version "2.2.20" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.2.20" apply false
+    id("org.jetbrains.kotlin.plugin.serialization") version "2.2.20" apply false
+}

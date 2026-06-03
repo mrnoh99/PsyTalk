@@ -13,10 +13,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material3.MaterialTheme
+import com.example.moimtalk.data.CalendarEvent
 import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
+import com.example.moimtalk.data.RoomFile
 import com.example.moimtalk.data.friendlySupabaseError
 import com.example.moimtalk.ui.AdminPlaceholderScreen
 import com.example.moimtalk.ui.LoginScreen
@@ -33,6 +35,9 @@ class MoimViewModel : ViewModel() {
     var myProfile by mutableStateOf<Profile?>(null)
     var rooms by mutableStateOf<List<Room>>(emptyList())
     var messages by mutableStateOf<List<Message>>(emptyList())
+    var events by mutableStateOf<List<CalendarEvent>>(emptyList())
+    var files by mutableStateOf<List<RoomFile>>(emptyList())
+    var profilesById by mutableStateOf<Map<String, Profile>>(emptyMap())
     var error by mutableStateOf<String?>(null)
     var loading by mutableStateOf(false)
 
@@ -84,6 +89,11 @@ class MoimViewModel : ViewModel() {
             try {
                 myProfile = MoimRepository.myProfile()
                 rooms = MoimRepository.rooms()
+                try {
+                    profilesById = MoimRepository.allProfiles().associateBy { it.id }
+                } catch (_: Exception) {
+                    // 이름 표시는 선택적 — 실패해도 진행
+                }
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "데이터 불러오기")
             }
@@ -93,10 +103,29 @@ class MoimViewModel : ViewModel() {
     fun openRoom(room: Room) {
         viewModelScope.launch {
             activeRoom = room.id
+            messages = emptyList()
+            events = emptyList()
+            files = emptyList()
             try {
                 messages = MoimRepository.messages(room.id)
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "메시지 불러오기")
+            }
+            loadRoomData(room.id)
+        }
+    }
+
+    private fun loadRoomData(roomId: String) {
+        viewModelScope.launch {
+            try {
+                events = MoimRepository.events(roomId)
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "일정 불러오기")
+            }
+            try {
+                files = MoimRepository.files(roomId)
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "자료 불러오기")
             }
         }
     }
@@ -104,6 +133,89 @@ class MoimViewModel : ViewModel() {
     fun closeRoom() {
         activeRoom = null
         messages = emptyList()
+        events = emptyList()
+        files = emptyList()
+    }
+
+    // ── 캘린더 ──
+    fun createEvent(
+        title: String,
+        startAt: String,
+        place: String?,
+        link: String?,
+        scope: String?,
+        description: String?,
+        keywords: List<String>,
+        attachmentName: String?,
+        attachmentBytes: ByteArray?,
+        attachmentDesc: String?,
+        onDone: () -> Unit,
+    ) {
+        val rid = activeRoom ?: return
+        viewModelScope.launch {
+            try {
+                MoimRepository.createEvent(
+                    rid, title, startAt, place, link, scope, description, keywords,
+                    attachmentName, attachmentBytes, attachmentDesc,
+                )
+                events = MoimRepository.events(rid)
+                files = MoimRepository.files(rid)
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "일정 등록")
+            }
+        }
+    }
+
+    fun updateEvent(
+        eventId: String,
+        title: String,
+        startAt: String,
+        place: String?,
+        link: String?,
+        scope: String?,
+        description: String?,
+        keywords: List<String>,
+        onDone: () -> Unit,
+    ) {
+        val rid = activeRoom ?: return
+        viewModelScope.launch {
+            try {
+                MoimRepository.updateEvent(eventId, title, startAt, place, link, scope, description, keywords)
+                events = MoimRepository.events(rid)
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "일정 수정")
+            }
+        }
+    }
+
+    // ── 자료실 ──
+    fun uploadFile(
+        fileName: String,
+        bytes: ByteArray,
+        description: String?,
+        keywords: List<String>,
+        onDone: () -> Unit,
+    ) {
+        val rid = activeRoom ?: return
+        viewModelScope.launch {
+            try {
+                MoimRepository.uploadRoomFile(rid, fileName, bytes, description, keywords)
+                files = MoimRepository.files(rid)
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "자료 업로드")
+            }
+        }
+    }
+
+    fun nameOf(userId: String): String = profilesById[userId]?.name ?: "?"
+
+    fun canEditEvent(e: CalendarEvent): Boolean {
+        val role = myProfile?.role
+        if (role == "superadmin" || role == "admin") return true
+        return e.ownerId == MoimRepository.currentUserId()
     }
 
     fun send(text: String) {

@@ -80,4 +80,63 @@ data class CalendarEvent(
     val description: String? = null,
     val keywords: List<String> = emptyList(),
     @SerialName("owner_id") val ownerId: String,
+    @SerialName("attachment_url") val attachmentUrl: String? = null,
+    @SerialName("attachment_name") val attachmentName: String? = null,
+    @SerialName("attachment_desc") val attachmentDesc: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+// 일정 삽입용 DTO (id/created_at/updated_at 은 DB가 생성)
+@Serializable
+data class CalendarEventInsert(
+    @SerialName("room_id") val roomId: String,
+    val title: String,
+    @SerialName("start_at") val startAt: String,
+    val place: String? = null,
+    val link: String? = null,
+    val scope: String? = null,
+    val description: String? = null,
+    val keywords: List<String> = emptyList(),
+    @SerialName("owner_id") val ownerId: String,
+    @SerialName("attachment_url") val attachmentUrl: String? = null,
+    @SerialName("attachment_name") val attachmentName: String? = null,
+    @SerialName("attachment_desc") val attachmentDesc: String? = null,
+)
+
+// 일정 수정용 DTO (작성자 본인 + 관리자만, 요구사항 6)
+@Serializable
+data class CalendarEventUpdate(
+    val title: String,
+    @SerialName("start_at") val startAt: String,
+    val place: String? = null,
+    val link: String? = null,
+    val scope: String? = null,
+    val description: String? = null,
+    val keywords: List<String> = emptyList(),
+)
+
+@Serializable
+data class RoomFile(
+    val id: String,
+    @SerialName("room_id") val roomId: String,
+    @SerialName("file_name") val fileName: String,
+    @SerialName("file_url") val fileUrl: String,
+    val description: String? = null,
+    val keywords: List<String> = emptyList(),
+    @SerialName("uploaded_by") val uploadedBy: String,
+    val source: String = "upload",          // upload | calendar
+    @SerialName("calendar_event_id") val calendarEventId: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
+// 자료실 직접 업로드 DTO
+@Serializable
+data class RoomFileInsert(
+    @SerialName("room_id") val roomId: String,
+    @SerialName("file_name") val fileName: String,
+    @SerialName("file_url") val fileUrl: String,
+    val description: String? = null,
+    val keywords: List<String> = emptyList(),
+    @SerialName("uploaded_by") val uploadedBy: String,
+    val source: String = "upload",
 )

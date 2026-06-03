@@ -438,17 +438,16 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 messages = vm.messages,
                 isMine = vm::isMine
             )
-            "files" -> EmptyBox(
-                "📁",
-                "자료가 없습니다",
-                "채팅·캘린더에 올린 자료가\n여기 모입니다.",
-                Modifier.padding(pad).fillMaxSize()
+            "files" -> FilesPane(
+                vm = vm,
+                canUpload = canPost,
+                modifier = Modifier.padding(pad)
             )
-            else -> EmptyBox(
-                "📅",
-                "등록된 일정이 없습니다",
-                "일정 추가는 다음 단계에서\nSupabase와 연동됩니다.",
-                Modifier.padding(pad).fillMaxSize()
+            else -> CalendarPane(
+                vm = vm,
+                room = room,
+                canPost = canPost,
+                modifier = Modifier.padding(pad)
             )
         }
     }

@@ -95,20 +95,13 @@ CREATE POLICY "calendar_events_select"
   ON public.calendar_events FOR SELECT TO authenticated
   USING (true);
 
+-- 일정 작성: 본인이 owner 로만 작성 (방 참석 제한은 room_members 연동 후 강화 예정)
 DROP POLICY IF EXISTS "calendar_events_insert" ON public.calendar_events;
 CREATE POLICY "calendar_events_insert"
   ON public.calendar_events FOR INSERT TO authenticated
-  WITH CHECK (
-    owner_id = auth.uid()
-    AND EXISTS (
-      SELECT 1 FROM public.profiles p
-      WHERE p.id = auth.uid()
-        AND (p.role IN ('superadmin', 'admin')
-          OR EXISTS (SELECT 1 FROM public.room_members rm
-                     WHERE rm.room_id = calendar_events.room_id AND rm.user_id = auth.uid()))
-    )
-  );
+  WITH CHECK (owner_id = auth.uid());
 
+-- 일정 수정: 작성자 본인 + superadmin/admin (요구사항 6)
 DROP POLICY IF EXISTS "calendar_events_update" ON public.calendar_events;
 CREATE POLICY "calendar_events_update"
   ON public.calendar_events FOR UPDATE TO authenticated
@@ -116,5 +109,24 @@ CREATE POLICY "calendar_events_update"
     owner_id = auth.uid()
     OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin'))
   );
+
+-- 자료실: 모든 인증 사용자 조회 / 본인 업로드만 추가
+DROP POLICY IF EXISTS "room_files_select" ON public.room_files;
+CREATE POLICY "room_files_select"
+  ON public.room_files FOR SELECT TO authenticated
+  USING (true);
+
+DROP POLICY IF EXISTS "room_files_insert" ON public.room_files;
+CREATE POLICY "room_files_insert"
+  ON public.room_files FOR INSERT TO authenticated
+  WITH CHECK (uploaded_by = auth.uid());
+
+-- 프로필: 작성자·업로더 이름 표시를 위해 인증 사용자는 전체 조회 가능
+-- (fix_signup.sql 의 profiles_select_own 을 대체)
+DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;
+DROP POLICY IF EXISTS "profiles_select_all" ON public.profiles;
+CREATE POLICY "profiles_select_all"
+  ON public.profiles FOR SELECT TO authenticated
+  USING (true);
 
 NOTIFY pgrst, 'reload schema';

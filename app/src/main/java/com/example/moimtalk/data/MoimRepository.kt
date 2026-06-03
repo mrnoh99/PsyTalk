@@ -4,8 +4,11 @@ import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.storage.storage
 
 object MoimRepository {
+
+    private const val FILES_BUCKET = "room-files"
 
     fun currentUserId(): String? =
         supabase.auth.currentSessionOrNull()?.user?.id
@@ -46,5 +49,118 @@ object MoimRepository {
         supabase.from("messages").insert(
             MessageInsert(roomId = roomId, senderId = uid, content = text)
         )
+    }
+
+    // ── 멤버 이름 표시용 (작성자·업로더) ──
+    suspend fun allProfiles(): List<Profile> =
+        supabase.from("profiles").select().decodeList()
+
+    // ── 캘린더 ──
+    suspend fun events(roomId: String): List<CalendarEvent> =
+        supabase.from("calendar_events").select {
+            filter { eq("room_id", roomId) }
+            order("start_at", Order.ASCENDING)
+        }.decodeList()
+
+    /** 일정 등록. 첨부 바이트가 있으면 Storage 업로드 후 URL 을 함께 저장한다. */
+    suspend fun createEvent(
+        roomId: String,
+        title: String,
+        startAt: String,
+        place: String?,
+        link: String?,
+        scope: String?,
+        description: String?,
+        keywords: List<String>,
+        attachmentName: String?,
+        attachmentBytes: ByteArray?,
+        attachmentDesc: String?,
+    ) {
+        val uid = currentUserId() ?: error("Not logged in")
+        var url: String? = null
+        var name: String? = null
+        if (attachmentBytes != null && !attachmentName.isNullOrBlank()) {
+            url = uploadToStorage(roomId, attachmentName, attachmentBytes)
+            name = attachmentName
+        }
+        supabase.from("calendar_events").insert(
+            CalendarEventInsert(
+                roomId = roomId,
+                title = title,
+                startAt = startAt,
+                place = place,
+                link = link,
+                scope = scope,
+                description = description,
+                keywords = keywords,
+                ownerId = uid,
+                attachmentUrl = url,
+                attachmentName = name,
+                attachmentDesc = attachmentDesc?.takeIf { it.isNotBlank() },
+            )
+        )
+    }
+
+    /** 일정 수정 (작성자 본인 + 관리자, RLS 로 강제). 첨부는 변경하지 않는다. */
+    suspend fun updateEvent(
+        eventId: String,
+        title: String,
+        startAt: String,
+        place: String?,
+        link: String?,
+        scope: String?,
+        description: String?,
+        keywords: List<String>,
+    ) {
+        supabase.from("calendar_events").update(
+            CalendarEventUpdate(
+                title = title,
+                startAt = startAt,
+                place = place,
+                link = link,
+                scope = scope,
+                description = description,
+                keywords = keywords,
+            )
+        ) { filter { eq("id", eventId) } }
+    }
+
+    // ── 자료실 ──
+    suspend fun files(roomId: String): List<RoomFile> =
+        supabase.from("room_files").select {
+            filter { eq("room_id", roomId) }
+            order("created_at", Order.DESCENDING)
+        }.decodeList()
+
+    /** 자료실 직접 업로드: Storage 업로드 후 room_files 메타데이터 저장 */
+    suspend fun uploadRoomFile(
+        roomId: String,
+        fileName: String,
+        bytes: ByteArray,
+        description: String?,
+        keywords: List<String>,
+    ) {
+        val uid = currentUserId() ?: error("Not logged in")
+        val url = uploadToStorage(roomId, fileName, bytes)
+        supabase.from("room_files").insert(
+            RoomFileInsert(
+                roomId = roomId,
+                fileName = fileName,
+                fileUrl = url,
+                description = description?.takeIf { it.isNotBlank() },
+                keywords = keywords,
+                uploadedBy = uid,
+                source = "upload",
+            )
+        )
+    }
+
+    /** 파일을 Storage('room-files' 버킷)에 올리고 공개 URL 을 반환 */
+    private suspend fun uploadToStorage(roomId: String, fileName: String, bytes: ByteArray): String {
+        val safe = fileName.replace(Regex("[^A-Za-z0-9._가-힣-]"), "_")
+        val path = "$roomId/${System.currentTimeMillis()}_$safe"
+        val bucket = supabase.storage.from(FILES_BUCKET)
+        bucket.upload(path, bytes) { upsert = true }
+        return bucket.publicUrl(path)
     }
 }

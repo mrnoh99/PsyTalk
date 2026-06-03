@@ -36,6 +36,7 @@ data class Profile(
     @SerialName("member_type") val memberType: String,
     val role: String,                 // superadmin | admin | user
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
 )
 
 @Serializable

@@ -51,6 +51,7 @@ import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
+import com.example.moimtalk.data.friendlySupabaseError
 import kotlinx.coroutines.launch
 
 // ===== 테마 색 =====
@@ -90,10 +91,24 @@ class MoimViewModel : ViewModel() {
             error = null
             try {
                 MoimRepository.signIn(email, pw)
+                try {
+                    myProfile = MoimRepository.myProfile()
+                } catch (e: Exception) {
+                    throw Exception("프로필 조회: ${e.message}", e)
+                }
+                try {
+                    rooms = MoimRepository.rooms()
+                } catch (e: Exception) {
+                    throw Exception("방 목록 조회: ${e.message}", e)
+                }
                 loggedIn = true
-                loadRooms()
             } catch (e: Exception) {
-                error = "로그인 실패: " + e.message
+                loggedIn = false
+                try {
+                    MoimRepository.signOut()
+                } catch (_: Exception) {
+                }
+                error = friendlySupabaseError(e, "로그인")
             }
             loading = false
         }
@@ -117,7 +132,7 @@ class MoimViewModel : ViewModel() {
                 myProfile = MoimRepository.myProfile()
                 rooms = MoimRepository.rooms()
             } catch (e: Exception) {
-                error = e.message
+                error = friendlySupabaseError(e, "데이터 불러오기")
             }
         }
     }
@@ -128,7 +143,7 @@ class MoimViewModel : ViewModel() {
             try {
                 messages = MoimRepository.messages(room.id)
             } catch (e: Exception) {
-                error = e.message
+                error = friendlySupabaseError(e, "메시지 불러오기")
             }
         }
     }
@@ -146,7 +161,7 @@ class MoimViewModel : ViewModel() {
                 MoimRepository.sendMessage(rid, text)
                 messages = MoimRepository.messages(rid)
             } catch (e: Exception) {
-                error = "전송 실패: " + e.message
+                error = friendlySupabaseError(e, "전송")
             }
         }
     }

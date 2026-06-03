@@ -25,8 +25,9 @@ object MoimRepository {
         val uid = currentUserId() ?: error("Not logged in")
         return supabase.from("profiles").select {
             filter { eq("id", uid) }
-            single()
-        }.decodeSingle()
+        }.decodeList<Profile>()
+            .firstOrNull()
+            ?: error("프로필이 없습니다")
     }
 
     suspend fun rooms(): List<Room> =

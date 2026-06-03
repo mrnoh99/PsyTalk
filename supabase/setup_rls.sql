@@ -1,0 +1,2 @@
+-- setup_rls.sql → install.sql 로 통합되었습니다.
+-- Supabase SQL Editor에서 supabase/install.sql 전체를 실행하세요.

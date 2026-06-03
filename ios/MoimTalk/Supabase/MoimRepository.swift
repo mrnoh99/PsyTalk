@@ -113,6 +113,19 @@ enum MoimRepository {
         try await supabase.from("room_files").insert(payload).execute()
     }
 
+    // ── 병실 잔여 현황 (메모) ──
+    static func wardStatus() async throws -> WardStatus {
+        let rows: [WardStatus] = try await supabase.from("ward_status")
+            .select().eq("id", value: 1).execute().value
+        return rows.first ?? WardStatus()
+    }
+
+    static func updateWardStatus(content: String) async throws {
+        let nowIso = ISO8601DateFormatter().string(from: Date())
+        let payload = WardStatusUpdate(content: content, updatedBy: currentUserId(), updatedAt: nowIso)
+        try await supabase.from("ward_status").update(payload).eq("id", value: 1).execute()
+    }
+
     /// Storage('room-files' 버킷) 업로드 후 공개 URL 반환
     static func uploadToStorage(roomId: String, fileName: String, data: Data) async throws -> String {
         let safe = fileName.replacingOccurrences(

@@ -1,34 +1,21 @@
 import SwiftUI
 
-// 병실 잔여 현황 데이터 (수동 갱신 — 추후 DB 연동 가능). Android 와 동일 내용.
-private struct BedRow: Identifiable {
-    let id = UUID()
-    let type: String
-    let seats: Int
-    let note: String?
-}
-private struct BedSection: Identifiable {
-    let id = UUID()
-    let gender: String
-    let emoji: String
-    let rows: [BedRow]
-}
-
-private let wardSections: [BedSection] = [
-    BedSection(gender: "남자", emoji: "👨", rows: [
-        BedRow(type: "다인실", seats: 0, note: "1자리 EICU 전과예정"),
-        BedRow(type: "3인실 (APICU)", seats: 0, note: nil)
-    ]),
-    BedSection(gender: "여자", emoji: "👩", rows: [
-        BedRow(type: "다인실", seats: 0, note: "여자 1자리 퇴원예정"),
-        BedRow(type: "3인실 (APICU)", seats: 1, note: nil),
-        BedRow(type: "2인실 (APICU)", seats: 0, note: nil)
-    ])
-]
-
-// 병실 잔여 현황 페이지 (Android WardStatusScreen 과 동일)
+// 병실 잔여 현황 — 메모 형식 자유 텍스트 (편집 → 게시, 모두에게 공유)
 struct WardStatusView: View {
+    @ObservedObject var vm: MoimViewModel
     let onBack: () -> Void
+
+    @State private var editing = false
+    @State private var draft = ""
+
+    private var updatedLabel: String? {
+        guard let iso = vm.wardStatusUpdatedAt, let d = CalDate.parse(iso) else { return nil }
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ko_KR")
+        f.timeZone = CalDate.kst
+        f.dateFormat = "M/d HH:mm"
+        return f.string(from: d)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,54 +23,65 @@ struct WardStatusView: View {
                 Button(action: onBack) { Text("‹").font(.system(size: 25)) }
                 Text("병실 잔여 현황").font(.system(size: 18, weight: .bold))
                 Spacer()
+                if !editing {
+                    Button("편집") { draft = vm.wardStatus; editing = true }.font(.system(size: 15, weight: .bold))
+                }
             }
             .padding(.horizontal, 16).padding(.vertical, 12)
             .background(Moim.paper)
             Divider().background(Moim.line)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    HStack(spacing: 8) {
-                        Text("🛏").font(.system(size: 22))
-                        Text("병실 잔여 현황").font(.system(size: 18, weight: .heavy)).foregroundColor(Moim.ink)
+            if editing {
+                VStack(spacing: 12) {
+                    TextEditor(text: $draft)
+                        .font(.system(size: 15))
+                        .padding(8)
+                        .background(Moim.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Moim.line))
+                    HStack(spacing: 10) {
+                        Button { editing = false } label: {
+                            Text("취소").frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .background(Moim.line).foregroundColor(Moim.ink)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        Button { vm.saveWardStatus(draft) { editing = false } } label: {
+                            Text("게시").frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .background(Moim.accent).foregroundColor(.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
                     }
-                    Text("잔여 병상 현황 (수동 갱신)").font(.system(size: 12)).foregroundColor(Moim.sub)
-                        .padding(.top, 4).padding(.bottom, 14)
-
-                    ForEach(wardSections) { sectionCard($0) }
                 }
                 .padding(16)
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack(spacing: 8) {
+                            Text("🛏").font(.system(size: 22))
+                            Text("병실 잔여 현황").font(.system(size: 18, weight: .heavy)).foregroundColor(Moim.ink)
+                        }
+                        if let label = updatedLabel {
+                            Text("최종 수정: \(label)").font(.system(size: 11)).foregroundColor(Moim.sub).padding(.top, 4)
+                        }
+                        Spacer().frame(height: 14)
+
+                        if vm.wardStatus.isEmpty {
+                            EmptyBox(emoji: "🛏", title: "작성된 내용이 없습니다",
+                                     subtitle: "우측 상단 ‘편집’을 눌러\n병실 잔여 현황을 작성하세요.")
+                        } else {
+                            Text(vm.wardStatus)
+                                .font(.system(size: 15)).foregroundColor(Moim.ink)
+                                .lineSpacing(6)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(16)
+                                .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 15))
+                        }
+                    }
+                    .padding(16)
+                }
             }
         }
         .background(Moim.paper.ignoresSafeArea())
-    }
-
-    private func sectionCard(_ sec: BedSection) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("\(sec.emoji) \(sec.gender)").font(.system(size: 15, weight: .heavy)).foregroundColor(Moim.ink)
-            ForEach(Array(sec.rows.enumerated()), id: \.offset) { idx, r in
-                if idx > 0 { Divider().background(Moim.line.opacity(0.5)) }
-                bedRow(r)
-            }
-        }
-        .padding(15)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 15))
-        .padding(.bottom, 13)
-    }
-
-    private func bedRow(_ r: BedRow) -> some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(r.type).font(.system(size: 14, weight: .semibold)).foregroundColor(Moim.ink)
-                if let note = r.note { Text(note).font(.system(size: 11.5)).foregroundColor(Moim.sub) }
-            }
-            Spacer()
-            Text("\(r.seats)자리")
-                .font(.system(size: 13, weight: .heavy)).foregroundColor(.white)
-                .padding(.horizontal, 10).padding(.vertical, 5)
-                .background(r.seats > 0 ? catColor("work") : Moim.admin)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
+        .onAppear { vm.loadWardStatus() }
     }
 }

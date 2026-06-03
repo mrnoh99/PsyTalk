@@ -140,3 +140,18 @@ data class RoomFileInsert(
     @SerialName("uploaded_by") val uploadedBy: String,
     val source: String = "upload",
 )
+
+// 병실 잔여 현황 (단일 행, 메모 형식 자유 텍스트)
+@Serializable
+data class WardStatus(
+    val id: Int = 1,
+    val content: String = "",
+    @SerialName("updated_at") val updatedAt: String? = null,
+)
+
+@Serializable
+data class WardStatusUpdate(
+    val content: String,
+    @SerialName("updated_by") val updatedBy: String? = null,
+    @SerialName("updated_at") val updatedAt: String,
+)

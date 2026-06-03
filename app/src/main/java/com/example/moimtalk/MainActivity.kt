@@ -211,6 +211,36 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    // ── 병실 잔여 현황 (메모) ──
+    var wardStatus by mutableStateOf("")
+    var wardStatusUpdatedAt by mutableStateOf<String?>(null)
+
+    fun loadWardStatus() {
+        viewModelScope.launch {
+            try {
+                val w = MoimRepository.wardStatus()
+                wardStatus = w.content
+                wardStatusUpdatedAt = w.updatedAt
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "병실현황 불러오기")
+            }
+        }
+    }
+
+    fun saveWardStatus(content: String, onDone: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.updateWardStatus(content)
+                val w = MoimRepository.wardStatus()
+                wardStatus = w.content
+                wardStatusUpdatedAt = w.updatedAt
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "병실현황 저장")
+            }
+        }
+    }
+
     fun nameOf(userId: String): String = profilesById[userId]?.name ?: "?"
 
     fun canEditEvent(e: CalendarEvent): Boolean {
@@ -266,7 +296,7 @@ fun App(vm: MoimViewModel = viewModel()) {
     when {
         !vm.loggedIn -> LoginScreen(vm)
         showAdmin -> AdminPlaceholderScreen(onBack = { showAdmin = false })
-        showWard -> WardStatusScreen(onBack = { showWard = false })
+        showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
         openedRoom == null -> RoomListScreen(
             vm = vm,
             onOpen = { room ->

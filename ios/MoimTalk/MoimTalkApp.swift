@@ -21,7 +21,7 @@ struct RootView: View {
             } else if showAdmin {
                 AdminPlaceholderView(onBack: { showAdmin = false })
             } else if showWard {
-                WardStatusView(onBack: { showWard = false })
+                WardStatusView(vm: vm, onBack: { showWard = false })
             } else if let room = openedRoom {
                 RoomView(vm: vm, room: room, onBack: {
                     vm.closeRoom(); openedRoom = nil

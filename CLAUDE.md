@@ -74,8 +74,9 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 1. `fix_signup.sql` — 회원가입·profiles
 2. `schema_extension.sql` — room_members, room_writers, calendar_events, room_files + RLS
 3. `storage_setup.sql` — `room-files` 버킷·정책
-4. `seed_rooms.sql` — 기본 12방
-5. `install.sql` — GRANT·RLS
+4. `ward_status.sql` — 병실 잔여 현황 메모(단일 행)
+5. `seed_rooms.sql` — 기본 12방
+6. `install.sql` — GRANT·RLS
 
 > `schema_extension.sql`이 `profiles` 조회를 "본인만→인증 사용자 전체"로 바꿉니다(작성자 이름 표시용).
 > 캘린더/자료실 작성은 현재 `owner=본인`만 검사하며, `room_members` 연동 시 강화 예정.

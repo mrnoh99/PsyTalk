@@ -116,7 +116,8 @@ fun LoginScreen(vm: MoimViewModel) {
 fun RoomListScreen(
     vm: MoimViewModel,
     onOpen: (Room) -> Unit,
-    onAdmin: () -> Unit
+    onAdmin: () -> Unit,
+    onWard: () -> Unit
 ) {
     val profile = vm.myProfile
     val defaultRooms = vm.rooms.filter { it.category != "custom" }.sortedBy { it.sortOrder }
@@ -201,6 +202,7 @@ fun RoomListScreen(
                 .padding(pad)
                 .fillMaxSize()
         ) {
+            item { WardStatusBanner(onWard) }
             if (vm.rooms.isEmpty()) {
                 item { EmptyBox("🔒", "아직 들어간 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
             } else {
@@ -578,6 +580,68 @@ fun AdminPlaceholderScreen(onBack: () -> Unit) {
                 color = MoimSub,
                 fontSize = 14.sp,
                 lineHeight = 20.sp
+            )
+        }
+    }
+}
+
+// 방 목록 맨 위 고정 배너 — 탭하면 병실현황 페이지로
+@Composable
+private fun WardStatusBanner(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFFEA7317))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("🛏", fontSize = 20.sp)
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text("현재 병실현황", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+            Text("실시간 병동 입원 현황 보기", color = Color(0xFFFFE9D6), fontSize = 11.5.sp)
+        }
+        Text("›", color = Color.White, fontSize = 20.sp)
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WardStatusScreen(onBack: () -> Unit) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("현재 병실현황", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
+            )
+        },
+        containerColor = MoimPaper
+    ) { pad ->
+        Column(
+            modifier = Modifier
+                .padding(pad)
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text("🛏", fontSize = 44.sp)
+            Spacer(Modifier.height(14.dp))
+            Text("현재 병실현황", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MoimInk)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "병동 입원·병상 현황을 여기에 표시합니다.\n" +
+                    "표시할 항목(병상/환자 목록·담당의 등)을 정해 주시면 채워 넣겠습니다.",
+                color = MoimSub,
+                fontSize = 13.5.sp,
+                lineHeight = 20.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
             )
         }
     }

@@ -24,6 +24,7 @@ import com.example.moimtalk.ui.AdminPlaceholderScreen
 import com.example.moimtalk.ui.LoginScreen
 import com.example.moimtalk.ui.RoomListScreen
 import com.example.moimtalk.ui.RoomScreen
+import com.example.moimtalk.ui.WardStatusScreen
 import kotlinx.coroutines.launch
 
 // =====================================================================
@@ -254,6 +255,7 @@ class MainActivity : ComponentActivity() {
 fun App(vm: MoimViewModel = viewModel()) {
     var openedRoom by remember { mutableStateOf<Room?>(null) }
     var showAdmin by remember { mutableStateOf(false) }
+    var showWard by remember { mutableStateOf(false) }
 
     LaunchedEffect(vm.loggedIn) {
         if (vm.loggedIn) {
@@ -264,13 +266,15 @@ fun App(vm: MoimViewModel = viewModel()) {
     when {
         !vm.loggedIn -> LoginScreen(vm)
         showAdmin -> AdminPlaceholderScreen(onBack = { showAdmin = false })
+        showWard -> WardStatusScreen(onBack = { showWard = false })
         openedRoom == null -> RoomListScreen(
             vm = vm,
             onOpen = { room ->
                 openedRoom = room
                 vm.openRoom(room)
             },
-            onAdmin = { showAdmin = true }
+            onAdmin = { showAdmin = true },
+            onWard = { showWard = true }
         )
         else -> RoomScreen(
             vm = vm,

@@ -341,7 +341,8 @@ fun RoomRow(room: Room, onOpen: (Room) -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
-    var tab by remember { mutableStateOf("chat") }
+    // 주간 학술활동 등 default_view='week' 방은 열자마자 캘린더(주간 목록)로 (프로토타입과 동일)
+    var tab by remember { mutableStateOf(if (room.defaultView == "week") "cal" else "chat") }
     var input by remember { mutableStateOf("") }
     val profile = vm.myProfile
     val canPost = canPostInRoom(profile, room)

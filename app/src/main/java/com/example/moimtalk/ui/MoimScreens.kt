@@ -601,12 +601,34 @@ private fun WardStatusBanner(onClick: () -> Unit) {
         Text("🛏", fontSize = 20.sp)
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text("현재 병실현황", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-            Text("실시간 병동 입원 현황 보기", color = Color(0xFFFFE9D6), fontSize = 11.5.sp)
+            Text("병실 잔여 현황", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+            Text("남 · 여 잔여 병상 보기", color = Color(0xFFFFE9D6), fontSize = 11.5.sp)
         }
         Text("›", color = Color.White, fontSize = 20.sp)
     }
 }
+
+// 병실 잔여 현황 데이터 (수동 갱신 — 추후 DB 연동 가능)
+private data class BedRow(val type: String, val seats: Int, val note: String? = null)
+private data class BedSection(val gender: String, val emoji: String, val rows: List<BedRow>)
+
+private val wardSections = listOf(
+    BedSection(
+        "남자", "👨",
+        listOf(
+            BedRow("다인실", 0, "1자리 EICU 전과예정"),
+            BedRow("3인실 (APICU)", 0)
+        )
+    ),
+    BedSection(
+        "여자", "👩",
+        listOf(
+            BedRow("다인실", 0, "여자 1자리 퇴원예정"),
+            BedRow("3인실 (APICU)", 1),
+            BedRow("2인실 (APICU)", 0)
+        )
+    )
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -614,7 +636,7 @@ fun WardStatusScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("현재 병실현황", fontWeight = FontWeight.Bold) },
+                title = { Text("병실 잔여 현황", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
                 },
@@ -623,27 +645,65 @@ fun WardStatusScreen(onBack: () -> Unit) {
         },
         containerColor = MoimPaper
     ) { pad ->
-        Column(
+        LazyColumn(
             modifier = Modifier
                 .padding(pad)
                 .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .padding(16.dp)
         ) {
-            Text("🛏", fontSize = 44.sp)
-            Spacer(Modifier.height(14.dp))
-            Text("현재 병실현황", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MoimInk)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "병동 입원·병상 현황을 여기에 표시합니다.\n" +
-                    "표시할 항목(병상/환자 목록·담당의 등)을 정해 주시면 채워 넣겠습니다.",
-                color = MoimSub,
-                fontSize = 13.5.sp,
-                lineHeight = 20.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🛏", fontSize = 22.sp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("병실 잔여 현황", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MoimInk)
+                }
+                Spacer(Modifier.height(4.dp))
+                Text("잔여 병상 현황 (수동 갱신)", fontSize = 12.sp, color = MoimSub)
+                Spacer(Modifier.height(14.dp))
+            }
+            items(wardSections) { sec -> WardSectionCard(sec) }
         }
+    }
+}
+
+@Composable
+private fun WardSectionCard(sec: BedSection) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 13.dp)
+            .clip(RoundedCornerShape(15.dp))
+            .background(MoimWhite)
+            .padding(15.dp)
+    ) {
+        Text("${sec.emoji} ${sec.gender}", fontWeight = FontWeight.ExtraBold, fontSize = 15.sp, color = MoimInk)
+        Spacer(Modifier.height(10.dp))
+        sec.rows.forEachIndexed { i, r ->
+            if (i > 0) {
+                HorizontalDivider(color = MoimLine.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 8.dp))
+            }
+            BedRowView(r)
+        }
+    }
+}
+
+@Composable
+private fun BedRowView(r: BedRow) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(r.type, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MoimInk)
+            r.note?.let { Text(it, fontSize = 11.5.sp, color = MoimSub) }
+        }
+        val avail = r.seats > 0
+        Text(
+            "${r.seats}자리",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.ExtraBold,
+            color = Color.White,
+            modifier = Modifier
+                .background(if (avail) catColor("work") else MoimAdmin, RoundedCornerShape(8.dp))
+                .padding(horizontal = 10.dp, vertical = 5.dp)
+        )
     }
 }
 

@@ -141,6 +141,32 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    // ── 병실 잔여 현황 (메모) ──
+    @Published var wardStatus: String = ""
+    @Published var wardStatusUpdatedAt: String?
+
+    func loadWardStatus() {
+        Task {
+            do {
+                let w = try await MoimRepository.wardStatus()
+                wardStatus = w.content
+                wardStatusUpdatedAt = w.updatedAt
+            } catch { self.error = "병실현황 불러오기: \(error.localizedDescription)" }
+        }
+    }
+
+    func saveWardStatus(_ content: String, onDone: @escaping () -> Void) {
+        Task {
+            do {
+                try await MoimRepository.updateWardStatus(content: content)
+                let w = try await MoimRepository.wardStatus()
+                wardStatus = w.content
+                wardStatusUpdatedAt = w.updatedAt
+                onDone()
+            } catch { self.error = "병실현황 저장: \(error.localizedDescription)" }
+        }
+    }
+
     func name(of userId: String) -> String { profilesById[userId]?.name ?? "?" }
 
     func isMine(_ m: Message) -> Bool { m.senderId == MoimRepository.currentUserId() }

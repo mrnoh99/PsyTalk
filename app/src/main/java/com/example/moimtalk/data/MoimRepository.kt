@@ -155,6 +155,20 @@ object MoimRepository {
         )
     }
 
+    // ── 병실 잔여 현황 (메모) ──
+    suspend fun wardStatus(): WardStatus =
+        supabase.from("ward_status").select {
+            filter { eq("id", 1) }
+        }.decodeList<WardStatus>().firstOrNull() ?: WardStatus()
+
+    suspend fun updateWardStatus(content: String) {
+        val uid = currentUserId()
+        val nowIso = java.time.OffsetDateTime.now().toString()
+        supabase.from("ward_status").update(
+            WardStatusUpdate(content = content, updatedBy = uid, updatedAt = nowIso)
+        ) { filter { eq("id", 1) } }
+    }
+
     /** 파일을 Storage('room-files' 버킷)에 올리고 공개 URL 을 반환 */
     private suspend fun uploadToStorage(roomId: String, fileName: String, bytes: ByteArray): String {
         val safe = fileName.replace(Regex("[^A-Za-z0-9._가-힣-]"), "_")

@@ -172,3 +172,27 @@ struct RoomFileInsert: Encodable {
         case uploadedBy = "uploaded_by"
     }
 }
+
+// 병실 잔여 현황 (단일 행, 메모 형식)
+struct WardStatus: Codable {
+    var id: Int = 1
+    var content: String = ""
+    var updatedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, content
+        case updatedAt = "updated_at"
+    }
+}
+
+struct WardStatusUpdate: Encodable {
+    let content: String
+    var updatedBy: String?
+    let updatedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case content
+        case updatedBy = "updated_by"
+        case updatedAt = "updated_at"
+    }
+}

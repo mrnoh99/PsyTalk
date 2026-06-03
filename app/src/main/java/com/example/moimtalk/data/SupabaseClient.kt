@@ -1,4 +1,4 @@
-ppackage com.example.moimtalk.data
+package com.example.moimtalk.data
 
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.auth.Auth

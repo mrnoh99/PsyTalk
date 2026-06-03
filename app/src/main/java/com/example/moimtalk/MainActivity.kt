@@ -393,7 +393,7 @@ fun MessageBubble(m: Message, mine: Boolean) {
                 .background(bg, RoundedCornerShape(16.dp))
                 .padding(horizontal = 12.dp, vertical = 9.dp)
         ) {
-            Text(m.content ?: "", color = Ink, fontSize = 15.sp)
+            Text(m.content.orEmpty(), color = Ink, fontSize = 15.sp)
         }
     }
 }

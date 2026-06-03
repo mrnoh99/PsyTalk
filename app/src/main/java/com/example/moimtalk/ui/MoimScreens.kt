@@ -1,5 +1,6 @@
 package com.example.moimtalk.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -39,12 +40,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.moimtalk.MoimViewModel
+import com.example.moimtalk.R
 import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.Room
 
@@ -60,6 +64,15 @@ fun LoginScreen(vm: MoimViewModel) {
             .padding(28.dp),
         verticalArrangement = Arrangement.Center
     ) {
+        Image(
+            painter = painterResource(R.drawable.aumc_psy_logo),
+            contentDescription = "AUMC PSY",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .size(88.dp)
+                .clip(RoundedCornerShape(20.dp))
+        )
+        Spacer(Modifier.height(20.dp))
         Text("모임톡", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = MoimInk)
         Text("정신건강의학과", fontSize = 15.sp, color = MoimSub)
         Spacer(Modifier.height(32.dp))

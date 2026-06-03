@@ -46,20 +46,29 @@
 ### 멀티 방 게시
 - 한 방에서 글 작성 시 접근 권한 있는 다른 방에도 동시 게시 (중복 방지). 스키마 `message_cross_posts`. **앱 미구현(예정).**
 
-## 저장소 구조
+## 저장소 구조 (모노레포 — Android + iOS 공용 백엔드)
 
 ```
-app/src/main/java/com/example/moimtalk/
-  MainActivity.kt              # MoimViewModel(상태) + App() 네비게이션
-  data/SupabaseClient.kt       # Supabase 클라이언트 + 직렬화 모델
-  data/MoimRepository.kt       # 모든 Supabase 호출(메시지/일정/자료/스토리지)
-  ui/MoimScreens.kt            # 로그인·방목록·방(채팅탭)·관리자(placeholder)
-  ui/CalendarFilesPanes.kt     # 캘린더·자료실 패널 + 일정/업로드 다이얼로그
-  ui/MoimDesign.kt             # 색상·라벨·권한 헬퍼
-supabase/                      # SQL (아래 순서대로 실행)
+app/  (Android, Kotlin + Compose)
+  src/main/java/com/example/moimtalk/
+    MainActivity.kt            # MoimViewModel(상태) + App() 네비게이션
+    data/SupabaseClient.kt     # Supabase 클라이언트 + 직렬화 모델
+    data/MoimRepository.kt     # 모든 Supabase 호출(메시지/일정/자료/스토리지)
+    ui/MoimScreens.kt          # 로그인·방목록·방(채팅탭)·병실현황·관리자(placeholder)
+    ui/CalendarFilesPanes.kt   # 캘린더·자료실 패널 + 일정/업로드 다이얼로그
+    ui/MoimDesign.kt           # 색상·라벨·권한 헬퍼
+ios/  (iOS, SwiftUI + supabase-swift) — Android 구조를 1:1 미러링
+  MoimTalk/Supabase/{SupabaseClient,Models,MoimRepository}.swift
+  MoimTalk/ViewModel/MoimViewModel.swift · Design/MoimDesign.swift
+  MoimTalk/Views/{Login,RoomList,Room,Calendar,Files,WardStatus,...}.swift
+  project.yml (XcodeGen) · README.md
+supabase/                      # SQL (아래 순서대로 실행) — 두 앱 공용 백엔드
 docs/모임톡_요구사항.md          # 상세 요구사항(기준 문서)
 prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 ```
+
+> **Android ↔ iOS 동일 형식·논리.** 백엔드(Supabase)·도메인 규칙·SQL은 한 벌을 공유하고
+> 코드만 두 벌. 한쪽을 고치면 다른 쪽도 같은 구조로 맞춥니다. 대응표는 `ios/README.md`.
 
 ## Supabase 설정 순서
 1. `fix_signup.sql` — 회원가입·profiles

@@ -2,7 +2,7 @@
 -- PsyTalk 한 번에 설정 (권한 + RLS)
 -- Supabase Dashboard → SQL Editor → 이 파일 전체 Run
 --
--- 사용자 생성 오류가 있었다면 fix_signup.sql 을 먼저 실행한 뒤 이 파일을 실행하세요.
+-- 권장 순서: fix_signup.sql → schema_extension.sql → seed_rooms.sql → install.sql
 -- =============================================================================
 
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;

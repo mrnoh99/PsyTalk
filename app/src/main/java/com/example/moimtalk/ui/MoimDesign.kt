@@ -14,6 +14,7 @@ val MoimYellow = Color(0xFFFFE45C)
 val MoimLine = Color(0xFFDCD5CC)
 val MoimAdmin = Color(0xFFC0452F)
 val MoimWhite = Color(0xFFFFFFFF)
+val MoimHint = Color(0xFFC4BCB2)   // placeholder(예시) — 입력값과 헷갈리지 않게 연하게
 
 fun catColor(category: String): Color = when (category) {
     "notice" -> Color(0xFFB5651D)

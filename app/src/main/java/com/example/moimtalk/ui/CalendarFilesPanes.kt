@@ -290,9 +290,9 @@ private fun FileUploadDialog(fileName: String, onDismiss: () -> Unit, onConfirm:
     var kw by remember { mutableStateOf("") }
     SheetDialog(title = "자료 올리기", subtitle = fileName, onDismiss = onDismiss) {
         FieldLabel("설명문")
-        OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 발표 슬라이드 초안") }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 발표 슬라이드 초안", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
         FieldLabel("키워드 (쉼표로 구분)")
-        OutlinedTextField(kw, { kw = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("코호트, 우울증") }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(kw, { kw = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("코호트, 우울증", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
         Spacer(Modifier.height(18.dp))
         PrimaryButton("업로드") { onConfirm(desc.trim(), parseKeywords(kw)) }
     }
@@ -609,22 +609,22 @@ private fun EventDialog(
 
     SheetDialog(title = title, subtitle = "참석범위·첨부자료까지 등록할 수 있습니다.", onDismiss = onDismiss) {
         FieldLabel("제목")
-        OutlinedTextField(evTitle, { evTitle = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 증례 컨퍼런스") }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(evTitle, { evTitle = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 증례 컨퍼런스", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
         FieldLabel("날짜 · 시간")
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-            OutlinedTextField(dateStr, { dateStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("2026-06-05") }, singleLine = true, shape = RoundedCornerShape(11.dp))
-            OutlinedTextField(timeStr, { timeStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("14:00") }, singleLine = true, shape = RoundedCornerShape(11.dp))
+            OutlinedTextField(dateStr, { dateStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("2026-06-05", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+            OutlinedTextField(timeStr, { timeStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("14:00", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
         }
         FieldLabel("장소")
-        OutlinedTextField(place, { place = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("의국 회의실") }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(place, { place = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("의국 회의실", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
         FieldLabel("링크 (선택)")
-        OutlinedTextField(link, { link = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("https://zoom.us/...") }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(link, { link = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("https://zoom.us/...", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
         FieldLabel("참석 범위")
-        OutlinedTextField(scope, { scope = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 의국 전공의 전원") }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(scope, { scope = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 의국 전공의 전원", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
         FieldLabel("설명")
-        OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("안건 / 준비사항") }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("안건 / 준비사항", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
         FieldLabel("키워드 (쉼표로 구분)")
-        OutlinedTextField(kw, { kw = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("컨퍼런스, 증례, 교육") }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(kw, { kw = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("컨퍼런스, 증례, 교육", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
 
         if (allowAttachment) {
             FieldLabel("첨부 자료")
@@ -640,7 +640,7 @@ private fun EventDialog(
                 Text(att?.first?.let { "📎 $it" } ?: "📎 파일 첨부", color = MoimSub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
             FieldLabel("첨부 자료 설명")
-            OutlinedTextField(attDesc, { attDesc = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 발표 슬라이드 초안") }, singleLine = true, shape = RoundedCornerShape(11.dp))
+            OutlinedTextField(attDesc, { attDesc = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 발표 슬라이드 초안", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
         } else {
             Spacer(Modifier.height(6.dp))
             Text("※ 첨부 파일은 일정 수정 시 변경할 수 없습니다.", fontSize = 11.sp, color = MoimSub, modifier = Modifier.padding(top = 8.dp))

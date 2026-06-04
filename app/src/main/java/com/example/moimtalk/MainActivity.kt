@@ -13,7 +13,10 @@ import androidx.compose.runtime.remember
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import com.example.moimtalk.data.CalendarEvent
 import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRepository
@@ -347,6 +350,16 @@ fun App(vm: MoimViewModel = viewModel()) {
                 vm.closeRoom()
                 openedRoom = null
             }
+        )
+    }
+
+    // 전역 오류 표시 (등록/수정/업로드 실패 원인이 보이도록)
+    vm.error?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { vm.error = null },
+            confirmButton = { TextButton(onClick = { vm.error = null }) { Text("확인") } },
+            title = { Text("오류") },
+            text = { Text(msg) }
         )
     }
 }

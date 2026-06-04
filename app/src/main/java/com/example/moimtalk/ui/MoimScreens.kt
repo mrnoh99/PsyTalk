@@ -7,6 +7,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -65,9 +66,12 @@ fun LoginScreen(vm: MoimViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .background(MoimPaper)
+            .verticalScroll(rememberScrollState())
+            .imePadding()
             .padding(28.dp),
         verticalArrangement = Arrangement.Center
     ) {
+        Spacer(Modifier.height(40.dp))
         Image(
             painter = painterResource(R.drawable.aumc_psy_logo),
             contentDescription = "AUMC PSY",

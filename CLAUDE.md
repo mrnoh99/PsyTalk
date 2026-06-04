@@ -93,7 +93,13 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 - **리소스 파일명:** `res/drawable` 등은 **소문자·숫자·언더스코어만** (예: `aumc_psy_logo.png`)
 - **현황 표:** 새 기능 추가/구현 시 `docs/모임톡_요구사항.md`의 구현 현황과 `prototype/PARITY.md`를 함께 갱신
 
+## 관리자 콘솔 (관리 프로그램)
+- **iOS(iPad/Mac) 앱에 포함** — 멤버(직군·역할)·방 목록 조회. `ios/.../AdminPlaceholderView.swift`
+  (iPad 앱이 Apple Silicon Mac에서 실행됨. `project.yml` device family `1,2`)
+- **웹·Android·iOS 폰**: 관리자 콘솔 없음(웹은 명시적으로 제외).
+- 멤버 역할 편집·방 작성자 지정 등 **관리 기능은 예정**(현재는 조회).
+
 ## 아직 앱에 없는 것 (우선순위 참고)
-멀티 방 게시 · 관리자 콘솔(멤버/방/작성자 관리) · `room_writers` 연동 ·
+멀티 방 게시 · `room_writers` 연동 · 관리자 콘솔의 편집 기능 ·
 방 목록의 마지막 메시지·안 읽음 배지
-(모임방 생성 ✅ 구현됨 — 카톡식, 누구나)
+(모임방 생성 ✅ 카톡식 누구나 · 관리자 콘솔 조회 ✅ iPad/Mac)

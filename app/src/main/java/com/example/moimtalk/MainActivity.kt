@@ -331,8 +331,11 @@ class MoimViewModel : ViewModel() {
 
     fun nameOf(userId: String): String = profilesById[userId]?.name ?: "?"
 
+    // 본인 제외 + 승인된 멤버만 (대기 중인 가입자는 방에 추가 불가)
     fun otherProfiles(): List<Profile> =
-        profilesById.values.filter { it.id != MoimRepository.currentUserId() }.sortedBy { it.name }
+        profilesById.values
+            .filter { it.id != MoimRepository.currentUserId() && it.approved != false }
+            .sortedBy { it.name }
 
     fun canEditEvent(e: CalendarEvent): Boolean {
         val role = myProfile?.role

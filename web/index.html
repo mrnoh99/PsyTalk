@@ -561,7 +561,8 @@ async function wardSave(){
 /* ====== 모임방 만들기 ====== */
 function openCreate(){
   cpick=new Set();document.getElementById('newRoomName').value='';
-  const others=Object.values(profilesById).filter(p=>p.id!==me.id).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  // 본인 제외 + 승인된 멤버만 (대기 중인 가입자는 방에 추가 불가)
+  const others=Object.values(profilesById).filter(p=>p.id!==me.id&&p.approved!==false).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   document.getElementById('cpickList').innerHTML=others.length?others.map(p=>`
     <div class="pick" data-id="${p.id}" onclick="toggleC('${p.id}')">
       <div class="av" style="background:${tcolor(p.member_type)}">${ini(p.name)}</div>

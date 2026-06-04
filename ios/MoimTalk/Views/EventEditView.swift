@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 
 struct EventFormData {
@@ -41,8 +42,8 @@ struct EventEditView: View {
             Form {
                 Section {
                     TextField("제목 (예: 증례 컨퍼런스)", text: $evTitle)
-                    DatePicker("날짜", selection: $date, displayedComponents: .date)
-                    DatePicker("시간", selection: $time, displayedComponents: .hourAndMinute)
+                    DatePicker("날짜", selection: $date, displayedComponents: .date).datePickerStyle(.compact)
+                    DatePicker("시간", selection: $time, displayedComponents: .hourAndMinute).datePickerStyle(.compact)
                     TextField("장소 (의국 회의실)", text: $place)
                     TextField("발표자 (이름·직위, 여러 명은 쉼표로)", text: $presenter, axis: .vertical).lineLimit(2...4)
                     TextField("링크 (https://zoom.us/...)", text: $link).autocapitalization(.none)
@@ -76,10 +77,17 @@ struct EventEditView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .scrollDismissesKeyboard(.interactively)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(initial == nil ? "등록" : "저장") { submit() }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("완료") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
                 }
             }
             .fileImporter(isPresented: $showImporter, allowedContentTypes: [.item], allowsMultipleSelection: true) { result in

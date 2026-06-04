@@ -13,6 +13,7 @@ struct RootView: View {
     @State private var openedRoom: Room?
     @State private var showAdmin = false
     @State private var showWard = false
+    @State private var showCreateRoom = false
 
     var body: some View {
         Group {
@@ -22,6 +23,8 @@ struct RootView: View {
                 AdminPlaceholderView(onBack: { showAdmin = false })
             } else if showWard {
                 WardStatusView(vm: vm, onBack: { showWard = false })
+            } else if showCreateRoom {
+                CreateRoomView(vm: vm, onBack: { showCreateRoom = false })
             } else if let room = openedRoom {
                 RoomView(vm: vm, room: room, onBack: {
                     vm.closeRoom(); openedRoom = nil
@@ -31,7 +34,8 @@ struct RootView: View {
                     vm: vm,
                     onOpen: { room in openedRoom = room; vm.openRoom(room) },
                     onAdmin: { showAdmin = true },
-                    onWard: { showWard = true }
+                    onWard: { showWard = true },
+                    onCreateRoom: { showCreateRoom = true }
                 )
             }
         }

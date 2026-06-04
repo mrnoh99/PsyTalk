@@ -5,6 +5,7 @@ struct RoomListView: View {
     let onOpen: (Room) -> Void
     let onAdmin: () -> Void
     let onWard: () -> Void
+    let onCreateRoom: () -> Void
 
     private var defaultRooms: [Room] {
         vm.rooms.filter { $0.category != "custom" }.sorted { $0.sortOrder < $1.sortOrder }
@@ -30,8 +31,8 @@ struct RoomListView: View {
                         }
                         SectionHead(
                             title: "👥 모임 방",
-                            action: (vm.myProfile.map { isAdminRole($0.role) } == true) ? "＋ 만들기" : nil,
-                            onAction: onAdmin
+                            action: "＋ 만들기",
+                            onAction: onCreateRoom
                         )
                         if customRooms.isEmpty {
                             Text("아직 모임방이 없습니다.")

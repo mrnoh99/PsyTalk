@@ -21,6 +21,7 @@ import com.example.moimtalk.data.Room
 import com.example.moimtalk.data.RoomFile
 import com.example.moimtalk.data.friendlySupabaseError
 import com.example.moimtalk.ui.AdminPlaceholderScreen
+import com.example.moimtalk.ui.CreateRoomScreen
 import com.example.moimtalk.ui.LoginScreen
 import com.example.moimtalk.ui.RoomListScreen
 import com.example.moimtalk.ui.RoomScreen
@@ -241,7 +242,22 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    fun createRoom(name: String, memberIds: List<String>, onDone: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.createRoom(name, memberIds)
+                rooms = MoimRepository.rooms()
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "방 만들기")
+            }
+        }
+    }
+
     fun nameOf(userId: String): String = profilesById[userId]?.name ?: "?"
+
+    fun otherProfiles(): List<Profile> =
+        profilesById.values.filter { it.id != MoimRepository.currentUserId() }.sortedBy { it.name }
 
     fun canEditEvent(e: CalendarEvent): Boolean {
         val role = myProfile?.role
@@ -286,6 +302,7 @@ fun App(vm: MoimViewModel = viewModel()) {
     var openedRoom by remember { mutableStateOf<Room?>(null) }
     var showAdmin by remember { mutableStateOf(false) }
     var showWard by remember { mutableStateOf(false) }
+    var showCreateRoom by remember { mutableStateOf(false) }
 
     LaunchedEffect(vm.loggedIn) {
         if (vm.loggedIn) {
@@ -297,6 +314,7 @@ fun App(vm: MoimViewModel = viewModel()) {
         !vm.loggedIn -> LoginScreen(vm)
         showAdmin -> AdminPlaceholderScreen(onBack = { showAdmin = false })
         showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
+        showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
         openedRoom == null -> RoomListScreen(
             vm = vm,
             onOpen = { room ->
@@ -304,7 +322,8 @@ fun App(vm: MoimViewModel = viewModel()) {
                 vm.openRoom(room)
             },
             onAdmin = { showAdmin = true },
-            onWard = { showWard = true }
+            onWard = { showWard = true },
+            onCreateRoom = { showCreateRoom = true }
         )
         else -> RoomScreen(
             vm = vm,

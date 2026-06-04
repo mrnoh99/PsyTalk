@@ -47,6 +47,24 @@ data class Room(
     @SerialName("post_policy") val postPolicy: String,  // restricted | members
     @SerialName("sort_order") val sortOrder: Int = 999,
     @SerialName("default_view") val defaultView: String? = null,
+    @SerialName("created_by") val createdBy: String? = null,
+)
+
+// 모임방 생성 DTO (사용자가 카톡처럼 방 생성)
+@Serializable
+data class RoomInsert(
+    val id: String,
+    val name: String,
+    val category: String = "custom",
+    @SerialName("post_policy") val postPolicy: String = "members",
+    @SerialName("sort_order") val sortOrder: Int,
+    @SerialName("created_by") val createdBy: String,
+)
+
+@Serializable
+data class RoomMemberInsert(
+    @SerialName("room_id") val roomId: String,
+    @SerialName("user_id") val userId: String,
 )
 
 @Serializable

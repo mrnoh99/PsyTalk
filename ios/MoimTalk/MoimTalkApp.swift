@@ -40,6 +40,14 @@ struct RootView: View {
             }
         }
         .preferredColorScheme(.light)
+        .alert("오류", isPresented: Binding(
+            get: { vm.error != nil },
+            set: { if !$0 { vm.error = nil } }
+        )) {
+            Button("확인", role: .cancel) { vm.error = nil }
+        } message: {
+            Text(vm.error ?? "")
+        }
         .onAppear { if vm.loggedIn { vm.loadRooms() } }
         .onChange(of: vm.loggedIn) { newValue in
             if newValue { vm.loadRooms() }

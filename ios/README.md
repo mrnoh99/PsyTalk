@@ -1,4 +1,4 @@
-# 모임톡 iOS (SwiftUI)
+# 아주 정신 iOS (SwiftUI)
 
 Android 앱(`/app`)과 **동일한 형식·논리**의 iOS 버전입니다.
 **같은 Supabase 백엔드**(Auth/Postgres/Storage)와 **같은 도메인 규칙**(멤버 8직군·기본 12방·

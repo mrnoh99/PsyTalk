@@ -17,6 +17,7 @@
 		66A372AA8458DB99401EF198 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 74F619C44F2D7ACF75D6A1EF /* Supabase */; };
 		9CAE57F57BF265116F14F340 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */; };
 		AC4D14BA90342DA81A4B2B1E /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E42E0AEF7749647ADDFE498 /* Models.swift */; };
+		B9510171D37606FA467A17EC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 56102EC49F1986DF4BAD645A /* Assets.xcassets */; };
 		BAD8803DB9F4D033605BF39E /* MoimDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53C59092C198E5087DFE87D6 /* MoimDesign.swift */; };
 		CC2E432B9D8FFB59F8A5E2E2 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7587B7A6C7F09B42D62B36D1 /* LoginView.swift */; };
 		D80A76A9098AD074AA57FCE9 /* WardStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F01F129DE6E64DBFE58423E /* WardStatusView.swift */; };
@@ -32,12 +33,13 @@
 		2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		2CA9C1A636044B04FF6591FE /* EventEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditView.swift; sourceTree = "<group>"; };
 		53C59092C198E5087DFE87D6 /* MoimDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimDesign.swift; sourceTree = "<group>"; };
+		56102EC49F1986DF4BAD645A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		65B364AEB657C1C5BEE8FAB6 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
 		6C3D3AA6E1494F69BE95D8C3 /* MoimRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimRepository.swift; sourceTree = "<group>"; };
 		6E42E0AEF7749647ADDFE498 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		73F51B10F9F1008922342445 /* MoimViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimViewModel.swift; sourceTree = "<group>"; };
 		7587B7A6C7F09B42D62B36D1 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
-		77AF8F071B3C5AC6410D6389 /* MoimTalk.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MoimTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		77AF8F071B3C5AC6410D6389 /* MoimTalk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MoimTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7D706D1572849E3BC1AE1BAA /* RoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomView.swift; sourceTree = "<group>"; };
 		7F01F129DE6E64DBFE58423E /* WardStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardStatusView.swift; sourceTree = "<group>"; };
 		7F7D32747C8263739AB9EC87 /* RoomListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomListView.swift; sourceTree = "<group>"; };
@@ -69,6 +71,7 @@
 		6C92E056C1B5435B398820D3 /* MoimTalk */ = {
 			isa = PBXGroup;
 			children = (
+				56102EC49F1986DF4BAD645A /* Assets.xcassets */,
 				BB0A1DBF9F67B1886AFC7CF5 /* MoimTalkApp.swift */,
 				B4E4F570F8BF3E17B534F459 /* Design */,
 				F0D43BCE38E3A72ABB6B8D62 /* Supabase */,
@@ -137,6 +140,7 @@
 			buildConfigurationList = 58EF4253B873868D43FD834E /* Build configuration list for PBXNativeTarget "MoimTalk" */;
 			buildPhases = (
 				B2FDAD856D44837AD7B9D317 /* Sources */,
+				4314AC5E531841C97FB0E8C8 /* Resources */,
 				F99CFDBF9FE23E75FD6F21F5 /* Frameworks */,
 			);
 			buildRules = (
@@ -159,8 +163,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = A528334DE0E6C5952B9200D3 /* Build configuration list for PBXProject "MoimTalk" */;
 			developmentRegion = en;
@@ -183,6 +185,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4314AC5E531841C97FB0E8C8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B9510171D37606FA467A17EC /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		B2FDAD856D44837AD7B9D317 /* Sources */ = {
@@ -273,9 +286,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9AWEB9NYHH;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "모임톡";
+				INFOPLIST_KEY_CFBundleDisplayName = "아주 정신";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -357,9 +373,12 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9AWEB9NYHH;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "모임톡";
+				INFOPLIST_KEY_CFBundleDisplayName = "아주 정신";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

@@ -75,7 +75,7 @@ fun LoginScreen(vm: MoimViewModel) {
                 .clip(RoundedCornerShape(20.dp))
         )
         Spacer(Modifier.height(20.dp))
-        Text("모임톡", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = MoimInk)
+        Text("아주 정신", fontSize = 34.sp, fontWeight = FontWeight.ExtraBold, color = MoimInk)
         Text("정신건강의학과", fontSize = 15.sp, color = MoimSub)
         Spacer(Modifier.height(32.dp))
         OutlinedTextField(
@@ -134,7 +134,7 @@ fun RoomListScreen(
                         .padding(horizontal = 18.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("모임톡", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = MoimInk)
+                    Text("아주 정신", fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = MoimInk)
                     Spacer(Modifier.width(8.dp))
                     Text(
                         viewBadgeText(profile),
@@ -423,7 +423,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
             "chat" -> ChatPane(
                 modifier = Modifier.padding(pad),
                 messages = vm.messages,
-                isMine = vm::isMine
+                isMine = vm::isMine,
+                nameOf = vm::nameOf
             )
             "files" -> FilesPane(
                 vm = vm,
@@ -444,7 +445,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
 private fun ChatPane(
     modifier: Modifier,
     messages: List<Message>,
-    isMine: (Message) -> Boolean
+    isMine: (Message) -> Boolean,
+    nameOf: (String) -> String
 ) {
     LazyColumn(
         modifier = modifier
@@ -481,13 +483,13 @@ private fun ChatPane(
                 )
             }
         } else {
-            items(messages) { m -> MessageBubble(m, isMine(m)) }
+            items(messages) { m -> MessageBubble(m, isMine(m), nameOf(m.senderId)) }
         }
     }
 }
 
 @Composable
-fun MessageBubble(m: Message, mine: Boolean) {
+fun MessageBubble(m: Message, mine: Boolean, senderName: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -501,7 +503,7 @@ fun MessageBubble(m: Message, mine: Boolean) {
                     .background(MoimSub, RoundedCornerShape(13.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text("?", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                Text(senderName.take(3), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.width(8.dp))
         }
@@ -511,13 +513,24 @@ fun MessageBubble(m: Message, mine: Boolean) {
         } else {
             RoundedCornerShape(topStart = 5.dp, topEnd = 16.dp, bottomEnd = 16.dp, bottomStart = 16.dp)
         }
-        Box(
-            modifier = Modifier
-                .widthIn(max = 225.dp)
-                .background(bg, shape)
-                .padding(horizontal = 12.dp, vertical = 9.dp)
-        ) {
-            Text(m.content.orEmpty(), color = MoimInk, fontSize = 14.5.sp, lineHeight = 20.sp)
+        Column(horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
+            if (!mine) {
+                Text(
+                    senderName,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF6B635C),
+                    modifier = Modifier.padding(bottom = 3.dp, start = 2.dp)
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .widthIn(max = 225.dp)
+                    .background(bg, shape)
+                    .padding(horizontal = 12.dp, vertical = 9.dp)
+            ) {
+                Text(m.content.orEmpty(), color = MoimInk, fontSize = 14.5.sp, lineHeight = 20.sp)
+            }
         }
     }
 }

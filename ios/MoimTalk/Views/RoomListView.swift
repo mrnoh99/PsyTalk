@@ -53,7 +53,7 @@ struct RoomListView: View {
     private var header: some View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
-                Text("모임톡").font(.system(size: 20, weight: .heavy)).foregroundColor(Moim.ink)
+                Text("아주 정신").font(.system(size: 20, weight: .heavy)).foregroundColor(Moim.ink)
                 Text(viewBadgeText(vm.myProfile))
                     .font(.system(size: 10.5, weight: .bold)).foregroundColor(Moim.accent)
                     .padding(.horizontal, 8).padding(.vertical, 3)

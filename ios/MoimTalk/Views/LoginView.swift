@@ -14,7 +14,7 @@ struct LoginView: View {
                 .frame(width: 88, height: 88)
                 .clipShape(RoundedRectangle(cornerRadius: 20))
             Spacer().frame(height: 20)
-            Text("모임톡").font(.system(size: 34, weight: .heavy)).foregroundColor(Moim.ink)
+            Text("아주 정신").font(.system(size: 34, weight: .heavy)).foregroundColor(Moim.ink)
             Text("정신건강의학과").font(.system(size: 15)).foregroundColor(Moim.sub)
             Spacer().frame(height: 32)
 

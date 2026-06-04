@@ -39,6 +39,7 @@ struct RootView: View {
                 )
             }
         }
+        .preferredColorScheme(.light)
         .onAppear { if vm.loggedIn { vm.loadRooms() } }
         .onChange(of: vm.loggedIn) { newValue in
             if newValue { vm.loadRooms() }

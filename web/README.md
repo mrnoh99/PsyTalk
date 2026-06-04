@@ -1,4 +1,4 @@
-# 모임톡 Web (Windows / Mac / iPad 브라우저)
+# 아주 정신 Web (Windows / Mac / iPad 브라우저)
 
 Android(`app/`)·iOS(`ios/`)와 **같은 Supabase 백엔드**에 연결되는 웹 버전입니다.
 브라우저만 있으면 **Windows·Mac·iPad·어디서나** 동작합니다. 관리자 콘솔(멤버/방)도 포함.

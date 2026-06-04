@@ -1,8 +1,8 @@
-# CLAUDE.md — 모임톡 (PsyTalk)
+# CLAUDE.md — 아주 정신 (PsyTalk)
 
 > 이 파일은 Claude Code가 매 세션 시작 시 자동으로 읽습니다.
-> 정신건강의학과용 그룹 메신저 **모임톡**의 핵심 규칙·구조·작업 방식을 요약합니다.
-> 상세 스펙은 [`docs/모임톡_요구사항.md`](docs/모임톡_요구사항.md), 대조표는
+> 정신건강의학과용 그룹 메신저 **아주 정신**의 핵심 규칙·구조·작업 방식을 요약합니다.
+> 상세 스펙은 [`docs/아주정신_요구사항.md`](docs/아주정신_요구사항.md), 대조표는
 > [`prototype/PARITY.md`](prototype/PARITY.md) 참고.
 
 ## 프로젝트 개요
@@ -65,7 +65,7 @@ ios/  (iOS, SwiftUI + supabase-swift) — Android 구조를 1:1 미러링
 web/  (브라우저 — Windows/Mac/iPad) — 단일 HTML + Supabase JS(UMD)
   index.html (전체 앱 기능 + 관리자 콘솔) · README.md
 supabase/                      # SQL (아래 순서대로 실행) — 모든 클라이언트 공용 백엔드
-docs/모임톡_요구사항.md          # 상세 요구사항(기준 문서)
+docs/아주정신_요구사항.md          # 상세 요구사항(기준 문서)
 prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 ```
 
@@ -92,7 +92,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
   코드는 기존 패턴(Supabase-kt 3.3.0, Compose BOM 2024.12)을 따라 작성하고,
   실제 빌드·실행은 사용자가 Android Studio에서 확인.
 - **리소스 파일명:** `res/drawable` 등은 **소문자·숫자·언더스코어만** (예: `aumc_psy_logo.png`)
-- **현황 표:** 새 기능 추가/구현 시 `docs/모임톡_요구사항.md`의 구현 현황과 `prototype/PARITY.md`를 함께 갱신
+- **현황 표:** 새 기능 추가/구현 시 `docs/아주정신_요구사항.md`의 구현 현황과 `prototype/PARITY.md`를 함께 갱신
 
 ## 관리자 콘솔 (관리 프로그램)
 - **iOS(iPad/Mac) 앱에만** 포함. 접근 = **전체관리자(superadmin)만**. `ios/.../AdminPlaceholderView.swift`

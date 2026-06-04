@@ -79,7 +79,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 4. `ward_status.sql` — 병실 잔여 현황 메모(단일 행)
 5. `seed_rooms.sql` — 기본 2방(과 전체공지·주간 학술활동)
 6. `install.sql` — GRANT·RLS
-7. `room_create.sql` — 모임방 사용자 생성 권한·가시성(마지막)
+7. `room_create.sql` — 모임방 사용자 생성 권한·가시성
+8. `admin_roles.sql` — 앱에서 역할 지정(전체관리자만) 권한(마지막)
 
 > `schema_extension.sql`이 `profiles` 조회를 "본인만→인증 사용자 전체"로 바꿉니다(작성자 이름 표시용).
 > 캘린더/자료실 작성은 현재 `owner=본인`만 검사하며, `room_members` 연동 시 강화 예정.
@@ -94,12 +95,13 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 - **현황 표:** 새 기능 추가/구현 시 `docs/모임톡_요구사항.md`의 구현 현황과 `prototype/PARITY.md`를 함께 갱신
 
 ## 관리자 콘솔 (관리 프로그램)
-- **iOS(iPad/Mac) 앱에 포함** — 멤버(직군·역할)·방 목록 조회. `ios/.../AdminPlaceholderView.swift`
+- **iOS(iPad/Mac) 앱에만** 포함. 접근 = **전체관리자(superadmin)만**. `ios/.../AdminPlaceholderView.swift`
   (iPad 앱이 Apple Silicon Mac에서 실행됨. `project.yml` device family `1,2`)
-- **웹·Android·iOS 폰**: 관리자 콘솔 없음(웹은 명시적으로 제외).
-- 멤버 역할 편집·방 작성자 지정 등 **관리 기능은 예정**(현재는 조회).
+- 기능: 멤버(직군·역할)·방 목록 조회 + **역할 지정**(멤버/관리자/전체관리자) 앱에서 직접(SQL 없이).
+  역할 변경 권한은 `admin_roles.sql`(전체관리자만, SECURITY DEFINER `is_superadmin()`).
+- **Android·웹·iOS 폰**: 관리자 메뉴 없음(웹·Android는 명시적으로 제외).
 
 ## 아직 앱에 없는 것 (우선순위 참고)
-멀티 방 게시 · `room_writers` 연동 · 관리자 콘솔의 편집 기능 ·
+멀티 방 게시 · `room_writers`(방 작성자 지정) 연동 ·
 방 목록의 마지막 메시지·안 읽음 배지
-(모임방 생성 ✅ 카톡식 누구나 · 관리자 콘솔 조회 ✅ iPad/Mac)
+(모임방 생성 ✅ 카톡식 누구나 · 관리자 콘솔 ✅ iPad/Mac superadmin: 조회+역할지정)

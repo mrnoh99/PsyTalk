@@ -63,11 +63,21 @@ struct AdminPlaceholderView: View {
                 Text(p.memberType).font(.system(size: 11.5)).foregroundColor(Moim.sub)
             }
             Spacer()
-            Text(role.1)
-                .font(.system(size: 10, weight: .bold))
-                .foregroundColor(p.role == "user" ? Moim.accent : .white)
+            // 전체관리자만 역할 직접 지정 (SQL 없이)
+            Menu {
+                Button("전체관리자") { vm.setRole(p.id, to: "superadmin") }
+                Button("관리자") { vm.setRole(p.id, to: "admin") }
+                Button("멤버") { vm.setRole(p.id, to: "user") }
+            } label: {
+                HStack(spacing: 3) {
+                    Text(role.1).font(.system(size: 10, weight: .bold))
+                        .foregroundColor(p.role == "user" ? Moim.accent : .white)
+                    Text("▾").font(.system(size: 8))
+                        .foregroundColor(p.role == "user" ? Moim.accent : .white)
+                }
                 .padding(.horizontal, 7).padding(.vertical, 3)
                 .background(role.0).clipShape(Capsule())
+            }
         }
         .padding(.vertical, 8)
         .overlay(Divider().background(Moim.line.opacity(0.5)), alignment: .bottom)

@@ -177,6 +177,17 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    func setRole(_ userId: String, to role: String) {
+        Task {
+            do {
+                try await MoimRepository.updateRole(userId: userId, role: role)
+                let list = try await MoimRepository.allProfiles()
+                profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+                if userId == MoimRepository.currentUserId() { myProfile = profilesById[userId] }
+            } catch { self.error = "역할 변경: \(error.localizedDescription)" }
+        }
+    }
+
     var otherProfiles: [Profile] {
         profilesById.values
             .filter { $0.id != MoimRepository.currentUserId() }

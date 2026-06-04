@@ -118,7 +118,6 @@ fun LoginScreen(vm: MoimViewModel) {
 fun RoomListScreen(
     vm: MoimViewModel,
     onOpen: (Room) -> Unit,
-    onAdmin: () -> Unit,
     onWard: () -> Unit,
     onCreateRoom: () -> Unit
 ) {
@@ -167,38 +166,7 @@ fun RoomListScreen(
                 }
             }
         },
-        containerColor = MoimPaper,
-        bottomBar = {
-            if (profile != null && isAdminRole(profile.role)) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onAdmin)
-                        .background(MoimAccent)
-                        .padding(horizontal = 18.dp, vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .background(MoimAdmin, RoundedCornerShape(10.dp)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text("🛡", fontSize = 15.sp)
-                    }
-                    Spacer(Modifier.width(10.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("관리자 콘솔", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                        Text(
-                            "전체관리자 전용 · 멤버/방/권한",
-                            color = Color(0xFFBDB4AB),
-                            fontSize = 11.sp
-                        )
-                    }
-                    Text("›", color = Color(0xFFBDB4AB), fontSize = 18.sp)
-                }
-            }
-        }
+        containerColor = MoimPaper
     ) { pad ->
         LazyColumn(
             modifier = Modifier
@@ -550,40 +518,6 @@ fun MessageBubble(m: Message, mine: Boolean) {
                 .padding(horizontal = 12.dp, vertical = 9.dp)
         ) {
             Text(m.content.orEmpty(), color = MoimInk, fontSize = 14.5.sp, lineHeight = 20.sp)
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AdminPlaceholderScreen(onBack: () -> Unit) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("관리자 콘솔", color = Color.White, fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    TextButton(onClick = onBack) { Text("‹", color = Color.White, fontSize = 25.sp) }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimAccent)
-            )
-        },
-        containerColor = MoimPaper
-    ) { pad ->
-        Column(
-            modifier = Modifier
-                .padding(pad)
-                .fillMaxSize()
-                .padding(24.dp)
-        ) {
-            Text("멤버 풀 · 방 관리 · 작성자 지정", fontWeight = FontWeight.Bold, fontSize = 16.sp)
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "HTML 프로토타입의 관리자 화면은 웹에서 구현되어 있습니다.\n" +
-                    "앱에서는 Supabase 연동 후 단계적으로 추가할 예정입니다.",
-                color = MoimSub,
-                fontSize = 14.sp,
-                lineHeight = 20.sp
-            )
         }
     }
 }

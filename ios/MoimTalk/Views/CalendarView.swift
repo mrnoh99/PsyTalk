@@ -199,31 +199,40 @@ struct EventCard: View {
     var body: some View {
         HStack(alignment: .top, spacing: 11) {
             RoundedRectangle(cornerRadius: 4).fill(catColor("notice")).frame(width: 4, height: 56)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(event.title).font(.system(size: 14, weight: .bold)).foregroundColor(Moim.ink)
-                Text("🕐 \(CalDate.timeLabel(event.startAt))" + (event.place.map { $0.isEmpty ? "" : " · 📍\($0)" } ?? ""))
-                    .font(.system(size: 11.5)).foregroundColor(Moim.sub)
-                if let s = event.scope, !s.isEmpty { Text("참석: \(s)").font(.system(size: 11.5)).foregroundColor(Moim.sub) }
+            VStack(alignment: .leading, spacing: 2) {
+                Text(event.title).font(.system(size: 15, weight: .bold)).foregroundColor(Moim.ink)
+                Text("📅 \(CalDate.timeLabel(event.startAt))").font(.system(size: 12.5)).foregroundColor(Moim.ink).padding(.top, 2)
+                if let p = event.place, !p.isEmpty { Text("📍 \(p)").font(.system(size: 12.5)).foregroundColor(Moim.sub) }
+                Text("👤 발표자 \(vm.name(of: event.ownerId))").font(.system(size: 12.5)).foregroundColor(Moim.sub)
+                if let s = event.scope, !s.isEmpty { Text("참석 \(s)").font(.system(size: 11.5)).foregroundColor(Moim.sub) }
                 if let d = event.description, !d.isEmpty { Text(d).font(.system(size: 11.5)).foregroundColor(Moim.sub) }
-                if let l = event.link, !l.isEmpty {
-                    Link("🔗 \(l)", destination: URL(string: l) ?? URL(string: "https://example.com")!)
-                        .font(.system(size: 11.5)).foregroundColor(catColor("group")).lineLimit(1)
-                }
                 if !event.kw.isEmpty {
-                    Text(event.kw.map { "#\($0)" }.joined(separator: " ")).font(.system(size: 11)).foregroundColor(Moim.sub)
+                    Text(event.kw.map { "#\($0)" }.joined(separator: " "))
+                        .font(.system(size: 11.5, weight: .semibold)).foregroundColor(catColor("research")).padding(.top, 2)
                 }
-                if let url = event.attachmentUrl, !url.isEmpty {
-                    Link(destination: URL(string: url) ?? URL(string: "https://example.com")!) {
-                        Text("📎 \(event.attachmentName ?? "첨부") — \(event.attachmentDesc ?? "")")
-                            .font(.system(size: 11, weight: .bold)).foregroundColor(catColor("work"))
-                            .padding(.horizontal, 8).padding(.vertical, 3)
-                            .background(Color(hex: 0xE7F0EB)).clipShape(RoundedRectangle(cornerRadius: 8))
+                HStack(spacing: 8) {
+                    if let l = event.link, !l.isEmpty, let u = URL(string: l) {
+                        Link(destination: u) {
+                            Text("🔗 링크").font(.system(size: 11.5, weight: .bold)).foregroundColor(catColor("group"))
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(Color(hex: 0xEEF2F8)).clipShape(Capsule())
+                        }
+                    }
+                    if let url = event.attachmentUrl, !url.isEmpty, let u = URL(string: url) {
+                        Link(destination: u) {
+                            Text("📎 첨부파일").font(.system(size: 11.5, weight: .bold)).foregroundColor(catColor("work"))
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(Color(hex: 0xE7F0EB)).clipShape(Capsule())
+                        }
+                    }
+                    if vm.canEditEvent(event) {
+                        Text("✏️ 수정").font(.system(size: 11.5, weight: .bold)).foregroundColor(Moim.sub)
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(Moim.bg).clipShape(Capsule())
+                            .onTapGesture { onEdit(event) }
                     }
                 }
-                if vm.canEditEvent(event) {
-                    Text("✏️ 수정").font(.system(size: 11, weight: .bold)).foregroundColor(catColor("group"))
-                        .onTapGesture { onEdit(event) }
-                }
+                .padding(.top, 6)
             }
             Spacer()
         }

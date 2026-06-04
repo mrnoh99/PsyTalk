@@ -1,0 +1,418 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0DF07A068A6D8D7C6FB85920 /* DateUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17DE9D14FE52E794BAFCB4E /* DateUtils.swift */; };
+		122642BEF5058304974AECFA /* EventEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CA9C1A636044B04FF6591FE /* EventEditView.swift */; };
+		1578EF6CB778038234AF36D6 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65B364AEB657C1C5BEE8FAB6 /* SupabaseClient.swift */; };
+		221A52FF2E0856F233729EE5 /* AdminPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA791D3357DDC85A6236355D /* AdminPlaceholderView.swift */; };
+		40BD3669E5C236982894A7A3 /* MoimTalkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0A1DBF9F67B1886AFC7CF5 /* MoimTalkApp.swift */; };
+		48D671F7416618EC4B1610D6 /* RoomListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7D32747C8263739AB9EC87 /* RoomListView.swift */; };
+		592CB191E822D1BFE719D30F /* FilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C46B8FDCED34E1AC6ACE940 /* FilesView.swift */; };
+		66A372AA8458DB99401EF198 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 74F619C44F2D7ACF75D6A1EF /* Supabase */; };
+		9CAE57F57BF265116F14F340 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */; };
+		AC4D14BA90342DA81A4B2B1E /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E42E0AEF7749647ADDFE498 /* Models.swift */; };
+		BAD8803DB9F4D033605BF39E /* MoimDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53C59092C198E5087DFE87D6 /* MoimDesign.swift */; };
+		CC2E432B9D8FFB59F8A5E2E2 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7587B7A6C7F09B42D62B36D1 /* LoginView.swift */; };
+		D80A76A9098AD074AA57FCE9 /* WardStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F01F129DE6E64DBFE58423E /* WardStatusView.swift */; };
+		D8974609309F8AC914FE9489 /* MoimRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3D3AA6E1494F69BE95D8C3 /* MoimRepository.swift */; };
+		EDCBA9ABDE2D41AFED8D9E7A /* MoimViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73F51B10F9F1008922342445 /* MoimViewModel.swift */; };
+		F5F93EFC6BDFFDAE254FB71B /* RoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D706D1572849E3BC1AE1BAA /* RoomView.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1C46B8FDCED34E1AC6ACE940 /* FilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesView.swift; sourceTree = "<group>"; };
+		2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
+		2CA9C1A636044B04FF6591FE /* EventEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditView.swift; sourceTree = "<group>"; };
+		53C59092C198E5087DFE87D6 /* MoimDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimDesign.swift; sourceTree = "<group>"; };
+		65B364AEB657C1C5BEE8FAB6 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
+		6C3D3AA6E1494F69BE95D8C3 /* MoimRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimRepository.swift; sourceTree = "<group>"; };
+		6E42E0AEF7749647ADDFE498 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		73F51B10F9F1008922342445 /* MoimViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimViewModel.swift; sourceTree = "<group>"; };
+		7587B7A6C7F09B42D62B36D1 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		77AF8F071B3C5AC6410D6389 /* MoimTalk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MoimTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		7D706D1572849E3BC1AE1BAA /* RoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomView.swift; sourceTree = "<group>"; };
+		7F01F129DE6E64DBFE58423E /* WardStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardStatusView.swift; sourceTree = "<group>"; };
+		7F7D32747C8263739AB9EC87 /* RoomListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomListView.swift; sourceTree = "<group>"; };
+		BA791D3357DDC85A6236355D /* AdminPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminPlaceholderView.swift; sourceTree = "<group>"; };
+		BB0A1DBF9F67B1886AFC7CF5 /* MoimTalkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimTalkApp.swift; sourceTree = "<group>"; };
+		E17DE9D14FE52E794BAFCB4E /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		F99CFDBF9FE23E75FD6F21F5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				66A372AA8458DB99401EF198 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		21323AFCEF09031A6BFF70D5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				77AF8F071B3C5AC6410D6389 /* MoimTalk.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6C92E056C1B5435B398820D3 /* MoimTalk */ = {
+			isa = PBXGroup;
+			children = (
+				BB0A1DBF9F67B1886AFC7CF5 /* MoimTalkApp.swift */,
+				B4E4F570F8BF3E17B534F459 /* Design */,
+				F0D43BCE38E3A72ABB6B8D62 /* Supabase */,
+				9B05C28E6C22C4E8AD69E786 /* ViewModel */,
+				AA28F82CB04B784FDAE27E08 /* Views */,
+			);
+			path = MoimTalk;
+			sourceTree = "<group>";
+		};
+		9B05C28E6C22C4E8AD69E786 /* ViewModel */ = {
+			isa = PBXGroup;
+			children = (
+				73F51B10F9F1008922342445 /* MoimViewModel.swift */,
+			);
+			path = ViewModel;
+			sourceTree = "<group>";
+		};
+		A1D7B2BF494DE1CCAB90B550 = {
+			isa = PBXGroup;
+			children = (
+				6C92E056C1B5435B398820D3 /* MoimTalk */,
+				21323AFCEF09031A6BFF70D5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA28F82CB04B784FDAE27E08 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				BA791D3357DDC85A6236355D /* AdminPlaceholderView.swift */,
+				2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */,
+				E17DE9D14FE52E794BAFCB4E /* DateUtils.swift */,
+				2CA9C1A636044B04FF6591FE /* EventEditView.swift */,
+				1C46B8FDCED34E1AC6ACE940 /* FilesView.swift */,
+				7587B7A6C7F09B42D62B36D1 /* LoginView.swift */,
+				7F7D32747C8263739AB9EC87 /* RoomListView.swift */,
+				7D706D1572849E3BC1AE1BAA /* RoomView.swift */,
+				7F01F129DE6E64DBFE58423E /* WardStatusView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		B4E4F570F8BF3E17B534F459 /* Design */ = {
+			isa = PBXGroup;
+			children = (
+				53C59092C198E5087DFE87D6 /* MoimDesign.swift */,
+			);
+			path = Design;
+			sourceTree = "<group>";
+		};
+		F0D43BCE38E3A72ABB6B8D62 /* Supabase */ = {
+			isa = PBXGroup;
+			children = (
+				6E42E0AEF7749647ADDFE498 /* Models.swift */,
+				6C3D3AA6E1494F69BE95D8C3 /* MoimRepository.swift */,
+				65B364AEB657C1C5BEE8FAB6 /* SupabaseClient.swift */,
+			);
+			path = Supabase;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		70D320B0B082EABBCA721F4D /* MoimTalk */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 58EF4253B873868D43FD834E /* Build configuration list for PBXNativeTarget "MoimTalk" */;
+			buildPhases = (
+				B2FDAD856D44837AD7B9D317 /* Sources */,
+				F99CFDBF9FE23E75FD6F21F5 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MoimTalk;
+			packageProductDependencies = (
+				74F619C44F2D7ACF75D6A1EF /* Supabase */,
+			);
+			productName = MoimTalk;
+			productReference = 77AF8F071B3C5AC6410D6389 /* MoimTalk.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A84E8F8D7A2D7EF2CFB0230B /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2600;
+			};
+			buildConfigurationList = A528334DE0E6C5952B9200D3 /* Build configuration list for PBXProject "MoimTalk" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = A1D7B2BF494DE1CCAB90B550;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C90FE215FEC2230F13F3A348 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 21323AFCEF09031A6BFF70D5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				70D320B0B082EABBCA721F4D /* MoimTalk */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		B2FDAD856D44837AD7B9D317 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				221A52FF2E0856F233729EE5 /* AdminPlaceholderView.swift in Sources */,
+				9CAE57F57BF265116F14F340 /* CalendarView.swift in Sources */,
+				0DF07A068A6D8D7C6FB85920 /* DateUtils.swift in Sources */,
+				122642BEF5058304974AECFA /* EventEditView.swift in Sources */,
+				592CB191E822D1BFE719D30F /* FilesView.swift in Sources */,
+				CC2E432B9D8FFB59F8A5E2E2 /* LoginView.swift in Sources */,
+				AC4D14BA90342DA81A4B2B1E /* Models.swift in Sources */,
+				BAD8803DB9F4D033605BF39E /* MoimDesign.swift in Sources */,
+				D8974609309F8AC914FE9489 /* MoimRepository.swift in Sources */,
+				40BD3669E5C236982894A7A3 /* MoimTalkApp.swift in Sources */,
+				EDCBA9ABDE2D41AFED8D9E7A /* MoimViewModel.swift in Sources */,
+				48D671F7416618EC4B1610D6 /* RoomListView.swift in Sources */,
+				F5F93EFC6BDFFDAE254FB71B /* RoomView.swift in Sources */,
+				1578EF6CB778038234AF36D6 /* SupabaseClient.swift in Sources */,
+				D80A76A9098AD074AA57FCE9 /* WardStatusView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		25B3D746CBA701FA73FB8CC8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 9AWEB9NYHH;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		3CBA58FFC48C07C7C92A1B83 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "모임톡";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.moimtalk;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		5918629A1CAFB5838AF422C6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 9AWEB9NYHH;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		E7765E9F7166B938BE5437B4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "모임톡";
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.example.moimtalk;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		58EF4253B873868D43FD834E /* Build configuration list for PBXNativeTarget "MoimTalk" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E7765E9F7166B938BE5437B4 /* Debug */,
+				3CBA58FFC48C07C7C92A1B83 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A528334DE0E6C5952B9200D3 /* Build configuration list for PBXProject "MoimTalk" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5918629A1CAFB5838AF422C6 /* Debug */,
+				25B3D746CBA701FA73FB8CC8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C90FE215FEC2230F13F3A348 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		74F619C44F2D7ACF75D6A1EF /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C90FE215FEC2230F13F3A348 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A84E8F8D7A2D7EF2CFB0230B /* Project object */;
+}

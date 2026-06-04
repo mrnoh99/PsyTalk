@@ -7,6 +7,8 @@ struct CalendarView: View {
 
     @State private var mode: String
     @State private var monthAnchor: Date = CalDate.today()
+    // 선택한 날짜 — 기본은 오늘. 날짜를 누르면 그날로 포커스가 옮겨가고 일정 추가·아래 목록이 이 날짜를 따른다.
+    @State private var selected: Date = CalDate.today()
     @State private var editing: CalendarEvent?
     @State private var creating = false
 
@@ -42,7 +44,7 @@ struct CalendarView: View {
         }
         .background(Moim.paper)
         .sheet(isPresented: $creating) {
-            EventEditView(title: "일정 추가", initial: nil, allowAttachment: true) { form in
+            EventEditView(title: "일정 추가", initial: nil, allowAttachment: true, defaultDate: selected) { form in
                 vm.createEvent(title: form.title, startAt: form.startAt, place: form.place, link: form.link,
                                scope: form.scope, description: form.description, presenter: form.presenter, keywords: form.keywords,
                                attachments: form.newAttachments) { creating = false }
@@ -101,9 +103,12 @@ struct CalendarView: View {
             }
             .padding(.bottom, 16)
 
-            Text("이번 달 일정").font(.system(size: 11, weight: .heavy)).foregroundColor(Moim.sub).padding(.bottom, 10)
-            if monthEvents.isEmpty { noEvents } else {
-                ForEach(monthEvents) { EventCard(event: $0, vm: vm, onEdit: { editing = $0 }) }
+            let dayEvents = vm.events.filter { CalDate.eventDay($0.startAt).map { CalDate.sameDay($0, selected) } == true }
+                .sorted { $0.startAt < $1.startAt }
+            Text(CalDate.sameDay(selected, CalDate.today()) ? "오늘 · \(CalDate.dayLabel(selected))" : "\(CalDate.dayLabel(selected)) 일정")
+                .font(.system(size: 11, weight: .heavy)).foregroundColor(Moim.sub).padding(.bottom, 10)
+            if dayEvents.isEmpty { noEvents } else {
+                ForEach(dayEvents) { EventCard(event: $0, vm: vm, onEdit: { editing = $0 }) }
             }
         }
     }
@@ -121,32 +126,42 @@ struct CalendarView: View {
     }
 
     private func monthCell(day: Int, isEvent: Bool, comps: DateComponents) -> some View {
-        var isToday = false
+        var cellDate: Date?
         if day > 0 {
             var c = comps; c.day = day
-            if let d = CalDate.cal.date(from: c) { isToday = CalDate.sameDay(d, CalDate.today()) }
+            cellDate = CalDate.cal.date(from: c)
         }
+        let isToday = cellDate.map { CalDate.sameDay($0, CalDate.today()) } ?? false
+        let isSelected = cellDate.map { CalDate.sameDay($0, selected) } ?? false
         return VStack(spacing: 2) {
             if day > 0 {
-                Text("\(day)").font(.system(size: 13, weight: isToday ? .heavy : .regular)).foregroundColor(Moim.ink)
+                Text("\(day)").font(.system(size: 13, weight: (isToday || isSelected) ? .heavy : .regular)).foregroundColor(Moim.ink)
                 if isEvent { Circle().fill(Moim.admin).frame(width: 5, height: 5) }
             }
         }
         .frame(maxWidth: .infinity).frame(height: 38)
         .background(isToday ? Moim.yellow : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 9))
+        .overlay(
+            RoundedRectangle(cornerRadius: 9)
+                .stroke(Moim.accent, lineWidth: isSelected ? 2 : 0)
+        )
+        .contentShape(Rectangle())
+        .onTapGesture { if let d = cellDate { selected = CalDate.startOfDay(d) } }
     }
 
     // ── 주간 (list) ──
     private var weekView: some View {
-        let monday = CalDate.mondayOf(CalDate.today())
+        // 선택한 날짜가 속한 주를 보여준다 (월~일)
+        let monday = CalDate.mondayOf(selected)
         let dow = ["월","화","수","목","금","토","일"]
         return VStack(alignment: .leading, spacing: 0) {
-            Text("이번 주 · \(CalDate.dayLabel(monday))(월) ~ \(CalDate.dayLabel(CalDate.cal.date(byAdding: .day, value: 6, to: monday)!))(일)")
+            Text("주간 · \(CalDate.dayLabel(monday))(월) ~ \(CalDate.dayLabel(CalDate.cal.date(byAdding: .day, value: 6, to: monday)!))(일)")
                 .font(.system(size: 11, weight: .heavy)).foregroundColor(Moim.sub).padding(.bottom, 10)
             ForEach(0..<7, id: \.self) { offset in
                 let date = CalDate.cal.date(byAdding: .day, value: offset, to: monday)!
                 let isToday = CalDate.sameDay(date, CalDate.today())
+                let isSelected = CalDate.sameDay(date, selected)
                 let dayEvents = vm.events.filter { CalDate.eventDay($0.startAt).map { CalDate.sameDay($0, date) } == true }
                     .sorted { $0.startAt < $1.startAt }
                 HStack(alignment: .top, spacing: 10) {
@@ -167,6 +182,11 @@ struct CalendarView: View {
                 .padding(.vertical, 9).padding(.horizontal, 6)
                 .background(isToday ? Color(hex: 0xFFF8E0) : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 11))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 11).stroke(Moim.accent, lineWidth: isSelected ? 2 : 0)
+                )
+                .contentShape(Rectangle())
+                .onTapGesture { selected = CalDate.startOfDay(date) }
                 Divider().background(Moim.line.opacity(0.5))
             }
         }
@@ -174,10 +194,11 @@ struct CalendarView: View {
 
     // ── 금일 ──
     private var dayView: some View {
-        let dayEvents = vm.events.filter { CalDate.eventDay($0.startAt).map { CalDate.sameDay($0, CalDate.today()) } == true }
+        let dayEvents = vm.events.filter { CalDate.eventDay($0.startAt).map { CalDate.sameDay($0, selected) } == true }
             .sorted { $0.startAt < $1.startAt }
+        let label = CalDate.sameDay(selected, CalDate.today()) ? "금일 · \(CalDate.dayLabel(selected))" : "\(CalDate.dayLabel(selected)) 일정"
         return VStack(alignment: .leading, spacing: 0) {
-            Text("금일 · \(CalDate.dayLabel(CalDate.today()))").font(.system(size: 11, weight: .heavy)).foregroundColor(Moim.sub).padding(.bottom, 10)
+            Text(label).font(.system(size: 11, weight: .heavy)).foregroundColor(Moim.sub).padding(.bottom, 10)
             if dayEvents.isEmpty { noEvents } else {
                 ForEach(dayEvents) { EventCard(event: $0, vm: vm, onEdit: { editing = $0 }) }
             }

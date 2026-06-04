@@ -20,6 +20,7 @@ struct EventEditView: View {
     let title: String
     let initial: CalendarEvent?
     let allowAttachment: Bool
+    var defaultDate: Date = CalDate.today()   // 새 일정의 기본 날짜(선택한 날짜)
     let onSubmit: (EventFormData) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -107,7 +108,10 @@ struct EventEditView: View {
     }
 
     private func prefill() {
-        guard let e = initial else { return }
+        guard let e = initial else {
+            date = defaultDate   // 새 일정: 선택한 날짜를 기본값으로
+            return
+        }
         evTitle = e.title
         if let d = CalDate.parse(e.startAt) { date = d; time = d }
         place = e.place ?? ""; link = e.link ?? ""; scope = e.scope ?? ""

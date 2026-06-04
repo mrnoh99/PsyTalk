@@ -236,6 +236,7 @@ const BUCKET = "room-files";
 let me=null, rooms=[], profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
 let evKept=[]; // 일정 수정 시 유지할 기존 첨부 [{n,u}]
 let calMode="month", fileSort="date", monthAnchor=new Date();
+let selDate=new Date(); selDate.setHours(0,0,0,0); // 선택한 날짜(기본 오늘)
 let cpick=new Set(), editEventId=null, pendingFile=null;
 
 const TYPE_COLOR={'교실':'#b5651d','의국':'#4a6fa5','심리실':'#6d597a','연구실':'#3d8361','PA':'#0d8a8a','간호사':'#c0452f','SW':'#9a6a00','보조원':'#777'};
@@ -337,6 +338,7 @@ async function openRoom(id){
   document.getElementById('renameBtn').style.display=canRename(active)?'':'none';
   document.getElementById('settingsBtn').style.display=canManage(active)?'':'none';
   calMode=active.default_view==='week'?'week':'month';
+  selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
   show('roomScreen');
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
   tab(active.default_view==='week'?'cal':'chat');
@@ -479,8 +481,13 @@ function evCard(e){const c=(CAT[active.category]||CAT.custom).c;
     ${e.link?'🔗 <a href="'+esc(e.link)+'" target="_blank">링크</a>':''}</div>
     ${evAtts(e).map(a=>`<a class="evatt" href="${esc(a.u)}" target="_blank">📎 ${esc(a.n)}</a>`).join(' ')}
     ${canEdit(e)?`<span class="evedit" onclick="openEvent('${e.id}')">✏️ 수정</span>`:''}</div></div>`;}
+const selLabel=()=>`${selDate.getMonth()+1}/${selDate.getDate()}`;
+function dayEventsHtml(d){
+  const de=events.filter(e=>sameDay(evDate(e),d)).sort((a,b)=>(a.start_at||'').localeCompare(b.start_at||''));
+  return de.length?de.map(evCard).join(''):`<p style="color:var(--sub);font-size:13px">등록된 일정이 없습니다.</p>`;
+}
 function renderCal(){
-  const today=new Date();
+  const today=new Date();today.setHours(0,0,0,0);
   let h=`<div class="calmode">
     <div class="cm ${calMode==='day'?'on':''}" onclick="calMode='day';renderCal()">금일</div>
     <div class="cm ${calMode==='week'?'on':''}" onclick="calMode='week';renderCal()">주간</div>
@@ -497,25 +504,30 @@ function renderCal(){
     const first=new Date(y,m,1).getDay(),len=new Date(y,m+1,0).getDate();
     const evDays=new Set(monthEv.map(e=>evDate(e).getDate()));
     for(let i=0;i<first;i++)h+=`<div></div>`;
-    for(let d=1;d<=len;d++){const isT=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
-      h+=`<div style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;border-radius:9px;${isT?'background:var(--me);font-weight:800':''}">${d}${evDays.has(d)?'<div style="width:5px;height:5px;border-radius:50%;background:var(--admin)"></div>':''}</div>`;}
-    h+=`</div><h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">이번 달 일정</h4>`;
-    h+=monthEv.length?monthEv.map(evCard).join(''):`<p style="color:var(--sub);font-size:13px">등록된 일정이 없습니다.</p>`;
+    for(let d=1;d<=len;d++){
+      const cur=new Date(y,m,d);
+      const isT=sameDay(cur,today), isSel=sameDay(cur,selDate);
+      const style=`aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;border-radius:9px;cursor:pointer;`
+        +(isT?'background:var(--me);font-weight:800;':'')+(isSel?'box-shadow:inset 0 0 0 2px var(--accent);font-weight:800;':'');
+      h+=`<div style="${style}" onclick="selectDay(${y},${m},${d})">${d}${evDays.has(d)?'<div style="width:5px;height:5px;border-radius:50%;background:var(--admin)"></div>':''}</div>`;}
+    h+=`</div><h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">${sameDay(selDate,today)?'오늘':selLabel()} 일정</h4>`;
+    h+=dayEventsHtml(selDate);
   }else if(calMode==='week'){
-    const mon=new Date(today);mon.setDate(today.getDate()-((today.getDay()+6)%7));
+    const mon=new Date(selDate);mon.setDate(selDate.getDate()-((selDate.getDay()+6)%7));
     const dow=['월','화','수','목','금','토','일'];
-    h+=`<h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">이번 주</h4>`;
+    const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+    h+=`<h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">주간 · ${mon.getMonth()+1}/${mon.getDate()}(월) ~ ${sun.getMonth()+1}/${sun.getDate()}(일)</h4>`;
     for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);
-      const de=events.filter(e=>sameDay(evDate(e),d));const isT=sameDay(d,today);
-      h+=`<div class="wday ${isT?'wtoday':''}"><div class="wdate"><b>${dow[i]}</b><span>${d.getMonth()+1}/${d.getDate()}</span></div>
+      const de=events.filter(e=>sameDay(evDate(e),d));const isT=sameDay(d,today),isSel=sameDay(d,selDate);
+      h+=`<div class="wday ${isT?'wtoday':''}" style="cursor:pointer;${isSel?'box-shadow:inset 0 0 0 2px var(--accent);border-radius:11px;':''}" onclick="selectDay(${d.getFullYear()},${d.getMonth()},${d.getDate()})"><div class="wdate"><b>${dow[i]}</b><span>${d.getMonth()+1}/${d.getDate()}</span></div>
         <div class="wevents">${de.length?de.map(evCard).join(''):'<div class="noev">— 일정 없음</div>'}</div></div>`;}
   }else{
-    const de=events.filter(e=>sameDay(evDate(e),today));
-    h+=`<h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">금일 · ${today.getMonth()+1}/${today.getDate()}</h4>`;
-    h+=de.length?de.map(evCard).join(''):`<p style="color:var(--sub);font-size:13px">등록된 일정이 없습니다.</p>`;
+    h+=`<h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">${sameDay(selDate,today)?'금일':selLabel()} · ${selLabel()}</h4>`;
+    h+=dayEventsHtml(selDate);
   }
   document.getElementById('calBody').innerHTML=h;
 }
+function selectDay(y,m,d){selDate=new Date(y,m,d);selDate.setHours(0,0,0,0);renderCal();}
 function monthShift(n){monthAnchor=new Date(monthAnchor.getFullYear(),monthAnchor.getMonth()+n,1);renderCal();}
 function openEvent(id){
   editEventId=id||null;
@@ -525,8 +537,10 @@ function openEvent(id){
   document.getElementById('evAttLbl').style.display='block';
   document.getElementById('evFile').style.display='block';
   const g=(k,v)=>document.getElementById(k).value=v;
-  const d=e&&e.start_at?new Date(e.start_at):new Date();
-  g('evTitle',e?e.title:'');g('evDate',d.toISOString().slice(0,10));
+  // 새 일정은 선택한 날짜를 기본값으로 (수정은 기존 날짜)
+  const d=e&&e.start_at?new Date(e.start_at):new Date(selDate);
+  const dStr=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  g('evTitle',e?e.title:'');g('evDate',dStr);
   g('evTime',e&&e.start_at?new Date(e.start_at).toTimeString().slice(0,5):'09:00');
   g('evPlace',e?e.place||'':'');g('evPresenter',e?e.presenter||'':'');g('evLink',e?e.link||'':'');g('evScope',e?e.scope||'':'');
   g('evDesc',e?e.description||'':'');

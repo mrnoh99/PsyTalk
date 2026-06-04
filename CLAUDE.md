@@ -54,11 +54,12 @@ app/  (Android, Kotlin + Compose)
     MainActivity.kt            # MoimViewModel(상태) + App() 네비게이션
     data/SupabaseClient.kt     # Supabase 클라이언트 + 직렬화 모델
     data/MoimRepository.kt     # 모든 Supabase 호출(메시지/일정/자료/스토리지)
+    data/MoimRealtimeSync.kt   # Realtime 구독(방·채팅·일정·자료·병실)
     ui/MoimScreens.kt          # 로그인·방목록·방(채팅탭)·잔여 병실 현황·관리자(placeholder)
     ui/CalendarFilesPanes.kt   # 캘린더·자료실 패널 + 일정/업로드 다이얼로그
     ui/MoimDesign.kt           # 색상·라벨·권한 헬퍼
 ios/  (iOS, SwiftUI + supabase-swift) — Android 구조를 1:1 미러링
-  MoimTalk/Supabase/{SupabaseClient,Models,MoimRepository}.swift
+  MoimTalk/Supabase/{SupabaseClient,Models,MoimRepository,MoimRealtimeSync}.swift
   MoimTalk/ViewModel/MoimViewModel.swift · Design/MoimDesign.swift
   MoimTalk/Views/{Login,RoomList,Room,Calendar,Files,WardStatus,...}.swift
   project.yml (XcodeGen) · README.md
@@ -81,7 +82,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 6. `install.sql` — GRANT·RLS
 7. `room_create.sql` — 모임방 사용자 생성 권한·가시성
 8. `admin_roles.sql` — 앱에서 역할 지정(전체관리자만) 권한
-9. `room_manage.sql` — 모임방 삭제·멤버 내보내기 RLS + **동일 이름 모임방 금지**(유니크 인덱스)(마지막)
+9. `room_manage.sql` — 모임방 삭제·멤버 내보내기 RLS + **동일 이름 모임방 금지**(유니크 인덱스)
+10. `realtime_setup.sql` — Realtime publication — 앱 **거의 실시간 동기화**에 필요
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
 

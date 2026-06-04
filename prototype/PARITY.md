@@ -10,7 +10,8 @@
 | 방 목록 — 기본 12방 + 모임방, 카테고리 색·라벨·우선순위 번호 | ✅ | ✅ `RoomListScreen`/`RoomRow` | ✅ | |
 | 방 목록 행 — 마지막 메시지·시간·**안 읽음 배지**·멤버 수 | ✅ | ❌ (정책 설명만 표시) | ➖ | 앱은 last/unread/멤버수 미표시 |
 | 시점 전환 (10명 칩으로 전환) | ✅ 데모용 | ❌ 로그인 사용자 1명 | ✅ | **의도된 차이** (목업=데모, 앱=실제 로그인) |
-| 채팅 | ✅ | ✅ `ChatPane` | ✅ | 앱은 Supabase `messages` 연동 |
+| 채팅 | ✅ | ✅ `ChatPane` | ✅ | Supabase `messages` + **Realtime** (수 초 이내 동기화) |
+| 방 목록·이름 변경·모임방 추가/삭제 (다른 기기) | ➖ | ✅ Realtime `rooms`/`room_members` | ✅ | Android·iOS·Web 공통 (`realtime_setup.sql`) |
 | **멀티 방 게시 (📤 방선택)** | ✅ | ❌ | ❌ | 앱 미구현 (`message_cross_posts` 스키마만 존재) |
 | 공지방 읽기 전용 (`restricted`) | ✅ | ✅ `canPostInRoom` | ✅ | 앱은 관리자만 작성 (지정 작성자 미연동) |
 | 캘린더 — 금일/주간/월간 | ✅ | ✅ `CalendarPane` | ✅ | |

@@ -11,6 +11,7 @@ Android 앱(`/app`)과 **동일한 형식·논리**의 iOS 버전입니다.
 |----------------------|------------------------|
 | `data/SupabaseClient.kt` | `Supabase/SupabaseClient.swift` + `Supabase/Models.swift` |
 | `data/MoimRepository.kt` | `Supabase/MoimRepository.swift` |
+| `data/MoimRealtimeSync.kt` | `Supabase/MoimRealtimeSync.swift` |
 | `MainActivity.kt` (MoimViewModel) | `ViewModel/MoimViewModel.swift` + `MoimTalkApp.swift` |
 | `ui/MoimDesign.kt` | `Design/MoimDesign.swift` |
 | `ui/MoimScreens.kt` | `Views/LoginView.swift`, `RoomListView.swift`, `RoomView.swift`, `WardStatusView.swift`, `AdminPlaceholderView.swift` |

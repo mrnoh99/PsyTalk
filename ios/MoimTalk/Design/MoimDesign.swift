@@ -63,6 +63,14 @@ func typeColor(_ memberType: String) -> Color {
     }
 }
 
+func roleLabel(_ role: String) -> String {
+    switch role {
+    case "superadmin": return "전체관리자"
+    case "admin": return "관리자"
+    default: return "멤버"
+    }
+}
+
 func isAdminRole(_ role: String) -> Bool { role == "superadmin" || role == "admin" }
 func isSuperAdmin(_ role: String) -> Bool { role == "superadmin" }
 

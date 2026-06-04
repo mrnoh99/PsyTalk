@@ -1,23 +1,30 @@
 import SwiftUI
 
-// 관리자 콘솔 (전체관리자) — iPad/Mac 관리 프로그램 용도
-// 멤버(직군·역할) 목록 + 방 목록. Android/웹의 관리자 콘솔과 동일.
+enum AdminConsoleTab: String, CaseIterable {
+    case manage = "멤버·방"
+    case approval = "가입 승인"
+}
+
+// 관리자 콘솔 (전체관리자) — iPad/Mac·iPhone 공통
 struct AdminPlaceholderView: View {
     @ObservedObject var vm: MoimViewModel
     let onBack: () -> Void
+    var initialTab: AdminConsoleTab = .manage
 
+    @State private var tab: AdminConsoleTab = .manage
     @State private var showRename = false
     @State private var renameText = ""
     @State private var renameTargetId = ""
 
     private var members: [Profile] {
         vm.profilesById.values.sorted {
-            let a = ($0.approved ?? true) ? 1 : 0   // 미승인(0) 먼저
-            let b = ($1.approved ?? true) ? 1 : 0
-            if a != b { return a < b }
             if $0.role != $1.role { return $0.role < $1.role }
             return $0.name < $1.name
         }
+    }
+
+    private var pendingCount: Int {
+        vm.profilesById.values.filter { $0.approved == false }.count
     }
 
     var body: some View {
@@ -30,29 +37,53 @@ struct AdminPlaceholderView: View {
             .padding(.horizontal, 16).padding(.vertical, 12)
             .background(Moim.accent)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 13) {
-                    card(title: "👥 멤버 (직군·역할) · \(members.count)명") {
-                        if members.isEmpty {
-                            Text("멤버 정보가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
-                        } else {
-                            ForEach(members) { p in memberRow(p) }
-                        }
+            Picker("탭", selection: $tab) {
+                ForEach(AdminConsoleTab.allCases, id: \.self) { t in
+                    if t == .approval && pendingCount > 0 {
+                        Text("\(t.rawValue) (\(pendingCount))").tag(t)
+                    } else {
+                        Text(t.rawValue).tag(t)
                     }
-                    card(title: "🏠 방 목록 · \(vm.rooms.count)개") {
-                        ForEach(vm.rooms) { r in roomRow(r) }
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16).padding(.vertical, 10)
+            .background(Moim.paper)
+
+            ScrollView {
+                Group {
+                    switch tab {
+                    case .manage: manageContent
+                    case .approval: SignupApprovalView(vm: vm)
                     }
                 }
                 .padding(16)
             }
         }
         .background(Moim.paper.ignoresSafeArea())
+        .onAppear { tab = initialTab }
         .alert("이름 변경", isPresented: $showRename) {
             TextField("이름", text: $renameText)
             Button("저장") { vm.setName(renameTargetId, to: renameText) }
             Button("취소", role: .cancel) {}
         } message: {
             Text("새 이름을 입력하세요.")
+        }
+    }
+
+    @ViewBuilder
+    private var manageContent: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            card(title: "👥 멤버 (직군·역할) · \(members.count)명") {
+                if members.isEmpty {
+                    Text("멤버 정보가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
+                } else {
+                    ForEach(members) { p in memberRow(p) }
+                }
+            }
+            card(title: "🏠 방 목록 · \(vm.rooms.count)개") {
+                ForEach(vm.rooms) { r in roomRow(r) }
+            }
         }
     }
 
@@ -70,6 +101,7 @@ struct AdminPlaceholderView: View {
     private func memberRow(_ p: Profile) -> some View {
         let role: (Color, String) = p.role == "superadmin" ? (Moim.admin, "전체관리자")
             : p.role == "admin" ? (Color(hex: 0xB5651D), "관리자") : (Moim.line, "멤버")
+        let pending = p.approved == false
         return HStack(spacing: 10) {
             Text(String(p.name.prefix(3)))
                 .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
@@ -79,6 +111,11 @@ struct AdminPlaceholderView: View {
                 HStack(spacing: 4) {
                     Text(p.name).font(.system(size: 13.5, weight: .bold)).foregroundColor(Moim.ink)
                     Text("✏️").font(.system(size: 10)).opacity(0.5)
+                    if pending {
+                        Text("대기").font(.system(size: 9, weight: .bold)).foregroundColor(Moim.admin)
+                            .padding(.horizontal, 5).padding(.vertical, 2)
+                            .background(Moim.admin.opacity(0.12)).clipShape(Capsule())
+                    }
                 }
                 Text(p.memberType).font(.system(size: 11.5)).foregroundColor(Moim.sub)
             }
@@ -89,25 +126,10 @@ struct AdminPlaceholderView: View {
                 showRename = true
             }
             Spacer()
-            // 가입 승인 (승인 대기자만 버튼 표시)
-            if p.approved == false {
-                Button { vm.setApproved(p.id, true) } label: {
-                    Text("승인").font(.system(size: 11, weight: .bold)).foregroundColor(.white)
-                        .padding(.horizontal, 9).padding(.vertical, 4)
-                        .background(catColor("work")).clipShape(Capsule())
-                }
-                .buttonStyle(.plain)
-                Spacer().frame(width: 6)
-            }
-            // 전체관리자만 역할 직접 지정 (SQL 없이)
             Menu {
                 Button("전체관리자") { vm.setRole(p.id, to: "superadmin") }
                 Button("관리자") { vm.setRole(p.id, to: "admin") }
                 Button("멤버") { vm.setRole(p.id, to: "user") }
-                if p.approved == true {
-                    Divider()
-                    Button("가입 승인 취소", role: .destructive) { vm.setApproved(p.id, false) }
-                }
             } label: {
                 HStack(spacing: 3) {
                     Text(role.1).font(.system(size: 10, weight: .bold))
@@ -125,8 +147,12 @@ struct AdminPlaceholderView: View {
 
     private func roomRow(_ r: Room) -> some View {
         HStack(spacing: 10) {
-            Text(r.category != "custom" ? "\(r.sortOrder)" : "#")
-                .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+            Text(r.name)
+                .font(.system(size: 8.5, weight: .bold)).foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.6)
+                .padding(2)
                 .frame(width: 36, height: 36)
                 .background(catColor(r.category)).clipShape(RoundedRectangle(cornerRadius: 11))
             VStack(alignment: .leading, spacing: 1) {

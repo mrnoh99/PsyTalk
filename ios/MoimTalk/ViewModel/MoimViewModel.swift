@@ -30,6 +30,7 @@ final class MoimViewModel: ObservableObject {
                         profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                     }
                     loggedIn = true
+                    bindRealtime()
                 } else {
                     notice = "가입 완료! 이메일 인증 후 로그인하세요."
                 }
@@ -39,6 +40,49 @@ final class MoimViewModel: ObservableObject {
     }
 
     private var activeRoom: String?
+    private var realtimeStarted = false
+
+    init() {
+        if MoimRepository.currentUserId() != nil {
+            bindRealtime()
+        }
+    }
+
+    private func bindRealtime() {
+        guard !realtimeStarted else { return }
+        realtimeStarted = true
+        Task {
+            await MoimRealtimeSync.shared.start(
+                onRooms: { await self.loadRoomsFromRealtime() },
+                onWard: { await self.loadWardStatusFromRealtime() },
+                onRoomData: { await self.refreshActiveRoom($0) }
+            )
+        }
+    }
+
+    private func loadRoomsFromRealtime() async {
+        do {
+            myProfile = try await MoimRepository.myProfile()
+            rooms = try await MoimRepository.rooms()
+            if let list = try? await MoimRepository.allProfiles() {
+                profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+            }
+        } catch { /* 조용히 재시도 — 다음 이벤트에서 갱신 */ }
+    }
+
+    private func loadWardStatusFromRealtime() async {
+        do {
+            let w = try await MoimRepository.wardStatus()
+            wardStatus = w.content
+            wardStatusUpdatedAt = w.updatedAt
+        } catch { }
+    }
+
+    private func refreshActiveRoom(_ roomId: String) async {
+        guard activeRoom == roomId else { return }
+        do { messages = try await MoimRepository.messages(roomId: roomId) } catch { }
+        await loadRoomData(roomId)
+    }
 
     func login(email: String, password: String) {
         Task {
@@ -48,6 +92,7 @@ final class MoimViewModel: ObservableObject {
                 myProfile = try await MoimRepository.myProfile()
                 rooms = try await MoimRepository.rooms()
                 loggedIn = true
+                bindRealtime()
             } catch {
                 loggedIn = false
                 try? await MoimRepository.signOut()
@@ -59,6 +104,8 @@ final class MoimViewModel: ObservableObject {
 
     func logout() {
         Task {
+            await MoimRealtimeSync.shared.stop()
+            realtimeStarted = false
             try? await MoimRepository.signOut()
             loggedIn = false
             rooms = []; myProfile = nil
@@ -83,6 +130,7 @@ final class MoimViewModel: ObservableObject {
         activeRoom = room.id
         messages = []; events = []; files = []
         Task {
+            await MoimRealtimeSync.shared.setActiveRoom(room.id)
             do { messages = try await MoimRepository.messages(roomId: room.id) }
             catch { self.error = "메시지 불러오기: \(error.localizedDescription)" }
             await loadRoomData(room.id)
@@ -98,6 +146,7 @@ final class MoimViewModel: ObservableObject {
 
     func closeRoom() {
         activeRoom = nil
+        Task { await MoimRealtimeSync.shared.setActiveRoom(nil) }
         messages = []; events = []; files = []
     }
 

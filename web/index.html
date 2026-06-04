@@ -238,6 +238,44 @@ let evKept=[]; // 일정 수정 시 유지할 기존 첨부 [{n,u}]
 let calMode="month", fileSort="date", monthAnchor=new Date();
 let selDate=new Date(); selDate.setHours(0,0,0,0); // 선택한 날짜(기본 오늘)
 let cpick=new Set(), editEventId=null, pendingFile=null;
+let realtimeGlobal=null, realtimeRoom=null;
+
+function debounce(fn,ms=400){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
+const debouncedLoadRooms=debounce(()=>loadRooms(),400);
+const debouncedRefreshRoom=debounce(async()=>{
+  if(!active)return;
+  await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
+  const pane=document.querySelector('#roomScreen .pane.on');
+  if(pane?.id==='pane-chat')renderMsgs();
+  else if(pane?.id==='pane-cal')renderCal();
+  else if(pane?.id==='pane-files')renderFiles();
+},400);
+const debouncedLoadWard=debounce(()=>{
+  if(!document.getElementById('wardScreen').classList.contains('hidden'))loadWard();
+},400);
+
+function startRealtime(){
+  stopRealtime();
+  realtimeGlobal=sb.channel('moim-global')
+    .on('postgres_changes',{event:'*',schema:'public',table:'rooms'},debouncedLoadRooms)
+    .on('postgres_changes',{event:'*',schema:'public',table:'room_members'},debouncedLoadRooms)
+    .on('postgres_changes',{event:'*',schema:'public',table:'ward_status'},debouncedLoadWard)
+    .subscribe();
+}
+function setRoomRealtime(roomId){
+  if(realtimeRoom){sb.removeChannel(realtimeRoom);realtimeRoom=null;}
+  if(!roomId)return;
+  const filter=`room_id=eq.${roomId}`;
+  realtimeRoom=sb.channel('moim-room-'+roomId)
+    .on('postgres_changes',{event:'*',schema:'public',table:'messages',filter},debouncedRefreshRoom)
+    .on('postgres_changes',{event:'*',schema:'public',table:'calendar_events',filter},debouncedRefreshRoom)
+    .on('postgres_changes',{event:'*',schema:'public',table:'room_files',filter},debouncedRefreshRoom)
+    .subscribe();
+}
+function stopRealtime(){
+  if(realtimeGlobal){sb.removeChannel(realtimeGlobal);realtimeGlobal=null;}
+  setRoomRealtime(null);
+}
 
 const TYPE_COLOR={'교실':'#b5651d','의국':'#4a6fa5','심리실':'#6d597a','연구실':'#3d8361','PA':'#0d8a8a','간호사':'#c0452f','SW':'#9a6a00','보조원':'#777'};
 const CAT={notice:{l:'공지',c:'#b5651d'},group:{l:'그룹',c:'#4a6fa5'},work:{l:'업무',c:'#3d8361'},research:{l:'연구',c:'#6d597a'},custom:{l:'모임',c:'#8a817a'}};
@@ -287,7 +325,7 @@ async function submitAuth(){
     await loadApp();
   }
 }
-async function doLogout(){await sb.auth.signOut();me=null;show('login');}
+async function doLogout(){stopRealtime();await sb.auth.signOut();me=null;show('login');}
 
 async function loadApp(){
   const {data:{user}}=await sb.auth.getUser();
@@ -301,6 +339,7 @@ async function loadApp(){
   const {data:profs}=await sb.from('profiles').select('*');
   profilesById={};(profs||[]).forEach(p=>profilesById[p.id]=p);
   await loadRooms();
+  startRealtime();
   show('listScreen');
 }
 async function loadRooms(){
@@ -315,7 +354,7 @@ function renderRoomList(){
   document.getElementById('meChip').innerHTML=`<span class="vd" style="background:${tcolor(me.member_type)}">${(me.member_type||'?')[0]}</span>${esc(me.name)}`;
   const def=rooms.filter(r=>r.category!=='custom'),cus=rooms.filter(r=>r.category==='custom');
   const item=r=>{const c=CAT[r.category]||CAT.custom;return `<div class="room" onclick="openRoom('${r.id}')">
-    <div class="av" style="background:${c.c}${r.category!=='custom'?';font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word':''}">${r.category!=='custom'?esc(r.name):'#'}</div>
+    <div class="av" style="background:${c.c};font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word">${esc(r.name)}</div>
     <div class="room-mid"><div class="room-top"><span class="catdot" style="background:${c.c}">${c.l}</span>
     <span class="room-name">${esc(r.name)}</span></div>
     <div class="room-msg">${r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'멤버 누구나'}</div></div></div>`;};
@@ -340,13 +379,14 @@ async function openRoom(id){
   calMode=active.default_view==='week'?'week':'month';
   selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
   show('roomScreen');
+  setRoomRealtime(id);
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
   tab(active.default_view==='week'?'cal':'chat');
   const allow=canPost(active);
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
 }
-function closeRoom(){active=null;show('listScreen');}
+function closeRoom(){active=null;setRoomRealtime(null);show('listScreen');}
 async function renameRoom(){
   if(!active)return;
   const name=prompt('방 이름 변경', active.name);

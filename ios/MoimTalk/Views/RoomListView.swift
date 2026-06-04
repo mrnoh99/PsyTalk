@@ -7,6 +7,10 @@ struct RoomListView: View {
     let onWard: () -> Void
     let onCreateRoom: () -> Void
 
+    private var pendingApprovalCount: Int {
+        vm.profilesById.values.filter { $0.approved == false }.count
+    }
+
     private var defaultRooms: [Room] {
         vm.rooms.filter { $0.category != "custom" }.sorted { $0.sortOrder < $1.sortOrder }
     }
@@ -45,7 +49,7 @@ struct RoomListView: View {
                     }
                 }
             }
-            if let p = vm.myProfile, isSuperAdmin(p.role) { adminBar }
+            if let p = vm.myProfile, isSuperAdmin(p.role) { adminBar(pending: pendingApprovalCount) }
         }
         .background(Moim.paper.ignoresSafeArea())
     }
@@ -77,7 +81,7 @@ struct RoomListView: View {
         .background(Moim.paper)
     }
 
-    private var adminBar: some View {
+    private func adminBar(pending: Int) -> some View {
         Button(action: onAdmin) {
             HStack(spacing: 10) {
                 Text("🛡").font(.system(size: 15))
@@ -85,9 +89,16 @@ struct RoomListView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 VStack(alignment: .leading, spacing: 1) {
                     Text("관리자 콘솔").font(.system(size: 14, weight: .bold)).foregroundColor(.white)
-                    Text("전체관리자 전용 · 멤버/방/권한").font(.system(size: 11)).foregroundColor(Color(hex: 0xBDB4AB))
+                    Text(pending > 0 ? "멤버/방 · 가입 승인 대기 \(pending)명" : "멤버/방 · 가입 승인")
+                        .font(.system(size: 11)).foregroundColor(Color(hex: 0xBDB4AB))
                 }
                 Spacer()
+                if pending > 0 {
+                    Text("\(pending)")
+                        .font(.system(size: 12, weight: .bold)).foregroundColor(.white)
+                        .padding(.horizontal, 8).padding(.vertical, 3)
+                        .background(Moim.admin).clipShape(Capsule())
+                }
                 Text("›").foregroundColor(Color(hex: 0xBDB4AB)).font(.system(size: 18))
             }
             .padding(.horizontal, 18).padding(.vertical, 12)
@@ -160,7 +171,7 @@ struct RoomRow: View {
     var body: some View {
         Button { onOpen(room) } label: {
             HStack(spacing: 12) {
-                Text(room.category != "custom" ? room.name : "#")
+                Text(room.name)
                     .font(.system(size: 10.5, weight: .heavy)).foregroundColor(.white)
                     .multilineTextAlignment(.center)
                     .lineLimit(2)

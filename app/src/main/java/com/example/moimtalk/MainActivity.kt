@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.example.moimtalk.data.CalendarEvent
 import com.example.moimtalk.data.Message
+import com.example.moimtalk.data.MoimRealtimeSync
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
@@ -29,6 +30,7 @@ import com.example.moimtalk.ui.LoginScreen
 import com.example.moimtalk.ui.RoomListScreen
 import com.example.moimtalk.ui.RoomScreen
 import com.example.moimtalk.ui.ApprovalScreen
+import com.example.moimtalk.ui.isAdminRole
 import com.example.moimtalk.ui.PendingApprovalScreen
 import com.example.moimtalk.ui.WardStatusScreen
 import kotlinx.coroutines.launch
@@ -52,6 +54,33 @@ class MoimViewModel : ViewModel() {
     var roomMemberIds by mutableStateOf<List<String>>(emptyList())
 
     private var activeRoom: String? = null
+    private var realtimeBound = false
+
+    init {
+        if (MoimRepository.currentUserId() != null) bindRealtime()
+    }
+
+    private fun bindRealtime() {
+        if (realtimeBound) return
+        realtimeBound = true
+        MoimRealtimeSync.start(
+            scope = viewModelScope,
+            onRoomsChanged = { loadRooms() },
+            onWardChanged = { loadWardStatus() },
+            onActiveRoomChanged = { rid -> refreshActiveRoom(rid) },
+        )
+    }
+
+    private fun refreshActiveRoom(roomId: String) {
+        if (activeRoom != roomId) return
+        viewModelScope.launch {
+            try {
+                messages = MoimRepository.messages(roomId)
+            } catch (_: Exception) {
+            }
+            loadRoomData(roomId)
+        }
+    }
 
     fun signUp(email: String, pw: String, name: String, memberType: String) {
         viewModelScope.launch {
@@ -63,6 +92,7 @@ class MoimViewModel : ViewModel() {
                     rooms = MoimRepository.rooms()
                     profilesById = runCatching { MoimRepository.allProfiles().associateBy { it.id } }.getOrDefault(emptyMap())
                     loggedIn = true
+                    bindRealtime()
                 } else {
                     notice = "가입 완료! 이메일 인증 후 로그인하세요."
                 }
@@ -90,6 +120,7 @@ class MoimViewModel : ViewModel() {
                     throw Exception("방 목록 조회: ${e.message}", e)
                 }
                 loggedIn = true
+                bindRealtime()
             } catch (e: Exception) {
                 loggedIn = false
                 try {
@@ -103,6 +134,8 @@ class MoimViewModel : ViewModel() {
     }
 
     fun logout() {
+        MoimRealtimeSync.stop(viewModelScope)
+        realtimeBound = false
         viewModelScope.launch {
             try {
                 MoimRepository.signOut()
@@ -131,8 +164,9 @@ class MoimViewModel : ViewModel() {
     }
 
     fun openRoom(room: Room) {
+        activeRoom = room.id
+        MoimRealtimeSync.setActiveRoom(viewModelScope, room.id)
         viewModelScope.launch {
-            activeRoom = room.id
             messages = emptyList()
             events = emptyList()
             files = emptyList()
@@ -162,6 +196,7 @@ class MoimViewModel : ViewModel() {
 
     fun closeRoom() {
         activeRoom = null
+        MoimRealtimeSync.setActiveRoom(viewModelScope, null)
         messages = emptyList()
         events = emptyList()
         files = emptyList()
@@ -441,7 +476,8 @@ fun App(vm: MoimViewModel = viewModel()) {
         vm.myProfile?.approved == false -> PendingApprovalScreen(vm)
         showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
         showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
-        showApprovals -> ApprovalScreen(vm = vm, onBack = { showApprovals = false })
+        showApprovals && vm.myProfile?.let { isAdminRole(it.role) } == true ->
+            ApprovalScreen(vm = vm, onBack = { showApprovals = false })
         openedRoom == null -> RoomListScreen(
             vm = vm,
             onOpen = { room ->

@@ -208,7 +208,7 @@ fun PendingApprovalScreen(vm: MoimViewModel) {
     }
 }
 
-// 방 목록의 전체관리자용 가입 승인 진입 배너
+// 방 목록의 관리자(전체관리자·관리자) 전용 가입 승인 진입 배너
 @Composable
 private fun ApprovalBanner(pending: Int, onClick: () -> Unit) {
     Row(
@@ -390,7 +390,7 @@ fun RoomListScreen(
                 .fillMaxSize()
         ) {
             item { WardStatusBanner(onWard) }
-            if (profile != null && isSuperAdmin(profile.role)) {
+            if (profile != null && isAdminRole(profile.role)) {
                 item { ApprovalBanner(vm.profilesById.values.count { !it.approved }, onApprovals) }
             }
             if (vm.rooms.isEmpty()) {
@@ -501,9 +501,8 @@ fun RoomRow(room: Room, onOpen: (Room) -> Unit) {
                 .background(c, RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
-            val label = if (room.category != "custom") room.name else "#"
             Text(
-                label,
+                room.name,
                 color = Color.White,
                 fontWeight = FontWeight.ExtraBold,
                 fontSize = 10.5.sp,

@@ -145,9 +145,13 @@ fun FilesPane(vm: MoimViewModel, canUpload: Boolean, modifier: Modifier = Modifi
         FileEntry(it.fileName, it.fileUrl, it.description.orEmpty(), it.keywords, vm.nameOf(it.uploadedBy),
             dayLabel(it.createdAt), false, it.createdAt.orEmpty())
     }
-    val fromCal = vm.events.filter { !it.attachmentUrl.isNullOrBlank() }.map {
-        FileEntry(it.attachmentName ?: "첨부파일", it.attachmentUrl, it.attachmentDesc ?: it.title,
-            it.keywords, vm.nameOf(it.ownerId), dayLabel(it.startAt), true, it.startAt)
+    val fromCal = vm.events.flatMap { e ->
+        val pairs = if (e.attachmentNames.isNotEmpty()) e.attachmentNames.zip(e.attachmentUrls)
+            else if (!e.attachmentUrl.isNullOrBlank()) listOf((e.attachmentName ?: "첨부파일") to e.attachmentUrl!!)
+            else emptyList()
+        pairs.map { (n, url) ->
+            FileEntry(n, url, e.title, emptyList(), vm.nameOf(e.ownerId), dayLabel(e.startAt), true, e.startAt)
+        }
     }
     val all = direct + fromCal
 
@@ -344,7 +348,7 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
             onSubmit = { form ->
                 vm.createEvent(
                     form.title, form.startAt, form.place, form.link, form.scope, form.description,
-                    form.presenter, form.keywords, form.attachmentName, form.attachmentBytes, form.attachmentDesc,
+                    form.presenter, form.keywords, form.newAttachments,
                 ) { creating = false }
             }
         )
@@ -358,7 +362,7 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
             onSubmit = { form ->
                 vm.updateEvent(
                     ev.id, form.title, form.startAt, form.place, form.link, form.scope, form.description,
-                    form.presenter, form.keywords, form.attachmentName, form.attachmentBytes, form.attachmentDesc,
+                    form.presenter, form.keywords, form.keptUrls, form.keptNames, form.newAttachments,
                 ) { editing = null }
             }
         )
@@ -535,20 +539,24 @@ private fun EventCard(e: CalendarEvent, vm: MoimViewModel, onEdit: (CalendarEven
             e.description?.takeIf { it.isNotBlank() }?.let {
                 Text(it, fontSize = 11.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
             }
+            val atts = if (e.attachmentNames.isNotEmpty()) e.attachmentNames.zip(e.attachmentUrls)
+                else if (!e.attachmentUrl.isNullOrBlank()) listOf((e.attachmentName ?: "첨부파일") to e.attachmentUrl!!)
+                else emptyList()
+            atts.forEach { (n, url) ->
+                Text("📎 $n", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = catColor("work"),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .padding(top = 6.dp)
+                        .background(Color(0xFFE7F0EB), RoundedCornerShape(8.dp))
+                        .clickable { openUrl(context, url) }
+                        .padding(horizontal = 10.dp, vertical = 4.dp))
+            }
             Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 e.link?.takeIf { it.isNotBlank() }?.let { link ->
                     Text("🔗 링크", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = catColor("group"),
                         modifier = Modifier
                             .background(Color(0xFFEEF2F8), RoundedCornerShape(8.dp))
                             .clickable { openUrl(context, link) }
-                            .padding(horizontal = 10.dp, vertical = 4.dp))
-                }
-                if (!e.attachmentUrl.isNullOrBlank()) {
-                    val url = e.attachmentUrl!!
-                    Text("📎 첨부파일", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = catColor("work"),
-                        modifier = Modifier
-                            .background(Color(0xFFE7F0EB), RoundedCornerShape(8.dp))
-                            .clickable { openUrl(context, url) }
                             .padding(horizontal = 10.dp, vertical = 4.dp))
                 }
                 if (vm.canEditEvent(e)) {
@@ -580,9 +588,9 @@ class EventForm(
     val description: String?,
     val presenter: String?,
     val keywords: List<String>,
-    val attachmentName: String?,
-    val attachmentBytes: ByteArray?,
-    val attachmentDesc: String?,
+    val keptUrls: List<String>,
+    val keptNames: List<String>,
+    val newAttachments: List<Pair<String, ByteArray>>,
 )
 
 @Composable
@@ -606,12 +614,24 @@ private fun EventDialog(
     var scope by remember { mutableStateOf(initial?.scope ?: "") }
     var desc by remember { mutableStateOf(initial?.description ?: "") }
     var presenter by remember { mutableStateOf(initial?.presenter ?: "") }
-    var attDesc by remember { mutableStateOf(initial?.attachmentDesc ?: "") }
-    var att by remember { mutableStateOf<Pair<String, ByteArray>?>(null) }
+    // 기존 첨부(이름 to URL). 배열 우선, 없으면 옛 단일 컬럼 호환
+    val initialExisting = remember(initial) {
+        when {
+            initial == null -> emptyList()
+            initial.attachmentNames.isNotEmpty() ->
+                initial.attachmentNames.zip(initial.attachmentUrls)
+            !initial.attachmentUrl.isNullOrBlank() ->
+                listOf((initial.attachmentName ?: "첨부파일") to initial.attachmentUrl!!)
+            else -> emptyList()
+        }
+    }
+    var existing by remember { mutableStateOf(initialExisting) }
+    var picked by remember { mutableStateOf(listOf<Pair<String, ByteArray>>()) }
     var err by remember { mutableStateOf<String?>(null) }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) att = readUri(context, uri)
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        val added = uris.mapNotNull { readUri(context, it) }
+        if (added.isNotEmpty()) picked = picked + added
     }
 
     SheetDialog(title = title, subtitle = "참석범위·첨부자료까지 등록할 수 있습니다.", onDismiss = onDismiss) {
@@ -633,29 +653,31 @@ private fun EventDialog(
         FieldLabel("설명")
         OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("안건 / 준비사항", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
 
-        if (allowAttachment) {
-            FieldLabel("첨부 자료")
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(11.dp))
-                    .clickable { launcher.launch("*/*") }
-                    .background(MoimWhite, RoundedCornerShape(11.dp))
-                    .padding(12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    att?.first?.let { "📎 $it" }
-                        ?: initial?.attachmentName?.let { "📎 현재: $it (교체하려면 선택)" }
-                        ?: "📎 파일 첨부",
-                    color = MoimSub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
-                )
+        FieldLabel("첨부 자료 (여러 개 가능)")
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(11.dp))
+                .clickable { launcher.launch("*/*") }
+                .background(MoimWhite, RoundedCornerShape(11.dp))
+                .padding(12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("📎 파일 추가", color = MoimSub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        }
+        existing.forEach { item ->
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("📎 ${item.first}", fontSize = 12.5.sp, color = MoimInk, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("제거", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
+                    modifier = Modifier.clickable { existing = existing - item })
             }
-            FieldLabel("첨부 자료 설명")
-            OutlinedTextField(attDesc, { attDesc = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 발표 슬라이드 초안", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
-        } else {
-            Spacer(Modifier.height(6.dp))
-            Text("※ 첨부 파일은 일정 수정 시 변경할 수 없습니다.", fontSize = 11.sp, color = MoimSub, modifier = Modifier.padding(top = 8.dp))
+        }
+        picked.forEach { item ->
+            Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("🆕 ${item.first}", fontSize = 12.5.sp, color = catColor("work"), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("제거", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
+                    modifier = Modifier.clickable { picked = picked - item })
+            }
         }
 
         err?.let {
@@ -678,9 +700,9 @@ private fun EventDialog(
                     description = desc.trim().takeIf { it.isNotBlank() },
                     presenter = presenter.trim().takeIf { it.isNotBlank() },
                     keywords = emptyList(),
-                    attachmentName = att?.first,
-                    attachmentBytes = att?.second,
-                    attachmentDesc = attDesc.trim().takeIf { it.isNotBlank() },
+                    keptUrls = existing.map { it.second },
+                    keptNames = existing.map { it.first },
+                    newAttachments = picked,
                 )
             )
         }

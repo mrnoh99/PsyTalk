@@ -108,6 +108,8 @@ data class CalendarEvent(
     @SerialName("attachment_url") val attachmentUrl: String? = null,
     @SerialName("attachment_name") val attachmentName: String? = null,
     @SerialName("attachment_desc") val attachmentDesc: String? = null,
+    @SerialName("attachment_urls") val attachmentUrls: List<String> = emptyList(),
+    @SerialName("attachment_names") val attachmentNames: List<String> = emptyList(),
     @SerialName("created_at") val createdAt: String? = null,
 )
 
@@ -127,6 +129,8 @@ data class CalendarEventInsert(
     @SerialName("attachment_url") val attachmentUrl: String? = null,
     @SerialName("attachment_name") val attachmentName: String? = null,
     @SerialName("attachment_desc") val attachmentDesc: String? = null,
+    @SerialName("attachment_urls") val attachmentUrls: List<String> = emptyList(),
+    @SerialName("attachment_names") val attachmentNames: List<String> = emptyList(),
 )
 
 // 일정 수정용 DTO (작성자 본인 + 관리자만, 요구사항 6)

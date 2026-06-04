@@ -23,9 +23,11 @@
 		D8974609309F8AC914FE9489 /* MoimRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3D3AA6E1494F69BE95D8C3 /* MoimRepository.swift */; };
 		EDCBA9ABDE2D41AFED8D9E7A /* MoimViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73F51B10F9F1008922342445 /* MoimViewModel.swift */; };
 		F5F93EFC6BDFFDAE254FB71B /* RoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D706D1572849E3BC1AE1BAA /* RoomView.swift */; };
+		FBF8BDC92B4DA1C7A504E28E /* CreateRoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A15A572C6232E483E7FD43C /* CreateRoomView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1A15A572C6232E483E7FD43C /* CreateRoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateRoomView.swift; sourceTree = "<group>"; };
 		1C46B8FDCED34E1AC6ACE940 /* FilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesView.swift; sourceTree = "<group>"; };
 		2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		2CA9C1A636044B04FF6591FE /* EventEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditView.swift; sourceTree = "<group>"; };
@@ -35,7 +37,7 @@
 		6E42E0AEF7749647ADDFE498 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		73F51B10F9F1008922342445 /* MoimViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimViewModel.swift; sourceTree = "<group>"; };
 		7587B7A6C7F09B42D62B36D1 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
-		77AF8F071B3C5AC6410D6389 /* MoimTalk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MoimTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		77AF8F071B3C5AC6410D6389 /* MoimTalk.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MoimTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7D706D1572849E3BC1AE1BAA /* RoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomView.swift; sourceTree = "<group>"; };
 		7F01F129DE6E64DBFE58423E /* WardStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardStatusView.swift; sourceTree = "<group>"; };
 		7F7D32747C8263739AB9EC87 /* RoomListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomListView.swift; sourceTree = "<group>"; };
@@ -97,6 +99,7 @@
 			children = (
 				BA791D3357DDC85A6236355D /* AdminPlaceholderView.swift */,
 				2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */,
+				1A15A572C6232E483E7FD43C /* CreateRoomView.swift */,
 				E17DE9D14FE52E794BAFCB4E /* DateUtils.swift */,
 				2CA9C1A636044B04FF6591FE /* EventEditView.swift */,
 				1C46B8FDCED34E1AC6ACE940 /* FilesView.swift */,
@@ -155,7 +158,9 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 2600;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
 			};
 			buildConfigurationList = A528334DE0E6C5952B9200D3 /* Build configuration list for PBXProject "MoimTalk" */;
 			developmentRegion = en;
@@ -186,6 +191,7 @@
 			files = (
 				221A52FF2E0856F233729EE5 /* AdminPlaceholderView.swift in Sources */,
 				9CAE57F57BF265116F14F340 /* CalendarView.swift in Sources */,
+				FBF8BDC92B4DA1C7A504E28E /* CreateRoomView.swift in Sources */,
 				0DF07A068A6D8D7C6FB85920 /* DateUtils.swift in Sources */,
 				122642BEF5058304974AECFA /* EventEditView.swift in Sources */,
 				592CB191E822D1BFE719D30F /* FilesView.swift in Sources */,
@@ -240,10 +246,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = 9AWEB9NYHH;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
@@ -257,7 +261,6 @@
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
@@ -281,7 +284,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.moimtalk;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -320,10 +323,8 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = 9AWEB9NYHH;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -344,7 +345,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
-				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -368,7 +368,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.example.moimtalk;
 				SDKROOT = iphoneos;
 				SWIFT_VERSION = 5.9;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
 		};

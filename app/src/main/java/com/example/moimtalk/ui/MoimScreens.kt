@@ -169,7 +169,7 @@ fun RoomListScreen(
         },
         containerColor = MoimPaper,
         bottomBar = {
-            if (profile != null && isSuperAdmin(profile.role)) {
+            if (profile != null && isAdminRole(profile.role)) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()

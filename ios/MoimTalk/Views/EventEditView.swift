@@ -8,6 +8,7 @@ struct EventFormData {
     var link: String?
     var scope: String?
     var description: String?
+    var presenter: String?
     var keywords: [String]
     var attachmentName: String?
     var attachmentData: Data?
@@ -29,7 +30,7 @@ struct EventEditView: View {
     @State private var link = ""
     @State private var scope = ""
     @State private var desc = ""
-    @State private var kw = ""
+    @State private var presenter = ""
     @State private var attDesc = ""
     @State private var attachment: (name: String, data: Data)?
     @State private var showImporter = false
@@ -43,10 +44,10 @@ struct EventEditView: View {
                     DatePicker("날짜", selection: $date, displayedComponents: .date)
                     DatePicker("시간", selection: $time, displayedComponents: .hourAndMinute)
                     TextField("장소 (의국 회의실)", text: $place)
+                    TextField("발표자 (여러 명은 쉼표로)", text: $presenter)
                     TextField("링크 (https://zoom.us/...)", text: $link).autocapitalization(.none)
                     TextField("참석 범위 (예: 의국 전공의 전원)", text: $scope)
                     TextField("설명 (안건/준비사항)", text: $desc, axis: .vertical).lineLimit(2...4)
-                    TextField("키워드 (쉼표로 구분)", text: $kw)
                 }
                 if allowAttachment {
                     Section("첨부 자료") {
@@ -91,7 +92,7 @@ struct EventEditView: View {
         evTitle = e.title
         if let d = CalDate.parse(e.startAt) { date = d; time = d }
         place = e.place ?? ""; link = e.link ?? ""; scope = e.scope ?? ""
-        desc = e.description ?? ""; kw = e.kw.joined(separator: ", ")
+        desc = e.description ?? ""; presenter = e.presenter ?? ""
         attDesc = e.attachmentDesc ?? ""
     }
 
@@ -102,7 +103,7 @@ struct EventEditView: View {
             title: t,
             startAt: CalDate.buildStartAt(date: date, time: time),
             place: place.trimmed(), link: link.trimmed(), scope: scope.trimmed(),
-            description: desc.trimmed(), keywords: parseKeywords(kw),
+            description: desc.trimmed(), presenter: presenter.trimmed(), keywords: [],
             attachmentName: attachment?.name, attachmentData: attachment?.data,
             attachmentDesc: attDesc.trimmed()
         )

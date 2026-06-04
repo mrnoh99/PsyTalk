@@ -91,6 +91,7 @@ object MoimRepository {
         link: String?,
         scope: String?,
         description: String?,
+        presenter: String?,
         keywords: List<String>,
         attachmentName: String?,
         attachmentBytes: ByteArray?,
@@ -112,6 +113,7 @@ object MoimRepository {
                 link = link,
                 scope = scope,
                 description = description,
+                presenter = presenter?.takeIf { it.isNotBlank() },
                 keywords = keywords,
                 ownerId = uid,
                 attachmentUrl = url,
@@ -131,6 +133,7 @@ object MoimRepository {
         link: String?,
         scope: String?,
         description: String?,
+        presenter: String?,
         keywords: List<String>,
         attachmentName: String?,
         attachmentBytes: ByteArray?,
@@ -150,6 +153,7 @@ object MoimRepository {
             set("link", link)
             set("scope", scope)
             set("description", description)
+            set("presenter", presenter)
             set("keywords", keywords)
             set("attachment_desc", attachmentDesc)
             if (newUrl != null) {

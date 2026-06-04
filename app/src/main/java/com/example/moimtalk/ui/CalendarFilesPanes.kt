@@ -344,7 +344,7 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
             onSubmit = { form ->
                 vm.createEvent(
                     form.title, form.startAt, form.place, form.link, form.scope, form.description,
-                    form.keywords, form.attachmentName, form.attachmentBytes, form.attachmentDesc,
+                    form.presenter, form.keywords, form.attachmentName, form.attachmentBytes, form.attachmentDesc,
                 ) { creating = false }
             }
         )
@@ -357,8 +357,8 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
             onDismiss = { editing = null },
             onSubmit = { form ->
                 vm.updateEvent(
-                    ev.id, form.title, form.startAt, form.place, form.link, form.scope, form.description, form.keywords,
-                    form.attachmentName, form.attachmentBytes, form.attachmentDesc,
+                    ev.id, form.title, form.startAt, form.place, form.link, form.scope, form.description,
+                    form.presenter, form.keywords, form.attachmentName, form.attachmentBytes, form.attachmentDesc,
                 ) { editing = null }
             }
         )
@@ -525,16 +525,15 @@ private fun EventCard(e: CalendarEvent, vm: MoimViewModel, onEdit: (CalendarEven
             e.place?.takeIf { it.isNotBlank() }?.let {
                 Text("📍 $it", fontSize = 12.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
             }
-            Text("👤 발표자 ${vm.nameOf(e.ownerId)}", fontSize = 12.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
+            Text(
+                "👤 발표자 ${e.presenter?.takeIf { it.isNotBlank() } ?: vm.nameOf(e.ownerId)}",
+                fontSize = 12.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp)
+            )
             e.scope?.takeIf { it.isNotBlank() }?.let {
                 Text("참석 ${it}", fontSize = 11.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
             }
             e.description?.takeIf { it.isNotBlank() }?.let {
                 Text(it, fontSize = 11.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
-            }
-            if (e.keywords.isNotEmpty()) {
-                Text(e.keywords.joinToString(" ") { "#$it" }, fontSize = 11.5.sp, color = catColor("research"),
-                    fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 3.dp))
             }
             Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 e.link?.takeIf { it.isNotBlank() }?.let { link ->
@@ -579,6 +578,7 @@ class EventForm(
     val link: String?,
     val scope: String?,
     val description: String?,
+    val presenter: String?,
     val keywords: List<String>,
     val attachmentName: String?,
     val attachmentBytes: ByteArray?,
@@ -605,7 +605,7 @@ private fun EventDialog(
     var link by remember { mutableStateOf(initial?.link ?: "") }
     var scope by remember { mutableStateOf(initial?.scope ?: "") }
     var desc by remember { mutableStateOf(initial?.description ?: "") }
-    var kw by remember { mutableStateOf(initial?.keywords?.joinToString(", ") ?: "") }
+    var presenter by remember { mutableStateOf(initial?.presenter ?: "") }
     var attDesc by remember { mutableStateOf(initial?.attachmentDesc ?: "") }
     var att by remember { mutableStateOf<Pair<String, ByteArray>?>(null) }
     var err by remember { mutableStateOf<String?>(null) }
@@ -626,12 +626,12 @@ private fun EventDialog(
         OutlinedTextField(place, { place = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("의국 회의실", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
         FieldLabel("링크 (선택)")
         OutlinedTextField(link, { link = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("https://zoom.us/...", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        FieldLabel("발표자 (여러 명은 쉼표로)")
+        OutlinedTextField(presenter, { presenter = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 김교수, 박전공", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
         FieldLabel("참석 범위")
         OutlinedTextField(scope, { scope = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 의국 전공의 전원", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
         FieldLabel("설명")
         OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("안건 / 준비사항", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
-        FieldLabel("키워드 (쉼표로 구분)")
-        OutlinedTextField(kw, { kw = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("컨퍼런스, 증례, 교육", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
 
         if (allowAttachment) {
             FieldLabel("첨부 자료")
@@ -676,7 +676,8 @@ private fun EventDialog(
                     link = link.trim().takeIf { it.isNotBlank() },
                     scope = scope.trim().takeIf { it.isNotBlank() },
                     description = desc.trim().takeIf { it.isNotBlank() },
-                    keywords = parseKeywords(kw),
+                    presenter = presenter.trim().takeIf { it.isNotBlank() },
+                    keywords = emptyList(),
                     attachmentName = att?.first,
                     attachmentBytes = att?.second,
                     attachmentDesc = attDesc.trim().takeIf { it.isNotBlank() },

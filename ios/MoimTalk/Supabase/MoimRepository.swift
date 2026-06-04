@@ -89,7 +89,7 @@ enum MoimRepository {
     static func createEvent(
         roomId: String, title: String, startAt: String,
         place: String?, link: String?, scope: String?, description: String?,
-        keywords: [String],
+        presenter: String?, keywords: [String],
         attachmentName: String?, attachmentData: Data?, attachmentDesc: String?
     ) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
@@ -102,6 +102,7 @@ enum MoimRepository {
         let payload = CalendarEventInsert(
             roomId: roomId, title: title, startAt: startAt,
             place: place, link: link, scope: scope, description: description,
+            presenter: (presenter?.isEmpty == false) ? presenter : nil,
             keywords: keywords, ownerId: uid,
             attachmentUrl: url, attachmentName: name,
             attachmentDesc: (attachmentDesc?.isEmpty == false) ? attachmentDesc : nil
@@ -111,7 +112,8 @@ enum MoimRepository {
 
     static func updateEvent(
         eventId: String, roomId: String, title: String, startAt: String,
-        place: String?, link: String?, scope: String?, description: String?, keywords: [String],
+        place: String?, link: String?, scope: String?, description: String?,
+        presenter: String?, keywords: [String],
         attachmentName: String?, attachmentData: Data?, attachmentDesc: String?
     ) async throws {
         // 새 첨부 파일이 있으면 업로드해서 교체, 없으면 기존 첨부 유지
@@ -128,6 +130,7 @@ enum MoimRepository {
             "link": link.map { AnyJSON.string($0) } ?? .null,
             "scope": scope.map { AnyJSON.string($0) } ?? .null,
             "description": description.map { AnyJSON.string($0) } ?? .null,
+            "presenter": presenter.map { AnyJSON.string($0) } ?? .null,
             "keywords": .array(keywords.map { AnyJSON.string($0) }),
             "attachment_desc": attachmentDesc.map { AnyJSON.string($0) } ?? .null,
         ]

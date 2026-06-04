@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS public.calendar_events (
   link text,
   scope text,
   description text,
+  presenter text,
   keywords text[] DEFAULT '{}',
   owner_id uuid NOT NULL REFERENCES public.profiles(id),
   attachment_url text,
@@ -44,6 +45,9 @@ CREATE TABLE IF NOT EXISTS public.calendar_events (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+
+-- 기존 DB 보정: 발표자(작성자와 별개, 여러 명 가능) 컬럼
+ALTER TABLE public.calendar_events ADD COLUMN IF NOT EXISTS presenter text;
 
 -- 자료실 직접 업로드
 CREATE TABLE IF NOT EXISTS public.room_files (

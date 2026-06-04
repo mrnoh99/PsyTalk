@@ -47,6 +47,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -283,8 +284,18 @@ fun RoomRow(room: Room, onOpen: (Room) -> Unit) {
                 .background(c, RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
-            val label = if (room.category != "custom") room.sortOrder.toString() else "#"
-            Text(label, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+            val label = if (room.category != "custom") room.name else "#"
+            Text(
+                label,
+                color = Color.White,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 10.5.sp,
+                lineHeight = 12.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(horizontal = 3.dp)
+            )
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {

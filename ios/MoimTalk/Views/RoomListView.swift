@@ -160,8 +160,12 @@ struct RoomRow: View {
     var body: some View {
         Button { onOpen(room) } label: {
             HStack(spacing: 12) {
-                Text(room.category != "custom" ? "\(room.sortOrder)" : "#")
-                    .font(.system(size: 15, weight: .heavy)).foregroundColor(.white)
+                Text(room.category != "custom" ? room.name : "#")
+                    .font(.system(size: 10.5, weight: .heavy)).foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                    .padding(2)
                     .frame(width: 48, height: 48)
                     .background(catColor(room.category)).clipShape(RoundedRectangle(cornerRadius: 16))
                 VStack(alignment: .leading, spacing: 3) {

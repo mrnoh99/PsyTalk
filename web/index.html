@@ -252,7 +252,7 @@ function renderRoomList(){
   document.getElementById('meChip').innerHTML=`<span class="vd" style="background:${tcolor(me.member_type)}">${(me.member_type||'?')[0]}</span>${esc(me.name)}`;
   const def=rooms.filter(r=>r.category!=='custom'),cus=rooms.filter(r=>r.category==='custom');
   const item=r=>{const c=CAT[r.category]||CAT.custom;return `<div class="room" onclick="openRoom('${r.id}')">
-    <div class="av" style="background:${c.c}">${r.category!=='custom'?r.sort_order:'#'}</div>
+    <div class="av" style="background:${c.c}${r.category!=='custom'?';font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word':''}">${r.category!=='custom'?esc(r.name):'#'}</div>
     <div class="room-mid"><div class="room-top"><span class="catdot" style="background:${c.c}">${c.l}</span>
     <span class="room-name">${esc(r.name)}</span></div>
     <div class="room-msg">${r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'멤버 누구나'}</div></div></div>`;};

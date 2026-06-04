@@ -9,6 +9,7 @@ struct RoomView: View {
     @State private var input = ""
     @State private var showRename = false
     @State private var renameText = ""
+    @State private var showSettings = false
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
@@ -53,6 +54,14 @@ struct RoomView: View {
                     Text("✏️").font(.system(size: 17))
                 }
             }
+            if vm.canManageRoom(liveRoom) {
+                Button {
+                    vm.loadRoomMembers(liveRoom.id)
+                    showSettings = true
+                } label: {
+                    Text("⚙️").font(.system(size: 17))
+                }
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(Moim.paper)
@@ -60,6 +69,11 @@ struct RoomView: View {
             TextField("방 이름", text: $renameText)
             Button("취소", role: .cancel) {}
             Button("저장") { vm.renameRoom(liveRoom, to: renameText) {} }
+        }
+        .sheet(isPresented: $showSettings) {
+            RoomSettingsView(vm: vm, room: liveRoom,
+                             onClose: { showSettings = false },
+                             onDeleted: { showSettings = false; onBack() })
         }
     }
 

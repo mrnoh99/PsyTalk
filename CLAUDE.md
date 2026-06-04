@@ -80,7 +80,10 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 5. `seed_rooms.sql` — 기본 2방(과 전체공지·주간 학술활동)
 6. `install.sql` — GRANT·RLS
 7. `room_create.sql` — 모임방 사용자 생성 권한·가시성
-8. `admin_roles.sql` — 앱에서 역할 지정(전체관리자만) 권한(마지막)
+8. `admin_roles.sql` — 앱에서 역할 지정(전체관리자만) 권한
+9. `room_manage.sql` — 모임방 삭제·멤버 내보내기 RLS + **동일 이름 모임방 금지**(유니크 인덱스)(마지막)
+
+> (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
 
 > `schema_extension.sql`이 `profiles` 조회를 "본인만→인증 사용자 전체"로 바꿉니다(작성자 이름 표시용).
 > 캘린더/자료실 작성은 현재 `owner=본인`만 검사하며, `room_members` 연동 시 강화 예정.

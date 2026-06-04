@@ -79,6 +79,24 @@ enum MoimRepository {
         try await supabase.from("rooms").update(["name": name]).eq("id", value: roomId).execute()
     }
 
+    /// 모임방 삭제 (생성자 또는 관리자 — RLS). 멤버·메시지·일정·자료는 CASCADE 삭제.
+    static func deleteRoom(roomId: String) async throws {
+        try await supabase.from("rooms").delete().eq("id", value: roomId).execute()
+    }
+
+    /// 방 참여 멤버 user_id 목록 (생성자/관리자만 전체 조회 — RLS)
+    static func roomMemberIds(roomId: String) async throws -> [String] {
+        let rows: [RoomMemberRow] = try await supabase.from("room_members")
+            .select("user_id").eq("room_id", value: roomId).execute().value
+        return rows.map { $0.userId }
+    }
+
+    /// 멤버 내보내기 (생성자 또는 관리자 — RLS)
+    static func removeRoomMember(roomId: String, userId: String) async throws {
+        try await supabase.from("room_members").delete()
+            .eq("room_id", value: roomId).eq("user_id", value: userId).execute()
+    }
+
     // ── 채팅 ──
     static func messages(roomId: String) async throws -> [Message] {
         try await supabase.from("messages")

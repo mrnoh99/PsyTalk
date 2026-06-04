@@ -193,13 +193,64 @@ final class MoimViewModel: ObservableObject {
     }
 
     func createRoom(name: String, memberIds: [String], onDone: @escaping () -> Void) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        // 같은 이름의 모임방 금지 (보이는 방 기준 즉시 검사 + DB 유니크 인덱스가 최종 강제)
+        if rooms.contains(where: { $0.category == "custom" && $0.name == trimmed }) {
+            self.error = "같은 이름의 모임방이 이미 있습니다. 다른 이름을 사용하세요."
+            return
+        }
         Task {
             do {
-                _ = try await MoimRepository.createRoom(name: name, memberIds: memberIds)
+                _ = try await MoimRepository.createRoom(name: trimmed, memberIds: memberIds)
                 rooms = try await MoimRepository.rooms()
                 onDone()
-            } catch { self.error = "방 만들기: \(error.localizedDescription)" }
+            } catch { self.error = "방 만들기: \(friendlyError(error))" }
         }
+    }
+
+    /// 모임방 삭제 (생성자/관리자)
+    func deleteRoom(_ room: Room, onDone: @escaping () -> Void) {
+        Task {
+            do {
+                try await MoimRepository.deleteRoom(roomId: room.id)
+                rooms = try await MoimRepository.rooms()
+                onDone()
+            } catch { self.error = "모임방 삭제: \(error.localizedDescription)" }
+        }
+    }
+
+    /// 현재 방 멤버 id 목록
+    @Published var roomMemberIds: [String] = []
+    func loadRoomMembers(_ roomId: String) {
+        Task {
+            roomMemberIds = (try? await MoimRepository.roomMemberIds(roomId: roomId)) ?? []
+        }
+    }
+
+    /// 멤버 내보내기 (생성자/관리자)
+    func removeRoomMember(roomId: String, userId: String) {
+        Task {
+            do {
+                try await MoimRepository.removeRoomMember(roomId: roomId, userId: userId)
+                roomMemberIds = (try? await MoimRepository.roomMemberIds(roomId: roomId)) ?? []
+            } catch { self.error = "멤버 내보내기: \(error.localizedDescription)" }
+        }
+    }
+
+    /// 모임방 관리 권한 (custom 방에 한해 생성자 또는 관리자)
+    func canManageRoom(_ room: Room) -> Bool {
+        guard room.category == "custom" else { return false }
+        if let r = myProfile?.role, r == "superadmin" || r == "admin" { return true }
+        return room.createdBy != nil && room.createdBy == MoimRepository.currentUserId()
+    }
+
+    /// 같은 이름 모임방 등 친화적 오류 메시지
+    private func friendlyError(_ error: Error) -> String {
+        let m = error.localizedDescription
+        if m.contains("23505") || m.lowercased().contains("duplicate key") || m.contains("rooms_custom_name_unique") {
+            return "같은 이름의 모임방이 이미 있습니다. 다른 이름을 사용하세요."
+        }
+        return m
     }
 
     func renameRoom(_ room: Room, to name: String, onDone: @escaping () -> Void) {

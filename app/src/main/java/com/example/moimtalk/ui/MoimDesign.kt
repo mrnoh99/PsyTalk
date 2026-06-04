@@ -62,6 +62,12 @@ fun canRenameRoom(profile: Profile?, room: Room): Boolean {
     return room.createdBy != null && room.createdBy == MoimRepository.currentUserId()
 }
 
+/** 모임방 관리(삭제·멤버 내보내기) 권한: 모임방(custom)에 한해 생성자 또는 관리자 */
+fun canManageRoom(profile: Profile?, room: Room): Boolean {
+    if (room.category != "custom") return false
+    return canRenameRoom(profile, room)
+}
+
 fun viewBadgeText(profile: Profile?): String {
     if (profile == null) return "정신건강의학과"
     return when {

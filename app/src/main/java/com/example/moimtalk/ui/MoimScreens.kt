@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.example.moimtalk.MoimViewModel
 import com.example.moimtalk.R
 import com.example.moimtalk.data.Message
+import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
 
@@ -548,8 +550,18 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     var input by remember { mutableStateOf("") }
     var showRename by remember { mutableStateOf(false) }
     var renameText by remember { mutableStateOf("") }
+    var showSettings by remember { mutableStateOf(false) }
     val profile = vm.myProfile
     val canPost = canPostInRoom(profile, room)
+
+    if (showSettings) {
+        RoomSettingsDialog(
+            vm = vm,
+            room = liveRoom,
+            onDismiss = { showSettings = false },
+            onDeleted = { showSettings = false; onBack() }
+        )
+    }
 
     if (showRename) {
         AlertDialog(
@@ -594,6 +606,12 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                 renameText = liveRoom.name
                                 showRename = true
                             }) { Text("✏️", fontSize = 17.sp) }
+                        }
+                        if (canManageRoom(profile, liveRoom)) {
+                            TextButton(onClick = {
+                                vm.loadRoomMembers(liveRoom.id)
+                                showSettings = true
+                            }) { Text("⚙️", fontSize = 17.sp) }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
@@ -915,6 +933,107 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
             }
         }
     }
+}
+
+// 모임방 설정 — 멤버 내보내기 + 모임방 삭제 (생성자/관리자만)
+@Composable
+fun RoomSettingsDialog(
+    vm: MoimViewModel,
+    room: Room,
+    onDismiss: () -> Unit,
+    onDeleted: () -> Unit,
+) {
+    var confirmDelete by remember { mutableStateOf(false) }
+    var kickTarget by remember { mutableStateOf<String?>(null) }
+    val memberIds = vm.roomMemberIds
+
+    // 모임방 삭제 확인
+    if (confirmDelete) {
+        AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text("모임방 삭제") },
+            text = { Text("‘${room.name}’ 모임방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmDelete = false
+                    vm.deleteRoom(room) { onDeleted() }
+                }) { Text("삭제", color = MoimAdmin, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("취소") } }
+        )
+    }
+
+    // 멤버 내보내기 확인
+    kickTarget?.let { uid ->
+        AlertDialog(
+            onDismissRequest = { kickTarget = null },
+            title = { Text("멤버 내보내기") },
+            text = { Text("‘${vm.nameOf(uid)}’ 님을 이 모임방에서 내보낼까요?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.removeRoomMember(room.id, uid)
+                    kickTarget = null
+                }) { Text("내보내기", color = MoimAdmin, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { kickTarget = null }) { Text("취소") } }
+        )
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("모임방 설정", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(modifier = Modifier
+                .heightIn(max = 380.dp)
+                .verticalScroll(rememberScrollState())) {
+                Text("참여 멤버 (${memberIds.size}명)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+                Spacer(Modifier.height(8.dp))
+                if (memberIds.isEmpty()) {
+                    Text("멤버 정보를 불러오는 중…", fontSize = 13.sp, color = MoimSub)
+                }
+                memberIds.forEach { uid ->
+                    val isCreator = uid == room.createdBy
+                    val isMe = uid == MoimRepository.currentUserId()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            vm.nameOf(uid) + when {
+                                isCreator -> " (방장)"
+                                isMe -> " (나)"
+                                else -> ""
+                            },
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MoimInk,
+                            modifier = Modifier.weight(1f)
+                        )
+                        // 방장은 내보낼 수 없음
+                        if (!isCreator) {
+                            TextButton(onClick = { kickTarget = uid }) {
+                                Text("내보내기", fontSize = 13.sp, color = MoimAdmin)
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(14.dp))
+                HorizontalDivider(color = MoimLine)
+                Spacer(Modifier.height(12.dp))
+                Button(
+                    onClick = { confirmDelete = true },
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = MoimAdmin),
+                    shape = RoundedCornerShape(11.dp)
+                ) {
+                    Text("이 모임방 삭제", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("닫기") } }
+    )
 }
 
 // 모임방 만들기 (카톡처럼 누구나) — 이름 + 참여 멤버 선택

@@ -24,6 +24,11 @@ internal fun friendlySupabaseError(e: Exception, context: String): String {
             "$context 실패: 테이블이 없습니다. Supabase에 profiles, rooms, messages 테이블을 만드세요.\n" +
                 "상세: $msg"
 
+        msg.contains("23505") ||
+            msg.contains("duplicate key", ignoreCase = true) ||
+            msg.contains("rooms_custom_name_unique", ignoreCase = true) ->
+            "$context 실패: 같은 이름의 모임방이 이미 있습니다. 다른 이름을 사용하세요."
+
         msg.contains("Invalid login", ignoreCase = true) ||
             msg.contains("Invalid credentials", ignoreCase = true) ||
             msg.contains("invalid_grant", ignoreCase = true) ->

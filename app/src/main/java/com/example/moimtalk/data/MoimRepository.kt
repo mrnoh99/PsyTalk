@@ -72,6 +72,24 @@ object MoimRepository {
         }
     }
 
+    /** 모임방 삭제 (생성자 또는 관리자, RLS 로 강제). 멤버·메시지·일정·자료는 CASCADE 삭제. */
+    suspend fun deleteRoom(roomId: String) {
+        supabase.from("rooms").delete { filter { eq("id", roomId) } }
+    }
+
+    /** 방 참여 멤버의 user_id 목록 (생성자/관리자만 전체 조회 — RLS) */
+    suspend fun roomMemberIds(roomId: String): List<String> =
+        supabase.from("room_members").select {
+            filter { eq("room_id", roomId) }
+        }.decodeList<RoomMemberInsert>().map { it.userId }
+
+    /** 멤버 내보내기 (생성자 또는 관리자, RLS 로 강제) */
+    suspend fun removeRoomMember(roomId: String, userId: String) {
+        supabase.from("room_members").delete {
+            filter { eq("room_id", roomId); eq("user_id", userId) }
+        }
+    }
+
     suspend fun messages(roomId: String): List<Message> =
         supabase.from("messages").select {
             filter { eq("room_id", roomId) }

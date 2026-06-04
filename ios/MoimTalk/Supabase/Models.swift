@@ -65,6 +65,12 @@ struct RoomMemberInsert: Encodable {
     }
 }
 
+// 방 멤버 행 읽기용 (멤버 내보내기 목록)
+struct RoomMemberRow: Decodable {
+    let userId: String
+    enum CodingKeys: String, CodingKey { case userId = "user_id" }
+}
+
 struct Message: Codable, Identifiable, Hashable {
     let id: String
     let roomId: String

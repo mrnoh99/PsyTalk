@@ -48,6 +48,8 @@ class MoimViewModel : ViewModel() {
     var error by mutableStateOf<String?>(null)
     var notice by mutableStateOf<String?>(null)
     var loading by mutableStateOf(false)
+    // 모임방 설정(멤버 관리)에서 보여줄 현재 방 멤버 id 목록
+    var roomMemberIds by mutableStateOf<List<String>>(emptyList())
 
     private var activeRoom: String? = null
 
@@ -304,13 +306,55 @@ class MoimViewModel : ViewModel() {
     }
 
     fun createRoom(name: String, memberIds: List<String>, onDone: () -> Unit) {
+        val trimmed = name.trim()
+        // 같은 이름의 모임방 금지 (보이는 방 기준 즉시 검사 + DB 유니크 인덱스가 최종 강제)
+        if (rooms.any { it.category == "custom" && it.name.equals(trimmed, ignoreCase = false) }) {
+            error = "같은 이름의 모임방이 이미 있습니다. 다른 이름을 사용하세요."
+            return
+        }
         viewModelScope.launch {
             try {
-                MoimRepository.createRoom(name, memberIds)
+                MoimRepository.createRoom(trimmed, memberIds)
                 rooms = MoimRepository.rooms()
                 onDone()
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "방 만들기")
+            }
+        }
+    }
+
+    /** 모임방 삭제 (생성자/관리자). 성공 시 방 목록 갱신 후 onDone. */
+    fun deleteRoom(room: Room, onDone: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.deleteRoom(room.id)
+                rooms = MoimRepository.rooms()
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "모임방 삭제")
+            }
+        }
+    }
+
+    /** 현재 방의 멤버 목록을 불러와 roomMemberIds 에 저장 */
+    fun loadRoomMembers(roomId: String) {
+        viewModelScope.launch {
+            roomMemberIds = try {
+                MoimRepository.roomMemberIds(roomId)
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+    }
+
+    /** 멤버 내보내기 (생성자/관리자). 성공 시 멤버 목록 갱신. */
+    fun removeRoomMember(roomId: String, userId: String) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.removeRoomMember(roomId, userId)
+                roomMemberIds = MoimRepository.roomMemberIds(roomId)
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "멤버 내보내기")
             }
         }
     }

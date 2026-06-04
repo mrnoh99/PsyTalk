@@ -154,7 +154,8 @@
   <section id="roomScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
     <div class="hdr"><button class="back" onclick="closeRoom()">‹</button>
       <h1 id="roomTitle" style="font-size:16px"></h1><span class="spacer"></span>
-      <button id="renameBtn" class="back" style="display:none;font-size:17px" onclick="renameRoom()">✏️</button></div>
+      <button id="renameBtn" class="back" style="display:none;font-size:17px" onclick="renameRoom()">✏️</button>
+      <button id="settingsBtn" class="back" style="display:none;font-size:17px" onclick="openRoomSettings()">⚙️</button></div>
     <div class="tabs">
       <div class="tab on" data-t="chat" onclick="tab('chat')">💬 채팅</div>
       <div class="tab" data-t="files" onclick="tab('files')">📁 자료실</div>
@@ -185,6 +186,14 @@
     <span class="lbl">멤버 선택</span><div id="cpickList"></div>
     <button class="primary" onclick="createRoom()">방 만들기</button>
     <button class="ghost" onclick="closeModal('cmodal')">취소</button>
+  </div></div>
+
+  <!-- ROOM SETTINGS MODAL -->
+  <div class="modal" id="smodal"><div class="sheet">
+    <h2>모임방 설정</h2><p>멤버를 내보내거나 모임방을 삭제할 수 있습니다.</p>
+    <span class="lbl">참여 멤버</span><div id="smList"></div>
+    <button class="primary" style="background:var(--admin)" onclick="deleteRoom()">이 모임방 삭제</button>
+    <button class="ghost" onclick="closeModal('smodal')">닫기</button>
   </div></div>
 
   <!-- EVENT MODAL -->
@@ -321,10 +330,12 @@ function renderRoomList(){
 const canPost=r=>isAdmin()||r.post_policy!=='restricted';
 // 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
 const canRename=r=>isAdmin()||(!!r.created_by&&r.created_by===me.id);
+const canManage=r=>r.category==='custom'&&(isAdmin()||(!!r.created_by&&r.created_by===me.id));
 async function openRoom(id){
   active=rooms.find(r=>r.id===id);
   document.getElementById('roomTitle').textContent=active.name;
   document.getElementById('renameBtn').style.display=canRename(active)?'':'none';
+  document.getElementById('settingsBtn').style.display=canManage(active)?'':'none';
   calMode=active.default_view==='week'?'week':'month';
   show('roomScreen');
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
@@ -345,6 +356,39 @@ async function renameRoom(){
   active.name=t;
   document.getElementById('roomTitle').textContent=t;
   await loadRooms();
+}
+
+/* ====== 모임방 설정 (멤버 내보내기 · 삭제) ====== */
+async function openRoomSettings(){
+  if(!active)return;
+  document.getElementById('smodal').classList.add('on');
+  await renderRoomMembers();
+}
+async function renderRoomMembers(){
+  const {data}=await sb.from('room_members').select('user_id').eq('room_id',active.id);
+  const ids=(data||[]).map(r=>r.user_id);
+  const el=document.getElementById('smList');
+  if(!ids.length){el.innerHTML='<p style="color:var(--sub);font-size:13px">멤버 정보를 불러올 수 없습니다.</p>';return;}
+  el.innerHTML=ids.map(uid=>{
+    const p=profilesById[uid]||{}; const isCreator=uid===active.created_by; const isMe=uid===me.id;
+    const tag=isCreator?' (방장)':(isMe?' (나)':'');
+    const btn=isCreator?'':`<span class="evkeptx" style="font-size:13px" onclick="kickMember('${uid}')">내보내기</span>`;
+    return `<div class="evkept"><span>${esc(p.name||'?')}${tag}</span>${btn}</div>`;
+  }).join('');
+}
+async function kickMember(uid){
+  const p=profilesById[uid]||{};
+  if(!confirm(`'${p.name||'이 멤버'}' 님을 이 모임방에서 내보낼까요?`))return;
+  const {error}=await sb.from('room_members').delete().eq('room_id',active.id).eq('user_id',uid);
+  if(error){alert('멤버 내보내기 실패: '+error.message);return;}
+  await renderRoomMembers();
+}
+async function deleteRoom(){
+  if(!active)return;
+  if(!confirm(`'${active.name}' 모임방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.`))return;
+  const {error}=await sb.from('rooms').delete().eq('id',active.id);
+  if(error){alert('모임방 삭제 실패: '+error.message);return;}
+  closeModal('smodal');active=null;await loadRooms();show('listScreen');
 }
 function tab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t));
   document.querySelectorAll('#roomScreen .pane').forEach(e=>e.classList.toggle('on',e.id==='pane-'+t));
@@ -575,9 +619,13 @@ function toggleC(id){cpick.has(id)?cpick.delete(id):cpick.add(id);
   el.classList.toggle('sel',cpick.has(id));el.querySelector('.chk').style.visibility=cpick.has(id)?'visible':'hidden';}
 async function createRoom(){
   const name=document.getElementById('newRoomName').value.trim()||'새 모임방';
+  // 같은 이름의 모임방 금지 (보이는 방 기준 즉시 검사 + DB 유니크 인덱스가 최종 강제)
+  if(rooms.some(r=>r.category==='custom'&&r.name===name)){alert('같은 이름의 모임방이 이미 있습니다. 다른 이름을 사용하세요.');return;}
   const id=crypto.randomUUID();const order=Math.floor(Date.now()/1000);
   const {error}=await sb.from('rooms').insert({id,name,category:'custom',post_policy:'members',sort_order:order,created_by:me.id});
-  if(error){alert('방 생성 실패: '+error.message);return;}
+  if(error){
+    const dup=(error.code==='23505')||/duplicate key|rooms_custom_name_unique/i.test(error.message||'');
+    alert(dup?'같은 이름의 모임방이 이미 있습니다. 다른 이름을 사용하세요.':'방 생성 실패: '+error.message);return;}
   const ids=[...new Set([...cpick,me.id])];
   await sb.from('room_members').insert(ids.map(uid=>({room_id:id,user_id:uid})));
   closeModal('cmodal');await loadRooms();

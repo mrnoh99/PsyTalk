@@ -8,8 +8,8 @@ final class MoimRealtimeSync {
 
     private let debounceNs: UInt64 = 400_000_000
     private var started = false
-    private var globalChannel: RealtimeChannel?
-    private var roomChannel: RealtimeChannel?
+    private var globalChannel: RealtimeChannelV2?
+    private var roomChannel: RealtimeChannelV2?
     private var globalTasks: [Task<Void, Never>] = []
     private var roomTasks: [Task<Void, Never>] = []
     private var roomsDebounce: Task<Void, Never>?
@@ -29,7 +29,7 @@ final class MoimRealtimeSync {
         let roomsStream = channel.postgresChange(AnyAction.self, schema: "public", table: "rooms")
         let membersStream = channel.postgresChange(AnyAction.self, schema: "public", table: "room_members")
         let wardStream = channel.postgresChange(AnyAction.self, schema: "public", table: "ward_status")
-        await channel.subscribe()
+        try? await channel.subscribeWithError()
         globalChannel = channel
 
         globalTasks.append(Task {
@@ -52,7 +52,7 @@ final class MoimRealtimeSync {
         let msgStream = channel.postgresChange(AnyAction.self, schema: "public", table: "messages", filter: filter)
         let calStream = channel.postgresChange(AnyAction.self, schema: "public", table: "calendar_events", filter: filter)
         let fileStream = channel.postgresChange(AnyAction.self, schema: "public", table: "room_files", filter: filter)
-        await channel.subscribe()
+        try? await channel.subscribeWithError()
         roomChannel = channel
 
         for stream in [msgStream, calStream, fileStream] {
@@ -73,7 +73,7 @@ final class MoimRealtimeSync {
         roomsDebounce = nil
         await stopRoomChannel()
         if let ch = globalChannel {
-            await ch.unsubscribe()
+            await supabase.removeChannel(ch)
         }
         globalChannel = nil
     }
@@ -84,7 +84,7 @@ final class MoimRealtimeSync {
         roomDebounce?.cancel()
         roomDebounce = nil
         if let ch = roomChannel {
-            await ch.unsubscribe()
+            await supabase.removeChannel(ch)
         }
         roomChannel = nil
     }

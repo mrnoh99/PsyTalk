@@ -181,13 +181,20 @@ class MoimViewModel : ViewModel() {
         scope: String?,
         description: String?,
         keywords: List<String>,
+        attachmentName: String?,
+        attachmentBytes: ByteArray?,
+        attachmentDesc: String?,
         onDone: () -> Unit,
     ) {
         val rid = activeRoom ?: return
         viewModelScope.launch {
             try {
-                MoimRepository.updateEvent(eventId, title, startAt, place, link, scope, description, keywords)
+                MoimRepository.updateEvent(
+                    eventId, rid, title, startAt, place, link, scope, description, keywords,
+                    attachmentName, attachmentBytes, attachmentDesc,
+                )
                 events = MoimRepository.events(rid)
+                files = MoimRepository.files(rid)
                 onDone()
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "일정 수정")

@@ -51,7 +51,9 @@ struct EventEditView: View {
                 if allowAttachment {
                     Section("첨부 자료") {
                         Button { showImporter = true } label: {
-                            Text(attachment.map { "📎 \($0.name)" } ?? "📎 파일 첨부").foregroundColor(Moim.sub)
+                            Text(attachment.map { "📎 \($0.name)" }
+                                 ?? initial?.attachmentName.map { "📎 현재: \($0) (교체하려면 선택)" }
+                                 ?? "📎 파일 첨부").foregroundColor(Moim.sub)
                         }
                         TextField("첨부 자료 설명", text: $attDesc)
                     }
@@ -90,6 +92,7 @@ struct EventEditView: View {
         if let d = CalDate.parse(e.startAt) { date = d; time = d }
         place = e.place ?? ""; link = e.link ?? ""; scope = e.scope ?? ""
         desc = e.description ?? ""; kw = e.kw.joined(separator: ", ")
+        attDesc = e.attachmentDesc ?? ""
     }
 
     private func submit() {

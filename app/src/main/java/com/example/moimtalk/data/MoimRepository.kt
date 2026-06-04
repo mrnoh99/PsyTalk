@@ -124,6 +124,7 @@ object MoimRepository {
     /** 일정 수정 (작성자 본인 + 관리자, RLS 로 강제). 첨부는 변경하지 않는다. */
     suspend fun updateEvent(
         eventId: String,
+        roomId: String,
         title: String,
         startAt: String,
         place: String?,
@@ -131,18 +132,31 @@ object MoimRepository {
         scope: String?,
         description: String?,
         keywords: List<String>,
+        attachmentName: String?,
+        attachmentBytes: ByteArray?,
+        attachmentDesc: String?,
     ) {
-        supabase.from("calendar_events").update(
-            CalendarEventUpdate(
-                title = title,
-                startAt = startAt,
-                place = place,
-                link = link,
-                scope = scope,
-                description = description,
-                keywords = keywords,
-            )
-        ) { filter { eq("id", eventId) } }
+        // 새 첨부 파일이 있으면 업로드해서 교체, 없으면 기존 첨부 유지
+        var newUrl: String? = null
+        var newName: String? = null
+        if (attachmentBytes != null && !attachmentName.isNullOrBlank()) {
+            newUrl = uploadToStorage(roomId, attachmentName, attachmentBytes)
+            newName = attachmentName
+        }
+        supabase.from("calendar_events").update({
+            set("title", title)
+            set("start_at", startAt)
+            set("place", place)
+            set("link", link)
+            set("scope", scope)
+            set("description", description)
+            set("keywords", keywords)
+            set("attachment_desc", attachmentDesc)
+            if (newUrl != null) {
+                set("attachment_url", newUrl)
+                set("attachment_name", newName)
+            }
+        }) { filter { eq("id", eventId) } }
     }
 
     // ── 자료실 ──

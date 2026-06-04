@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import com.example.moimtalk.MoimViewModel
 import com.example.moimtalk.R
 import com.example.moimtalk.data.Message
+import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
 
 @Composable
@@ -205,13 +206,134 @@ fun PendingApprovalScreen(vm: MoimViewModel) {
     }
 }
 
+// 방 목록의 전체관리자용 가입 승인 진입 배너
+@Composable
+private fun ApprovalBanner(pending: Int, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 4.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(MoimAccent)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("🛡", fontSize = 18.sp)
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text("가입 승인", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+            Text(
+                if (pending > 0) "승인 대기 ${pending}명" else "대기 없음",
+                color = Color(0xFFBDB4AB), fontSize = 11.5.sp
+            )
+        }
+        if (pending > 0) {
+            Text(
+                "$pending", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp,
+                modifier = Modifier
+                    .background(MoimAdmin, CircleShape)
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            )
+        } else {
+            Text("›", color = Color(0xFFBDB4AB), fontSize = 18.sp)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ApprovalScreen(vm: MoimViewModel, onBack: () -> Unit) {
+    val members = vm.profilesById.values.sortedWith(compareBy({ it.approved }, { it.role }, { it.name }))
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("가입 승인", fontWeight = FontWeight.Bold) },
+                navigationIcon = { TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
+            )
+        },
+        containerColor = MoimPaper
+    ) { pad ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(pad)
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            item {
+                Text("미승인자가 위에 표시됩니다. 승인하면 앱을 이용할 수 있습니다.", fontSize = 12.sp, color = MoimSub)
+                Spacer(Modifier.height(12.dp))
+            }
+            if (members.isEmpty()) {
+                item { Text("멤버 정보가 없습니다.", fontSize = 13.sp, color = MoimSub) }
+            } else {
+                items(members) { p -> ApprovalRow(p, vm) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 9.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MoimWhite, RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .background(typeColor(p.memberType), RoundedCornerShape(11.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(p.name.take(3), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.width(11.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+            Text("${p.memberType} · ${roleLabel(p.role)}", fontSize = 11.5.sp, color = MoimSub)
+        }
+        if (!p.approved) {
+            Text(
+                "승인", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { vm.approveUser(p.id, true) }
+                    .background(catColor("work"))
+                    .padding(horizontal = 14.dp, vertical = 7.dp)
+            )
+        } else {
+            Text(
+                "✓ 승인취소", color = MoimSub, fontSize = 11.5.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { vm.approveUser(p.id, false) }
+                    .background(MoimBg)
+                    .padding(horizontal = 12.dp, vertical = 7.dp)
+            )
+        }
+    }
+}
+
+private fun roleLabel(role: String): String = when (role) {
+    "superadmin" -> "전체관리자"
+    "admin" -> "관리자"
+    else -> "멤버"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomListScreen(
     vm: MoimViewModel,
     onOpen: (Room) -> Unit,
     onWard: () -> Unit,
-    onCreateRoom: () -> Unit
+    onCreateRoom: () -> Unit,
+    onApprovals: () -> Unit
 ) {
     val profile = vm.myProfile
     val defaultRooms = vm.rooms.filter { it.category != "custom" }.sortedBy { it.sortOrder }
@@ -266,6 +388,9 @@ fun RoomListScreen(
                 .fillMaxSize()
         ) {
             item { WardStatusBanner(onWard) }
+            if (profile != null && isSuperAdmin(profile.role)) {
+                item { ApprovalBanner(vm.profilesById.values.count { !it.approved }, onApprovals) }
+            }
             if (vm.rooms.isEmpty()) {
                 item { EmptyBox("🔒", "아직 들어간 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
             } else {

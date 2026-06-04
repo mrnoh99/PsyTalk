@@ -44,7 +44,7 @@ struct EventEditView: View {
                     DatePicker("날짜", selection: $date, displayedComponents: .date)
                     DatePicker("시간", selection: $time, displayedComponents: .hourAndMinute)
                     TextField("장소 (의국 회의실)", text: $place)
-                    TextField("발표자 (여러 명은 쉼표로)", text: $presenter)
+                    TextField("발표자 (이름·직위, 여러 명은 쉼표로)", text: $presenter, axis: .vertical).lineLimit(2...4)
                     TextField("링크 (https://zoom.us/...)", text: $link).autocapitalization(.none)
                     TextField("참석 범위 (예: 의국 전공의 전원)", text: $scope)
                     TextField("설명 (안건/준비사항)", text: $desc, axis: .vertical).lineLimit(2...4)

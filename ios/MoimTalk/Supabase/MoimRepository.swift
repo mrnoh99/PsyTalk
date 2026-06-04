@@ -138,6 +138,18 @@ enum MoimRepository {
     }
 
     // ── 자료실 ──
+    /// 자료 삭제: room_files 행 + Storage 객체(best-effort). 올린이/관리자만(RLS).
+    static func deleteRoomFile(fileId: String, fileUrl: String?) async throws {
+        if let url = fileUrl {
+            let marker = "/\(filesBucket)/"
+            if let r = url.range(of: marker) {
+                let path = String(url[r.upperBound...])
+                _ = try? await supabase.storage.from(filesBucket).remove(paths: [path])
+            }
+        }
+        try await supabase.from("room_files").delete().eq("id", value: fileId).execute()
+    }
+
     static func files(roomId: String) async throws -> [RoomFile] {
         try await supabase.from("room_files")
             .select().eq("room_id", value: roomId)

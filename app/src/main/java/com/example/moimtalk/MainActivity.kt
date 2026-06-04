@@ -221,6 +221,24 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    fun deleteFile(fileId: String, fileUrl: String?, onDone: () -> Unit) {
+        val rid = activeRoom ?: return
+        viewModelScope.launch {
+            try {
+                MoimRepository.deleteRoomFile(fileId, fileUrl)
+                files = MoimRepository.files(rid)
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "자료 삭제")
+            }
+        }
+    }
+
+    fun canManageFile(uploadedBy: String): Boolean {
+        val role = myProfile?.role
+        return role == "superadmin" || role == "admin" || uploadedBy == MoimRepository.currentUserId()
+    }
+
     // ── 병실 잔여 현황 (메모) ──
     var wardStatus by mutableStateOf("")
     var wardStatusUpdatedAt by mutableStateOf<String?>(null)

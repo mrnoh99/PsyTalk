@@ -223,6 +223,22 @@ final class MoimViewModel: ObservableObject {
             .sorted { $0.name < $1.name }
     }
 
+    func deleteFile(fileId: String, fileUrl: String?, onDone: @escaping () -> Void) {
+        guard let rid = activeRoom else { return }
+        Task {
+            do {
+                try await MoimRepository.deleteRoomFile(fileId: fileId, fileUrl: fileUrl)
+                files = try await MoimRepository.files(roomId: rid)
+                onDone()
+            } catch { self.error = "자료 삭제: \(error.localizedDescription)" }
+        }
+    }
+
+    func canManageFile(_ uploadedBy: String) -> Bool {
+        if let r = myProfile?.role, r == "superadmin" || r == "admin" { return true }
+        return uploadedBy == MoimRepository.currentUserId()
+    }
+
     func name(of userId: String) -> String { profilesById[userId]?.name ?? "?" }
 
     func isMine(_ m: Message) -> Bool { m.senderId == MoimRepository.currentUserId() }

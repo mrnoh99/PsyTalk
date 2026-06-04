@@ -11,6 +11,8 @@ private struct FileEntry: Identifiable {
     let day: String
     let fromCalendar: Bool
     let sortKey: String
+    var fileId: String? = nil       // room_files.id (직접 업로드만)
+    var uploadedBy: String? = nil   // 업로더 (삭제 권한)
 }
 
 struct FilesView: View {
@@ -20,12 +22,15 @@ struct FilesView: View {
     @State private var sort = "date"   // date | kw
     @State private var showImporter = false
     @State private var pending: (name: String, data: Data)?
+    @State private var deleteTarget: FileEntry?
+    @Environment(\.openURL) private var openURL
 
     private var entries: [FileEntry] {
         let direct = vm.files.map {
             FileEntry(name: $0.fileName, url: $0.fileUrl, description: $0.description ?? "",
                       keywords: $0.kw, by: vm.name(of: $0.uploadedBy),
-                      day: CalDate.dayLabel($0.createdAt), fromCalendar: false, sortKey: $0.createdAt ?? "")
+                      day: CalDate.dayLabel($0.createdAt), fromCalendar: false, sortKey: $0.createdAt ?? "",
+                      fileId: $0.id, uploadedBy: $0.uploadedBy)
         }
         let fromCal = vm.events.flatMap { e in
             e.attachmentList.map { att in
@@ -70,6 +75,15 @@ struct FilesView: View {
             .padding(13)
         }
         .background(Moim.paper)
+        .confirmationDialog("자료 삭제", isPresented: Binding(get: { deleteTarget != nil }, set: { if !$0 { deleteTarget = nil } }), presenting: deleteTarget) { f in
+            Button("삭제", role: .destructive) {
+                if let id = f.fileId { vm.deleteFile(fileId: id, fileUrl: f.url) {} }
+                deleteTarget = nil
+            }
+            Button("취소", role: .cancel) { deleteTarget = nil }
+        } message: { f in
+            Text("‘\(f.name)’ 을(를) 삭제할까요? 되돌릴 수 없습니다.")
+        }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.item]) { result in
             if case .success(let url) = result {
                 if url.startAccessingSecurityScopedResource() {
@@ -108,7 +122,8 @@ struct FilesView: View {
     }
 
     @ViewBuilder private func fileCard(_ f: FileEntry) -> some View {
-        let content = HStack(alignment: .top, spacing: 11) {
+        let canDelete = !f.fromCalendar && f.fileId != nil && (f.uploadedBy.map { vm.canManageFile($0) } ?? false)
+        HStack(alignment: .top, spacing: 11) {
             Text(f.fromCalendar ? "📎" : "📄").font(.system(size: 18))
                 .frame(width: 40, height: 40)
                 .background(f.fromCalendar ? catColor("research") : catColor("work"))
@@ -139,14 +154,14 @@ struct FilesView: View {
                 }
             }
             Spacer()
+            if canDelete {
+                Button { deleteTarget = f } label: { Text("🗑").font(.system(size: 16)) }
+                    .buttonStyle(.plain)
+            }
         }
+        .contentShape(Rectangle())
+        .onTapGesture { if let url = f.url, let u = URL(string: url) { openURL(u) } }
         .padding(12).background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 12)).padding(.bottom, 9)
-
-        if let url = f.url, let u = URL(string: url) {
-            Link(destination: u) { content }
-        } else {
-            content
-        }
     }
 }
 

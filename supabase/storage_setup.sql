@@ -26,4 +26,9 @@ CREATE POLICY "room_files_modify"
   ON storage.objects FOR UPDATE TO authenticated
   USING (bucket_id = 'room-files');
 
+DROP POLICY IF EXISTS "room_files_delete" ON storage.objects;
+CREATE POLICY "room_files_delete"
+  ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'room-files');
+
 NOTIFY pgrst, 'reload schema';

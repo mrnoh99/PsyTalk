@@ -164,6 +164,19 @@ object MoimRepository {
             order("created_at", Order.DESCENDING)
         }.decodeList()
 
+    /** 자료 삭제: room_files 행 삭제 + Storage 객체 best-effort 삭제 (올린이/관리자, RLS 강제) */
+    suspend fun deleteRoomFile(fileId: String, fileUrl: String?) {
+        fileUrl?.let { url ->
+            val marker = "/$FILES_BUCKET/"
+            val idx = url.indexOf(marker)
+            if (idx >= 0) {
+                val path = url.substring(idx + marker.length)
+                runCatching { supabase.storage.from(FILES_BUCKET).delete(path) }
+            }
+        }
+        supabase.from("room_files").delete { filter { eq("id", fileId) } }
+    }
+
     /** 자료실 직접 업로드: Storage 업로드 후 room_files 메타데이터 저장 */
     suspend fun uploadRoomFile(
         roomId: String,

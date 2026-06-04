@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -129,6 +130,8 @@ private data class FileEntry(
     val day: String,
     val fromCalendar: Boolean,
     val sortKey: String,
+    val fileId: String? = null,        // room_files.id (직접 업로드만)
+    val uploadedBy: String? = null,    // 업로더 (삭제 권한 확인용)
 )
 
 @Composable
@@ -143,7 +146,7 @@ fun FilesPane(vm: MoimViewModel, canUpload: Boolean, modifier: Modifier = Modifi
 
     val direct = vm.files.map {
         FileEntry(it.fileName, it.fileUrl, it.description.orEmpty(), it.keywords, vm.nameOf(it.uploadedBy),
-            dayLabel(it.createdAt), false, it.createdAt.orEmpty())
+            dayLabel(it.createdAt), false, it.createdAt.orEmpty(), fileId = it.id, uploadedBy = it.uploadedBy)
     }
     val fromCal = vm.events.flatMap { e ->
         val pairs = if (e.attachmentNames.isNotEmpty()) e.attachmentNames.zip(e.attachmentUrls)
@@ -184,7 +187,7 @@ fun FilesPane(vm: MoimViewModel, canUpload: Boolean, modifier: Modifier = Modifi
             }
         } else if (sort == "date") {
             val sorted = all.sortedByDescending { it.sortKey }
-            items(sorted.size) { i -> FileCard(sorted[i], context) }
+            items(sorted.size) { i -> FileCard(sorted[i], vm) }
         } else {
             val groups = LinkedHashMap<String, MutableList<FileEntry>>()
             all.forEach { f ->
@@ -201,7 +204,7 @@ fun FilesPane(vm: MoimViewModel, canUpload: Boolean, modifier: Modifier = Modifi
                         modifier = Modifier.padding(top = 6.dp, bottom = 8.dp)
                     )
                 }
-                items(list.size) { i -> FileCard(list[i], context) }
+                items(list.size) { i -> FileCard(list[i], vm) }
             }
         }
     }
@@ -232,7 +235,10 @@ private fun SortButton(label: String, on: Boolean, modifier: Modifier, onClick: 
 }
 
 @Composable
-private fun FileCard(f: FileEntry, context: Context) {
+private fun FileCard(f: FileEntry, vm: MoimViewModel) {
+    val context = LocalContext.current
+    var confirm by remember { mutableStateOf(false) }
+    val canDelete = !f.fromCalendar && f.fileId != null && f.uploadedBy != null && vm.canManageFile(f.uploadedBy)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -240,7 +246,8 @@ private fun FileCard(f: FileEntry, context: Context) {
             .clip(RoundedCornerShape(12.dp))
             .background(MoimWhite, RoundedCornerShape(12.dp))
             .clickable(enabled = f.url != null) { f.url?.let { openUrl(context, it) } }
-            .padding(12.dp)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
             modifier = Modifier
@@ -285,6 +292,26 @@ private fun FileCard(f: FileEntry, context: Context) {
                 }
             }
         }
+        if (canDelete) {
+            Spacer(Modifier.width(8.dp))
+            Text("🗑", fontSize = 18.sp, modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { confirm = true }
+                .padding(6.dp))
+        }
+    }
+    if (confirm) {
+        AlertDialog(
+            onDismissRequest = { confirm = false },
+            confirmButton = {
+                TextButton(onClick = { confirm = false; f.fileId?.let { vm.deleteFile(it, f.url) {} } }) {
+                    Text("삭제", color = MoimAdmin)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirm = false }) { Text("취소") } },
+            title = { Text("자료 삭제") },
+            text = { Text("‘${f.name}’ 을(를) 삭제할까요? 되돌릴 수 없습니다.") }
+        )
     }
 }
 

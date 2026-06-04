@@ -45,8 +45,7 @@ struct CalendarView: View {
             EventEditView(title: "일정 추가", initial: nil, allowAttachment: true) { form in
                 vm.createEvent(title: form.title, startAt: form.startAt, place: form.place, link: form.link,
                                scope: form.scope, description: form.description, presenter: form.presenter, keywords: form.keywords,
-                               attachmentName: form.attachmentName, attachmentData: form.attachmentData,
-                               attachmentDesc: form.attachmentDesc) { creating = false }
+                               attachments: form.newAttachments) { creating = false }
             }
         }
         .sheet(item: $editing) { ev in
@@ -54,8 +53,7 @@ struct CalendarView: View {
                 vm.updateEvent(eventId: ev.id, title: form.title, startAt: form.startAt, place: form.place,
                                link: form.link, scope: form.scope, description: form.description,
                                presenter: form.presenter, keywords: form.keywords,
-                               attachmentName: form.attachmentName, attachmentData: form.attachmentData,
-                               attachmentDesc: form.attachmentDesc) { editing = nil }
+                               keptUrls: form.keptUrls, keptNames: form.keptNames, newAttachments: form.newAttachments) { editing = nil }
             }
         }
     }
@@ -207,19 +205,23 @@ struct EventCard: View {
                     .font(.system(size: 12.5)).foregroundColor(Moim.sub)
                 if let s = event.scope, !s.isEmpty { Text("참석 \(s)").font(.system(size: 11.5)).foregroundColor(Moim.sub) }
                 if let d = event.description, !d.isEmpty { Text(d).font(.system(size: 11.5)).foregroundColor(Moim.sub) }
+                ForEach(Array(event.attachmentList.enumerated()), id: \.offset) { _, att in
+                    if let u = URL(string: att.url) {
+                        Link(destination: u) {
+                            Text("📎 \(att.name)").font(.system(size: 11.5, weight: .bold)).foregroundColor(catColor("work"))
+                                .lineLimit(1)
+                                .padding(.horizontal, 10).padding(.vertical, 4)
+                                .background(Color(hex: 0xE7F0EB)).clipShape(Capsule())
+                        }
+                        .padding(.top, 6)
+                    }
+                }
                 HStack(spacing: 8) {
                     if let l = event.link, !l.isEmpty, let u = URL(string: l) {
                         Link(destination: u) {
                             Text("🔗 링크").font(.system(size: 11.5, weight: .bold)).foregroundColor(catColor("group"))
                                 .padding(.horizontal, 10).padding(.vertical, 4)
                                 .background(Color(hex: 0xEEF2F8)).clipShape(Capsule())
-                        }
-                    }
-                    if let url = event.attachmentUrl, !url.isEmpty, let u = URL(string: url) {
-                        Link(destination: u) {
-                            Text("📎 첨부파일").font(.system(size: 11.5, weight: .bold)).foregroundColor(catColor("work"))
-                                .padding(.horizontal, 10).padding(.vertical, 4)
-                                .background(Color(hex: 0xE7F0EB)).clipShape(Capsule())
                         }
                     }
                     if vm.canEditEvent(event) {

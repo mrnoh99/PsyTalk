@@ -90,22 +90,21 @@ enum MoimRepository {
         roomId: String, title: String, startAt: String,
         place: String?, link: String?, scope: String?, description: String?,
         presenter: String?, keywords: [String],
-        attachmentName: String?, attachmentData: Data?, attachmentDesc: String?
+        attachments: [(name: String, data: Data)]
     ) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
-        var url: String?
-        var name: String?
-        if let data = attachmentData, let fn = attachmentName, !fn.isEmpty {
-            url = try await uploadToStorage(roomId: roomId, fileName: fn, data: data)
-            name = fn
+        var urls = [String]()
+        var names = [String]()
+        for a in attachments {
+            urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
+            names.append(a.name)
         }
         let payload = CalendarEventInsert(
             roomId: roomId, title: title, startAt: startAt,
             place: place, link: link, scope: scope, description: description,
             presenter: (presenter?.isEmpty == false) ? presenter : nil,
             keywords: keywords, ownerId: uid,
-            attachmentUrl: url, attachmentName: name,
-            attachmentDesc: (attachmentDesc?.isEmpty == false) ? attachmentDesc : nil
+            attachmentUrls: urls, attachmentNames: names
         )
         try await supabase.from("calendar_events").insert(payload).execute()
     }
@@ -114,16 +113,16 @@ enum MoimRepository {
         eventId: String, roomId: String, title: String, startAt: String,
         place: String?, link: String?, scope: String?, description: String?,
         presenter: String?, keywords: [String],
-        attachmentName: String?, attachmentData: Data?, attachmentDesc: String?
+        keptUrls: [String], keptNames: [String], newAttachments: [(name: String, data: Data)]
     ) async throws {
-        // 새 첨부 파일이 있으면 업로드해서 교체, 없으면 기존 첨부 유지
-        var newUrl: String?
-        var newName: String?
-        if let data = attachmentData, let fn = attachmentName, !fn.isEmpty {
-            newUrl = try await uploadToStorage(roomId: roomId, fileName: fn, data: data)
-            newName = fn
+        // 유지할 기존 첨부 + 새로 올린 첨부를 합쳐 배열로 저장
+        var urls = keptUrls
+        var names = keptNames
+        for a in newAttachments {
+            urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
+            names.append(a.name)
         }
-        var fields: [String: AnyJSON] = [
+        let fields: [String: AnyJSON] = [
             "title": .string(title),
             "start_at": .string(startAt),
             "place": place.map { AnyJSON.string($0) } ?? .null,
@@ -132,12 +131,9 @@ enum MoimRepository {
             "description": description.map { AnyJSON.string($0) } ?? .null,
             "presenter": presenter.map { AnyJSON.string($0) } ?? .null,
             "keywords": .array(keywords.map { AnyJSON.string($0) }),
-            "attachment_desc": attachmentDesc.map { AnyJSON.string($0) } ?? .null,
+            "attachment_urls": .array(urls.map { AnyJSON.string($0) }),
+            "attachment_names": .array(names.map { AnyJSON.string($0) }),
         ]
-        if let url = newUrl, let name = newName {
-            fields["attachment_url"] = .string(url)
-            fields["attachment_name"] = .string(name)
-        }
         try await supabase.from("calendar_events").update(fields).eq("id", value: eventId).execute()
     }
 

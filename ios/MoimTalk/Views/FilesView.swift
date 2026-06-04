@@ -27,11 +27,13 @@ struct FilesView: View {
                       keywords: $0.kw, by: vm.name(of: $0.uploadedBy),
                       day: CalDate.dayLabel($0.createdAt), fromCalendar: false, sortKey: $0.createdAt ?? "")
         }
-        let fromCal = vm.events.filter { !($0.attachmentUrl ?? "").isEmpty }.map {
-            FileEntry(name: $0.attachmentName ?? "첨부파일", url: $0.attachmentUrl,
-                      description: $0.attachmentDesc ?? $0.title, keywords: $0.kw,
-                      by: vm.name(of: $0.ownerId), day: CalDate.dayLabel($0.startAt),
-                      fromCalendar: true, sortKey: $0.startAt)
+        let fromCal = vm.events.flatMap { e in
+            e.attachmentList.map { att in
+                FileEntry(name: att.name, url: att.url,
+                          description: e.title, keywords: e.kw,
+                          by: vm.name(of: e.ownerId), day: CalDate.dayLabel(e.startAt),
+                          fromCalendar: true, sortKey: e.startAt)
+            }
         }
         return direct + fromCal
     }

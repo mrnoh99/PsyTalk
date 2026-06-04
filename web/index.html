@@ -179,8 +179,7 @@
     <span class="lbl">링크 (선택)</span><input class="field" id="evLink" placeholder="https://zoom.us/...">
     <span class="lbl">참석 범위</span><input class="field" id="evScope" placeholder="예: 의국 전공의 전원">
     <span class="lbl">설명</span><textarea class="field" id="evDesc" placeholder="안건 / 준비사항"></textarea>
-    <span class="lbl" id="evAttLbl">첨부 자료</span><input class="field" id="evFile" type="file">
-    <span class="lbl">첨부 자료 설명</span><input class="field" id="evAttDesc" placeholder="예: 발표 슬라이드 초안">
+    <span class="lbl" id="evAttLbl">첨부 자료 (여러 개 가능)</span><input class="field" id="evFile" type="file" multiple>
     <button class="primary" onclick="saveEvent()" id="evSaveBtn">일정 등록</button>
     <button class="ghost" onclick="closeModal('emodal')">취소</button>
   </div></div>
@@ -315,7 +314,7 @@ async function sendMsg(){const i=document.getElementById('msgInput'),t=i.value.t
 async function loadFiles(){const {data}=await sb.from('room_files').select('*').eq('room_id',active.id).order('created_at',{ascending:false});files=data||[];}
 function allFiles(){
   const up=files.map(f=>({n:f.file_name,url:f.file_url,desc:f.description||'',kw:f.keywords||[],by:nameOf(f.uploaded_by),date:(f.created_at||'').slice(0,10),src:'up'}));
-  const cal=events.filter(e=>e.attachment_url).map(e=>({n:e.attachment_name||'첨부',url:e.attachment_url,desc:e.attachment_desc||e.title,kw:e.keywords||[],by:nameOf(e.owner_id),date:(e.start_at||'').slice(0,10),src:'cal'}));
+  const cal=events.flatMap(e=>evAtts(e).map(a=>({n:a.n,url:a.u,desc:e.title,kw:[],by:nameOf(e.owner_id),date:(e.start_at||'').slice(0,10),src:'cal'})));
   return up.concat(cal);
 }
 function fcard(f){return `<a class="file" href="${f.url||'#'}" target="_blank" style="text-decoration:none;color:inherit">
@@ -356,6 +355,11 @@ const evDate=e=>e.start_at?new Date(e.start_at):null;
 const sameDay=(a,b)=>a&&b&&a.toDateString()===b.toDateString();
 const fmtTime=iso=>{const d=new Date(iso);return (d.getMonth()+1)+'/'+d.getDate()+' '+d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});};
 function canEdit(e){return e.owner_id===me.id||isAdmin();}
+function evAtts(e){
+  if(e.attachment_urls&&e.attachment_urls.length) return e.attachment_urls.map((u,i)=>({n:(e.attachment_names||[])[i]||'첨부파일',u}));
+  if(e.attachment_url) return [{n:e.attachment_name||'첨부파일',u:e.attachment_url}];
+  return [];
+}
 function evCard(e){const c=(CAT[active.category]||CAT.custom).c;
   const presenter=(e.presenter&&e.presenter.trim())?esc(e.presenter):esc(nameOf(e.owner_id));
   return `<div class="ev"><div class="evbar" style="background:${c}"></div><div class="evb"><b>${esc(e.title)}</b>
@@ -363,7 +367,7 @@ function evCard(e){const c=(CAT[active.category]||CAT.custom).c;
     👤 발표자 ${presenter}<br>
     ${e.scope?'참석: '+esc(e.scope)+'<br>':''}${e.description?esc(e.description)+'<br>':''}
     ${e.link?'🔗 <a href="'+esc(e.link)+'" target="_blank">링크</a>':''}</div>
-    ${e.attachment_url?`<a class="evatt" href="${esc(e.attachment_url)}" target="_blank">📎 첨부파일</a>`:''}
+    ${evAtts(e).map(a=>`<a class="evatt" href="${esc(a.u)}" target="_blank">📎 ${esc(a.n)}</a>`).join(' ')}
     ${canEdit(e)?`<span class="evedit" onclick="openEvent('${e.id}')">✏️ 수정</span>`:''}</div></div>`;}
 function renderCal(){
   const today=new Date();
@@ -415,34 +419,39 @@ function openEvent(id){
   g('evTitle',e?e.title:'');g('evDate',d.toISOString().slice(0,10));
   g('evTime',e&&e.start_at?new Date(e.start_at).toTimeString().slice(0,5):'09:00');
   g('evPlace',e?e.place||'':'');g('evPresenter',e?e.presenter||'':'');g('evLink',e?e.link||'':'');g('evScope',e?e.scope||'':'');
-  g('evDesc',e?e.description||'':'');g('evAttDesc',e?e.attachment_desc||'':'');
+  g('evDesc',e?e.description||'':'');
   document.getElementById('evFile').value='';
   document.getElementById('emodal').classList.add('on');
+}
+async function uploadFiles(files){
+  const urls=[],names=[];
+  for(const file of files){
+    const path=active.id+'/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'_'+file.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+    const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
+    if(error)throw error;
+    urls.push(sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl);names.push(file.name);
+  }
+  return {urls,names};
 }
 async function saveEvent(){
   const g=k=>document.getElementById(k).value.trim();
   if(!g('evTitle')){alert('제목을 입력하세요');return;}
   const startAt=new Date(g('evDate')+'T'+(g('evTime')||'09:00')+':00').toISOString();
   const presenter=g('evPresenter')||null;
+  const files=document.getElementById('evFile').files;
+  let up; try{ up=await uploadFiles(files); }catch(e){ alert('첨부 업로드 실패: '+e.message); return; }
   if(editEventId){
+    const ev=events.find(x=>x.id===editEventId)||{};
+    const urls=(ev.attachment_urls||[]).concat(up.urls);
+    const names=(ev.attachment_names||[]).concat(up.names);
     const upd={title:g('evTitle'),start_at:startAt,place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,
-      scope:g('evScope')||null,description:g('evDesc')||null,attachment_desc:g('evAttDesc')||null};
-    const file=document.getElementById('evFile').files[0];
-    if(file){const path=active.id+'/'+Date.now()+'_'+file.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
-      const {error:ue}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
-      if(ue){alert('첨부 업로드 실패: '+ue.message);return;}
-      upd.attachment_url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;upd.attachment_name=file.name;}
+      scope:g('evScope')||null,description:g('evDesc')||null,attachment_urls:urls,attachment_names:names};
     const {error}=await sb.from('calendar_events').update(upd).eq('id',editEventId);
     if(error){alert('수정 실패: '+error.message);return;}
   }else{
-    let attUrl=null,attName=null;const file=document.getElementById('evFile').files[0];
-    if(file){const path=active.id+'/'+Date.now()+'_'+file.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
-      const {error:ue}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
-      if(ue){alert('첨부 업로드 실패: '+ue.message);return;}
-      attUrl=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;attName=file.name;}
     const {error}=await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAt,
       place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
-      owner_id:me.id,attachment_url:attUrl,attachment_name:attName,attachment_desc:g('evAttDesc')||null});
+      owner_id:me.id,attachment_urls:up.urls,attachment_names:up.names});
     if(error){alert('등록 실패: '+error.message);return;}
   }
   closeModal('emodal');await loadEvents();await loadFiles();renderCal();

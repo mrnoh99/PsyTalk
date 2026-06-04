@@ -93,7 +93,7 @@ final class MoimViewModel: ObservableObject {
     func createEvent(
         title: String, startAt: String, place: String?, link: String?,
         scope: String?, description: String?, presenter: String?, keywords: [String],
-        attachmentName: String?, attachmentData: Data?, attachmentDesc: String?,
+        attachments: [(name: String, data: Data)],
         onDone: @escaping () -> Void
     ) {
         guard let rid = activeRoom else { return }
@@ -102,7 +102,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.createEvent(
                     roomId: rid, title: title, startAt: startAt, place: place, link: link,
                     scope: scope, description: description, presenter: presenter, keywords: keywords,
-                    attachmentName: attachmentName, attachmentData: attachmentData, attachmentDesc: attachmentDesc)
+                    attachments: attachments)
                 events = try await MoimRepository.events(roomId: rid)
                 files = try await MoimRepository.files(roomId: rid)
                 onDone()
@@ -113,7 +113,7 @@ final class MoimViewModel: ObservableObject {
     func updateEvent(
         eventId: String, title: String, startAt: String, place: String?, link: String?,
         scope: String?, description: String?, presenter: String?, keywords: [String],
-        attachmentName: String?, attachmentData: Data?, attachmentDesc: String?,
+        keptUrls: [String], keptNames: [String], newAttachments: [(name: String, data: Data)],
         onDone: @escaping () -> Void
     ) {
         guard let rid = activeRoom else { return }
@@ -122,7 +122,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.updateEvent(
                     eventId: eventId, roomId: rid, title: title, startAt: startAt, place: place, link: link,
                     scope: scope, description: description, presenter: presenter, keywords: keywords,
-                    attachmentName: attachmentName, attachmentData: attachmentData, attachmentDesc: attachmentDesc)
+                    keptUrls: keptUrls, keptNames: keptNames, newAttachments: newAttachments)
                 events = try await MoimRepository.events(roomId: rid)
                 files = try await MoimRepository.files(roomId: rid)
                 onDone()

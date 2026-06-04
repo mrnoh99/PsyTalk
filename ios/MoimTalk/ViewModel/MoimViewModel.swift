@@ -250,8 +250,9 @@ final class MoimViewModel: ObservableObject {
     }
 
     var otherProfiles: [Profile] {
+        // 본인 제외 + 승인된 멤버만 (대기 중인 가입자는 방에 추가 불가)
         profilesById.values
-            .filter { $0.id != MoimRepository.currentUserId() }
+            .filter { $0.id != MoimRepository.currentUserId() && ($0.approved ?? true) }
             .sorted { $0.name < $1.name }
     }
 

@@ -520,39 +520,45 @@ private fun EventCard(e: CalendarEvent, vm: MoimViewModel, onEdit: (CalendarEven
         Box(Modifier.width(4.dp).height(56.dp).background(catColor("notice"), RoundedCornerShape(4.dp)))
         Spacer(Modifier.width(11.dp))
         Column(Modifier.weight(1f)) {
-            Text(e.title, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
-            Text(
-                "🕐 ${timeLabel(e.startAt)}" + (e.place?.takeIf { it.isNotBlank() }?.let { " · 📍$it" } ?: ""),
-                fontSize = 11.5.sp, color = MoimSub, modifier = Modifier.padding(top = 3.dp)
-            )
+            Text(e.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+            Text("📅 ${timeLabel(e.startAt)}", fontSize = 12.5.sp, color = MoimInk, modifier = Modifier.padding(top = 4.dp))
+            e.place?.takeIf { it.isNotBlank() }?.let {
+                Text("📍 $it", fontSize = 12.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
+            }
+            Text("👤 발표자 ${vm.nameOf(e.ownerId)}", fontSize = 12.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
             e.scope?.takeIf { it.isNotBlank() }?.let {
-                Text("참석: $it", fontSize = 11.5.sp, color = MoimSub)
+                Text("참석 ${it}", fontSize = 11.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
             }
             e.description?.takeIf { it.isNotBlank() }?.let {
-                Text(it, fontSize = 11.5.sp, color = MoimSub)
-            }
-            e.link?.takeIf { it.isNotBlank() }?.let { link ->
-                Text("🔗 $link", fontSize = 11.5.sp, color = catColor("group"),
-                    maxLines = 1, overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.clickable { openUrl(context, link) })
+                Text(it, fontSize = 11.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
             }
             if (e.keywords.isNotEmpty()) {
-                Text(e.keywords.joinToString(" ") { "#$it" }, fontSize = 11.sp, color = MoimSub, modifier = Modifier.padding(top = 2.dp))
+                Text(e.keywords.joinToString(" ") { "#$it" }, fontSize = 11.5.sp, color = catColor("research"),
+                    fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 3.dp))
             }
-            if (!e.attachmentUrl.isNullOrBlank()) {
-                Text(
-                    "📎 ${e.attachmentName ?: "첨부"} — ${e.attachmentDesc.orEmpty()}",
-                    fontSize = 11.sp, fontWeight = FontWeight.Bold, color = catColor("work"),
-                    modifier = Modifier
-                        .padding(top = 6.dp)
-                        .background(Color(0xFFE7F0EB), RoundedCornerShape(8.dp))
-                        .clickable { openUrl(context, e.attachmentUrl) }
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                )
-            }
-            if (vm.canEditEvent(e)) {
-                Text("✏️ 수정", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = catColor("group"),
-                    modifier = Modifier.padding(top = 6.dp).clickable { onEdit(e) })
+            Row(modifier = Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                e.link?.takeIf { it.isNotBlank() }?.let { link ->
+                    Text("🔗 링크", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = catColor("group"),
+                        modifier = Modifier
+                            .background(Color(0xFFEEF2F8), RoundedCornerShape(8.dp))
+                            .clickable { openUrl(context, link) }
+                            .padding(horizontal = 10.dp, vertical = 4.dp))
+                }
+                if (!e.attachmentUrl.isNullOrBlank()) {
+                    val url = e.attachmentUrl!!
+                    Text("📎 첨부파일", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = catColor("work"),
+                        modifier = Modifier
+                            .background(Color(0xFFE7F0EB), RoundedCornerShape(8.dp))
+                            .clickable { openUrl(context, url) }
+                            .padding(horizontal = 10.dp, vertical = 4.dp))
+                }
+                if (vm.canEditEvent(e)) {
+                    Text("✏️ 수정", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MoimSub,
+                        modifier = Modifier
+                            .background(MoimBg, RoundedCornerShape(8.dp))
+                            .clickable { onEdit(e) }
+                            .padding(horizontal = 10.dp, vertical = 4.dp))
+                }
             }
         }
     }

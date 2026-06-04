@@ -175,10 +175,10 @@
     <span class="lbl">날짜 · 시간</span>
     <div class="twocol"><input class="field" id="evDate" type="date"><input class="field" id="evTime" type="time"></div>
     <span class="lbl">장소</span><input class="field" id="evPlace" placeholder="의국 회의실">
+    <span class="lbl">발표자 (여러 명은 쉼표로)</span><input class="field" id="evPresenter" placeholder="예: 김교수, 박전공">
     <span class="lbl">링크 (선택)</span><input class="field" id="evLink" placeholder="https://zoom.us/...">
     <span class="lbl">참석 범위</span><input class="field" id="evScope" placeholder="예: 의국 전공의 전원">
     <span class="lbl">설명</span><textarea class="field" id="evDesc" placeholder="안건 / 준비사항"></textarea>
-    <span class="lbl">키워드 (쉼표로 구분)</span><input class="field" id="evKw" placeholder="컨퍼런스, 증례">
     <span class="lbl" id="evAttLbl">첨부 자료</span><input class="field" id="evFile" type="file">
     <span class="lbl">첨부 자료 설명</span><input class="field" id="evAttDesc" placeholder="예: 발표 슬라이드 초안">
     <button class="primary" onclick="saveEvent()" id="evSaveBtn">일정 등록</button>
@@ -357,12 +357,13 @@ const sameDay=(a,b)=>a&&b&&a.toDateString()===b.toDateString();
 const fmtTime=iso=>{const d=new Date(iso);return (d.getMonth()+1)+'/'+d.getDate()+' '+d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});};
 function canEdit(e){return e.owner_id===me.id||isAdmin();}
 function evCard(e){const c=(CAT[active.category]||CAT.custom).c;
+  const presenter=(e.presenter&&e.presenter.trim())?esc(e.presenter):esc(nameOf(e.owner_id));
   return `<div class="ev"><div class="evbar" style="background:${c}"></div><div class="evb"><b>${esc(e.title)}</b>
-    <div class="evmeta">🕐 ${fmtTime(e.start_at)}${e.place?' · 📍'+esc(e.place):''}<br>
+    <div class="evmeta">📅 ${fmtTime(e.start_at)}${e.place?' · 📍'+esc(e.place):''}<br>
+    👤 발표자 ${presenter}<br>
     ${e.scope?'참석: '+esc(e.scope)+'<br>':''}${e.description?esc(e.description)+'<br>':''}
-    ${e.link?'🔗 <a href="'+esc(e.link)+'" target="_blank">'+esc(e.link)+'</a><br>':''}
-    ${(e.keywords||[]).map(k=>'#'+esc(k)).join(' ')}</div>
-    ${e.attachment_url?`<a class="evatt" href="${esc(e.attachment_url)}" target="_blank">📎 ${esc(e.attachment_name||'첨부')} — ${esc(e.attachment_desc||'')}</a>`:''}
+    ${e.link?'🔗 <a href="'+esc(e.link)+'" target="_blank">링크</a>':''}</div>
+    ${e.attachment_url?`<a class="evatt" href="${esc(e.attachment_url)}" target="_blank">📎 첨부파일</a>`:''}
     ${canEdit(e)?`<span class="evedit" onclick="openEvent('${e.id}')">✏️ 수정</span>`:''}</div></div>`;}
 function renderCal(){
   const today=new Date();
@@ -413,8 +414,8 @@ function openEvent(id){
   const d=e&&e.start_at?new Date(e.start_at):new Date();
   g('evTitle',e?e.title:'');g('evDate',d.toISOString().slice(0,10));
   g('evTime',e&&e.start_at?new Date(e.start_at).toTimeString().slice(0,5):'09:00');
-  g('evPlace',e?e.place||'':'');g('evLink',e?e.link||'':'');g('evScope',e?e.scope||'':'');
-  g('evDesc',e?e.description||'':'');g('evKw',e?(e.keywords||[]).join(', '):'');g('evAttDesc',e?e.attachment_desc||'':'');
+  g('evPlace',e?e.place||'':'');g('evPresenter',e?e.presenter||'':'');g('evLink',e?e.link||'':'');g('evScope',e?e.scope||'':'');
+  g('evDesc',e?e.description||'':'');g('evAttDesc',e?e.attachment_desc||'':'');
   document.getElementById('evFile').value='';
   document.getElementById('emodal').classList.add('on');
 }
@@ -422,10 +423,10 @@ async function saveEvent(){
   const g=k=>document.getElementById(k).value.trim();
   if(!g('evTitle')){alert('제목을 입력하세요');return;}
   const startAt=new Date(g('evDate')+'T'+(g('evTime')||'09:00')+':00').toISOString();
-  const kw=g('evKw').split(',').map(s=>s.trim()).filter(Boolean);
+  const presenter=g('evPresenter')||null;
   if(editEventId){
-    const upd={title:g('evTitle'),start_at:startAt,place:g('evPlace')||null,link:g('evLink')||null,
-      scope:g('evScope')||null,description:g('evDesc')||null,keywords:kw,attachment_desc:g('evAttDesc')||null};
+    const upd={title:g('evTitle'),start_at:startAt,place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,
+      scope:g('evScope')||null,description:g('evDesc')||null,attachment_desc:g('evAttDesc')||null};
     const file=document.getElementById('evFile').files[0];
     if(file){const path=active.id+'/'+Date.now()+'_'+file.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
       const {error:ue}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
@@ -440,8 +441,8 @@ async function saveEvent(){
       if(ue){alert('첨부 업로드 실패: '+ue.message);return;}
       attUrl=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;attName=file.name;}
     const {error}=await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAt,
-      place:g('evPlace')||null,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
-      keywords:kw,owner_id:me.id,attachment_url:attUrl,attachment_name:attName,attachment_desc:g('evAttDesc')||null});
+      place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
+      owner_id:me.id,attachment_url:attUrl,attachment_name:attName,attachment_desc:g('evAttDesc')||null});
     if(error){alert('등록 실패: '+error.message);return;}
   }
   closeModal('emodal');await loadEvents();await loadFiles();renderCal();

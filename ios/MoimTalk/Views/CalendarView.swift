@@ -44,7 +44,7 @@ struct CalendarView: View {
         .sheet(isPresented: $creating) {
             EventEditView(title: "일정 추가", initial: nil, allowAttachment: true) { form in
                 vm.createEvent(title: form.title, startAt: form.startAt, place: form.place, link: form.link,
-                               scope: form.scope, description: form.description, keywords: form.keywords,
+                               scope: form.scope, description: form.description, presenter: form.presenter, keywords: form.keywords,
                                attachmentName: form.attachmentName, attachmentData: form.attachmentData,
                                attachmentDesc: form.attachmentDesc) { creating = false }
             }
@@ -53,7 +53,7 @@ struct CalendarView: View {
             EventEditView(title: "일정 수정", initial: ev, allowAttachment: true) { form in
                 vm.updateEvent(eventId: ev.id, title: form.title, startAt: form.startAt, place: form.place,
                                link: form.link, scope: form.scope, description: form.description,
-                               keywords: form.keywords,
+                               presenter: form.presenter, keywords: form.keywords,
                                attachmentName: form.attachmentName, attachmentData: form.attachmentData,
                                attachmentDesc: form.attachmentDesc) { editing = nil }
             }
@@ -203,13 +203,10 @@ struct EventCard: View {
                 Text(event.title).font(.system(size: 15, weight: .bold)).foregroundColor(Moim.ink)
                 Text("📅 \(CalDate.timeLabel(event.startAt))").font(.system(size: 12.5)).foregroundColor(Moim.ink).padding(.top, 2)
                 if let p = event.place, !p.isEmpty { Text("📍 \(p)").font(.system(size: 12.5)).foregroundColor(Moim.sub) }
-                Text("👤 발표자 \(vm.name(of: event.ownerId))").font(.system(size: 12.5)).foregroundColor(Moim.sub)
+                Text("👤 발표자 \((event.presenter?.isEmpty == false) ? event.presenter! : vm.name(of: event.ownerId))")
+                    .font(.system(size: 12.5)).foregroundColor(Moim.sub)
                 if let s = event.scope, !s.isEmpty { Text("참석 \(s)").font(.system(size: 11.5)).foregroundColor(Moim.sub) }
                 if let d = event.description, !d.isEmpty { Text(d).font(.system(size: 11.5)).foregroundColor(Moim.sub) }
-                if !event.kw.isEmpty {
-                    Text(event.kw.map { "#\($0)" }.joined(separator: " "))
-                        .font(.system(size: 11.5, weight: .semibold)).foregroundColor(catColor("research")).padding(.top, 2)
-                }
                 HStack(spacing: 8) {
                     if let l = event.link, !l.isEmpty, let u = URL(string: l) {
                         Link(destination: u) {

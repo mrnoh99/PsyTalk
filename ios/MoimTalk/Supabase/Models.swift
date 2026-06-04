@@ -102,6 +102,7 @@ struct CalendarEvent: Codable, Identifiable, Hashable {
     var link: String?
     var scope: String?
     var description: String?
+    var presenter: String?
     var keywords: [String]?
     let ownerId: String
     var attachmentUrl: String?
@@ -111,7 +112,7 @@ struct CalendarEvent: Codable, Identifiable, Hashable {
     var kw: [String] { keywords ?? [] }
 
     enum CodingKeys: String, CodingKey {
-        case id, title, place, link, scope, description, keywords
+        case id, title, place, link, scope, description, presenter, keywords
         case roomId = "room_id"
         case startAt = "start_at"
         case ownerId = "owner_id"
@@ -129,6 +130,7 @@ struct CalendarEventInsert: Encodable {
     var link: String?
     var scope: String?
     var description: String?
+    var presenter: String?
     var keywords: [String]
     let ownerId: String
     var attachmentUrl: String?
@@ -136,7 +138,7 @@ struct CalendarEventInsert: Encodable {
     var attachmentDesc: String?
 
     enum CodingKeys: String, CodingKey {
-        case title, place, link, scope, description, keywords
+        case title, place, link, scope, description, presenter, keywords
         case roomId = "room_id"
         case startAt = "start_at"
         case ownerId = "owner_id"

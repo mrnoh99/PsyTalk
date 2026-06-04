@@ -150,6 +150,7 @@ class MoimViewModel : ViewModel() {
         link: String?,
         scope: String?,
         description: String?,
+        presenter: String?,
         keywords: List<String>,
         attachmentName: String?,
         attachmentBytes: ByteArray?,
@@ -160,7 +161,7 @@ class MoimViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 MoimRepository.createEvent(
-                    rid, title, startAt, place, link, scope, description, keywords,
+                    rid, title, startAt, place, link, scope, description, presenter, keywords,
                     attachmentName, attachmentBytes, attachmentDesc,
                 )
                 events = MoimRepository.events(rid)
@@ -180,6 +181,7 @@ class MoimViewModel : ViewModel() {
         link: String?,
         scope: String?,
         description: String?,
+        presenter: String?,
         keywords: List<String>,
         attachmentName: String?,
         attachmentBytes: ByteArray?,
@@ -190,7 +192,7 @@ class MoimViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 MoimRepository.updateEvent(
-                    eventId, rid, title, startAt, place, link, scope, description, keywords,
+                    eventId, rid, title, startAt, place, link, scope, description, presenter, keywords,
                     attachmentName, attachmentBytes, attachmentDesc,
                 )
                 events = MoimRepository.events(rid)

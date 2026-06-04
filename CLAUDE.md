@@ -62,7 +62,9 @@ ios/  (iOS, SwiftUI + supabase-swift) — Android 구조를 1:1 미러링
   MoimTalk/ViewModel/MoimViewModel.swift · Design/MoimDesign.swift
   MoimTalk/Views/{Login,RoomList,Room,Calendar,Files,WardStatus,...}.swift
   project.yml (XcodeGen) · README.md
-supabase/                      # SQL (아래 순서대로 실행) — 두 앱 공용 백엔드
+web/  (브라우저 — Windows/Mac/iPad) — 단일 HTML + Supabase JS(UMD)
+  index.html (전체 앱 기능 + 관리자 콘솔) · README.md
+supabase/                      # SQL (아래 순서대로 실행) — 모든 클라이언트 공용 백엔드
 docs/모임톡_요구사항.md          # 상세 요구사항(기준 문서)
 prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 ```

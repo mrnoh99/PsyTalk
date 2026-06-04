@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>모임톡 — 정신건강의학과 (Web)</title>
+<!-- Supabase JS v2 (UMD, 파일 직접 열기 가능) -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<style>
+  :root{
+    --bg:#e9e4dd;--paper:#f5f1ea;--ink:#231f1c;--sub:#8a817a;
+    --accent:#2b2825;--me:#ffe45c;--you:#fff;--line:#dcd5cc;--admin:#c0452f;
+    --notice:#b5651d;--group:#4a6fa5;--work:#3d8361;--research:#6d597a;--orange:#ea7317;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    background:var(--bg);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center}
+  .phone{width:100%;max-width:460px;height:100vh;max-height:940px;background:var(--paper);
+    position:relative;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+  .hidden{display:none!important}
+  .hdr{padding:14px 18px 13px;display:flex;align-items:center;gap:10px;background:var(--paper);
+    border-bottom:1px solid var(--line);flex-shrink:0}
+  .hdr h1{font-size:20px;font-weight:800}.hdr .badge{font-size:10.5px;font-weight:700;color:var(--accent);
+    background:var(--me);padding:3px 8px;border-radius:20px}
+  .back{font-size:25px;background:none;border:none;cursor:pointer;width:26px}
+  .hdr .spacer{flex:1}.hdr .lk{font-size:12px;color:var(--sub);cursor:pointer;background:none;border:none}
+  .viewbar{display:flex;align-items:center;gap:7px;padding:9px 14px;background:#fff8e0;border-bottom:1px solid var(--line);flex-shrink:0}
+  .vchip{display:inline-flex;align-items:center;gap:5px;padding:5px 10px 5px 5px;border-radius:20px;background:var(--accent);
+    color:#fff;font-size:12px;font-weight:600}
+  .vchip .vd{width:19px;height:19px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:800}
+  .list{flex:1;overflow-y:auto;padding-bottom:10px}
+  .banner{display:flex;align-items:center;gap:12px;margin:10px 14px;padding:14px 16px;border-radius:14px;background:var(--orange);color:#fff;cursor:pointer}
+  .banner b{font-size:16px}.banner small{display:block;font-size:11.5px;color:#ffe9d6}
+  .sechead{font-size:11px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;
+    padding:16px 18px 8px;display:flex;justify-content:space-between;align-items:center}
+  .sechead button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer}
+  .room{display:flex;gap:12px;align-items:center;padding:12px 18px;cursor:pointer;border-bottom:1px solid rgba(220,213,204,.4)}
+  .room:hover{background:#ece6dd}
+  .av{width:48px;height:48px;border-radius:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px}
+  .room-mid{flex:1;min-width:0}.room-top{display:flex;align-items:center;gap:6px}
+  .catdot{font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;color:#fff}
+  .room-name{font-weight:700;font-size:15px}.room-msg{font-size:12.5px;color:var(--sub);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .adminbar{display:flex;align-items:center;gap:10px;padding:12px 18px;background:var(--accent);color:#fff;cursor:pointer;flex-shrink:0}
+  .adminbar .dot{width:32px;height:32px;border-radius:10px;background:var(--admin);display:flex;align-items:center;justify-content:center}
+  .adminbar small{color:#bdb4ab;display:block;font-size:11px}
+  .tabs{display:flex;background:var(--paper);border-bottom:1px solid var(--line);flex-shrink:0}
+  .tab{flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:700;color:var(--sub);cursor:pointer;border-bottom:2.5px solid transparent}
+  .tab.on{color:var(--ink);border-bottom-color:var(--me)}
+  .pane{flex:1;overflow-y:auto;display:none;flex-direction:column}.pane.on{display:flex}
+  .msgs{flex:1;padding:14px 12px;display:flex;flex-direction:column;gap:3px;background:var(--bg)}
+  .mrow{display:flex;gap:8px;max-width:86%;margin-top:9px}.mrow.me{align-self:flex-end;flex-direction:row-reverse}
+  .mrow .mav{width:36px;height:36px;border-radius:13px;font-size:13px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}
+  .col{display:flex;flex-direction:column;gap:3px;min-width:0}.name{font-size:12px;color:#6b635c;font-weight:600;margin-left:3px}
+  .bubble{padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.42;word-break:break-word;max-width:260px}
+  .mrow.you .bubble{background:var(--you)}.mrow.me .bubble{background:var(--me)}
+  .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line)}
+  .inputbar input{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
+  .send{background:var(--me);border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer}
+  .readonly{padding:14px;background:#f3ede3;border-top:1px solid var(--line);text-align:center;font-size:12.5px;color:var(--sub);font-weight:600}
+  .files,.cal,.wardbody{padding:13px}
+  .sortrow,.calmode{display:flex;gap:8px;margin-bottom:12px}
+  .sb,.cm{flex:1;text-align:center;padding:8px;border-radius:10px;font-size:12.5px;font-weight:700;background:#fff;border:1px solid var(--line);color:var(--sub);cursor:pointer}
+  .sb.on{background:var(--accent);color:#fff;border-color:var(--accent)}.cm.on{background:var(--me);color:var(--ink);border-color:var(--me)}
+  .upbtn,.addev{width:100%;border-radius:12px;padding:13px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:13px}
+  .upbtn{border:2px dashed var(--line);background:#fff;color:var(--sub)}
+  .addev{background:var(--accent);color:#fff;border:none}
+  .file,.ev{display:flex;gap:11px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px}
+  .ficon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff}
+  .finfo{flex:1;min-width:0}.finfo b{font-size:13.5px;display:block}.finfo .desc{font-size:12px;opacity:.75;margin-top:2px}
+  .finfo small{font-size:11px;color:var(--sub);display:block;margin-top:3px}
+  .fsrc{font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;margin-left:5px}
+  .kwtag{display:inline-block;font-size:10px;font-weight:700;color:var(--research);background:#f0eaf6;padding:2px 7px;border-radius:10px;margin-top:5px;margin-right:4px}
+  .kwhead{font-size:11px;font-weight:800;color:var(--research);margin:6px 0 8px}
+  .evbar{width:4px;border-radius:4px;flex-shrink:0}.evb{flex:1;min-width:0}.evb b{font-size:14px}
+  .evmeta{font-size:11.5px;color:var(--sub);margin-top:3px;line-height:1.5}
+  .evatt{display:inline-flex;gap:4px;font-size:11px;font-weight:700;color:var(--work);background:#e7f0eb;padding:3px 8px;border-radius:8px;margin-top:6px}
+  .evedit{font-size:11px;color:var(--group);font-weight:700;margin-top:6px;display:inline-block;cursor:pointer}
+  .wday{display:flex;gap:10px;padding:9px 6px;border-bottom:1px solid rgba(220,213,204,.5)}
+  .wday.wtoday{background:#fff8e0;border-radius:11px}.wdate{width:42px;text-align:center;flex-shrink:0}
+  .wdate b{display:block;font-size:15px;font-weight:800}.wdate span{font-size:10.5px;color:var(--sub)}
+  .wevents{flex:1;min-width:0}.noev{font-size:12px;color:#c4bcb2;padding:7px 2px}
+  .wardmemo{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;font-size:15px;line-height:1.7;min-height:120px}
+  .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical}
+  .card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;margin-bottom:13px}
+  .card h3{font-size:11.5px;color:var(--sub);font-weight:800;text-transform:uppercase;margin-bottom:11px}
+  .arow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(220,213,204,.5)}
+  .arow .av{width:36px;height:36px;border-radius:11px;font-size:13px}.arow .info{flex:1}.arow .info b{font-size:13.5px}
+  .arow .info small{display:block;color:var(--sub);font-size:11.5px}
+  .tag{font-size:10px;font-weight:700;padding:3px 7px;border-radius:20px}
+  .tag.super{background:var(--admin);color:#fff}.tag.admin{background:var(--notice);color:#fff}.tag.user{background:var(--line);color:var(--accent)}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30;padding:14px}
+  .modal.on{display:flex}
+  .sheet{background:var(--paper);width:100%;max-width:430px;border-radius:18px;padding:20px;max-height:88vh;overflow-y:auto}
+  .sheet h2{font-size:18px;font-weight:800;margin-bottom:4px}.sheet p{font-size:13px;color:var(--sub);margin-bottom:14px}
+  .lbl{font-size:11.5px;font-weight:700;color:var(--sub);margin:13px 0 6px;display:block}
+  .field{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:#fff;outline:none}
+  textarea.field{resize:vertical;min-height:60px}.twocol{display:flex;gap:9px}.twocol .field{flex:1}
+  .pick{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;border:1px solid var(--line);margin-bottom:7px;background:#fff}
+  .pick.sel{border-color:var(--accent);background:#fff8e0}.pick .av{width:32px;height:32px;border-radius:10px;font-size:11px}
+  .pick .pn{flex:1;font-size:13.5px;font-weight:600}.chk{font-weight:800;color:var(--accent)}
+  .primary{width:100%;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px}
+  .ghost{width:100%;background:var(--line);color:var(--ink);border:none;border-radius:13px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
+  /* login */
+  #login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:30px}
+  #login h1{font-size:34px;font-weight:800}#login .sub{font-size:15px;color:var(--sub);margin-bottom:28px}
+  #login input{width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;font-size:15px;margin-bottom:12px;outline:none;font-family:inherit}
+  #login .err{color:var(--admin);font-size:13px;margin:6px 0}
+  .emptybox{text-align:center;padding:46px 30px;color:var(--sub)}.emptybox .eb{font-size:38px;opacity:.5;margin-bottom:10px}
+  .emptybox b{display:block;font-size:15px;color:var(--ink);margin-bottom:6px}
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- LOGIN -->
+  <section id="login">
+    <h1>모임톡</h1><div class="sub">정신건강의학과 · Web</div>
+    <input id="email" type="email" placeholder="이메일" autocomplete="username">
+    <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')doLogin()">
+    <div class="err" id="loginErr"></div>
+    <button class="primary" onclick="doLogin()" id="loginBtn">로그인</button>
+  </section>
+
+  <!-- ROOM LIST -->
+  <section id="listScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
+    <div class="hdr"><h1>모임톡</h1><span class="badge" id="badge"></span>
+      <span class="spacer"></span><button class="lk" onclick="doLogout()">로그아웃</button></div>
+    <div class="viewbar"><span style="font-size:11px;color:var(--sub);font-weight:700">👁</span>
+      <span class="vchip" id="meChip"></span></div>
+    <div class="list" id="roomList"></div>
+    <div class="adminbar hidden" id="adminBar" onclick="openAdmin()">
+      <div class="dot">🛡️</div><div style="flex:1"><b>관리자 콘솔</b><small>전체관리자 전용 · 멤버/방</small></div><span style="color:#bdb4ab">›</span></div>
+  </section>
+
+  <!-- ROOM -->
+  <section id="roomScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
+    <div class="hdr"><button class="back" onclick="closeRoom()">‹</button>
+      <h1 id="roomTitle" style="font-size:16px"></h1><span class="spacer"></span></div>
+    <div class="tabs">
+      <div class="tab on" data-t="chat" onclick="tab('chat')">💬 채팅</div>
+      <div class="tab" data-t="files" onclick="tab('files')">📁 자료실</div>
+      <div class="tab" data-t="cal" onclick="tab('cal')">📅 캘린더</div></div>
+    <div class="pane on" id="pane-chat" style="flex:1">
+      <div class="msgs" id="msgs"></div>
+      <div class="inputbar" id="inputbar">
+        <input id="msgInput" placeholder="메시지 입력" onkeydown="if(event.key==='Enter')sendMsg()">
+        <button class="send" onclick="sendMsg()">➤</button></div>
+      <div class="readonly hidden" id="readonlyBar">🔒 공지 전용 방 · 관리자/지정 작성자만 작성</div>
+    </div>
+    <div class="pane" id="pane-files"><div class="files" id="fileList"></div></div>
+    <div class="pane" id="pane-cal"><div class="cal" id="calBody"></div></div>
+  </section>
+
+  <!-- WARD -->
+  <section id="wardScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
+    <div class="hdr"><button class="back" onclick="show('listScreen')">‹</button>
+      <h1 style="font-size:16px">병실 잔여 현황</h1><span class="spacer"></span>
+      <button class="lk" id="wardEditBtn" onclick="wardEdit()">편집</button></div>
+    <div class="wardbody" id="wardBody" style="flex:1;overflow-y:auto"></div>
+  </section>
+
+  <!-- ADMIN -->
+  <section id="adminScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
+    <div class="hdr" style="background:var(--accent)"><button class="back" style="color:#fff" onclick="show('listScreen')">‹</button>
+      <h1 style="font-size:16px;color:#fff">관리자 콘솔</h1></div>
+    <div style="flex:1;overflow-y:auto;padding:16px">
+      <div class="card"><h3>👥 멤버 (직군·역할)</h3><div id="poolList"></div></div>
+      <div class="card"><h3>🏠 방 목록</h3><div id="roomAdminList"></div></div>
+    </div>
+  </section>
+
+  <!-- CREATE ROOM MODAL -->
+  <div class="modal" id="cmodal"><div class="sheet">
+    <h2>새 모임방 만들기</h2><p>이름을 정하고 참여할 멤버를 선택하세요.</p>
+    <input class="field" id="newRoomName" placeholder="예: 우울증 연구모임">
+    <span class="lbl">멤버 선택</span><div id="cpickList"></div>
+    <button class="primary" onclick="createRoom()">방 만들기</button>
+    <button class="ghost" onclick="closeModal('cmodal')">취소</button>
+  </div></div>
+
+  <!-- EVENT MODAL -->
+  <div class="modal" id="emodal"><div class="sheet">
+    <h2 id="evModalTitle">일정 추가</h2><p>참석범위·첨부자료까지 등록할 수 있습니다.</p>
+    <span class="lbl">제목</span><input class="field" id="evTitle" placeholder="예: 증례 컨퍼런스">
+    <span class="lbl">날짜 · 시간</span>
+    <div class="twocol"><input class="field" id="evDate" type="date"><input class="field" id="evTime" type="time"></div>
+    <span class="lbl">장소</span><input class="field" id="evPlace" placeholder="의국 회의실">
+    <span class="lbl">링크 (선택)</span><input class="field" id="evLink" placeholder="https://zoom.us/...">
+    <span class="lbl">참석 범위</span><input class="field" id="evScope" placeholder="예: 의국 전공의 전원">
+    <span class="lbl">설명</span><textarea class="field" id="evDesc" placeholder="안건 / 준비사항"></textarea>
+    <span class="lbl">키워드 (쉼표로 구분)</span><input class="field" id="evKw" placeholder="컨퍼런스, 증례">
+    <span class="lbl" id="evAttLbl">첨부 자료</span><input class="field" id="evFile" type="file">
+    <span class="lbl">첨부 자료 설명</span><input class="field" id="evAttDesc" placeholder="예: 발표 슬라이드 초안">
+    <button class="primary" onclick="saveEvent()" id="evSaveBtn">일정 등록</button>
+    <button class="ghost" onclick="closeModal('emodal')">취소</button>
+  </div></div>
+
+  <!-- FILE UPLOAD MODAL -->
+  <div class="modal" id="umodal"><div class="sheet">
+    <h2>자료 올리기</h2><p id="upName"></p>
+    <span class="lbl">설명문</span><input class="field" id="upDesc" placeholder="예: 발표 슬라이드 초안">
+    <span class="lbl">키워드 (쉼표로 구분)</span><input class="field" id="upKw" placeholder="코호트, 우울증">
+    <button class="primary" onclick="confirmUpload()">업로드</button>
+    <button class="ghost" onclick="closeModal('umodal')">취소</button>
+  </div></div>
+
+</div>
+
+<script>
+/* ====== Supabase (Android/iOS 와 동일 백엔드) ====== */
+const SUPABASE_URL = "https://orkbcprkfloosyttfybg.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ya2JjcHJrZmxvb3N5dHRmeWJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NzAyNjAsImV4cCI6MjA5NjA0NjI2MH0.ju2bN3gWERBIdfs9WaMUDVJCkj_bAjtgmeXwgu-RxUo";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const BUCKET = "room-files";
+
+/* ====== 상태 ====== */
+let me=null, rooms=[], profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
+let calMode="month", fileSort="date", monthAnchor=new Date();
+let cpick=new Set(), editEventId=null, pendingFile=null;
+
+const TYPE_COLOR={'교실':'#b5651d','의국':'#4a6fa5','심리실':'#6d597a','연구실':'#3d8361','PA':'#0d8a8a','간호사':'#c0452f','SW':'#9a6a00','보조원':'#777'};
+const CAT={notice:{l:'공지',c:'#b5651d'},group:{l:'그룹',c:'#4a6fa5'},work:{l:'업무',c:'#3d8361'},research:{l:'연구',c:'#6d597a'},custom:{l:'모임',c:'#8a817a'}};
+const ini=n=>(n||'?').slice(0,3);
+const tcolor=t=>TYPE_COLOR[t]||'#888';
+const nameOf=id=>(profilesById[id]||{}).name||'?';
+const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const isAdmin=()=>me&&(me.role==='superadmin'||me.role==='admin');
+function show(id){['login','listScreen','roomScreen','wardScreen','adminScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));}
+
+/* ====== 로그인 ====== */
+async function doLogin(){
+  const email=document.getElementById('email').value.trim();
+  const password=document.getElementById('pw').value;
+  document.getElementById('loginErr').textContent='';
+  document.getElementById('loginBtn').textContent='로그인 중...';
+  const {error}=await sb.auth.signInWithPassword({email,password});
+  document.getElementById('loginBtn').textContent='로그인';
+  if(error){document.getElementById('loginErr').textContent='로그인 실패: '+error.message;return;}
+  await loadApp();
+}
+async function doLogout(){await sb.auth.signOut();me=null;show('login');}
+
+async function loadApp(){
+  const {data:{user}}=await sb.auth.getUser();
+  if(!user){show('login');return;}
+  const {data:prof}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
+  me=prof||{id:user.id,name:user.email,member_type:'',role:'user'};
+  const {data:profs}=await sb.from('profiles').select('*');
+  profilesById={};(profs||[]).forEach(p=>profilesById[p.id]=p);
+  await loadRooms();
+  show('listScreen');
+}
+async function loadRooms(){
+  const {data}=await sb.from('rooms').select('*').order('sort_order',{ascending:true});
+  rooms=data||[];renderRoomList();
+}
+
+/* ====== 방 목록 ====== */
+function renderRoomList(){
+  document.getElementById('badge').textContent=
+    me.role==='superadmin'?'전체관리자':me.role==='admin'?'관리자':(me.name+' · '+(me.member_type||''));
+  document.getElementById('meChip').innerHTML=`<span class="vd" style="background:${tcolor(me.member_type)}">${(me.member_type||'?')[0]}</span>${esc(me.name)}`;
+  document.getElementById('adminBar').classList.toggle('hidden',me.role!=='superadmin');
+  const def=rooms.filter(r=>r.category!=='custom'),cus=rooms.filter(r=>r.category==='custom');
+  const item=r=>{const c=CAT[r.category]||CAT.custom;return `<div class="room" onclick="openRoom('${r.id}')">
+    <div class="av" style="background:${c.c}">${r.category!=='custom'?r.sort_order:'#'}</div>
+    <div class="room-mid"><div class="room-top"><span class="catdot" style="background:${c.c}">${c.l}</span>
+    <span class="room-name">${esc(r.name)}</span></div>
+    <div class="room-msg">${r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'멤버 누구나'}</div></div></div>`;};
+  let h=`<div class="banner" onclick="openWard()"><span style="font-size:20px">🛏</span>
+    <div style="flex:1"><b>병실 잔여 현황</b><small>잔여 병상 메모 보기</small></div><span>›</span></div>`;
+  if(def.length){h+=`<div class="sechead">📌 기본 방</div>`+def.map(item).join('');}
+  h+=`<div class="sechead">👥 모임 방<button onclick="event.stopPropagation();openCreate()">＋ 만들기</button></div>`;
+  h+=cus.length?cus.map(item).join(''):`<div style="padding:14px 18px;color:var(--sub);font-size:13px">아직 모임방이 없습니다. ＋만들기로 추가하세요.</div>`;
+  document.getElementById('roomList').innerHTML=h;
+}
+
+/* ====== 방 열기 ====== */
+const canPost=r=>isAdmin()||r.post_policy!=='restricted';
+async function openRoom(id){
+  active=rooms.find(r=>r.id===id);
+  document.getElementById('roomTitle').textContent=active.name;
+  calMode=active.default_view==='week'?'week':'month';
+  show('roomScreen');
+  await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
+  tab(active.default_view==='week'?'cal':'chat');
+  const allow=canPost(active);
+  document.getElementById('inputbar').classList.toggle('hidden',!allow);
+  document.getElementById('readonlyBar').classList.toggle('hidden',allow);
+}
+function closeRoom(){active=null;show('listScreen');}
+function tab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t));
+  document.querySelectorAll('#roomScreen .pane').forEach(e=>e.classList.toggle('on',e.id==='pane-'+t));
+  if(t==='files')renderFiles();if(t==='cal')renderCal();}
+
+/* ====== 채팅 ====== */
+async function loadMsgs(){const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:true});msgs=data||[];renderMsgs();}
+function renderMsgs(){
+  const el=document.getElementById('msgs');
+  el.innerHTML=msgs.length?msgs.map(m=>{const mine=m.sender_id===me.id,who=profilesById[m.sender_id]||{};
+    return `<div class="mrow ${mine?'me':'you'}">${!mine?`<div class="mav" style="background:${tcolor(who.member_type)}">${ini(who.name)}</div>`:''}
+    <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}<div class="bubble">${esc(m.content)}</div></div></div>`;}).join('')
+    :`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`;
+  el.scrollTop=el.scrollHeight;
+}
+async function sendMsg(){const i=document.getElementById('msgInput'),t=i.value.trim();if(!t)return;
+  i.value='';const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:t});
+  if(error){alert('전송 실패: '+error.message);return;}await loadMsgs();}
+
+/* ====== 자료실 ====== */
+async function loadFiles(){const {data}=await sb.from('room_files').select('*').eq('room_id',active.id).order('created_at',{ascending:false});files=data||[];}
+function allFiles(){
+  const up=files.map(f=>({n:f.file_name,url:f.file_url,desc:f.description||'',kw:f.keywords||[],by:nameOf(f.uploaded_by),date:(f.created_at||'').slice(0,10),src:'up'}));
+  const cal=events.filter(e=>e.attachment_url).map(e=>({n:e.attachment_name||'첨부',url:e.attachment_url,desc:e.attachment_desc||e.title,kw:e.keywords||[],by:nameOf(e.owner_id),date:(e.start_at||'').slice(0,10),src:'cal'}));
+  return up.concat(cal);
+}
+function fcard(f){return `<a class="file" href="${f.url||'#'}" target="_blank" style="text-decoration:none;color:inherit">
+  <div class="ficon" style="background:${f.src==='cal'?'#6d597a':'#3d8361'}">${f.src==='cal'?'📎':'📄'}</div>
+  <div class="finfo"><b>${esc(f.n)}</b><div class="desc">${esc(f.desc)}</div>
+  <small>${esc(f.by)} · ${f.date} <span class="fsrc" style="background:${f.src==='cal'?'#efe7f5':'#e7f0eb'};color:${f.src==='cal'?'#6d597a':'#3d8361'}">${f.src==='cal'?'캘린더':'직접'}</span></small>
+  ${(f.kw||[]).map(k=>`<span class="kwtag">#${esc(k)}</span>`).join('')}</div></a>`;}
+function renderFiles(){
+  const list=allFiles();
+  let h=`<div class="sortrow"><div class="sb ${fileSort==='date'?'on':''}" onclick="fileSort='date';renderFiles()">📅 날짜순</div>
+    <div class="sb ${fileSort==='kw'?'on':''}" onclick="fileSort='kw';renderFiles()">🏷 키워드별</div></div>`;
+  if(canPost(active))h+=`<div class="upbtn" onclick="document.getElementById('hiddenUp').click()">⬆️ 파일 올리기</div><input id="hiddenUp" type="file" style="display:none" onchange="pickUpload(this)">`;
+  if(!list.length){h+=`<div class="emptybox"><div class="eb">📁</div><b>자료가 없습니다</b></div>`;}
+  else if(fileSort==='date'){h+=list.sort((a,b)=>(b.date).localeCompare(a.date)).map(fcard).join('');}
+  else{const g={};list.forEach(f=>(f.kw.length?f.kw:['기타']).forEach(k=>(g[k]=g[k]||[]).push(f)));
+    h+=Object.keys(g).map(k=>`<div class="kwhead">🏷 ${esc(k)}</div>`+g[k].map(fcard).join('')).join('');}
+  document.getElementById('fileList').innerHTML=h;
+}
+function pickUpload(input){const f=input.files[0];if(!f)return;pendingFile=f;
+  document.getElementById('upName').textContent=f.name;document.getElementById('upDesc').value='';document.getElementById('upKw').value='';
+  document.getElementById('umodal').classList.add('on');}
+async function confirmUpload(){
+  if(!pendingFile)return;
+  const path=active.id+'/'+Date.now()+'_'+pendingFile.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+  const {error:upErr}=await sb.storage.from(BUCKET).upload(path,pendingFile,{upsert:true});
+  if(upErr){alert('업로드 실패: '+upErr.message);return;}
+  const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  const kw=document.getElementById('upKw').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const {error}=await sb.from('room_files').insert({room_id:active.id,file_name:pendingFile.name,file_url:url,
+    description:document.getElementById('upDesc').value.trim()||null,keywords:kw,uploaded_by:me.id,source:'upload'});
+  if(error){alert('저장 실패: '+error.message);return;}
+  pendingFile=null;closeModal('umodal');await loadFiles();renderFiles();
+}
+
+/* ====== 캘린더 ====== */
+async function loadEvents(){const {data}=await sb.from('calendar_events').select('*').eq('room_id',active.id).order('start_at',{ascending:true});events=data||[];}
+const evDate=e=>e.start_at?new Date(e.start_at):null;
+const sameDay=(a,b)=>a&&b&&a.toDateString()===b.toDateString();
+const fmtTime=iso=>{const d=new Date(iso);return (d.getMonth()+1)+'/'+d.getDate()+' '+d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});};
+function canEdit(e){return e.owner_id===me.id||isAdmin();}
+function evCard(e){const c=(CAT[active.category]||CAT.custom).c;
+  return `<div class="ev"><div class="evbar" style="background:${c}"></div><div class="evb"><b>${esc(e.title)}</b>
+    <div class="evmeta">🕐 ${fmtTime(e.start_at)}${e.place?' · 📍'+esc(e.place):''}<br>
+    ${e.scope?'참석: '+esc(e.scope)+'<br>':''}${e.description?esc(e.description)+'<br>':''}
+    ${e.link?'🔗 <a href="'+esc(e.link)+'" target="_blank">'+esc(e.link)+'</a><br>':''}
+    ${(e.keywords||[]).map(k=>'#'+esc(k)).join(' ')}</div>
+    ${e.attachment_url?`<a class="evatt" href="${esc(e.attachment_url)}" target="_blank">📎 ${esc(e.attachment_name||'첨부')} — ${esc(e.attachment_desc||'')}</a>`:''}
+    ${canEdit(e)?`<span class="evedit" onclick="openEvent('${e.id}')">✏️ 수정</span>`:''}</div></div>`;}
+function renderCal(){
+  const today=new Date();
+  let h=`<div class="calmode">
+    <div class="cm ${calMode==='day'?'on':''}" onclick="calMode='day';renderCal()">금일</div>
+    <div class="cm ${calMode==='week'?'on':''}" onclick="calMode='week';renderCal()">주간</div>
+    <div class="cm ${calMode==='month'?'on':''}" onclick="calMode='month';renderCal()">월간</div></div>`;
+  if(canPost(active))h+=`<div class="addev" onclick="openEvent()">＋ 일정 추가</div>`;
+  if(calMode==='month'){
+    const y=monthAnchor.getFullYear(),m=monthAnchor.getMonth();
+    const monthEv=events.filter(e=>{const d=evDate(e);return d&&d.getFullYear()===y&&d.getMonth()===m;});
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="cursor:pointer;font-size:20px;color:var(--sub)" onclick="monthShift(-1)">‹</span>
+      <b>${y}년 ${m+1}월</b><span style="cursor:pointer;font-size:20px;color:var(--sub)" onclick="monthShift(1)">›</span></div>`;
+    h+=`<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:14px">`;
+    ['일','월','화','수','목','금','토'].forEach(d=>h+=`<div style="text-align:center;font-size:11px;color:var(--sub);font-weight:700;padding:4px 0">${d}</div>`);
+    const first=new Date(y,m,1).getDay(),len=new Date(y,m+1,0).getDate();
+    const evDays=new Set(monthEv.map(e=>evDate(e).getDate()));
+    for(let i=0;i<first;i++)h+=`<div></div>`;
+    for(let d=1;d<=len;d++){const isT=y===today.getFullYear()&&m===today.getMonth()&&d===today.getDate();
+      h+=`<div style="aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;border-radius:9px;${isT?'background:var(--me);font-weight:800':''}">${d}${evDays.has(d)?'<div style="width:5px;height:5px;border-radius:50%;background:var(--admin)"></div>':''}</div>`;}
+    h+=`</div><h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">이번 달 일정</h4>`;
+    h+=monthEv.length?monthEv.map(evCard).join(''):`<p style="color:var(--sub);font-size:13px">등록된 일정이 없습니다.</p>`;
+  }else if(calMode==='week'){
+    const mon=new Date(today);mon.setDate(today.getDate()-((today.getDay()+6)%7));
+    const dow=['월','화','수','목','금','토','일'];
+    h+=`<h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">이번 주</h4>`;
+    for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);
+      const de=events.filter(e=>sameDay(evDate(e),d));const isT=sameDay(d,today);
+      h+=`<div class="wday ${isT?'wtoday':''}"><div class="wdate"><b>${dow[i]}</b><span>${d.getMonth()+1}/${d.getDate()}</span></div>
+        <div class="wevents">${de.length?de.map(evCard).join(''):'<div class="noev">— 일정 없음</div>'}</div></div>`;}
+  }else{
+    const de=events.filter(e=>sameDay(evDate(e),today));
+    h+=`<h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">금일 · ${today.getMonth()+1}/${today.getDate()}</h4>`;
+    h+=de.length?de.map(evCard).join(''):`<p style="color:var(--sub);font-size:13px">등록된 일정이 없습니다.</p>`;
+  }
+  document.getElementById('calBody').innerHTML=h;
+}
+function monthShift(n){monthAnchor=new Date(monthAnchor.getFullYear(),monthAnchor.getMonth()+n,1);renderCal();}
+function openEvent(id){
+  editEventId=id||null;
+  const e=id?events.find(x=>x.id===id):null;
+  document.getElementById('evModalTitle').textContent=id?'일정 수정':'일정 추가';
+  document.getElementById('evSaveBtn').textContent=id?'수정 저장':'일정 등록';
+  document.getElementById('evAttLbl').style.display=id?'none':'block';
+  document.getElementById('evFile').style.display=id?'none':'block';
+  const g=(k,v)=>document.getElementById(k).value=v;
+  const d=e&&e.start_at?new Date(e.start_at):new Date();
+  g('evTitle',e?e.title:'');g('evDate',d.toISOString().slice(0,10));
+  g('evTime',e&&e.start_at?new Date(e.start_at).toTimeString().slice(0,5):'09:00');
+  g('evPlace',e?e.place||'':'');g('evLink',e?e.link||'':'');g('evScope',e?e.scope||'':'');
+  g('evDesc',e?e.description||'':'');g('evKw',e?(e.keywords||[]).join(', '):'');g('evAttDesc','');
+  document.getElementById('evFile').value='';
+  document.getElementById('emodal').classList.add('on');
+}
+async function saveEvent(){
+  const g=k=>document.getElementById(k).value.trim();
+  if(!g('evTitle')){alert('제목을 입력하세요');return;}
+  const startAt=new Date(g('evDate')+'T'+(g('evTime')||'09:00')+':00').toISOString();
+  const kw=g('evKw').split(',').map(s=>s.trim()).filter(Boolean);
+  if(editEventId){
+    const {error}=await sb.from('calendar_events').update({title:g('evTitle'),start_at:startAt,place:g('evPlace')||null,
+      link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,keywords:kw}).eq('id',editEventId);
+    if(error){alert('수정 실패: '+error.message);return;}
+  }else{
+    let attUrl=null,attName=null;const file=document.getElementById('evFile').files[0];
+    if(file){const path=active.id+'/'+Date.now()+'_'+file.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+      const {error:ue}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
+      if(ue){alert('첨부 업로드 실패: '+ue.message);return;}
+      attUrl=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;attName=file.name;}
+    const {error}=await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAt,
+      place:g('evPlace')||null,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
+      keywords:kw,owner_id:me.id,attachment_url:attUrl,attachment_name:attName,attachment_desc:g('evAttDesc')||null});
+    if(error){alert('등록 실패: '+error.message);return;}
+  }
+  closeModal('emodal');await loadEvents();await loadFiles();renderCal();
+}
+
+/* ====== 병실 잔여 현황 ====== */
+async function openWard(){show('wardScreen');await loadWard();}
+async function loadWard(){const {data}=await sb.from('ward_status').select('*').eq('id',1).maybeSingle();
+  wardText=data?data.content:'';wardUpdated=data?data.updated_at:null;renderWard(false);}
+function renderWard(editing){
+  const el=document.getElementById('wardBody');
+  document.getElementById('wardEditBtn').textContent=editing?'':'편집';
+  document.getElementById('wardEditBtn').style.display=editing?'none':'inline';
+  if(editing){
+    el.innerHTML=`<textarea class="wardedit" id="wardDraft">${esc(wardText)}</textarea>
+      <button class="primary" onclick="wardSave()">게시</button>
+      <button class="ghost" onclick="renderWard(false)">취소</button>`;
+  }else{
+    const upd=wardUpdated?new Date(wardUpdated).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+    el.innerHTML=(upd?`<div style="font-size:11px;color:var(--sub);margin-bottom:8px">최종 수정: ${upd}</div>`:'')
+      +(wardText.trim()?`<div class="wardmemo">${esc(wardText)}</div>`:`<div class="emptybox"><div class="eb">🛏</div><b>작성된 내용이 없습니다</b><div style="font-size:13px">‘편집’으로 작성하세요.</div></div>`);
+  }
+}
+function wardEdit(){renderWard(true);}
+async function wardSave(){
+  const content=document.getElementById('wardDraft').value;
+  const {error}=await sb.from('ward_status').update({content,updated_by:me.id,updated_at:new Date().toISOString()}).eq('id',1);
+  if(error){alert('저장 실패: '+error.message);return;}
+  wardText=content;wardUpdated=new Date().toISOString();renderWard(false);
+}
+
+/* ====== 모임방 만들기 ====== */
+function openCreate(){
+  cpick=new Set();document.getElementById('newRoomName').value='';
+  const others=Object.values(profilesById).filter(p=>p.id!==me.id).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  document.getElementById('cpickList').innerHTML=others.length?others.map(p=>`
+    <div class="pick" data-id="${p.id}" onclick="toggleC('${p.id}')">
+      <div class="av" style="background:${tcolor(p.member_type)}">${ini(p.name)}</div>
+      <span class="pn">${esc(p.name)}</span><span class="chk" style="visibility:hidden">✓</span></div>`).join('')
+    :'<p style="color:var(--sub);font-size:13px">표시할 멤버가 없습니다.</p>';
+  document.getElementById('cmodal').classList.add('on');
+}
+function toggleC(id){cpick.has(id)?cpick.delete(id):cpick.add(id);
+  const el=document.querySelector(`#cpickList .pick[data-id="${id}"]`);
+  el.classList.toggle('sel',cpick.has(id));el.querySelector('.chk').style.visibility=cpick.has(id)?'visible':'hidden';}
+async function createRoom(){
+  const name=document.getElementById('newRoomName').value.trim()||'새 모임방';
+  const id=crypto.randomUUID();const order=Math.floor(Date.now()/1000);
+  const {error}=await sb.from('rooms').insert({id,name,category:'custom',post_policy:'members',sort_order:order,created_by:me.id});
+  if(error){alert('방 생성 실패: '+error.message);return;}
+  const ids=[...new Set([...cpick,me.id])];
+  await sb.from('room_members').insert(ids.map(uid=>({room_id:id,user_id:uid})));
+  closeModal('cmodal');await loadRooms();
+}
+
+/* ====== 관리자 콘솔 ====== */
+function openAdmin(){
+  const role=p=>p.role==='superadmin'?['super','전체관리자']:p.role==='admin'?['admin','관리자']:['user','멤버'];
+  document.getElementById('poolList').innerHTML=Object.values(profilesById).map(p=>{const r=role(p);
+    return `<div class="arow"><div class="av" style="background:${tcolor(p.member_type)}">${ini(p.name)}</div>
+    <div class="info"><b>${esc(p.name)}</b><small>${esc(p.member_type||'')}</small></div>
+    <span class="tag ${r[0]}">${r[1]}</span></div>`;}).join('')||'<p style="color:var(--sub);font-size:13px">멤버 없음</p>';
+  document.getElementById('roomAdminList').innerHTML=rooms.map(r=>{const c=CAT[r.category]||CAT.custom;
+    return `<div class="arow"><div class="av" style="background:${c.c};border-radius:11px">${r.category!=='custom'?r.sort_order:'#'}</div>
+    <div class="info"><b>${esc(r.name)}</b><small>${c.l} · ${r.post_policy}</small></div></div>`;}).join('');
+  show('adminScreen');
+}
+
+function closeModal(id){document.getElementById(id).classList.remove('on');}
+document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+
+/* ====== 시작: 기존 세션 있으면 자동 로그인 ====== */
+(async()=>{const {data:{session}}=await sb.auth.getSession();if(session)await loadApp();else show('login');})();
+</script>
+</body>
+</html>

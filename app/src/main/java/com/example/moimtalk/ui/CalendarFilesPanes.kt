@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -748,6 +749,7 @@ private fun SheetDialog(title: String, subtitle: String, onDismiss: () -> Unit, 
                     .fillMaxWidth()
                     .heightIn(max = 620.dp)
                     .verticalScroll(rememberScrollState())
+                    .imePadding()
                     .padding(20.dp)
             ) {
                 Text(title, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = MoimInk)

@@ -20,7 +20,7 @@ struct RootView: View {
             if !vm.loggedIn {
                 LoginView(vm: vm)
             } else if showAdmin {
-                AdminPlaceholderView(onBack: { showAdmin = false })
+                AdminPlaceholderView(vm: vm, onBack: { showAdmin = false })
             } else if showWard {
                 WardStatusView(vm: vm, onBack: { showWard = false })
             } else if showCreateRoom {

@@ -129,8 +129,6 @@
     <div class="viewbar"><span style="font-size:11px;color:var(--sub);font-weight:700">👁</span>
       <span class="vchip" id="meChip"></span></div>
     <div class="list" id="roomList"></div>
-    <div class="adminbar hidden" id="adminBar" onclick="openAdmin()">
-      <div class="dot">🛡️</div><div style="flex:1"><b>관리자 콘솔</b><small>전체관리자 전용 · 멤버/방</small></div><span style="color:#bdb4ab">›</span></div>
   </section>
 
   <!-- ROOM -->
@@ -158,16 +156,6 @@
       <h1 style="font-size:16px">병실 잔여 현황</h1><span class="spacer"></span>
       <button class="lk" id="wardEditBtn" onclick="wardEdit()">편집</button></div>
     <div class="wardbody" id="wardBody" style="flex:1;overflow-y:auto"></div>
-  </section>
-
-  <!-- ADMIN -->
-  <section id="adminScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
-    <div class="hdr" style="background:var(--accent)"><button class="back" style="color:#fff" onclick="show('listScreen')">‹</button>
-      <h1 style="font-size:16px;color:#fff">관리자 콘솔</h1></div>
-    <div style="flex:1;overflow-y:auto;padding:16px">
-      <div class="card"><h3>👥 멤버 (직군·역할)</h3><div id="poolList"></div></div>
-      <div class="card"><h3>🏠 방 목록</h3><div id="roomAdminList"></div></div>
-    </div>
   </section>
 
   <!-- CREATE ROOM MODAL -->
@@ -226,7 +214,7 @@ const tcolor=t=>TYPE_COLOR[t]||'#888';
 const nameOf=id=>(profilesById[id]||{}).name||'?';
 const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const isAdmin=()=>me&&(me.role==='superadmin'||me.role==='admin');
-function show(id){['login','listScreen','roomScreen','wardScreen','adminScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));}
+function show(id){['login','listScreen','roomScreen','wardScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));}
 
 /* ====== 로그인 ====== */
 async function doLogin(){
@@ -261,7 +249,6 @@ function renderRoomList(){
   document.getElementById('badge').textContent=
     me.role==='superadmin'?'전체관리자':me.role==='admin'?'관리자':(me.name+' · '+(me.member_type||''));
   document.getElementById('meChip').innerHTML=`<span class="vd" style="background:${tcolor(me.member_type)}">${(me.member_type||'?')[0]}</span>${esc(me.name)}`;
-  document.getElementById('adminBar').classList.toggle('hidden',me.role!=='superadmin');
   const def=rooms.filter(r=>r.category!=='custom'),cus=rooms.filter(r=>r.category==='custom');
   const item=r=>{const c=CAT[r.category]||CAT.custom;return `<div class="room" onclick="openRoom('${r.id}')">
     <div class="av" style="background:${c.c}">${r.category!=='custom'?r.sort_order:'#'}</div>
@@ -486,19 +473,6 @@ async function createRoom(){
   const ids=[...new Set([...cpick,me.id])];
   await sb.from('room_members').insert(ids.map(uid=>({room_id:id,user_id:uid})));
   closeModal('cmodal');await loadRooms();
-}
-
-/* ====== 관리자 콘솔 ====== */
-function openAdmin(){
-  const role=p=>p.role==='superadmin'?['super','전체관리자']:p.role==='admin'?['admin','관리자']:['user','멤버'];
-  document.getElementById('poolList').innerHTML=Object.values(profilesById).map(p=>{const r=role(p);
-    return `<div class="arow"><div class="av" style="background:${tcolor(p.member_type)}">${ini(p.name)}</div>
-    <div class="info"><b>${esc(p.name)}</b><small>${esc(p.member_type||'')}</small></div>
-    <span class="tag ${r[0]}">${r[1]}</span></div>`;}).join('')||'<p style="color:var(--sub);font-size:13px">멤버 없음</p>';
-  document.getElementById('roomAdminList').innerHTML=rooms.map(r=>{const c=CAT[r.category]||CAT.custom;
-    return `<div class="arow"><div class="av" style="background:${c.c};border-radius:11px">${r.category!=='custom'?r.sort_order:'#'}</div>
-    <div class="info"><b>${esc(r.name)}</b><small>${c.l} · ${r.post_policy}</small></div></div>`;}).join('');
-  show('adminScreen');
 }
 
 function closeModal(id){document.getElementById(id).classList.remove('on');}

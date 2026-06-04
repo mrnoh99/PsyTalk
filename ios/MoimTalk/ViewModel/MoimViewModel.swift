@@ -177,6 +177,18 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    func renameRoom(_ room: Room, to name: String, onDone: @escaping () -> Void) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, trimmed != room.name else { onDone(); return }
+        Task {
+            do {
+                try await MoimRepository.updateRoomName(roomId: room.id, name: trimmed)
+                rooms = try await MoimRepository.rooms()
+                onDone()
+            } catch { self.error = "방 이름 변경: \(error.localizedDescription)" }
+        }
+    }
+
     func setRole(_ userId: String, to role: String) {
         Task {
             do {

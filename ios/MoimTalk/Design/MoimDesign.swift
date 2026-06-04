@@ -72,6 +72,13 @@ func canPostInRoom(_ profile: Profile?, _ room: Room) -> Bool {
     return room.postPolicy != "restricted"
 }
 
+/// 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
+func canRenameRoom(_ profile: Profile?, _ room: Room) -> Bool {
+    guard let p = profile else { return false }
+    if isAdminRole(p.role) { return true }
+    return room.createdBy != nil && room.createdBy == MoimRepository.currentUserId()
+}
+
 func viewBadgeText(_ profile: Profile?) -> String {
     guard let p = profile else { return "정신건강의학과" }
     if isSuperAdmin(p.role) { return "전체관리자 · 전체 방" }

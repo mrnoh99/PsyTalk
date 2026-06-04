@@ -134,7 +134,8 @@
   <!-- ROOM -->
   <section id="roomScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
     <div class="hdr"><button class="back" onclick="closeRoom()">‹</button>
-      <h1 id="roomTitle" style="font-size:16px"></h1><span class="spacer"></span></div>
+      <h1 id="roomTitle" style="font-size:16px"></h1><span class="spacer"></span>
+      <button id="renameBtn" class="back" style="display:none;font-size:17px" onclick="renameRoom()">✏️</button></div>
     <div class="tabs">
       <div class="tab on" data-t="chat" onclick="tab('chat')">💬 채팅</div>
       <div class="tab" data-t="files" onclick="tab('files')">📁 자료실</div>
@@ -265,9 +266,12 @@ function renderRoomList(){
 
 /* ====== 방 열기 ====== */
 const canPost=r=>isAdmin()||r.post_policy!=='restricted';
+// 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
+const canRename=r=>isAdmin()||(!!r.created_by&&r.created_by===me.id);
 async function openRoom(id){
   active=rooms.find(r=>r.id===id);
   document.getElementById('roomTitle').textContent=active.name;
+  document.getElementById('renameBtn').style.display=canRename(active)?'':'none';
   calMode=active.default_view==='week'?'week':'month';
   show('roomScreen');
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
@@ -277,6 +281,18 @@ async function openRoom(id){
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
 }
 function closeRoom(){active=null;show('listScreen');}
+async function renameRoom(){
+  if(!active)return;
+  const name=prompt('방 이름 변경', active.name);
+  if(name===null)return;
+  const t=name.trim();
+  if(!t||t===active.name)return;
+  const {error}=await sb.from('rooms').update({name:t}).eq('id',active.id);
+  if(error){alert('이름 변경 실패: '+error.message);return;}
+  active.name=t;
+  document.getElementById('roomTitle').textContent=t;
+  await loadRooms();
+}
 function tab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t));
   document.querySelectorAll('#roomScreen .pane').forEach(e=>e.classList.toggle('on',e.id==='pane-'+t));
   if(t==='files')renderFiles();if(t==='cal')renderCal();}

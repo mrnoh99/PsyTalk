@@ -21,6 +21,7 @@
 | 파일 스토리지 | 🔲 (alert 목업) | ✅ Supabase Storage `room-files` | ✅ | 앱이 실제 업로드 |
 | 관리자 콘솔 — 멤버 풀 보기 | ✅ | ❌ `AdminPlaceholderScreen` | ❌ | 앱 자리표시자 |
 | 방 만들기 (모임방 생성) | ✅ (관리자) | ✅ 누구나 (카톡식) | ✅ | 앱은 이름+멤버선택, room_members 등록, RLS 비공개 |
+| 방 이름 수정 (생성 후) | ➖ | ✅ 방 헤더 ✏️ (생성자/관리자) | ✅ | iOS·Android·Web 공통, RLS `rooms_update_owner_admin` |
 | 관리자 콘솔 — 작성자 지정 (writers) | ✅ | ❌ | ❌ | `room_writers` 스키마만 존재 |
 | 방 참석 멤버 지정 (`room_members`) | ✅ (목 데이터) | ❌ | ❌ | 스키마만 존재, 앱 미연동 |
 | 샘플 데이터 (10명·일정 5개·파일) | ✅ JS 목 데이터 | ➖ DB 실데이터 | ✅ | 목업 샘플은 데모 전용. 앱은 시드(방 12개)만, 일정/파일은 사용자 입력 |

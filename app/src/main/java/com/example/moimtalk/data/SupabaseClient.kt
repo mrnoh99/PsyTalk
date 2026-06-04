@@ -67,6 +67,12 @@ data class RoomMemberInsert(
     @SerialName("user_id") val userId: String,
 )
 
+// 방 이름 수정 DTO (생성자 또는 관리자만, RLS 로 강제)
+@Serializable
+data class RoomNameUpdate(
+    val name: String,
+)
+
 @Serializable
 data class Message(
     val id: String,

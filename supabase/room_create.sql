@@ -29,6 +29,21 @@ CREATE POLICY "rooms_select_visible"
                WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin'))
   );
 
+-- 방 이름 수정: 생성자(만든 사람) 또는 관리자만 (기본 방은 created_by=NULL 이라 관리자만)
+DROP POLICY IF EXISTS "rooms_update_owner_admin" ON public.rooms;
+CREATE POLICY "rooms_update_owner_admin"
+  ON public.rooms FOR UPDATE TO authenticated
+  USING (
+    created_by = auth.uid()
+    OR EXISTS (SELECT 1 FROM public.profiles p
+               WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin'))
+  )
+  WITH CHECK (
+    created_by = auth.uid()
+    OR EXISTS (SELECT 1 FROM public.profiles p
+               WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin'))
+  );
+
 -- 방 멤버 추가: 인증 사용자(생성자가 참석자 지정) 허용 (admin 전용 정책에 더해 OR)
 DROP POLICY IF EXISTS "room_members_insert_self" ON public.room_members;
 CREATE POLICY "room_members_insert_self"

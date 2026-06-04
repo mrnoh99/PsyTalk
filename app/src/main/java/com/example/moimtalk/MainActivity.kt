@@ -254,6 +254,20 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    fun renameRoom(room: Room, newName: String, onDone: () -> Unit = {}) {
+        val trimmed = newName.trim()
+        if (trimmed.isEmpty() || trimmed == room.name) { onDone(); return }
+        viewModelScope.launch {
+            try {
+                MoimRepository.updateRoomName(room.id, trimmed)
+                rooms = MoimRepository.rooms()
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "방 이름 변경")
+            }
+        }
+    }
+
     fun nameOf(userId: String): String = profilesById[userId]?.name ?: "?"
 
     fun otherProfiles(): List<Profile> =

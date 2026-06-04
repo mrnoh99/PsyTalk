@@ -26,6 +26,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -314,11 +315,39 @@ fun RoomRow(room: Room, onOpen: (Room) -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
+    // 이름 변경이 반영되도록 최신 방 정보를 vm.rooms 에서 조회
+    val liveRoom = vm.rooms.firstOrNull { it.id == room.id } ?: room
     // 주간 학술활동 등 default_view='week' 방은 열자마자 캘린더(주간 목록)로 (프로토타입과 동일)
     var tab by remember { mutableStateOf(if (room.defaultView == "week") "cal" else "chat") }
     var input by remember { mutableStateOf("") }
+    var showRename by remember { mutableStateOf(false) }
+    var renameText by remember { mutableStateOf("") }
     val profile = vm.myProfile
     val canPost = canPostInRoom(profile, room)
+
+    if (showRename) {
+        AlertDialog(
+            onDismissRequest = { showRename = false },
+            title = { Text("방 이름 변경") },
+            text = {
+                OutlinedTextField(
+                    value = renameText,
+                    onValueChange = { renameText = it },
+                    singleLine = true,
+                    label = { Text("방 이름") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.renameRoom(liveRoom, renameText)
+                    showRename = false
+                }) { Text("저장") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRename = false }) { Text("취소") }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -326,12 +355,20 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 TopAppBar(
                     title = {
                         Column {
-                            Text(room.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Text(catLabel(room.category), fontSize = 12.sp, color = MoimSub)
+                            Text(liveRoom.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(catLabel(liveRoom.category), fontSize = 12.sp, color = MoimSub)
                         }
                     },
                     navigationIcon = {
                         TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
+                    },
+                    actions = {
+                        if (canRenameRoom(profile, liveRoom)) {
+                            TextButton(onClick = {
+                                renameText = liveRoom.name
+                                showRename = true
+                            }) { Text("✏️", fontSize = 17.sp) }
+                        }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
                 )

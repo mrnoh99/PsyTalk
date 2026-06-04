@@ -7,6 +7,8 @@ struct RoomView: View {
 
     @State private var tab: String
     @State private var input = ""
+    @State private var showRename = false
+    @State private var renameText = ""
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
@@ -14,6 +16,8 @@ struct RoomView: View {
         _tab = State(initialValue: room.defaultView == "week" ? "cal" : "chat")
     }
 
+    // 이름 변경이 반영되도록 최신 방 정보를 vm.rooms 에서 조회
+    private var liveRoom: Room { vm.rooms.first { $0.id == room.id } ?? room }
     private var canPost: Bool { canPostInRoom(vm.myProfile, room) }
 
     var body: some View {
@@ -37,13 +41,26 @@ struct RoomView: View {
         HStack {
             Button(action: onBack) { Text("‹").font(.system(size: 25)) }
             VStack(alignment: .leading, spacing: 2) {
-                Text(room.name).font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
-                Text(catLabel(room.category)).font(.system(size: 12)).foregroundColor(Moim.sub)
+                Text(liveRoom.name).font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
+                Text(catLabel(liveRoom.category)).font(.system(size: 12)).foregroundColor(Moim.sub)
             }
             Spacer()
+            if canRenameRoom(vm.myProfile, liveRoom) {
+                Button {
+                    renameText = liveRoom.name
+                    showRename = true
+                } label: {
+                    Text("✏️").font(.system(size: 17))
+                }
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(Moim.paper)
+        .alert("방 이름 변경", isPresented: $showRename) {
+            TextField("방 이름", text: $renameText)
+            Button("취소", role: .cancel) {}
+            Button("저장") { vm.renameRoom(liveRoom, to: renameText) {} }
+        }
     }
 
     private var tabBar: some View {

@@ -51,6 +51,13 @@ object MoimRepository {
         return roomId
     }
 
+    /** 방 이름 변경 (생성자 또는 관리자, RLS 로 강제) */
+    suspend fun updateRoomName(roomId: String, name: String) {
+        supabase.from("rooms").update(RoomNameUpdate(name = name)) {
+            filter { eq("id", roomId) }
+        }
+    }
+
     suspend fun messages(roomId: String): List<Message> =
         supabase.from("messages").select {
             filter { eq("room_id", roomId) }

@@ -1,6 +1,7 @@
 package com.example.moimtalk.ui
 
 import androidx.compose.ui.graphics.Color
+import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
 
@@ -51,6 +52,13 @@ fun canPostInRoom(profile: Profile?, room: Room): Boolean {
     if (profile == null) return false
     if (isAdminRole(profile.role)) return true
     return room.postPolicy != "restricted"
+}
+
+/** 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방) */
+fun canRenameRoom(profile: Profile?, room: Room): Boolean {
+    if (profile == null) return false
+    if (isAdminRole(profile.role)) return true
+    return room.createdBy != null && room.createdBy == MoimRepository.currentUserId()
 }
 
 fun viewBadgeText(profile: Profile?): String {

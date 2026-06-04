@@ -61,6 +61,11 @@ enum MoimRepository {
         return roomId
     }
 
+    /// 방 이름 변경 (생성자 또는 관리자 — RLS 로 강제)
+    static func updateRoomName(roomId: String, name: String) async throws {
+        try await supabase.from("rooms").update(["name": name]).eq("id", value: roomId).execute()
+    }
+
     // ── 채팅 ──
     static func messages(roomId: String) async throws -> [Message] {
         try await supabase.from("messages")

@@ -75,6 +75,8 @@
   .evmeta{font-size:11.5px;color:var(--sub);margin-top:3px;line-height:1.5}
   .evatt{display:inline-flex;gap:4px;font-size:11px;font-weight:700;color:var(--work);background:#e7f0eb;padding:3px 8px;border-radius:8px;margin-top:6px}
   .evedit{font-size:11px;color:var(--group);font-weight:700;margin-top:6px;display:inline-block;cursor:pointer}
+  .evkept{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;background:#f3efe9;border-radius:8px;padding:6px 10px;margin-bottom:5px}
+  .evkeptx{color:#c0392b;font-weight:800;cursor:pointer;padding:0 4px}
   .wday{display:flex;gap:10px;padding:9px 6px;border-bottom:1px solid rgba(220,213,204,.5)}
   .wday.wtoday{background:#fff8e0;border-radius:11px}.wdate{width:42px;text-align:center;flex-shrink:0}
   .wdate b{display:block;font-size:15px;font-weight:800}.wdate span{font-size:10.5px;color:var(--sub)}
@@ -196,7 +198,9 @@
     <span class="lbl">링크 (선택)</span><input class="field" id="evLink" placeholder="https://zoom.us/...">
     <span class="lbl">참석 범위</span><input class="field" id="evScope" placeholder="예: 의국 전공의 전원">
     <span class="lbl">설명</span><textarea class="field" id="evDesc" placeholder="안건 / 준비사항"></textarea>
-    <span class="lbl" id="evAttLbl">첨부 자료 (여러 개 가능)</span><input class="field" id="evFile" type="file" multiple>
+    <span class="lbl" id="evAttLbl">첨부 자료 (여러 개 가능)</span>
+    <div id="evExisting"></div>
+    <input class="field" id="evFile" type="file" multiple>
     <button class="primary" onclick="saveEvent()" id="evSaveBtn">일정 등록</button>
     <button class="ghost" onclick="closeModal('emodal')">취소</button>
   </div></div>
@@ -221,6 +225,7 @@ const BUCKET = "room-files";
 
 /* ====== 상태 ====== */
 let me=null, rooms=[], profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
+let evKept=[]; // 일정 수정 시 유지할 기존 첨부 [{n,u}]
 let calMode="month", fileSort="date", monthAnchor=new Date();
 let cpick=new Set(), editEventId=null, pendingFile=null;
 
@@ -482,8 +487,18 @@ function openEvent(id){
   g('evPlace',e?e.place||'':'');g('evPresenter',e?e.presenter||'':'');g('evLink',e?e.link||'':'');g('evScope',e?e.scope||'':'');
   g('evDesc',e?e.description||'':'');
   document.getElementById('evFile').value='';
+  evKept = e ? evAtts(e).slice() : [];
+  renderEvExisting();
   document.getElementById('emodal').classList.add('on');
 }
+function renderEvExisting(){
+  const box=document.getElementById('evExisting');
+  if(!box)return;
+  if(!evKept.length){box.innerHTML='';return;}
+  box.innerHTML='<div style="font-size:11px;color:var(--sub);margin:4px 0 6px">기존 첨부 (✕로 삭제)</div>'+
+    evKept.map((a,i)=>`<div class="evkept"><span>📎 ${esc(a.n)}</span><span class="evkeptx" onclick="removeEvAtt(${i})">✕</span></div>`).join('');
+}
+function removeEvAtt(i){ evKept.splice(i,1); renderEvExisting(); }
 async function uploadFiles(files){
   const urls=[],names=[];
   for(const file of files){
@@ -502,9 +517,8 @@ async function saveEvent(){
   const files=document.getElementById('evFile').files;
   let up; try{ up=await uploadFiles(files); }catch(e){ alert('첨부 업로드 실패: '+e.message); return; }
   if(editEventId){
-    const ev=events.find(x=>x.id===editEventId)||{};
-    const urls=(ev.attachment_urls||[]).concat(up.urls);
-    const names=(ev.attachment_names||[]).concat(up.names);
+    const urls=evKept.map(a=>a.u).concat(up.urls);
+    const names=evKept.map(a=>a.n).concat(up.names);
     const upd={title:g('evTitle'),start_at:startAt,place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,
       scope:g('evScope')||null,description:g('evDesc')||null,attachment_urls:urls,attachment_names:names};
     const {error}=await sb.from('calendar_events').update(upd).eq('id',editEventId);

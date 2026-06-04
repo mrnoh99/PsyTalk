@@ -188,6 +188,19 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    func setName(_ userId: String, to name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        Task {
+            do {
+                try await MoimRepository.updateName(userId: userId, name: trimmed)
+                let list = try await MoimRepository.allProfiles()
+                profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+                if userId == MoimRepository.currentUserId() { myProfile = profilesById[userId] }
+            } catch { self.error = "이름 변경: \(error.localizedDescription)" }
+        }
+    }
+
     var otherProfiles: [Profile] {
         profilesById.values
             .filter { $0.id != MoimRepository.currentUserId() }

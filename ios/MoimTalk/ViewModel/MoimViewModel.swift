@@ -167,6 +167,22 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    func createRoom(name: String, memberIds: [String], onDone: @escaping () -> Void) {
+        Task {
+            do {
+                _ = try await MoimRepository.createRoom(name: name, memberIds: memberIds)
+                rooms = try await MoimRepository.rooms()
+                onDone()
+            } catch { self.error = "방 만들기: \(error.localizedDescription)" }
+        }
+    }
+
+    var otherProfiles: [Profile] {
+        profilesById.values
+            .filter { $0.id != MoimRepository.currentUserId() }
+            .sorted { $0.name < $1.name }
+    }
+
     func name(of userId: String) -> String { profilesById[userId]?.name ?? "?" }
 
     func isMine(_ m: Message) -> Bool { m.senderId == MoimRepository.currentUserId() }

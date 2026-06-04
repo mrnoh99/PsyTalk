@@ -119,7 +119,8 @@ fun RoomListScreen(
     vm: MoimViewModel,
     onOpen: (Room) -> Unit,
     onAdmin: () -> Unit,
-    onWard: () -> Unit
+    onWard: () -> Unit,
+    onCreateRoom: () -> Unit
 ) {
     val profile = vm.myProfile
     val defaultRooms = vm.rooms.filter { it.category != "custom" }.sortedBy { it.sortOrder }
@@ -215,8 +216,8 @@ fun RoomListScreen(
                 item {
                     SectionHead(
                         title = "👥 모임 방",
-                        action = if (profile != null && isAdminRole(profile.role)) "＋ 만들기" else null,
-                        onAction = onAdmin
+                        action = "＋ 만들기",
+                        onAction = onCreateRoom
                     )
                 }
                 if (customRooms.isEmpty()) {
@@ -701,6 +702,105 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
                         Text(vm.wardStatus, fontSize = 15.sp, color = MoimInk, lineHeight = 24.sp)
                     }
                 }
+            }
+        }
+    }
+}
+
+// 모임방 만들기 (카톡처럼 누구나) — 이름 + 참여 멤버 선택
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var selected by remember { mutableStateOf(setOf<String>()) }
+    val people = vm.otherProfiles()
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("새 모임방", fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
+            )
+        },
+        containerColor = MoimPaper
+    ) { pad ->
+        Column(
+            modifier = Modifier
+                .padding(pad)
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("방 이름 (예: 우울증 연구모임)") },
+                singleLine = true,
+                shape = RoundedCornerShape(11.dp)
+            )
+            Spacer(Modifier.height(14.dp))
+            Text("참여 멤버 선택", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(8.dp))
+            LazyColumn(modifier = Modifier.weight(1f)) {
+                if (people.isEmpty()) {
+                    item {
+                        Text(
+                            "표시할 멤버가 없습니다.",
+                            fontSize = 13.sp, color = MoimSub,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
+                items(people) { p ->
+                    val on = selected.contains(p.id)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 7.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .clickable { selected = if (on) selected - p.id else selected + p.id }
+                            .background(if (on) Color(0xFFFFF8E0) else MoimWhite)
+                            .padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(typeColor(p.memberType), RoundedCornerShape(10.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(p.name.take(3), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Spacer(Modifier.width(10.dp))
+                        Text(p.name, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MoimInk, modifier = Modifier.weight(1f))
+                        Text(
+                            p.memberType,
+                            fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White,
+                            modifier = Modifier
+                                .background(typeColor(p.memberType), RoundedCornerShape(5.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(if (on) "✓" else "○", color = if (on) MoimAccent else MoimLine, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            Button(
+                onClick = {
+                    val nm = name.trim().ifBlank { "새 모임방" }
+                    vm.createRoom(nm, selected.toList()) { onBack() }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
+                shape = RoundedCornerShape(13.dp)
+            ) {
+                Text("방 만들기 (${selected.size + 1}명)", fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

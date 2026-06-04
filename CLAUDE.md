@@ -26,12 +26,12 @@
 - `restricted`: superadmin + admin + **방별 지정 작성자(writers)**만 작성 (예: 과 전체공지)
 - `members`: 방 참석 멤버 누구나 작성
 
-### 기본 방 12개 (`sort_order` 1~12) — 항상 상단 고정
-1 과 전체공지(notice·restricted) · 2 주간 학술활동(notice·members·**default_view=week**) ·
-3 진료 공지(notice) · 4 교실·의국·심리실(group) · 5 교실 · 6 의국 · 7 심리실 ·
-8 병동(work) · 9 외래(work) · 10 연구실 1(research) · 11 연구실 2 · 12 연구실 3
-- 그 아래 **모임 방**(`category=custom`): 멤버가 추가 생성
+### 기본 방 2개 (`sort_order` 1~2) — 항상 상단 고정
+1 과 전체공지(notice·restricted) · 2 주간 학술활동(notice·members·**default_view=week**)
 - 시드: `supabase/seed_rooms.sql`
+- 그 아래 **모임 방**(`category=custom`): **사용자가 카톡처럼 직접 생성**(이름+참여멤버 선택).
+  생성자=`created_by`, 참석자=`room_members`. 모임방은 멤버·생성자·관리자에게만 보임(RLS).
+  권한·가시성: `supabase/room_create.sql`
 
 ### 캘린더 (방별)
 - 보기: **금일 / 주간 / 월간** (`default_view=week` 방은 열면 캘린더 주간 목록으로 시작)
@@ -75,8 +75,9 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 2. `schema_extension.sql` — room_members, room_writers, calendar_events, room_files + RLS
 3. `storage_setup.sql` — `room-files` 버킷·정책
 4. `ward_status.sql` — 병실 잔여 현황 메모(단일 행)
-5. `seed_rooms.sql` — 기본 12방
+5. `seed_rooms.sql` — 기본 2방(과 전체공지·주간 학술활동)
 6. `install.sql` — GRANT·RLS
+7. `room_create.sql` — 모임방 사용자 생성 권한·가시성(마지막)
 
 > `schema_extension.sql`이 `profiles` 조회를 "본인만→인증 사용자 전체"로 바꿉니다(작성자 이름 표시용).
 > 캘린더/자료실 작성은 현재 `owner=본인`만 검사하며, `room_members` 연동 시 강화 예정.
@@ -91,5 +92,6 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 - **현황 표:** 새 기능 추가/구현 시 `docs/모임톡_요구사항.md`의 구현 현황과 `prototype/PARITY.md`를 함께 갱신
 
 ## 아직 앱에 없는 것 (우선순위 참고)
-멀티 방 게시 · 관리자 콘솔(멤버/방/작성자 관리) · 모임방 생성 · `room_members`/`room_writers` 연동 ·
+멀티 방 게시 · 관리자 콘솔(멤버/방/작성자 관리) · `room_writers` 연동 ·
 방 목록의 마지막 메시지·안 읽음 배지
+(모임방 생성 ✅ 구현됨 — 카톡식, 누구나)

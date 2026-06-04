@@ -38,6 +38,19 @@ object MoimRepository {
             order("sort_order", Order.ASCENDING)
         }.decodeList()
 
+    /** 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 멤버) 등록 */
+    suspend fun createRoom(name: String, memberIds: List<String>): String {
+        val uid = currentUserId() ?: error("Not logged in")
+        val roomId = java.util.UUID.randomUUID().toString()
+        val order = (System.currentTimeMillis() / 1000).toInt()
+        supabase.from("rooms").insert(
+            RoomInsert(id = roomId, name = name, sortOrder = order, createdBy = uid)
+        )
+        val members = (memberIds + uid).distinct().map { RoomMemberInsert(roomId = roomId, userId = it) }
+        supabase.from("room_members").insert(members)
+        return roomId
+    }
+
     suspend fun messages(roomId: String): List<Message> =
         supabase.from("messages").select {
             filter { eq("room_id", roomId) }

@@ -37,6 +37,20 @@ enum MoimRepository {
         try await supabase.from("profiles").select().execute().value
     }
 
+    /// 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 멤버) 등록
+    @discardableResult
+    static func createRoom(name: String, memberIds: [String]) async throws -> String {
+        guard let uid = currentUserId() else { throw AppError.notLoggedIn }
+        let roomId = UUID().uuidString.lowercased()
+        let order = Int(Date().timeIntervalSince1970)
+        let room = RoomInsert(id: roomId, name: name, sortOrder: order, createdBy: uid)
+        try await supabase.from("rooms").insert(room).execute()
+        let ids = Array(Set(memberIds + [uid]))
+        let members = ids.map { RoomMemberInsert(roomId: roomId, userId: $0) }
+        try await supabase.from("room_members").insert(members).execute()
+        return roomId
+    }
+
     // ── 채팅 ──
     static func messages(roomId: String) async throws -> [Message] {
         try await supabase.from("messages")

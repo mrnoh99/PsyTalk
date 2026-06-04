@@ -26,12 +26,41 @@ struct Room: Codable, Identifiable, Hashable {
     let postPolicy: String        // restricted | members
     var sortOrder: Int
     var defaultView: String?
+    var createdBy: String?
 
     enum CodingKeys: String, CodingKey {
         case id, name, category
         case postPolicy = "post_policy"
         case sortOrder = "sort_order"
         case defaultView = "default_view"
+        case createdBy = "created_by"
+    }
+}
+
+// 모임방 생성 DTO (카톡처럼 누구나 방 생성)
+struct RoomInsert: Encodable {
+    let id: String
+    let name: String
+    var category: String = "custom"
+    var postPolicy: String = "members"
+    let sortOrder: Int
+    let createdBy: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, category
+        case postPolicy = "post_policy"
+        case sortOrder = "sort_order"
+        case createdBy = "created_by"
+    }
+}
+
+struct RoomMemberInsert: Encodable {
+    let roomId: String
+    let userId: String
+
+    enum CodingKeys: String, CodingKey {
+        case roomId = "room_id"
+        case userId = "user_id"
     }
 }
 

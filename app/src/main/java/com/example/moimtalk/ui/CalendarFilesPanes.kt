@@ -7,6 +7,7 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -338,6 +339,8 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
     val today = remember { LocalDate.now(KST) }
     var mode by remember { mutableStateOf(if (room.defaultView == "week") "week" else "month") }
     var ym by remember { mutableStateOf(YearMonth.from(today)) }
+    // 선택한 날짜 — 기본은 오늘. 날짜를 누르면 그날로 포커스가 옮겨가고, 일정 추가·아래 목록이 이 날짜를 따른다.
+    var selected by remember { mutableStateOf(today) }
     var editing by remember { mutableStateOf<CalendarEvent?>(null) }
     var creating by remember { mutableStateOf(false) }
 
@@ -361,9 +364,9 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
         }
 
         when (mode) {
-            "month" -> monthContent(this, vm, ym, today, { ym = it }, { editing = it })
-            "week" -> weekContent(this, vm, today, { editing = it })
-            else -> dayContent(this, vm, today, { editing = it })
+            "month" -> monthContent(this, vm, ym, today, selected, { ym = it }, { selected = it }, { editing = it })
+            "week" -> weekContent(this, vm, today, selected, { selected = it }, { editing = it })
+            else -> dayContent(this, vm, today, selected, { editing = it })
         }
     }
 
@@ -371,6 +374,7 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
         EventDialog(
             title = "일정 추가",
             initial = null,
+            defaultDate = selected,
             allowAttachment = true,
             onDismiss = { creating = false },
             onSubmit = { form ->
@@ -385,6 +389,7 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
         EventDialog(
             title = "일정 수정",
             initial = ev,
+            defaultDate = selected,
             allowAttachment = true,
             onDismiss = { editing = null },
             onSubmit = { form ->
@@ -402,7 +407,9 @@ private fun monthContent(
     vm: MoimViewModel,
     ym: YearMonth,
     today: LocalDate,
+    selected: LocalDate,
     onMonth: (YearMonth) -> Unit,
+    onSelect: (LocalDate) -> Unit,
     onEdit: (CalendarEvent) -> Unit,
 ) {
     val monthEvents = vm.events.filter { eventDate(it.startAt)?.let { d -> YearMonth.from(d) == ym } == true }
@@ -435,16 +442,26 @@ private fun monthContent(
         cells.chunked(7).forEach { week ->
             Row(Modifier.fillMaxWidth()) {
                 week.forEach { d ->
-                    val isToday = d != 0 && ym.atDay(d) == today
+                    val cellDate = if (d != 0) ym.atDay(d) else null
+                    val isToday = cellDate == today
+                    val isSelected = cellDate == selected
                     Box(
                         modifier = Modifier.weight(1f).aspectRatio(1f).padding(2.dp)
                             .clip(RoundedCornerShape(9.dp))
-                            .background(if (isToday) MoimYellow else Color.Transparent, RoundedCornerShape(9.dp)),
+                            .background(if (isToday) MoimYellow else Color.Transparent, RoundedCornerShape(9.dp))
+                            .then(
+                                if (isSelected) Modifier.border(2.dp, MoimAccent, RoundedCornerShape(9.dp))
+                                else Modifier
+                            )
+                            .then(
+                                if (cellDate != null) Modifier.clickable { onSelect(cellDate) }
+                                else Modifier
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         if (d != 0) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("$d", fontSize = 13.sp, fontWeight = if (isToday) FontWeight.ExtraBold else FontWeight.Normal, color = MoimInk)
+                                Text("$d", fontSize = 13.sp, fontWeight = if (isToday || isSelected) FontWeight.ExtraBold else FontWeight.Normal, color = MoimInk)
                                 if (eventDays.contains(d)) {
                                     Box(Modifier.size(5.dp).background(MoimAdmin, RoundedCornerShape(3.dp)))
                                 }
@@ -455,13 +472,14 @@ private fun monthContent(
             }
         }
         Spacer(Modifier.height(16.dp))
-        Text("이번 달 일정", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = MoimSub, modifier = Modifier.padding(bottom = 10.dp))
+        val selLabel = if (selected == today) "오늘 · ${selected.format(FMT_DAY)}" else "${selected.format(FMT_DAY)} 일정"
+        Text(selLabel, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = MoimSub, modifier = Modifier.padding(bottom = 10.dp))
     }
-    if (monthEvents.isEmpty()) {
+    val dayEvents = vm.events.filter { eventDate(it.startAt) == selected }.sortedBy { it.startAt }
+    if (dayEvents.isEmpty()) {
         scope.item { NoEvents() }
     } else {
-        val sorted = monthEvents.sortedBy { it.startAt }
-        scope.items(sorted.size) { i -> EventCard(sorted[i], vm, onEdit) }
+        scope.items(dayEvents.size) { i -> EventCard(dayEvents[i], vm, onEdit) }
     }
 }
 
@@ -469,24 +487,31 @@ private fun weekContent(
     scope: androidx.compose.foundation.lazy.LazyListScope,
     vm: MoimViewModel,
     today: LocalDate,
+    selected: LocalDate,
+    onSelect: (LocalDate) -> Unit,
     onEdit: (CalendarEvent) -> Unit,
 ) {
-    val monday = today.minusDays((today.dayOfWeek.value - 1).toLong())
+    // 선택한 날짜가 속한 주를 보여준다 (월~일)
+    val monday = selected.minusDays((selected.dayOfWeek.value - 1).toLong())
     val sunday = monday.plusDays(6)
     scope.item {
         Text(
-            "이번 주 · ${monday.format(FMT_DAY)}(월) ~ ${sunday.format(FMT_DAY)}(일)",
+            "주간 · ${monday.format(FMT_DAY)}(월) ~ ${sunday.format(FMT_DAY)}(일)",
             fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = MoimSub, modifier = Modifier.padding(bottom = 10.dp)
         )
     }
     for (offset in 0..6) {
         val date = monday.plusDays(offset.toLong())
         val isToday = date == today
+        val isSelected = date == selected
         val dayEvents = vm.events.filter { eventDate(it.startAt) == date }.sortedBy { it.startAt }
         scope.item {
             Row(
                 modifier = Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(11.dp))
                     .background(if (isToday) Color(0xFFFFF8E0) else Color.Transparent, RoundedCornerShape(11.dp))
+                    .then(if (isSelected) Modifier.border(2.dp, MoimAccent, RoundedCornerShape(11.dp)) else Modifier)
+                    .clickable { onSelect(date) }
                     .padding(vertical = 9.dp, horizontal = 6.dp)
             ) {
                 Column(modifier = Modifier.width(40.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -511,11 +536,13 @@ private fun dayContent(
     scope: androidx.compose.foundation.lazy.LazyListScope,
     vm: MoimViewModel,
     today: LocalDate,
+    selected: LocalDate,
     onEdit: (CalendarEvent) -> Unit,
 ) {
-    val dayEvents = vm.events.filter { eventDate(it.startAt) == today }.sortedBy { it.startAt }
+    val dayEvents = vm.events.filter { eventDate(it.startAt) == selected }.sortedBy { it.startAt }
+    val label = if (selected == today) "금일 · ${selected.format(FMT_DAY)}" else "${selected.format(FMT_DAY)} 일정"
     scope.item {
-        Text("금일 · ${today.format(FMT_DAY)}", fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = MoimSub, modifier = Modifier.padding(bottom = 10.dp))
+        Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = MoimSub, modifier = Modifier.padding(bottom = 10.dp))
     }
     if (dayEvents.isEmpty()) {
         scope.item { NoEvents() }
@@ -625,13 +652,15 @@ class EventForm(
 private fun EventDialog(
     title: String,
     initial: CalendarEvent?,
+    defaultDate: LocalDate,
     allowAttachment: Boolean,
     onDismiss: () -> Unit,
     onSubmit: (EventForm) -> Unit,
 ) {
     val context = LocalContext.current
     val initZdt = initial?.let { parseZdt(it.startAt) }
-    val initDate = initZdt?.toLocalDate() ?: LocalDate.now(KST)
+    // 새 일정은 선택한 날짜를 기본값으로 (수정은 기존 날짜)
+    val initDate = initZdt?.toLocalDate() ?: defaultDate
     val initTime = initZdt?.toLocalTime() ?: LocalTime.of(9, 0)
 
     var evTitle by remember { mutableStateOf(initial?.title ?: "") }

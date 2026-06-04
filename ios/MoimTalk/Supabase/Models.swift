@@ -108,8 +108,20 @@ struct CalendarEvent: Codable, Identifiable, Hashable {
     var attachmentUrl: String?
     var attachmentName: String?
     var attachmentDesc: String?
+    var attachmentUrls: [String]?
+    var attachmentNames: [String]?
 
     var kw: [String] { keywords ?? [] }
+
+    /// 표시용 첨부 목록 (이름 to URL) — 배열 우선, 없으면 옛 단일 컬럼
+    var attachmentList: [(name: String, url: String)] {
+        if let urls = attachmentUrls, !urls.isEmpty {
+            let names = attachmentNames ?? []
+            return urls.enumerated().map { (idx, u) in (idx < names.count ? names[idx] : "첨부파일", u) }
+        }
+        if let u = attachmentUrl, !u.isEmpty { return [(attachmentName ?? "첨부파일", u)] }
+        return []
+    }
 
     enum CodingKeys: String, CodingKey {
         case id, title, place, link, scope, description, presenter, keywords
@@ -119,6 +131,8 @@ struct CalendarEvent: Codable, Identifiable, Hashable {
         case attachmentUrl = "attachment_url"
         case attachmentName = "attachment_name"
         case attachmentDesc = "attachment_desc"
+        case attachmentUrls = "attachment_urls"
+        case attachmentNames = "attachment_names"
     }
 }
 
@@ -133,18 +147,16 @@ struct CalendarEventInsert: Encodable {
     var presenter: String?
     var keywords: [String]
     let ownerId: String
-    var attachmentUrl: String?
-    var attachmentName: String?
-    var attachmentDesc: String?
+    var attachmentUrls: [String] = []
+    var attachmentNames: [String] = []
 
     enum CodingKeys: String, CodingKey {
         case title, place, link, scope, description, presenter, keywords
         case roomId = "room_id"
         case startAt = "start_at"
         case ownerId = "owner_id"
-        case attachmentUrl = "attachment_url"
-        case attachmentName = "attachment_name"
-        case attachmentDesc = "attachment_desc"
+        case attachmentUrls = "attachment_urls"
+        case attachmentNames = "attachment_names"
     }
 }
 

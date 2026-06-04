@@ -15,7 +15,28 @@ final class MoimViewModel: ObservableObject {
     @Published var files: [RoomFile] = []
     @Published var profilesById: [String: Profile] = [:]
     @Published var error: String?
+    @Published var notice: String?
     @Published var loading = false
+
+    func signUp(email: String, password: String, name: String, memberType: String) {
+        Task {
+            loading = true; error = nil; notice = nil
+            do {
+                try await MoimRepository.signUp(email: email, password: password, name: name, memberType: memberType)
+                if MoimRepository.currentUserId() != nil {
+                    myProfile = try await MoimRepository.myProfile()
+                    rooms = try await MoimRepository.rooms()
+                    if let list = try? await MoimRepository.allProfiles() {
+                        profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+                    }
+                    loggedIn = true
+                } else {
+                    notice = "가입 완료! 이메일 인증 후 로그인하세요."
+                }
+            } catch { self.error = "회원가입: \(error.localizedDescription)" }
+            loading = false
+        }
+    }
 
     private var activeRoom: String?
 

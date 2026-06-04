@@ -61,6 +61,10 @@ import com.example.moimtalk.data.Room
 fun LoginScreen(vm: MoimViewModel) {
     var email by remember { mutableStateOf("") }
     var pw by remember { mutableStateOf("") }
+    var signup by remember { mutableStateOf(false) }
+    var name by remember { mutableStateOf("") }
+    var memberType by remember { mutableStateOf("의국") }
+    val memberTypes = listOf("교실", "의국", "심리실", "연구실", "PA", "간호사", "SW", "보조원")
 
     Column(
         modifier = Modifier
@@ -100,13 +104,52 @@ fun LoginScreen(vm: MoimViewModel) {
             visualTransformation = PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth()
         )
+        if (signup) {
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = name,
+                onValueChange = { name = it },
+                label = { Text("이름") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(12.dp))
+            Text("직군", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(6.dp))
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(7.dp)
+            ) {
+                memberTypes.forEach { t ->
+                    val on = memberType == t
+                    Text(
+                        t, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                        color = if (on) Color.White else MoimInk,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .clickable { memberType = t }
+                            .background(if (on) typeColor(t) else MoimWhite)
+                            .padding(horizontal = 12.dp, vertical = 7.dp)
+                    )
+                }
+            }
+        }
         vm.error?.let { err ->
             Spacer(Modifier.height(10.dp))
             Text(err, color = MoimAdmin, fontSize = 13.sp, lineHeight = 18.sp)
         }
+        vm.notice?.let { n ->
+            Spacer(Modifier.height(10.dp))
+            Text(n, color = catColor("work"), fontSize = 13.sp, lineHeight = 18.sp)
+        }
         Spacer(Modifier.height(22.dp))
         Button(
-            onClick = { vm.login(email.trim(), pw) },
+            onClick = {
+                if (signup) vm.signUp(email.trim(), pw, name.trim(), memberType)
+                else vm.login(email.trim(), pw)
+            },
             enabled = !vm.loading,
             colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
             modifier = Modifier
@@ -114,8 +157,17 @@ fun LoginScreen(vm: MoimViewModel) {
                 .height(52.dp),
             shape = RoundedCornerShape(13.dp)
         ) {
-            Text(if (vm.loading) "로그인 중..." else "로그인", fontSize = 16.sp)
+            Text(if (vm.loading) "처리 중..." else if (signup) "회원가입" else "로그인", fontSize = 16.sp)
         }
+        Spacer(Modifier.height(14.dp))
+        Text(
+            if (signup) "이미 계정이 있나요?  로그인" else "계정이 없나요?  회원가입",
+            color = MoimAccent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { signup = !signup; vm.error = null; vm.notice = null }
+                .padding(8.dp)
+        )
     }
 }
 

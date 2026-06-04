@@ -20,6 +20,14 @@ enum MoimRepository {
         try await supabase.auth.signOut()
     }
 
+    /// 회원가입: 이름·직군을 메타데이터로 전달 → 트리거가 profiles 생성
+    static func signUp(email: String, password: String, name: String, memberType: String) async throws {
+        try await supabase.auth.signUp(
+            email: email, password: password,
+            data: ["name": .string(name), "member_type": .string(memberType)]
+        )
+    }
+
     static func myProfile() async throws -> Profile {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
         let rows: [Profile] = try await supabase.from("profiles")

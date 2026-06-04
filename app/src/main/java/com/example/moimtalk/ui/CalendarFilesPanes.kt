@@ -353,11 +353,12 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
         EventDialog(
             title = "일정 수정",
             initial = ev,
-            allowAttachment = false,
+            allowAttachment = true,
             onDismiss = { editing = null },
             onSubmit = { form ->
                 vm.updateEvent(
                     ev.id, form.title, form.startAt, form.place, form.link, form.scope, form.description, form.keywords,
+                    form.attachmentName, form.attachmentBytes, form.attachmentDesc,
                 ) { editing = null }
             }
         )
@@ -599,7 +600,7 @@ private fun EventDialog(
     var scope by remember { mutableStateOf(initial?.scope ?: "") }
     var desc by remember { mutableStateOf(initial?.description ?: "") }
     var kw by remember { mutableStateOf(initial?.keywords?.joinToString(", ") ?: "") }
-    var attDesc by remember { mutableStateOf("") }
+    var attDesc by remember { mutableStateOf(initial?.attachmentDesc ?: "") }
     var att by remember { mutableStateOf<Pair<String, ByteArray>?>(null) }
     var err by remember { mutableStateOf<String?>(null) }
 
@@ -637,7 +638,12 @@ private fun EventDialog(
                     .padding(12.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(att?.first?.let { "📎 $it" } ?: "📎 파일 첨부", color = MoimSub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                Text(
+                    att?.first?.let { "📎 $it" }
+                        ?: initial?.attachmentName?.let { "📎 현재: $it (교체하려면 선택)" }
+                        ?: "📎 파일 첨부",
+                    color = MoimSub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold
+                )
             }
             FieldLabel("첨부 자료 설명")
             OutlinedTextField(attDesc, { attDesc = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 발표 슬라이드 초안", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))

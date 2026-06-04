@@ -112,15 +112,19 @@ final class MoimViewModel: ObservableObject {
 
     func updateEvent(
         eventId: String, title: String, startAt: String, place: String?, link: String?,
-        scope: String?, description: String?, keywords: [String], onDone: @escaping () -> Void
+        scope: String?, description: String?, keywords: [String],
+        attachmentName: String?, attachmentData: Data?, attachmentDesc: String?,
+        onDone: @escaping () -> Void
     ) {
         guard let rid = activeRoom else { return }
         Task {
             do {
                 try await MoimRepository.updateEvent(
-                    eventId: eventId, title: title, startAt: startAt, place: place, link: link,
-                    scope: scope, description: description, keywords: keywords)
+                    eventId: eventId, roomId: rid, title: title, startAt: startAt, place: place, link: link,
+                    scope: scope, description: description, keywords: keywords,
+                    attachmentName: attachmentName, attachmentData: attachmentData, attachmentDesc: attachmentDesc)
                 events = try await MoimRepository.events(roomId: rid)
+                files = try await MoimRepository.files(roomId: rid)
                 onDone()
             } catch { self.error = "일정 수정: \(error.localizedDescription)" }
         }

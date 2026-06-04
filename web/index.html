@@ -407,14 +407,14 @@ function openEvent(id){
   const e=id?events.find(x=>x.id===id):null;
   document.getElementById('evModalTitle').textContent=id?'일정 수정':'일정 추가';
   document.getElementById('evSaveBtn').textContent=id?'수정 저장':'일정 등록';
-  document.getElementById('evAttLbl').style.display=id?'none':'block';
-  document.getElementById('evFile').style.display=id?'none':'block';
+  document.getElementById('evAttLbl').style.display='block';
+  document.getElementById('evFile').style.display='block';
   const g=(k,v)=>document.getElementById(k).value=v;
   const d=e&&e.start_at?new Date(e.start_at):new Date();
   g('evTitle',e?e.title:'');g('evDate',d.toISOString().slice(0,10));
   g('evTime',e&&e.start_at?new Date(e.start_at).toTimeString().slice(0,5):'09:00');
   g('evPlace',e?e.place||'':'');g('evLink',e?e.link||'':'');g('evScope',e?e.scope||'':'');
-  g('evDesc',e?e.description||'':'');g('evKw',e?(e.keywords||[]).join(', '):'');g('evAttDesc','');
+  g('evDesc',e?e.description||'':'');g('evKw',e?(e.keywords||[]).join(', '):'');g('evAttDesc',e?e.attachment_desc||'':'');
   document.getElementById('evFile').value='';
   document.getElementById('emodal').classList.add('on');
 }
@@ -424,8 +424,14 @@ async function saveEvent(){
   const startAt=new Date(g('evDate')+'T'+(g('evTime')||'09:00')+':00').toISOString();
   const kw=g('evKw').split(',').map(s=>s.trim()).filter(Boolean);
   if(editEventId){
-    const {error}=await sb.from('calendar_events').update({title:g('evTitle'),start_at:startAt,place:g('evPlace')||null,
-      link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,keywords:kw}).eq('id',editEventId);
+    const upd={title:g('evTitle'),start_at:startAt,place:g('evPlace')||null,link:g('evLink')||null,
+      scope:g('evScope')||null,description:g('evDesc')||null,keywords:kw,attachment_desc:g('evAttDesc')||null};
+    const file=document.getElementById('evFile').files[0];
+    if(file){const path=active.id+'/'+Date.now()+'_'+file.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+      const {error:ue}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
+      if(ue){alert('첨부 업로드 실패: '+ue.message);return;}
+      upd.attachment_url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;upd.attachment_name=file.name;}
+    const {error}=await sb.from('calendar_events').update(upd).eq('id',editEventId);
     if(error){alert('수정 실패: '+error.message);return;}
   }else{
     let attUrl=null,attName=null;const file=document.getElementById('evFile').files[0];

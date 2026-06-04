@@ -110,15 +110,32 @@ enum MoimRepository {
     }
 
     static func updateEvent(
-        eventId: String, title: String, startAt: String,
-        place: String?, link: String?, scope: String?, description: String?, keywords: [String]
+        eventId: String, roomId: String, title: String, startAt: String,
+        place: String?, link: String?, scope: String?, description: String?, keywords: [String],
+        attachmentName: String?, attachmentData: Data?, attachmentDesc: String?
     ) async throws {
-        let payload = CalendarEventUpdate(
-            title: title, startAt: startAt, place: place, link: link,
-            scope: scope, description: description, keywords: keywords
-        )
-        try await supabase.from("calendar_events").update(payload)
-            .eq("id", value: eventId).execute()
+        // 새 첨부 파일이 있으면 업로드해서 교체, 없으면 기존 첨부 유지
+        var newUrl: String?
+        var newName: String?
+        if let data = attachmentData, let fn = attachmentName, !fn.isEmpty {
+            newUrl = try await uploadToStorage(roomId: roomId, fileName: fn, data: data)
+            newName = fn
+        }
+        var fields: [String: AnyJSON] = [
+            "title": .string(title),
+            "start_at": .string(startAt),
+            "place": place.map { AnyJSON.string($0) } ?? .null,
+            "link": link.map { AnyJSON.string($0) } ?? .null,
+            "scope": scope.map { AnyJSON.string($0) } ?? .null,
+            "description": description.map { AnyJSON.string($0) } ?? .null,
+            "keywords": .array(keywords.map { AnyJSON.string($0) }),
+            "attachment_desc": attachmentDesc.map { AnyJSON.string($0) } ?? .null,
+        ]
+        if let url = newUrl, let name = newName {
+            fields["attachment_url"] = .string(url)
+            fields["attachment_name"] = .string(name)
+        }
+        try await supabase.from("calendar_events").update(fields).eq("id", value: eventId).execute()
     }
 
     // ── 자료실 ──

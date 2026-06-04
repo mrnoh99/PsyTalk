@@ -50,10 +50,12 @@ struct CalendarView: View {
             }
         }
         .sheet(item: $editing) { ev in
-            EventEditView(title: "일정 수정", initial: ev, allowAttachment: false) { form in
+            EventEditView(title: "일정 수정", initial: ev, allowAttachment: true) { form in
                 vm.updateEvent(eventId: ev.id, title: form.title, startAt: form.startAt, place: form.place,
                                link: form.link, scope: form.scope, description: form.description,
-                               keywords: form.keywords) { editing = nil }
+                               keywords: form.keywords,
+                               attachmentName: form.attachmentName, attachmentData: form.attachmentData,
+                               attachmentDesc: form.attachmentDesc) { editing = nil }
             }
         }
     }

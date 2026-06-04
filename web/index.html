@@ -312,16 +312,28 @@ async function sendMsg(){const i=document.getElementById('msgInput'),t=i.value.t
 
 /* ====== 자료실 ====== */
 async function loadFiles(){const {data}=await sb.from('room_files').select('*').eq('room_id',active.id).order('created_at',{ascending:false});files=data||[];}
+const canManageFile=uploadedBy=>isAdmin()||uploadedBy===me.id;
+async function deleteFile(id){
+  const f=files.find(x=>x.id===id);if(!f)return;
+  if(!confirm('이 자료를 삭제할까요? 되돌릴 수 없습니다.'))return;
+  const marker='/'+BUCKET+'/';const i=(f.file_url||'').indexOf(marker);
+  if(i>=0){await sb.storage.from(BUCKET).remove([f.file_url.substring(i+marker.length)]);}
+  const {error}=await sb.from('room_files').delete().eq('id',id);
+  if(error){alert('삭제 실패: '+error.message);return;}
+  await loadFiles();renderFiles();
+}
 function allFiles(){
-  const up=files.map(f=>({n:f.file_name,url:f.file_url,desc:f.description||'',kw:f.keywords||[],by:nameOf(f.uploaded_by),date:(f.created_at||'').slice(0,10),src:'up'}));
+  const up=files.map(f=>({n:f.file_name,url:f.file_url,desc:f.description||'',kw:f.keywords||[],by:nameOf(f.uploaded_by),date:(f.created_at||'').slice(0,10),src:'up',id:f.id,uploadedBy:f.uploaded_by}));
   const cal=events.flatMap(e=>evAtts(e).map(a=>({n:a.n,url:a.u,desc:e.title,kw:[],by:nameOf(e.owner_id),date:(e.start_at||'').slice(0,10),src:'cal'})));
   return up.concat(cal);
 }
-function fcard(f){return `<a class="file" href="${f.url||'#'}" target="_blank" style="text-decoration:none;color:inherit">
+function fcard(f){
+  const del=(f.src==='up'&&canManageFile(f.uploadedBy))?`<span onclick="event.preventDefault();event.stopPropagation();deleteFile('${f.id}')" style="cursor:pointer;font-size:16px;padding:4px;color:var(--admin);align-self:center">🗑</span>`:'';
+  return `<a class="file" href="${f.url||'#'}" target="_blank" style="text-decoration:none;color:inherit">
   <div class="ficon" style="background:${f.src==='cal'?'#6d597a':'#3d8361'}">${f.src==='cal'?'📎':'📄'}</div>
   <div class="finfo"><b>${esc(f.n)}</b><div class="desc">${esc(f.desc)}</div>
   <small>${esc(f.by)} · ${f.date} <span class="fsrc" style="background:${f.src==='cal'?'#efe7f5':'#e7f0eb'};color:${f.src==='cal'?'#6d597a':'#3d8361'}">${f.src==='cal'?'캘린더':'직접'}</span></small>
-  ${(f.kw||[]).map(k=>`<span class="kwtag">#${esc(k)}</span>`).join('')}</div></a>`;}
+  ${(f.kw||[]).map(k=>`<span class="kwtag">#${esc(k)}</span>`).join('')}</div>${del}</a>`;}
 function renderFiles(){
   const list=allFiles();
   let h=`<div class="sortrow"><div class="sb ${fileSort==='date'?'on':''}" onclick="fileSort='date';renderFiles()">📅 날짜순</div>

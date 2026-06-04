@@ -128,6 +128,15 @@ CREATE POLICY "room_files_insert"
   ON public.room_files FOR INSERT TO authenticated
   WITH CHECK (uploaded_by = auth.uid());
 
+-- 자료 삭제: 올린 사람 본인 또는 관리자
+DROP POLICY IF EXISTS "room_files_delete" ON public.room_files;
+CREATE POLICY "room_files_delete"
+  ON public.room_files FOR DELETE TO authenticated
+  USING (
+    uploaded_by = auth.uid()
+    OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin'))
+  );
+
 -- 프로필: 작성자·업로더 이름 표시를 위해 인증 사용자는 전체 조회 가능
 -- (fix_signup.sql 의 profiles_select_own 을 대체)
 DROP POLICY IF EXISTS "profiles_select_own" ON public.profiles;

@@ -44,9 +44,30 @@ class MoimViewModel : ViewModel() {
     var files by mutableStateOf<List<RoomFile>>(emptyList())
     var profilesById by mutableStateOf<Map<String, Profile>>(emptyMap())
     var error by mutableStateOf<String?>(null)
+    var notice by mutableStateOf<String?>(null)
     var loading by mutableStateOf(false)
 
     private var activeRoom: String? = null
+
+    fun signUp(email: String, pw: String, name: String, memberType: String) {
+        viewModelScope.launch {
+            loading = true; error = null; notice = null
+            try {
+                MoimRepository.signUp(email, pw, name, memberType)
+                if (MoimRepository.currentUserId() != null) {
+                    myProfile = MoimRepository.myProfile()
+                    rooms = MoimRepository.rooms()
+                    profilesById = runCatching { MoimRepository.allProfiles().associateBy { it.id } }.getOrDefault(emptyMap())
+                    loggedIn = true
+                } else {
+                    notice = "가입 완료! 이메일 인증 후 로그인하세요."
+                }
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "회원가입")
+            }
+            loading = false
+        }
+    }
 
     fun login(email: String, pw: String) {
         viewModelScope.launch {

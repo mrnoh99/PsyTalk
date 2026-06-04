@@ -117,9 +117,16 @@
     <h1>아주 정신</h1><div class="sub">정신건강의학과 · Web</div>
     <input id="email" type="email" placeholder="이메일" autocomplete="username">
     <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password"
-      onkeydown="if(event.key==='Enter')doLogin()">
+      onkeydown="if(event.key==='Enter')submitAuth()">
+    <div id="signupFields" class="hidden">
+      <input id="suName" type="text" placeholder="이름" style="margin-top:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--sub);margin:10px 0 6px">직군</div>
+      <div id="suTypes" style="display:flex;flex-wrap:wrap;gap:7px"></div>
+    </div>
     <div class="err" id="loginErr"></div>
-    <button class="primary" onclick="doLogin()" id="loginBtn">로그인</button>
+    <div id="loginNotice" style="color:var(--work);font-size:13px;margin:6px 0"></div>
+    <button class="primary" onclick="submitAuth()" id="loginBtn">로그인</button>
+    <div id="authToggle" onclick="toggleSignup()" style="text-align:center;margin-top:14px;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer">계정이 없나요?  회원가입</div>
   </section>
 
   <!-- ROOM LIST -->
@@ -216,16 +223,44 @@ const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&g
 const isAdmin=()=>me&&(me.role==='superadmin'||me.role==='admin');
 function show(id){['login','listScreen','roomScreen','wardScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));}
 
-/* ====== 로그인 ====== */
-async function doLogin(){
+/* ====== 로그인 / 회원가입 ====== */
+let signupMode=false, suType='의국';
+const MEMBER_TYPES=['교실','의국','심리실','연구실','PA','간호사','SW','보조원'];
+function renderSuTypes(){
+  document.getElementById('suTypes').innerHTML=MEMBER_TYPES.map(t=>{
+    const on=t===suType;
+    return `<span onclick="suType='${t}';renderSuTypes()" style="cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:20px;background:${on?tcolor(t):'#fff'};color:${on?'#fff':'var(--ink)'};border:1px solid var(--line)">${t}</span>`;
+  }).join('');
+}
+function toggleSignup(){
+  signupMode=!signupMode;
+  document.getElementById('signupFields').classList.toggle('hidden',!signupMode);
+  document.getElementById('loginBtn').textContent=signupMode?'회원가입':'로그인';
+  document.getElementById('authToggle').textContent=signupMode?'이미 계정이 있나요?  로그인':'계정이 없나요?  회원가입';
+  document.getElementById('loginErr').textContent='';document.getElementById('loginNotice').textContent='';
+  if(signupMode)renderSuTypes();
+}
+async function submitAuth(){
   const email=document.getElementById('email').value.trim();
   const password=document.getElementById('pw').value;
-  document.getElementById('loginErr').textContent='';
-  document.getElementById('loginBtn').textContent='로그인 중...';
-  const {error}=await sb.auth.signInWithPassword({email,password});
-  document.getElementById('loginBtn').textContent='로그인';
-  if(error){document.getElementById('loginErr').textContent='로그인 실패: '+error.message;return;}
-  await loadApp();
+  const errEl=document.getElementById('loginErr'),noticeEl=document.getElementById('loginNotice'),btn=document.getElementById('loginBtn');
+  errEl.textContent='';noticeEl.textContent='';
+  if(signupMode){
+    const name=document.getElementById('suName').value.trim();
+    if(!name){errEl.textContent='이름을 입력하세요';return;}
+    btn.textContent='가입 중...';
+    const {data,error}=await sb.auth.signUp({email,password,options:{data:{name,member_type:suType}}});
+    btn.textContent='회원가입';
+    if(error){errEl.textContent='회원가입 실패: '+error.message;return;}
+    if(data.session){await loadApp();}
+    else{noticeEl.textContent='가입 완료! 이메일 인증 후 로그인하세요.';toggleSignup();}
+  }else{
+    btn.textContent='로그인 중...';
+    const {error}=await sb.auth.signInWithPassword({email,password});
+    btn.textContent='로그인';
+    if(error){errEl.textContent='로그인 실패: '+error.message;return;}
+    await loadApp();
+  }
 }
 async function doLogout(){await sb.auth.signOut();me=null;show('login');}
 

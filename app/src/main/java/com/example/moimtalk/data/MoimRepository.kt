@@ -5,6 +5,8 @@ import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
 object MoimRepository {
 
@@ -22,6 +24,18 @@ object MoimRepository {
 
     suspend fun signOut() {
         supabase.auth.signOut()
+    }
+
+    /** 회원가입: 이름·직군을 메타데이터로 전달 → 트리거가 profiles 생성 */
+    suspend fun signUp(email: String, password: String, name: String, memberType: String) {
+        supabase.auth.signUpWith(Email) {
+            this.email = email
+            this.password = password
+            data = buildJsonObject {
+                put("name", name)
+                put("member_type", memberType)
+            }
+        }
     }
 
     suspend fun myProfile(): Profile {

@@ -35,6 +35,7 @@ data class Profile(
     val name: String,
     @SerialName("member_type") val memberType: String,
     val role: String,                 // superadmin | admin | user
+    val approved: Boolean = true,     // 관리자 가입 승인 (마이그레이션 전이면 true 로 간주)
     @SerialName("avatar_url") val avatarUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null,
 )

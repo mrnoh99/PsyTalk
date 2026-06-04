@@ -11,7 +11,13 @@ struct AdminPlaceholderView: View {
     @State private var renameTargetId = ""
 
     private var members: [Profile] {
-        vm.profilesById.values.sorted { ($0.role, $0.name) < ($1.role, $1.name) }
+        vm.profilesById.values.sorted {
+            let a = ($0.approved ?? true) ? 1 : 0   // 미승인(0) 먼저
+            let b = ($1.approved ?? true) ? 1 : 0
+            if a != b { return a < b }
+            if $0.role != $1.role { return $0.role < $1.role }
+            return $0.name < $1.name
+        }
     }
 
     var body: some View {
@@ -83,11 +89,25 @@ struct AdminPlaceholderView: View {
                 showRename = true
             }
             Spacer()
+            // 가입 승인 (승인 대기자만 버튼 표시)
+            if p.approved == false {
+                Button { vm.setApproved(p.id, true) } label: {
+                    Text("승인").font(.system(size: 11, weight: .bold)).foregroundColor(.white)
+                        .padding(.horizontal, 9).padding(.vertical, 4)
+                        .background(catColor("work")).clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                Spacer().frame(width: 6)
+            }
             // 전체관리자만 역할 직접 지정 (SQL 없이)
             Menu {
                 Button("전체관리자") { vm.setRole(p.id, to: "superadmin") }
                 Button("관리자") { vm.setRole(p.id, to: "admin") }
                 Button("멤버") { vm.setRole(p.id, to: "user") }
+                if p.approved == true {
+                    Divider()
+                    Button("가입 승인 취소", role: .destructive) { vm.setApproved(p.id, false) }
+                }
             } label: {
                 HStack(spacing: 3) {
                     Text(role.1).font(.system(size: 10, weight: .bold))

@@ -171,6 +171,40 @@ fun LoginScreen(vm: MoimViewModel) {
     }
 }
 
+@Composable
+fun PendingApprovalScreen(vm: MoimViewModel) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MoimPaper)
+            .padding(30.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("⏳", fontSize = 46.sp)
+        Spacer(Modifier.height(16.dp))
+        Text("관리자 승인 대기 중", fontSize = 19.sp, fontWeight = FontWeight.ExtraBold, color = MoimInk)
+        Spacer(Modifier.height(10.dp))
+        Text(
+            "가입이 접수되었습니다.\n관리자가 승인하면 이용할 수 있습니다.",
+            fontSize = 14.sp, color = MoimSub, lineHeight = 21.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        vm.myProfile?.let { p ->
+            Spacer(Modifier.height(8.dp))
+            Text("${p.name} · ${p.memberType}", fontSize = 12.sp, color = MoimSub)
+        }
+        Spacer(Modifier.height(24.dp))
+        Button(
+            onClick = { vm.loadRooms() },
+            colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
+            shape = RoundedCornerShape(13.dp)
+        ) { Text("다시 확인") }
+        Spacer(Modifier.height(6.dp))
+        TextButton(onClick = { vm.logout() }) { Text("로그아웃", color = MoimSub) }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RoomListScreen(

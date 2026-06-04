@@ -37,6 +37,11 @@ enum MoimRepository {
         try await supabase.from("profiles").select().execute().value
     }
 
+    /// 역할 지정 (전체관리자만 — RLS 로 강제). role: user | admin | superadmin
+    static func updateRole(userId: String, role: String) async throws {
+        try await supabase.from("profiles").update(["role": role]).eq("id", value: userId).execute()
+    }
+
     /// 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 멤버) 등록
     @discardableResult
     static func createRoom(name: String, memberIds: [String]) async throws -> String {

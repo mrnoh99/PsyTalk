@@ -45,7 +45,7 @@ struct RoomListView: View {
                     }
                 }
             }
-            if let p = vm.myProfile, isAdminRole(p.role) { adminBar }
+            if let p = vm.myProfile, isSuperAdmin(p.role) { adminBar }
         }
         .background(Moim.paper.ignoresSafeArea())
     }

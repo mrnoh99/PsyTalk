@@ -20,7 +20,6 @@ import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
 import com.example.moimtalk.data.RoomFile
 import com.example.moimtalk.data.friendlySupabaseError
-import com.example.moimtalk.ui.AdminPlaceholderScreen
 import com.example.moimtalk.ui.CreateRoomScreen
 import com.example.moimtalk.ui.LoginScreen
 import com.example.moimtalk.ui.RoomListScreen
@@ -300,7 +299,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun App(vm: MoimViewModel = viewModel()) {
     var openedRoom by remember { mutableStateOf<Room?>(null) }
-    var showAdmin by remember { mutableStateOf(false) }
     var showWard by remember { mutableStateOf(false) }
     var showCreateRoom by remember { mutableStateOf(false) }
 
@@ -312,7 +310,6 @@ fun App(vm: MoimViewModel = viewModel()) {
 
     when {
         !vm.loggedIn -> LoginScreen(vm)
-        showAdmin -> AdminPlaceholderScreen(onBack = { showAdmin = false })
         showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
         showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
         openedRoom == null -> RoomListScreen(
@@ -321,7 +318,6 @@ fun App(vm: MoimViewModel = viewModel()) {
                 openedRoom = room
                 vm.openRoom(room)
             },
-            onAdmin = { showAdmin = true },
             onWard = { showWard = true },
             onCreateRoom = { showCreateRoom = true }
         )

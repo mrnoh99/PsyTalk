@@ -97,8 +97,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 ## 관리자 콘솔 (관리 프로그램)
 - **iOS(iPad/Mac) 앱에만** 포함. 접근 = **전체관리자(superadmin)만**. `ios/.../AdminPlaceholderView.swift`
   (iPad 앱이 Apple Silicon Mac에서 실행됨. `project.yml` device family `1,2`)
-- 기능: 멤버(직군·역할)·방 목록 조회 + **역할 지정**(멤버/관리자/전체관리자) 앱에서 직접(SQL 없이).
-  역할 변경 권한은 `admin_roles.sql`(전체관리자만, SECURITY DEFINER `is_superadmin()`).
+- 기능: 멤버(직군·역할)·방 목록 조회 + **역할 지정**(멤버/관리자/전체관리자) + **이름 편집** 앱에서 직접(SQL 없이).
+  변경 권한은 `admin_roles.sql`(전체관리자만, SECURITY DEFINER `moim_is_superadmin()` + profiles UPDATE 정책).
 - **Android·웹·iOS 폰**: 관리자 메뉴 없음(웹·Android는 명시적으로 제외).
 
 ## 아직 앱에 없는 것 (우선순위 참고)

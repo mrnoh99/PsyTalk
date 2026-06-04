@@ -6,6 +6,10 @@ struct AdminPlaceholderView: View {
     @ObservedObject var vm: MoimViewModel
     let onBack: () -> Void
 
+    @State private var showRename = false
+    @State private var renameText = ""
+    @State private var renameTargetId = ""
+
     private var members: [Profile] {
         vm.profilesById.values.sorted { ($0.role, $0.name) < ($1.role, $1.name) }
     }
@@ -37,6 +41,13 @@ struct AdminPlaceholderView: View {
             }
         }
         .background(Moim.paper.ignoresSafeArea())
+        .alert("이름 변경", isPresented: $showRename) {
+            TextField("이름", text: $renameText)
+            Button("저장") { vm.setName(renameTargetId, to: renameText) }
+            Button("취소", role: .cancel) {}
+        } message: {
+            Text("새 이름을 입력하세요.")
+        }
     }
 
     @ViewBuilder
@@ -59,8 +70,17 @@ struct AdminPlaceholderView: View {
                 .frame(width: 36, height: 36)
                 .background(typeColor(p.memberType)).clipShape(RoundedRectangle(cornerRadius: 11))
             VStack(alignment: .leading, spacing: 1) {
-                Text(p.name).font(.system(size: 13.5, weight: .bold)).foregroundColor(Moim.ink)
+                HStack(spacing: 4) {
+                    Text(p.name).font(.system(size: 13.5, weight: .bold)).foregroundColor(Moim.ink)
+                    Text("✏️").font(.system(size: 10)).opacity(0.5)
+                }
                 Text(p.memberType).font(.system(size: 11.5)).foregroundColor(Moim.sub)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                renameTargetId = p.id
+                renameText = p.name
+                showRename = true
             }
             Spacer()
             // 전체관리자만 역할 직접 지정 (SQL 없이)

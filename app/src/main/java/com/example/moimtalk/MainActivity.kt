@@ -28,6 +28,7 @@ import com.example.moimtalk.ui.CreateRoomScreen
 import com.example.moimtalk.ui.LoginScreen
 import com.example.moimtalk.ui.RoomListScreen
 import com.example.moimtalk.ui.RoomScreen
+import com.example.moimtalk.ui.ApprovalScreen
 import com.example.moimtalk.ui.PendingApprovalScreen
 import com.example.moimtalk.ui.WardStatusScreen
 import kotlinx.coroutines.launch
@@ -291,6 +292,17 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    fun approveUser(userId: String, approved: Boolean) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.setApproved(userId, approved)
+                profilesById = MoimRepository.allProfiles().associateBy { it.id }
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "승인 변경")
+            }
+        }
+    }
+
     fun createRoom(name: String, memberIds: List<String>, onDone: () -> Unit) {
         viewModelScope.launch {
             try {
@@ -369,6 +381,7 @@ fun App(vm: MoimViewModel = viewModel()) {
     var openedRoom by remember { mutableStateOf<Room?>(null) }
     var showWard by remember { mutableStateOf(false) }
     var showCreateRoom by remember { mutableStateOf(false) }
+    var showApprovals by remember { mutableStateOf(false) }
 
     LaunchedEffect(vm.loggedIn) {
         if (vm.loggedIn) {
@@ -381,6 +394,7 @@ fun App(vm: MoimViewModel = viewModel()) {
         vm.myProfile?.approved == false -> PendingApprovalScreen(vm)
         showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
         showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
+        showApprovals -> ApprovalScreen(vm = vm, onBack = { showApprovals = false })
         openedRoom == null -> RoomListScreen(
             vm = vm,
             onOpen = { room ->
@@ -388,7 +402,8 @@ fun App(vm: MoimViewModel = viewModel()) {
                 vm.openRoom(room)
             },
             onWard = { showWard = true },
-            onCreateRoom = { showCreateRoom = true }
+            onCreateRoom = { showCreateRoom = true },
+            onApprovals = { showApprovals = true }
         )
         else -> RoomScreen(
             vm = vm,

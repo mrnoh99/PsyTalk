@@ -48,6 +48,9 @@ CREATE TABLE IF NOT EXISTS public.calendar_events (
 
 -- 기존 DB 보정: 발표자(작성자와 별개, 여러 명 가능) 컬럼
 ALTER TABLE public.calendar_events ADD COLUMN IF NOT EXISTS presenter text;
+-- 다중 첨부 (파일 여러 개) — URL/이름 배열
+ALTER TABLE public.calendar_events ADD COLUMN IF NOT EXISTS attachment_urls text[] DEFAULT '{}';
+ALTER TABLE public.calendar_events ADD COLUMN IF NOT EXISTS attachment_names text[] DEFAULT '{}';
 
 -- 자료실 직접 업로드
 CREATE TABLE IF NOT EXISTS public.room_files (

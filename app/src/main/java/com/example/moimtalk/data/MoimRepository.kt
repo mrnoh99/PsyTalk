@@ -93,16 +93,14 @@ object MoimRepository {
         description: String?,
         presenter: String?,
         keywords: List<String>,
-        attachmentName: String?,
-        attachmentBytes: ByteArray?,
-        attachmentDesc: String?,
+        attachments: List<Pair<String, ByteArray>>,
     ) {
         val uid = currentUserId() ?: error("Not logged in")
-        var url: String? = null
-        var name: String? = null
-        if (attachmentBytes != null && !attachmentName.isNullOrBlank()) {
-            url = uploadToStorage(roomId, attachmentName, attachmentBytes)
-            name = attachmentName
+        val urls = mutableListOf<String>()
+        val names = mutableListOf<String>()
+        for ((fileName, bytes) in attachments) {
+            urls += uploadToStorage(roomId, fileName, bytes)
+            names += fileName
         }
         supabase.from("calendar_events").insert(
             CalendarEventInsert(
@@ -116,9 +114,8 @@ object MoimRepository {
                 presenter = presenter?.takeIf { it.isNotBlank() },
                 keywords = keywords,
                 ownerId = uid,
-                attachmentUrl = url,
-                attachmentName = name,
-                attachmentDesc = attachmentDesc?.takeIf { it.isNotBlank() },
+                attachmentUrls = urls,
+                attachmentNames = names,
             )
         )
     }
@@ -135,16 +132,16 @@ object MoimRepository {
         description: String?,
         presenter: String?,
         keywords: List<String>,
-        attachmentName: String?,
-        attachmentBytes: ByteArray?,
-        attachmentDesc: String?,
+        keptUrls: List<String>,
+        keptNames: List<String>,
+        newAttachments: List<Pair<String, ByteArray>>,
     ) {
-        // 새 첨부 파일이 있으면 업로드해서 교체, 없으면 기존 첨부 유지
-        var newUrl: String? = null
-        var newName: String? = null
-        if (attachmentBytes != null && !attachmentName.isNullOrBlank()) {
-            newUrl = uploadToStorage(roomId, attachmentName, attachmentBytes)
-            newName = attachmentName
+        // 유지할 기존 첨부 + 새로 올린 첨부를 합쳐서 배열로 저장
+        val urls = keptUrls.toMutableList()
+        val names = keptNames.toMutableList()
+        for ((fileName, bytes) in newAttachments) {
+            urls += uploadToStorage(roomId, fileName, bytes)
+            names += fileName
         }
         supabase.from("calendar_events").update({
             set("title", title)
@@ -155,11 +152,8 @@ object MoimRepository {
             set("description", description)
             set("presenter", presenter)
             set("keywords", keywords)
-            set("attachment_desc", attachmentDesc)
-            if (newUrl != null) {
-                set("attachment_url", newUrl)
-                set("attachment_name", newName)
-            }
+            set("attachment_urls", urls)
+            set("attachment_names", names)
         }) { filter { eq("id", eventId) } }
     }
 

@@ -152,17 +152,14 @@ class MoimViewModel : ViewModel() {
         description: String?,
         presenter: String?,
         keywords: List<String>,
-        attachmentName: String?,
-        attachmentBytes: ByteArray?,
-        attachmentDesc: String?,
+        attachments: List<Pair<String, ByteArray>>,
         onDone: () -> Unit,
     ) {
         val rid = activeRoom ?: return
         viewModelScope.launch {
             try {
                 MoimRepository.createEvent(
-                    rid, title, startAt, place, link, scope, description, presenter, keywords,
-                    attachmentName, attachmentBytes, attachmentDesc,
+                    rid, title, startAt, place, link, scope, description, presenter, keywords, attachments,
                 )
                 events = MoimRepository.events(rid)
                 files = MoimRepository.files(rid)
@@ -183,9 +180,9 @@ class MoimViewModel : ViewModel() {
         description: String?,
         presenter: String?,
         keywords: List<String>,
-        attachmentName: String?,
-        attachmentBytes: ByteArray?,
-        attachmentDesc: String?,
+        keptUrls: List<String>,
+        keptNames: List<String>,
+        newAttachments: List<Pair<String, ByteArray>>,
         onDone: () -> Unit,
     ) {
         val rid = activeRoom ?: return
@@ -193,7 +190,7 @@ class MoimViewModel : ViewModel() {
             try {
                 MoimRepository.updateEvent(
                     eventId, rid, title, startAt, place, link, scope, description, presenter, keywords,
-                    attachmentName, attachmentBytes, attachmentDesc,
+                    keptUrls, keptNames, newAttachments,
                 )
                 events = MoimRepository.events(rid)
                 files = MoimRepository.files(rid)

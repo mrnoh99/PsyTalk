@@ -19,6 +19,8 @@ struct RootView: View {
         Group {
             if !vm.loggedIn {
                 LoginView(vm: vm)
+            } else if vm.myProfile?.approved == false {
+                PendingApprovalView(vm: vm)
             } else if showAdmin {
                 AdminPlaceholderView(vm: vm, onBack: { showAdmin = false })
             } else if showWard {

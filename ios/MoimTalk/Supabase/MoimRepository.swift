@@ -55,6 +55,11 @@ enum MoimRepository {
         try await supabase.from("profiles").update(["name": name]).eq("id", value: userId).execute()
     }
 
+    /// 가입 승인/취소 (전체관리자만 — RLS 로 강제)
+    static func setApproved(userId: String, approved: Bool) async throws {
+        try await supabase.from("profiles").update(["approved": approved]).eq("id", value: userId).execute()
+    }
+
     /// 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 멤버) 등록
     @discardableResult
     static func createRoom(name: String, memberIds: [String]) async throws -> String {

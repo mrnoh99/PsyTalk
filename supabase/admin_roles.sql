@@ -24,11 +24,17 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.moim_is_superadmin() TO authenticated;
 
--- 프로필 수정: 본인 기본 정보는 본인이, 역할(role) 변경은 전체관리자만
+-- 가입 승인: 관리자 승인 전까지 approved=false. 기존 사용자는 모두 true 로 보정.
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS approved boolean;
+UPDATE public.profiles SET approved = true WHERE approved IS NULL;
+ALTER TABLE public.profiles ALTER COLUMN approved SET DEFAULT false;
+ALTER TABLE public.profiles ALTER COLUMN approved SET NOT NULL;
+
+-- 프로필 수정(역할·이름·가입승인): 전체관리자만. (자가 승인/권한변경 차단)
 DROP POLICY IF EXISTS "profiles_update_role" ON public.profiles;
 CREATE POLICY "profiles_update_role"
   ON public.profiles FOR UPDATE TO authenticated
-  USING (public.moim_is_superadmin() OR auth.uid() = id)
-  WITH CHECK (public.moim_is_superadmin() OR auth.uid() = id);
+  USING (public.moim_is_superadmin())
+  WITH CHECK (public.moim_is_superadmin());
 
 NOTIFY pgrst, 'reload schema';

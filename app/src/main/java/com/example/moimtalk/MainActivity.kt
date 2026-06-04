@@ -28,6 +28,7 @@ import com.example.moimtalk.ui.CreateRoomScreen
 import com.example.moimtalk.ui.LoginScreen
 import com.example.moimtalk.ui.RoomListScreen
 import com.example.moimtalk.ui.RoomScreen
+import com.example.moimtalk.ui.PendingApprovalScreen
 import com.example.moimtalk.ui.WardStatusScreen
 import kotlinx.coroutines.launch
 
@@ -377,6 +378,7 @@ fun App(vm: MoimViewModel = viewModel()) {
 
     when {
         !vm.loggedIn -> LoginScreen(vm)
+        vm.myProfile?.approved == false -> PendingApprovalScreen(vm)
         showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
         showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
         openedRoom == null -> RoomListScreen(

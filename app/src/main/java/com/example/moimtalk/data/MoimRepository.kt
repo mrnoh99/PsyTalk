@@ -89,6 +89,11 @@ object MoimRepository {
     suspend fun allProfiles(): List<Profile> =
         supabase.from("profiles").select().decodeList()
 
+    /** 가입 승인/취소 (전체관리자만 — RLS 로 강제) */
+    suspend fun setApproved(userId: String, approved: Boolean) {
+        supabase.from("profiles").update({ set("approved", approved) }) { filter { eq("id", userId) } }
+    }
+
     // ── 캘린더 ──
     suspend fun events(roomId: String): List<CalendarEvent> =
         supabase.from("calendar_events").select {

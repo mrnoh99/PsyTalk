@@ -225,6 +225,17 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    func setApproved(_ userId: String, _ approved: Bool) {
+        Task {
+            do {
+                try await MoimRepository.setApproved(userId: userId, approved: approved)
+                let list = try await MoimRepository.allProfiles()
+                profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+                if userId == MoimRepository.currentUserId() { myProfile = profilesById[userId] }
+            } catch { self.error = "승인 변경: \(error.localizedDescription)" }
+        }
+    }
+
     func setName(_ userId: String, to name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }

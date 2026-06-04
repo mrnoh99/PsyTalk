@@ -54,7 +54,7 @@ app/  (Android, Kotlin + Compose)
     MainActivity.kt            # MoimViewModel(상태) + App() 네비게이션
     data/SupabaseClient.kt     # Supabase 클라이언트 + 직렬화 모델
     data/MoimRepository.kt     # 모든 Supabase 호출(메시지/일정/자료/스토리지)
-    ui/MoimScreens.kt          # 로그인·방목록·방(채팅탭)·병실현황·관리자(placeholder)
+    ui/MoimScreens.kt          # 로그인·방목록·방(채팅탭)·잔여 병실 현황·관리자(placeholder)
     ui/CalendarFilesPanes.kt   # 캘린더·자료실 패널 + 일정/업로드 다이얼로그
     ui/MoimDesign.kt           # 색상·라벨·권한 헬퍼
 ios/  (iOS, SwiftUI + supabase-swift) — Android 구조를 1:1 미러링
@@ -76,7 +76,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 1. `fix_signup.sql` — 회원가입·profiles
 2. `schema_extension.sql` — room_members, room_writers, calendar_events, room_files + RLS
 3. `storage_setup.sql` — `room-files` 버킷·정책
-4. `ward_status.sql` — 병실 잔여 현황 메모(단일 행)
+4. `ward_status.sql` — 잔여 병실 현황 메모(단일 행)
 5. `seed_rooms.sql` — 기본 2방(과 전체공지·주간 학술활동)
 6. `install.sql` — GRANT·RLS
 7. `room_create.sql` — 모임방 사용자 생성 권한·가시성

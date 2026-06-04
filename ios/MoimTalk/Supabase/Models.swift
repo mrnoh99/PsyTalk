@@ -223,7 +223,7 @@ struct RoomFileInsert: Encodable {
     }
 }
 
-// 병실 잔여 현황 (단일 행, 메모 형식)
+// 잔여 병실 현황 (단일 행, 메모 형식)
 struct WardStatus: Codable {
     var id: Int = 1
     var content: String = ""

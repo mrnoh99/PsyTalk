@@ -1,6 +1,6 @@
 import SwiftUI
 
-// 병실 잔여 현황 — 메모 형식 자유 텍스트 (편집 → 게시, 모두에게 공유)
+// 잔여 병실 현황 — 메모 형식 자유 텍스트 (편집 → 게시, 모두에게 공유)
 struct WardStatusView: View {
     @ObservedObject var vm: MoimViewModel
     let onBack: () -> Void
@@ -21,7 +21,7 @@ struct WardStatusView: View {
         VStack(spacing: 0) {
             HStack {
                 Button(action: onBack) { Text("‹").font(.system(size: 25)) }
-                Text("병실 잔여 현황").font(.system(size: 18, weight: .bold))
+                Text("잔여 병실 현황").font(.system(size: 18, weight: .bold))
                 Spacer()
                 if !editing {
                     Button("편집") { draft = vm.wardStatus; editing = true }.font(.system(size: 15, weight: .bold))
@@ -58,7 +58,7 @@ struct WardStatusView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         HStack(spacing: 8) {
                             Text("🛏").font(.system(size: 22))
-                            Text("병실 잔여 현황").font(.system(size: 18, weight: .heavy)).foregroundColor(Moim.ink)
+                            Text("잔여 병실 현황").font(.system(size: 18, weight: .heavy)).foregroundColor(Moim.ink)
                         }
                         if let label = updatedLabel {
                             Text("최종 수정: \(label)").font(.system(size: 11)).foregroundColor(Moim.sub).padding(.top, 4)
@@ -67,7 +67,7 @@ struct WardStatusView: View {
 
                         if vm.wardStatus.isEmpty {
                             EmptyBox(emoji: "🛏", title: "작성된 내용이 없습니다",
-                                     subtitle: "우측 상단 ‘편집’을 눌러\n병실 잔여 현황을 작성하세요.")
+                                     subtitle: "우측 상단 ‘편집’을 눌러\n잔여 병실 현황을 작성하세요.")
                         } else {
                             Text(vm.wardStatus)
                                 .font(.system(size: 15)).foregroundColor(Moim.ink)

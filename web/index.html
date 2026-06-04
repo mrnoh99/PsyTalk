@@ -174,7 +174,7 @@
   <!-- WARD -->
   <section id="wardScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
     <div class="hdr"><button class="back" onclick="show('listScreen')">‹</button>
-      <h1 style="font-size:16px">병실 잔여 현황</h1><span class="spacer"></span>
+      <h1 style="font-size:16px">잔여 병실 현황</h1><span class="spacer"></span>
       <button class="lk" id="wardEditBtn" onclick="wardEdit()">편집</button></div>
     <div class="wardbody" id="wardBody" style="flex:1;overflow-y:auto"></div>
   </section>
@@ -320,7 +320,7 @@ function renderRoomList(){
     <span class="room-name">${esc(r.name)}</span></div>
     <div class="room-msg">${r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'멤버 누구나'}</div></div></div>`;};
   let h=`<div class="banner" onclick="openWard()"><span style="font-size:20px">🛏</span>
-    <div style="flex:1"><b>병실 잔여 현황</b><small>잔여 병상 메모 보기</small></div><span>›</span></div>`;
+    <div style="flex:1"><b>잔여 병실 현황</b><small>남 · 여 잔여 병상 보기</small></div><span>›</span></div>`;
   if(def.length){h+=`<div class="sechead">📌 기본 방</div>`+def.map(item).join('');}
   h+=`<div class="sechead">👥 모임 방<button onclick="event.stopPropagation();openCreate()">＋ 만들기</button></div>`;
   h+=cus.length?cus.map(item).join(''):`<div style="padding:14px 18px;color:var(--sub);font-size:13px">아직 모임방이 없습니다. ＋만들기로 추가하세요.</div>`;
@@ -590,7 +590,7 @@ async function saveEvent(){
   closeModal('emodal');await loadEvents();await loadFiles();renderCal();
 }
 
-/* ====== 병실 잔여 현황 ====== */
+/* ====== 잔여 병실 현황 ====== */
 async function openWard(){show('wardScreen');await loadWard();}
 async function loadWard(){const {data}=await sb.from('ward_status').select('*').eq('id',1).maybeSingle();
   wardText=data?data.content:'';wardUpdated=data?data.updated_at:null;renderWard(false);}

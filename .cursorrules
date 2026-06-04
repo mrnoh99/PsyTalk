@@ -4,7 +4,7 @@
 (Claude Code 는 CLAUDE.md 를, Cursor 는 이 파일을 읽습니다 — 둘은 같은 내용을 가리킵니다.)
 
 ## 핵심
-- 대학병원 **정신건강의학과 의국용 그룹 메신저**. 채팅·캘린더·자료실·병실현황.
+- 대학병원 **정신건강의학과 의국용 그룹 메신저**. 채팅·캘린더·자료실·잔여 병실 현황.
 - **모노레포**: `app/` (Android, Kotlin + Jetpack Compose), `ios/` (iOS, SwiftUI + supabase-swift),
   공용 백엔드 Supabase(Auth/Postgres/Storage).
 - **Android ↔ iOS 는 동일 형식·논리로 1:1 미러링.** 한쪽을 고치면 다른 쪽도 같은 구조로 맞춘다.
@@ -17,7 +17,7 @@
 - 기본 방 12개(sort_order 1~12, 상단 고정) + 모임방(custom). 2번 "주간 학술활동"은 default_view=week.
 - 캘린더: 금일/주간/월간, 일정 필드(시간·장소·링크·참석범위·설명·키워드·첨부+설명), 수정=작성자+관리자
 - 자료실: 캘린더 첨부 + 직접 업로드 집계, 날짜/키워드 정렬, Supabase Storage `room-files`
-- 병실 잔여 현황: 메모 형식 자유 텍스트(`ward_status` 단일 행), 편집→게시
+- 잔여 병실 현황: 메모 형식 자유 텍스트(`ward_status` 단일 행), 편집→게시
 
 ## 작업 규칙
 - UI·문서·커밋 메시지는 **한국어 우선**.

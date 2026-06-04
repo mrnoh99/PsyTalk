@@ -172,7 +172,7 @@ data class RoomFileInsert(
     val source: String = "upload",
 )
 
-// 병실 잔여 현황 (단일 행, 메모 형식 자유 텍스트)
+// 잔여 병실 현황 (단일 행, 메모 형식 자유 텍스트)
 @Serializable
 data class WardStatus(
     val id: Int = 1,

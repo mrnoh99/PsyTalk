@@ -201,7 +201,7 @@ enum MoimRepository {
         try await supabase.from("room_files").insert(payload).execute()
     }
 
-    // ── 병실 잔여 현황 (메모) ──
+    // ── 잔여 병실 현황 (메모) ──
     static func wardStatus() async throws -> WardStatus {
         let rows: [WardStatus] = try await supabase.from("ward_status")
             .select().eq("id", value: 1).execute().value

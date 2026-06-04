@@ -264,7 +264,7 @@ class MoimViewModel : ViewModel() {
         return role == "superadmin" || role == "admin" || uploadedBy == MoimRepository.currentUserId()
     }
 
-    // ── 병실 잔여 현황 (메모) ──
+    // ── 잔여 병실 현황 (메모) ──
     var wardStatus by mutableStateOf("")
     var wardStatusUpdatedAt by mutableStateOf<String?>(null)
 
@@ -275,7 +275,7 @@ class MoimViewModel : ViewModel() {
                 wardStatus = w.content
                 wardStatusUpdatedAt = w.updatedAt
             } catch (e: Exception) {
-                error = friendlySupabaseError(e, "병실현황 불러오기")
+                error = friendlySupabaseError(e, "잔여 병실 현황 불러오기")
             }
         }
     }
@@ -289,7 +289,7 @@ class MoimViewModel : ViewModel() {
                 wardStatusUpdatedAt = w.updatedAt
                 onDone()
             } catch (e: Exception) {
-                error = friendlySupabaseError(e, "병실현황 저장")
+                error = friendlySupabaseError(e, "잔여 병실 현황 저장")
             }
         }
     }

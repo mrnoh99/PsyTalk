@@ -237,7 +237,7 @@ object MoimRepository {
         )
     }
 
-    // ── 병실 잔여 현황 (메모) ──
+    // ── 잔여 병실 현황 (메모) ──
     suspend fun wardStatus(): WardStatus =
         supabase.from("ward_status").select {
             filter { eq("id", 1) }

@@ -816,7 +816,7 @@ fun MessageBubble(m: Message, mine: Boolean, senderName: String) {
     }
 }
 
-// 방 목록 맨 위 고정 배너 — 탭하면 병실현황 페이지로
+// 방 목록 맨 위 고정 배너 — 탭하면 잔여 병실 현황 페이지로
 @Composable
 private fun WardStatusBanner(onClick: () -> Unit) {
     Row(
@@ -832,14 +832,14 @@ private fun WardStatusBanner(onClick: () -> Unit) {
         Text("🛏", fontSize = 20.sp)
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text("병실 잔여 현황", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+            Text("잔여 병실 현황", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
             Text("남 · 여 잔여 병상 보기", color = Color(0xFFFFE9D6), fontSize = 11.5.sp)
         }
         Text("›", color = Color.White, fontSize = 20.sp)
     }
 }
 
-// 병실 잔여 현황 — 메모 형식 자유 텍스트 (편집 → 게시, 모두에게 공유)
+// 잔여 병실 현황 — 메모 형식 자유 텍스트 (편집 → 게시, 모두에게 공유)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
@@ -858,7 +858,7 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("병실 잔여 현황", fontWeight = FontWeight.Bold) },
+                title = { Text("잔여 병실 현황", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
                 },
@@ -908,7 +908,7 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("🛏", fontSize = 22.sp)
                     Spacer(Modifier.width(8.dp))
-                    Text("병실 잔여 현황", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MoimInk)
+                    Text("잔여 병실 현황", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MoimInk)
                 }
                 updatedLabel?.let {
                     Spacer(Modifier.height(4.dp))
@@ -916,7 +916,7 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 }
                 Spacer(Modifier.height(14.dp))
                 if (vm.wardStatus.isBlank()) {
-                    EmptyBox("🛏", "작성된 내용이 없습니다", "우측 상단 ‘편집’을 눌러\n병실 잔여 현황을 작성하세요.")
+                    EmptyBox("🛏", "작성된 내용이 없습니다", "우측 상단 ‘편집’을 눌러\n잔여 병실 현황을 작성하세요.")
                 } else {
                     Column(
                         modifier = Modifier

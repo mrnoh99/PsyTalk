@@ -166,7 +166,7 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
-    // ── 병실 잔여 현황 (메모) ──
+    // ── 잔여 병실 현황 (메모) ──
     @Published var wardStatus: String = ""
     @Published var wardStatusUpdatedAt: String?
 
@@ -176,7 +176,7 @@ final class MoimViewModel: ObservableObject {
                 let w = try await MoimRepository.wardStatus()
                 wardStatus = w.content
                 wardStatusUpdatedAt = w.updatedAt
-            } catch { self.error = "병실현황 불러오기: \(error.localizedDescription)" }
+            } catch { self.error = "잔여 병실 현황 불러오기: \(error.localizedDescription)" }
         }
     }
 
@@ -188,7 +188,7 @@ final class MoimViewModel: ObservableObject {
                 wardStatus = w.content
                 wardStatusUpdatedAt = w.updatedAt
                 onDone()
-            } catch { self.error = "병실현황 저장: \(error.localizedDescription)" }
+            } catch { self.error = "잔여 병실 현황 저장: \(error.localizedDescription)" }
         }
     }
 

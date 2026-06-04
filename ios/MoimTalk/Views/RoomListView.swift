@@ -104,7 +104,7 @@ struct WardStatusBanner: View {
             HStack {
                 Text("🛏").font(.system(size: 20))
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("병실 잔여 현황").font(.system(size: 16, weight: .heavy)).foregroundColor(.white)
+                    Text("잔여 병실 현황").font(.system(size: 16, weight: .heavy)).foregroundColor(.white)
                     Text("남 · 여 잔여 병상 보기").font(.system(size: 11.5)).foregroundColor(Color(hex: 0xFFE9D6))
                 }
                 Spacer()

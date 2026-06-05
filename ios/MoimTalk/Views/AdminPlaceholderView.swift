@@ -92,7 +92,7 @@ struct AdminPlaceholderView: View {
             Text("새 이름을 입력하세요.")
         }
         .confirmationDialog(
-            "‘\(deactivateTarget?.name ?? "")’ 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.\n(작성한 글·올린 자료는 그대로 남습니다.)",
+            "‘\(deactivateTarget?.name ?? "")’ 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.",
             isPresented: Binding(get: { deactivateTarget != nil }, set: { if !$0 { deactivateTarget = nil } }),
             titleVisibility: .visible
         ) {

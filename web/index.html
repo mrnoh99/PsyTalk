@@ -488,7 +488,7 @@ async function leaveRoom(){
 }
 // 회원 탈퇴 (본인 데이터·계정 삭제)
 async function deleteAccount(){
-  if(!confirm('정말 탈퇴할까요?\n계정이 비활성화되어 다시 로그인할 수 없으며 모든 방에서 나가집니다.\n(작성한 글·올린 자료는 기록을 위해 그대로 남습니다.)'))return;
+  if(!confirm('정말 탈퇴할까요?\n계정이 비활성화되어 다시 로그인할 수 없으며 모든 방에서 나가집니다.'))return;
   const {error}=await sb.rpc('moim_delete_my_account');
   if(error){alert('탈퇴 실패: '+error.message);return;}
   stopRealtime();await sb.auth.signOut();location.reload();
@@ -613,7 +613,7 @@ async function setRole(id,role){
 }
 async function adminDeactivate(id){
   const p=profilesById[id]||{};
-  if(!confirm(`'${p.name||'이 회원'}' 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.\n(작성한 글·올린 자료는 그대로 남습니다.)`))return;
+  if(!confirm(`'${p.name||'이 회원'}' 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.`))return;
   const {error}=await sb.rpc('moim_admin_withdraw',{p_user:id});
   if(error){alert('계정 비활성화 실패: '+error.message);return;}
   await reloadProfiles(); renderAdmin();

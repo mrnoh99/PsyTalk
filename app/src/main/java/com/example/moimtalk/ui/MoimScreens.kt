@@ -453,7 +453,7 @@ private fun MemberManageRow(p: Profile, vm: MoimViewModel) {
         AlertDialog(
             onDismissRequest = { confirmDeact = false },
             title = { Text("계정 비활성화") },
-            text = { Text("‘${p.name}’ 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.\n(작성한 글·올린 자료는 그대로 남습니다.)") },
+            text = { Text("‘${p.name}’ 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.") },
             confirmButton = {
                 TextButton(onClick = { confirmDeact = false; vm.adminDeactivate(p.id) }) {
                     Text("계정 비활성화", color = MoimAdmin, fontWeight = FontWeight.Bold)
@@ -1322,7 +1322,7 @@ private fun PinSettingsDialog(
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("회원 탈퇴") },
-            text = { Text("정말 탈퇴할까요?\n계정이 비활성화되어 다시 로그인할 수 없으며 모든 방에서 나가집니다.\n(작성한 글·올린 자료는 기록을 위해 그대로 남습니다.)") },
+            text = { Text("정말 탈퇴할까요?\n계정이 비활성화되어 다시 로그인할 수 없으며 모든 방에서 나가집니다.") },
             confirmButton = { TextButton(onClick = { showDelete = false; vm.deleteAccount() }) { Text("탈퇴", color = MoimAdmin) } },
             dismissButton = { TextButton(onClick = { showDelete = false }) { Text("취소") } }
         )

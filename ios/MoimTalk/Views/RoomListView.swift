@@ -319,7 +319,7 @@ struct PinSettingsView: View {
                 Button("취소", role: .cancel) {}
                 Button("탈퇴", role: .destructive) { dismiss(); vm.deleteAccount() }
             } message: {
-                Text("정말 탈퇴할까요?\n계정이 비활성화되어 다시 로그인할 수 없으며 모든 방에서 나가집니다.\n(작성한 글·올린 자료는 기록을 위해 그대로 남습니다.)")
+                Text("정말 탈퇴할까요?\n계정이 비활성화되어 다시 로그인할 수 없으며 모든 방에서 나가집니다.")
             }
         }
     }

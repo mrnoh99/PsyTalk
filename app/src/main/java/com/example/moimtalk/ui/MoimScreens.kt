@@ -437,8 +437,9 @@ fun RoomListScreen(
     onApprovals: () -> Unit
 ) {
     val profile = vm.myProfile
-    val defaultRooms = vm.rooms.filter { it.category != "custom" }.sortedBy { it.sortOrder }
-    val customRooms = vm.rooms.filter { it.category == "custom" }.sortedBy { it.sortOrder }
+    // 주간 학술활동(default_view=week)은 목록에서 빼고 별도 바로 표시. 나머지는 전체방(첫번째)+모임방 평면 목록.
+    val weekRoom = vm.rooms.firstOrNull { it.category != "custom" && it.defaultView == "week" }
+    val listRooms = vm.rooms.filter { it.id != weekRoom?.id }.sortedBy { it.sortOrder }
 
     Scaffold(
         topBar = {
@@ -465,21 +466,6 @@ fun RoomListScreen(
                     TextButton(onClick = { vm.logout() }) { Text("로그아웃", fontSize = 12.sp) }
                 }
                 HorizontalDivider(color = MoimLine)
-                profile?.let { p ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .background(Color(0xFFFFF8E0))
-                            .padding(horizontal = 14.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(7.dp)
-                    ) {
-                        Text("👁", fontSize = 11.sp, color = MoimSub, fontWeight = FontWeight.Bold)
-                        ViewChip(p.name, p.memberType, selected = true)
-                    }
-                    HorizontalDivider(color = MoimLine)
-                }
             }
         },
         containerColor = MoimPaper
@@ -490,35 +476,15 @@ fun RoomListScreen(
                 .fillMaxSize()
         ) {
             item { WardStatusBanner(onWard) }
+            weekRoom?.let { wr -> item { WeekRoomBar(wr, onOpen) } }
             if (profile != null && isAdminRole(profile.role)) {
                 item { ApprovalBanner(vm.profilesById.values.count { !it.approved }, onApprovals) }
             }
-            if (vm.rooms.isEmpty()) {
-                item { EmptyBox("🔒", "아직 들어간 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
+            item { CreateRoomButton(onCreateRoom) }
+            if (listRooms.isEmpty()) {
+                item { EmptyBox("🔒", "아직 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
             } else {
-                if (defaultRooms.isNotEmpty()) {
-                    item { SectionHead("📌 기본 방 (우선순위)") }
-                    items(defaultRooms) { room -> RoomRow(room, onOpen) }
-                }
-                item {
-                    SectionHead(
-                        title = "👥 모임 방",
-                        action = "＋ 만들기",
-                        onAction = onCreateRoom
-                    )
-                }
-                if (customRooms.isEmpty()) {
-                    item {
-                        Text(
-                            "아직 모임방이 없습니다.",
-                            modifier = Modifier.padding(horizontal = 18.dp, vertical = 12.dp),
-                            color = MoimSub,
-                            fontSize = 13.sp
-                        )
-                    }
-                } else {
-                    items(customRooms) { room -> RoomRow(room, onOpen) }
-                }
+                items(listRooms) { room -> RoomRow(room, onOpen) }
             }
             vm.error?.let { err ->
                 item {
@@ -1055,6 +1021,52 @@ private fun WardStatusBanner(onClick: () -> Unit) {
             Text("남 · 여 잔여 병상 보기", color = Color(0xFFFFE9D6), fontSize = 11.5.sp)
         }
         Text("›", color = Color.White, fontSize = 20.sp)
+    }
+}
+
+// 주간 학술활동 고정 바 (잔여 병실 현황 아래, 파란색)
+@Composable
+private fun WeekRoomBar(room: Room, onOpen: (Room) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp)
+            .padding(bottom = 10.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFF4A6FA5))
+            .clickable { onOpen(room) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("📅", fontSize = 20.sp)
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(room.name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+            Text("주간 학술활동 · 일정 보기", color = Color(0xFFDDE6F3), fontSize = 11.5.sp)
+        }
+        Text("›", color = Color.White, fontSize = 20.sp)
+    }
+}
+
+// ＋ 모임방 만들기 버튼 (목록 위)
+@Composable
+private fun CreateRoomButton(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp)
+            .padding(bottom = 4.dp),
+        horizontalArrangement = Arrangement.End
+    ) {
+        Text(
+            "＋ 모임방 만들기",
+            fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAccent,
+            modifier = Modifier
+                .clip(RoundedCornerShape(10.dp))
+                .background(MoimWhite, RoundedCornerShape(10.dp))
+                .clickable(onClick = onClick)
+                .padding(horizontal = 14.dp, vertical = 8.dp)
+        )
     }
 }
 

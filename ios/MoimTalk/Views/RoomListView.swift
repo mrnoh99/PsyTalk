@@ -11,11 +11,12 @@ struct RoomListView: View {
         vm.profilesById.values.filter { $0.approved == false }.count
     }
 
-    private var defaultRooms: [Room] {
-        vm.rooms.filter { $0.category != "custom" }.sorted { $0.sortOrder < $1.sortOrder }
+    // 주간 학술활동(default_view=week)은 목록에서 빼고 별도 바로 표시. 나머지는 전체방(첫번째)+모임방 평면 목록.
+    private var weekRoom: Room? {
+        vm.rooms.first { $0.category != "custom" && $0.defaultView == "week" }
     }
-    private var customRooms: [Room] {
-        vm.rooms.filter { $0.category == "custom" }.sorted { $0.sortOrder < $1.sortOrder }
+    private var listRooms: [Room] {
+        vm.rooms.filter { $0.id != weekRoom?.id }.sorted { $0.sortOrder < $1.sortOrder }
     }
 
     var body: some View {
@@ -24,28 +25,13 @@ struct RoomListView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     WardStatusBanner(onTap: onWard)
-
-                    if vm.rooms.isEmpty {
-                        EmptyBox(emoji: "🔒", title: "아직 들어간 방이 없어요",
+                    if let wr = weekRoom { WeekRoomBar(room: wr, onOpen: onOpen) }
+                    createButton
+                    if listRooms.isEmpty {
+                        EmptyBox(emoji: "🔒", title: "아직 방이 없어요",
                                  subtitle: "전체관리자가 방에 배정하면\n여기에 표시됩니다.")
                     } else {
-                        if !defaultRooms.isEmpty {
-                            SectionHead(title: "📌 기본 방 (우선순위)")
-                            ForEach(defaultRooms) { RoomRow(room: $0, onOpen: onOpen) }
-                        }
-                        SectionHead(
-                            title: "👥 모임 방",
-                            action: "＋ 만들기",
-                            onAction: onCreateRoom
-                        )
-                        if customRooms.isEmpty {
-                            Text("아직 모임방이 없습니다.")
-                                .font(.system(size: 13)).foregroundColor(Moim.sub)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.horizontal, 18).padding(.vertical, 12)
-                        } else {
-                            ForEach(customRooms) { RoomRow(room: $0, onOpen: onOpen) }
-                        }
+                        ForEach(listRooms) { RoomRow(room: $0, onOpen: onOpen) }
                     }
                 }
             }
@@ -67,18 +53,21 @@ struct RoomListView: View {
             }
             .padding(.horizontal, 18).padding(.vertical, 14)
             Divider().background(Moim.line)
-            if let p = vm.myProfile {
-                HStack(spacing: 7) {
-                    Text("👁").font(.system(size: 11, weight: .bold)).foregroundColor(Moim.sub)
-                    ViewChip(name: p.name, memberType: p.memberType)
-                    Spacer()
-                }
-                .padding(.horizontal, 14).padding(.vertical, 9)
-                .background(Color(hex: 0xFFF8E0))
-                Divider().background(Moim.line)
-            }
         }
         .background(Moim.paper)
+    }
+
+    private var createButton: some View {
+        HStack {
+            Spacer()
+            Button(action: onCreateRoom) {
+                Text("＋ 모임방 만들기")
+                    .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+        }
+        .padding(.horizontal, 14).padding(.bottom, 4)
     }
 
     private func adminBar(pending: Int) -> some View {
@@ -125,6 +114,29 @@ struct WardStatusBanner: View {
             .background(Moim.orange)
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .padding(.horizontal, 14).padding(.vertical, 10)
+        }
+    }
+}
+
+// 주간 학술활동 고정 바 (잔여 병실 현황 아래, 파란색)
+struct WeekRoomBar: View {
+    let room: Room
+    let onOpen: (Room) -> Void
+    var body: some View {
+        Button(action: { onOpen(room) }) {
+            HStack {
+                Text("📅").font(.system(size: 20))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(room.name).font(.system(size: 16, weight: .heavy)).foregroundColor(.white)
+                    Text("주간 학술활동 · 일정 보기").font(.system(size: 11.5)).foregroundColor(Color(hex: 0xDDE6F3))
+                }
+                Spacer()
+                Text("›").font(.system(size: 20)).foregroundColor(.white)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 14)
+            .background(Color(hex: 0x4A6FA5))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .padding(.horizontal, 14).padding(.bottom, 10)
         }
     }
 }

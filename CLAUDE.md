@@ -117,6 +117,9 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 24. `account_reactivate.sql` — **비활성(탈퇴) 계정 복구**: `moim_reactivate_user(uuid)`(전체관리자).
     withdrawn=false·approved=true 로 되돌리고 banned_until 해제 → 계정 UUID 그대로라 이전 메시지·자료 연결.
     관리자 콘솔 '회원 관리' 하단 **비활성 회원** 목록의 **복구** 버튼에서 사용.
+25. `protect_superadmin_password.sql` — **전체관리자 비밀번호 변경 금지**: auth.users BEFORE UPDATE 트리거로
+    superadmin(jsnoh@ajou.ac.kr)의 비밀번호(encrypted_password) 변경 시도를 차단(재설정·updateUser 모두).
+    웹 로그인 화면의 '비밀번호 재설정'도 superadmin 이메일은 거부(클라이언트 1차 + 트리거 서버측 방어).
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 회원 8명(직군별). 운영 전 정리.
 

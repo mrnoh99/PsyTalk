@@ -148,7 +148,11 @@
   .primary{width:100%;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px}
   .ghost{width:100%;background:var(--line);color:var(--ink);border:none;border-radius:13px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
   /* login */
-  #login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:30px}
+  #login{flex:1;display:flex;flex-direction:column;padding:30px}
+  /* 인증 화면: 내용이 길면 스크롤, 짧으면 세로 가운데 (auto 마진 스페이서) */
+  #login,#reset,#pending{overflow-y:auto;-webkit-overflow-scrolling:touch}
+  #login::before,#reset::before,#pending::before{content:'';margin-top:auto}
+  #login::after,#reset::after,#pending::after{content:'';margin-bottom:auto}
   #login h1{font-size:34px;font-weight:800}#login .sub{font-size:15px;color:var(--sub);margin-bottom:28px}
   #login input,#login textarea,#reset input{width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;font-size:15px;margin-bottom:12px;outline:none;font-family:inherit;box-sizing:border-box}
   #login .err{color:var(--admin);font-size:13px;margin:6px 0}
@@ -182,7 +186,7 @@
   </section>
 
   <!-- PASSWORD RESET (이메일 재설정 링크로 진입) -->
-  <section id="reset" class="hidden" style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:30px">
+  <section id="reset" class="hidden" style="flex:1;display:flex;flex-direction:column;padding:30px">
     <h2 style="font-size:22px;font-weight:800;margin-bottom:6px">새 비밀번호 설정</h2>
     <p style="font-size:14px;color:var(--sub);margin-bottom:18px">새로 사용할 비밀번호를 입력하세요.</p>
     <input id="rpw" type="password" placeholder="새 비밀번호" oninput="updateResetBtn()">
@@ -193,7 +197,7 @@
   </section>
 
   <!-- PENDING APPROVAL -->
-  <section id="pending" class="hidden" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px">
+  <section id="pending" class="hidden" style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px">
     <div style="font-size:46px">⏳</div>
     <h2 style="font-size:19px;font-weight:800;margin-top:16px">관리자 승인 대기 중</h2>
     <p style="font-size:14px;color:var(--sub);line-height:1.5;margin-top:10px">가입이 접수되었습니다.<br>관리자가 승인하면 이용할 수 있습니다.</p>
@@ -357,6 +361,8 @@ if(!window.supabase||!window.supabase.createClient){
   throw new Error('Supabase library failed to load');
 }
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// 전체관리자(고정): 비밀번호 변경/재설정 불가 — 계정 보호
+const SUPERADMIN_EMAIL = "jsnoh@ajou.ac.kr";
 // 비밀번호 재설정 링크로 진입했는지 (해시는 supabase 가 비우기 전에 동기적으로 확인)
 let recovering = location.hash.includes('type=recovery');
 sb.auth.onAuthStateChange((event)=>{ if(event==='PASSWORD_RECOVERY'){ recovering=true; show('reset'); } });
@@ -636,6 +642,7 @@ async function forgotPassword(){
     if(email){ const {data:found}=await sb.rpc('moim_email_for_phone',{p_phone:email}); if(found)email=found; }
   }
   if(!email||!email.includes('@')){errEl.textContent='가입한 이메일을 입력한 뒤 "비밀번호 재설정"을 누르세요.';return;}
+  if(email.toLowerCase()===SUPERADMIN_EMAIL){errEl.textContent='전체관리자 계정의 비밀번호는 보안상 재설정할 수 없습니다.';return;}
   const redirect=location.href.split('#')[0];
   const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:redirect});
   if(error){errEl.textContent='재설정 메일 발송 실패: '+error.message;return;}
@@ -653,6 +660,11 @@ async function saveNewPassword(){
   const errEl=document.getElementById('resetErr');errEl.textContent='';
   const pw=document.getElementById('rpw').value;
   if(pw.length<6){errEl.textContent='비밀번호는 6자 이상이어야 합니다.';return;}
+  const {data:{user}}=await sb.auth.getUser();
+  if(user&&(user.email||'').toLowerCase()===SUPERADMIN_EMAIL){
+    errEl.textContent='전체관리자 계정의 비밀번호는 변경할 수 없습니다.';
+    await sb.auth.signOut(); return;
+  }
   const {error}=await sb.auth.updateUser({password:pw});
   if(error){errEl.textContent='변경 실패: '+error.message;return;}
   await sb.auth.signOut();

@@ -67,7 +67,7 @@ fun LoginScreen(vm: MoimViewModel) {
     var signup by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var memberType by remember { mutableStateOf("의국") }
-    val memberTypes = listOf("교실", "의국", "심리실", "연구실", "PA", "간호사", "SW", "보조원")
+    val memberTypes = listOf("교실", "의국", "심리실", "연구실", "PA", "간호사", "SW", "보조원", "비서", "의국동문", "심리실 동문", "기타")
 
     Column(
         modifier = Modifier

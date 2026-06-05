@@ -278,7 +278,7 @@ function stopRealtime(){
   setRoomRealtime(null);
 }
 
-const TYPE_COLOR={'교실':'#b5651d','의국':'#4a6fa5','심리실':'#6d597a','연구실':'#3d8361','PA':'#0d8a8a','간호사':'#c0452f','SW':'#9a6a00','보조원':'#777'};
+const TYPE_COLOR={'교실':'#b5651d','의국':'#4a6fa5','심리실':'#6d597a','연구실':'#3d8361','PA':'#0d8a8a','간호사':'#c0452f','SW':'#9a6a00','보조원':'#777','비서':'#a0526d','의국동문':'#5b7c99','심리실 동문':'#8a7aa0','기타':'#8a817a'};
 const CAT={notice:{l:'공지',c:'#b5651d'},group:{l:'그룹',c:'#4a6fa5'},work:{l:'업무',c:'#3d8361'},research:{l:'연구',c:'#6d597a'},custom:{l:'모임',c:'#8a817a'}};
 const ini=n=>(n||'?').slice(0,3);
 const tcolor=t=>TYPE_COLOR[t]||'#888';
@@ -289,7 +289,7 @@ function show(id){['login','pending','listScreen','roomScreen','wardScreen'].for
 
 /* ====== 로그인 / 회원가입 ====== */
 let signupMode=false, suType='의국';
-const MEMBER_TYPES=['교실','의국','심리실','연구실','PA','간호사','SW','보조원'];
+const MEMBER_TYPES=['교실','의국','심리실','연구실','PA','간호사','SW','보조원','비서','의국동문','심리실 동문','기타'];
 function renderSuTypes(){
   document.getElementById('suTypes').innerHTML=MEMBER_TYPES.map(t=>{
     const on=t===suType;

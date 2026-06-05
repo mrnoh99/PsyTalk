@@ -721,12 +721,21 @@ function renderMembers(){
   const mem=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&!p.withdrawn&&p.approved===true)
     .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   let h=`<p style="color:var(--sub);font-size:12px;margin-bottom:10px">관리자 지위 지정 / 계정 비활성화. (전체관리자 제외)</p>`;
-  if(!mem.length) return h+`<p style="color:var(--sub);font-size:13px">승인된 회원이 없습니다.</p>`;
-  return h+mem.map(p=>{const isAd=p.role==='admin';
+  h+= mem.length ? mem.map(p=>{const isAd=p.role==='admin';
     const roleBtn=`<button onclick="setRole('${p.id}','${isAd?'user':'admin'}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;${isAd?'background:var(--accent);color:#fff':'background:var(--bg);color:var(--accent)'}">${isAd?'관리자 ✓':'관리자 지정'}</button>`;
     const deact=`<button onclick="adminDeactivate('${p.id}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(192,69,47,.12);color:var(--admin);margin-left:6px">계정 비활성화</button>`;
     return adminRow(p, roleBtn+deact, `${p.member_type||''} · ${isAd?'관리자':'회원'}`);
-  }).join('');
+  }).join('') : `<p style="color:var(--sub);font-size:13px">승인된 회원이 없습니다.</p>`;
+  // 비활성(탈퇴) 회원 — 복구
+  const wd=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&p.withdrawn)
+    .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  if(wd.length){
+    h+=`<p style="color:var(--sub);font-size:12px;font-weight:700;margin:16px 0 8px">🚫 비활성 회원 · ${wd.length}명 · 복구하면 이전 대화에 다시 연결됩니다</p>`;
+    h+=wd.map(p=>adminRow(p,
+      `<button onclick="reactivateUser('${p.id}')" style="border:none;border-radius:14px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;background:var(--work);color:#fff">복구</button>`,
+      `${p.member_type||''} · 비활성`)).join('');
+  }
+  return h;
 }
 function renderRoomsAdmin(){
   if(!rooms.length) return `<p style="color:var(--sub);font-size:13px">방이 없습니다.</p>`;
@@ -754,6 +763,13 @@ async function adminDeactivate(id){
   if(!await uiConfirm(`'${p.name||'이 회원'}' 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.`,'계정 비활성화'))return;
   const {error}=await sb.rpc('moim_admin_withdraw',{p_user:id});
   if(error){alert('계정 비활성화 실패: '+error.message);return;}
+  await reloadProfiles(); renderAdmin();
+}
+async function reactivateUser(id){
+  const p=profilesById[id]||{};
+  if(!await uiConfirm(`'${p.name||'이 회원'}' 님의 계정을 복구할까요?\n로그인·활동이 다시 가능해지고 승인 상태가 됩니다.\n(이전 메시지·자료가 그대로 연결됩니다. 방 재배정은 방 관리에서)`,'계정 복구'))return;
+  const {error}=await sb.rpc('moim_reactivate_user',{p_user:id});
+  if(error){alert('계정 복구 실패: '+error.message);return;}
   await reloadProfiles(); renderAdmin();
 }
 

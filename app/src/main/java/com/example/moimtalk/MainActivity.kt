@@ -498,6 +498,18 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    /** 비활성 계정 복구(재활성화) (전체관리자 — RPC) */
+    fun reactivateUser(userId: String) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.reactivate(userId)
+                profilesById = MoimRepository.allProfiles().associateBy { it.id }
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "계정 복구")
+            }
+        }
+    }
+
     fun createRoom(
         name: String,
         memberIds: List<String>,

@@ -78,6 +78,11 @@ enum MoimRepository {
         try await supabase.rpc("moim_admin_withdraw", params: ["p_user": userId]).execute()
     }
 
+    /// 비활성 계정 복구(재활성화) (전체관리자 — RPC). 승인 복구 + 로그인 차단 해제
+    static func reactivate(userId: String) async throws {
+        try await supabase.rpc("moim_reactivate_user", params: ["p_user": userId]).execute()
+    }
+
     /// 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 회원) 등록
     @discardableResult
     static func createRoom(name: String, memberIds: [String], color: String? = nil, iconData: Data? = nil, iconName: String? = nil) async throws -> String {

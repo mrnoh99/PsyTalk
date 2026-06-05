@@ -384,6 +384,9 @@ private fun MemberManageTab(vm: MoimViewModel, collator: java.text.Collator) {
         val t = collator.compare(a.memberType, b.memberType); if (t != 0) t else collator.compare(a.name, b.name)
     } else Comparator { a, b -> collator.compare(a.name, b.name) }
     val members = base.sortedWith(cmp)
+    // 비활성(탈퇴) 회원 — 복구 대상
+    val withdrawn = vm.profilesById.values.filter { it.role != "superadmin" && it.withdrawn }
+        .sortedWith(Comparator { a, b -> collator.compare(a.name, b.name) })
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         item {
             Row(modifier = Modifier.padding(bottom = 10.dp)) {
@@ -403,6 +406,13 @@ private fun MemberManageTab(vm: MoimViewModel, collator: java.text.Collator) {
             }
         } else {
             items(members, key = { it.id }) { p -> MemberManageRow(p, vm) }
+        }
+        if (withdrawn.isNotEmpty()) {
+            item {
+                Spacer(Modifier.height(16.dp))
+                Text("🚫 비활성 회원 · ${withdrawn.size}명 · 복구하면 이전 대화에 다시 연결됩니다", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub, modifier = Modifier.padding(bottom = 8.dp))
+            }
+            items(withdrawn, key = { "w_" + it.id }) { p -> MemberWithdrawnRow(p, vm) }
         }
     }
 }
@@ -537,6 +547,50 @@ private fun MemberManageRow(p: Profile, vm: MoimViewModel) {
                 .clickable { confirmDeact = true }
                 .background(MoimAdmin.copy(alpha = 0.12f))
                 .padding(horizontal = 10.dp, vertical = 6.dp)
+        )
+    }
+}
+
+// 비활성(탈퇴) 회원 행 — 복구 버튼
+@Composable
+private fun MemberWithdrawnRow(p: Profile, vm: MoimViewModel) {
+    var confirm by remember { mutableStateOf(false) }
+    if (confirm) {
+        AlertDialog(
+            onDismissRequest = { confirm = false },
+            title = { Text("계정 복구") },
+            text = { Text("‘${p.name}’ 님의 계정을 복구할까요?\n로그인·활동이 다시 가능해지고 승인 상태가 됩니다.\n(이전 메시지·자료가 그대로 연결됩니다. 방 재배정은 방 관리에서)") },
+            confirmButton = {
+                TextButton(onClick = { confirm = false; vm.reactivateUser(p.id) }) {
+                    Text("복구", color = catColor("work"), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirm = false }) { Text("취소") } }
+        )
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 9.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MoimWhite, RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(38.dp).background(MoimSub, RoundedCornerShape(11.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(p.name.take(3), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.width(11.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+            Text("${p.memberType} · 비활성", fontSize = 11.5.sp, color = MoimSub)
+        }
+        Text(
+            "복구", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { confirm = true }.background(catColor("work")).padding(horizontal = 14.dp, vertical = 7.dp)
         )
     }
 }

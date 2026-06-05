@@ -261,6 +261,11 @@ object MoimRepository {
         supabase.postgrest.rpc("moim_admin_withdraw", buildJsonObject { put("p_user", userId) })
     }
 
+    /** 비활성 계정 복구(재활성화) (전체관리자 — RPC). 승인 복구 + 로그인 차단 해제 */
+    suspend fun reactivate(userId: String) {
+        supabase.postgrest.rpc("moim_reactivate_user", buildJsonObject { put("p_user", userId) })
+    }
+
     // ── 캘린더 ──
     suspend fun events(roomId: String): List<CalendarEvent> =
         supabase.from("calendar_events").select {

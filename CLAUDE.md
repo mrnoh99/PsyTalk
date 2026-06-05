@@ -113,7 +113,10 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
     방 만들 때/이름변경 시 색상 팔레트 선택 + 사진 업로드(공개 `room-files`). 수정 권한은 기존 rooms UPDATE 정책.
 23. `signup_extra_fields.sql` — **가입 추가정보(핸드폰·소개) + 핸드폰/이메일 로그인**: `profiles.intro` 컬럼 +
     가입 시 메타데이터(phone·intro)를 profiles 에 저장(BEFORE INSERT 트리거) + `moim_email_for_phone(phone)`(핸드폰→이메일,
-    anon 허용). 가입칸=이름·핸드폰·이메일·비밀번호·소개·직군, 로그인=**이메일 또는 핸드폰번호**+비밀번호.
+    anon 허용). 가입칸=이름·핸드폰·이메일·비밀번호(+확인)·소개·직군, 로그인=**이메일 또는 핸드폰번호**+비밀번호.
+24. `account_reactivate.sql` — **비활성(탈퇴) 계정 복구**: `moim_reactivate_user(uuid)`(전체관리자).
+    withdrawn=false·approved=true 로 되돌리고 banned_until 해제 → 계정 UUID 그대로라 이전 메시지·자료 연결.
+    관리자 콘솔 '회원 관리' 하단 **비활성 회원** 목록의 **복구** 버튼에서 사용.
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 회원 8명(직군별). 운영 전 정리.
 
@@ -138,7 +141,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
   승인되면 목록에서 빠지고 **회원 관리** 명단으로 이동. 기본 **가나다순** + **직군별 보기** 토글.
 - **회원 관리**(superadmin 전용): **승인된 회원**(미탈퇴) 목록. **관리자 지위 지정/해제**(admin↔user,
   `profiles` UPDATE = `admin_roles.sql` 전체관리자 전용 정책) + **계정 비활성화**(`moim_admin_withdraw`).
-  iOS는 이름 편집도 가능.
+  하단에 **비활성 회원** 목록 + **복구**(`moim_reactivate_user`) — 복구 시 계정 UUID 그대로라 이전 대화 연결. iOS는 이름 편집도 가능.
 - **방 관리**(superadmin 전용): 방을 누르면 **구성원 초대 / 제거(confirm) / 방 삭제(confirm)**.
   방 삭제는 **superadmin만**, **기본 방(전체공지·학술활동)은 삭제 불가**. (방 행 사이 구분선 없음)
 - **계정 비활성화(탈퇴) = 소프트 삭제**: `moim_*` (admin_console.sql) 가 방·고정만 정리하고

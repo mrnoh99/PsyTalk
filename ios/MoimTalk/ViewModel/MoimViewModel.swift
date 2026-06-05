@@ -589,6 +589,17 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    /// 비활성 계정 복구(재활성화) (전체관리자 — RPC)
+    func reactivate(_ userId: String) {
+        Task {
+            do {
+                try await MoimRepository.reactivate(userId: userId)
+                let list = try await MoimRepository.allProfiles()
+                profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+            } catch { self.error = "계정 복구: \(error.localizedDescription)" }
+        }
+    }
+
     func setName(_ userId: String, to name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }

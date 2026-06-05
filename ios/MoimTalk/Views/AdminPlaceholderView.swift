@@ -18,6 +18,7 @@ struct AdminPlaceholderView: View {
     @State private var renameTargetId = ""
     @State private var selectedRoom: Room?
     @State private var deactivateTarget: Profile?
+    @State private var reactivateTarget: Profile?
 
     // 전체관리자=3탭 전부 / 관리자=가입 승인만
     private var allowedTabs: [AdminConsoleTab] {
@@ -28,6 +29,13 @@ struct AdminPlaceholderView: View {
     private var members: [Profile] {
         vm.profilesById.values
             .filter { $0.role != "superadmin" && $0.withdrawn != true && ($0.approved == true) }
+            .sorted { $0.name < $1.name }
+    }
+
+    // 비활성(탈퇴) 회원 — 복구 대상
+    private var withdrawnMembers: [Profile] {
+        vm.profilesById.values
+            .filter { $0.role != "superadmin" && $0.withdrawn == true }
             .sorted { $0.name < $1.name }
     }
 
@@ -102,6 +110,17 @@ struct AdminPlaceholderView: View {
             }
             Button("취소", role: .cancel) { deactivateTarget = nil }
         }
+        .confirmationDialog(
+            "‘\(reactivateTarget?.name ?? "")’ 님의 계정을 복구할까요?\n로그인·활동이 다시 가능해지고 승인 상태가 됩니다.\n(이전 메시지·자료가 그대로 연결됩니다. 방 재배정은 방 관리에서)",
+            isPresented: Binding(get: { reactivateTarget != nil }, set: { if !$0 { reactivateTarget = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("복구") {
+                if let p = reactivateTarget { vm.reactivate(p.id) }
+                reactivateTarget = nil
+            }
+            Button("취소", role: .cancel) { reactivateTarget = nil }
+        }
     }
 
     @ViewBuilder
@@ -114,7 +133,34 @@ struct AdminPlaceholderView: View {
                     ForEach(members) { p in memberRow(p) }
                 }
             }
+            if !withdrawnMembers.isEmpty {
+                card(title: "🚫 비활성 회원 · \(withdrawnMembers.count)명 · 복구하면 이전 대화에 다시 연결됩니다") {
+                    ForEach(withdrawnMembers) { p in withdrawnRow(p) }
+                }
+            }
         }
+    }
+
+    private func withdrawnRow(_ p: Profile) -> some View {
+        HStack(spacing: 10) {
+            Text(String(p.name.prefix(3)))
+                .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+                .frame(width: 36, height: 36)
+                .background(Moim.sub).clipShape(RoundedRectangle(cornerRadius: 11))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(p.name).font(.system(size: 13.5, weight: .bold)).foregroundColor(Moim.ink)
+                Text("\(p.memberType) · 비활성").font(.system(size: 11.5)).foregroundColor(Moim.sub)
+            }
+            Spacer()
+            Button { reactivateTarget = p } label: {
+                Text("복구").font(.system(size: 11, weight: .bold)).foregroundColor(.white)
+                    .padding(.horizontal, 12).padding(.vertical, 5)
+                    .background(catColor("work")).clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.vertical, 8)
+        .overlay(Divider().background(Moim.line.opacity(0.5)), alignment: .bottom)
     }
 
     @ViewBuilder

@@ -150,7 +150,7 @@
   /* login */
   #login{flex:1;display:flex;flex-direction:column;justify-content:center;padding:30px}
   #login h1{font-size:34px;font-weight:800}#login .sub{font-size:15px;color:var(--sub);margin-bottom:28px}
-  #login input,#login textarea{width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;font-size:15px;margin-bottom:12px;outline:none;font-family:inherit;box-sizing:border-box}
+  #login input,#login textarea,#reset input{width:100%;border:1px solid var(--line);border-radius:11px;padding:13px;font-size:15px;margin-bottom:12px;outline:none;font-family:inherit;box-sizing:border-box}
   #login .err{color:var(--admin);font-size:13px;margin:6px 0}
   .emptybox{text-align:center;padding:46px 30px;color:var(--sub)}.emptybox .eb{font-size:38px;opacity:.5;margin-bottom:10px}
   .emptybox b{display:block;font-size:15px;color:var(--ink);margin-bottom:6px}
@@ -178,6 +178,18 @@
     <div id="loginNotice" style="color:var(--work);font-size:13px;margin:6px 0"></div>
     <button class="primary" onclick="submitAuth()" id="loginBtn">로그인</button>
     <div id="authToggle" onclick="toggleSignup()" style="text-align:center;margin-top:14px;color:var(--accent);font-weight:700;font-size:13px;cursor:pointer">계정이 없나요?  회원가입</div>
+    <div id="forgotLink" onclick="forgotPassword()" style="text-align:center;margin-top:10px;color:var(--sub);font-size:12.5px;cursor:pointer;text-decoration:underline">비밀번호 재설정</div>
+  </section>
+
+  <!-- PASSWORD RESET (이메일 재설정 링크로 진입) -->
+  <section id="reset" class="hidden" style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:30px">
+    <h2 style="font-size:22px;font-weight:800;margin-bottom:6px">새 비밀번호 설정</h2>
+    <p style="font-size:14px;color:var(--sub);margin-bottom:18px">새로 사용할 비밀번호를 입력하세요.</p>
+    <input id="rpw" type="password" placeholder="새 비밀번호" oninput="updateResetBtn()">
+    <input id="rpw2" type="password" placeholder="새 비밀번호 확인" oninput="updateResetBtn()">
+    <div id="rpwMatch" style="font-size:12px;margin:-6px 0 8px"></div>
+    <div class="err" id="resetErr" style="color:var(--admin);font-size:13px"></div>
+    <button class="primary" id="resetBtn" disabled style="opacity:.5" onclick="saveNewPassword()">비밀번호 변경</button>
   </section>
 
   <!-- PENDING APPROVAL -->
@@ -345,6 +357,9 @@ if(!window.supabase||!window.supabase.createClient){
   throw new Error('Supabase library failed to load');
 }
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// 비밀번호 재설정 링크로 진입했는지 (해시는 supabase 가 비우기 전에 동기적으로 확인)
+let recovering = location.hash.includes('type=recovery');
+sb.auth.onAuthStateChange((event)=>{ if(event==='PASSWORD_RECOVERY'){ recovering=true; show('reset'); } });
 const BUCKET = "room-files";
 
 /* ====== 상태 ====== */
@@ -511,7 +526,7 @@ const isAdmin=()=>me&&(me.role==='superadmin'||me.role==='admin');
 const canEditWard=()=>!!me&&(isAdmin()||['교실','의국','간호사'].includes(me.member_type));
 // 일정 삭제: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 const canDeleteEvent=ev=>!!me&&((ev&&ev.owner_id===me.id)||isAdmin()||['교실','의국','비서','심리실'].includes(me.member_type));
-function show(id){['login','pending','listScreen','roomScreen','wardScreen','adminScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
+function show(id){['login','pending','reset','listScreen','roomScreen','wardScreen','adminScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
 
 /* ====== 공용 확인/알림 대화상자 (브라우저 기본 confirm/alert 대체 → "대화상자 숨기기" 안 뜸) ====== */
 let _uiResolve=null;
@@ -610,6 +625,40 @@ async function submitAuth(){
   }
 }
 async function doLogout(){if(!await uiConfirm('로그아웃 할까요?','로그아웃'))return;stopRealtime();await sb.auth.signOut();me=null;show('login');}
+
+/* ====== 비밀번호 재설정 (이메일 셀프서비스) ====== */
+async function forgotPassword(){
+  const errEl=document.getElementById('loginErr'),noticeEl=document.getElementById('loginNotice');
+  errEl.textContent='';noticeEl.textContent='';
+  let email=document.getElementById('email').value.trim();
+  if(!email.includes('@')){
+    // 핸드폰번호를 입력했으면 이메일로 변환 시도
+    if(email){ const {data:found}=await sb.rpc('moim_email_for_phone',{p_phone:email}); if(found)email=found; }
+  }
+  if(!email||!email.includes('@')){errEl.textContent='가입한 이메일을 입력한 뒤 "비밀번호 재설정"을 누르세요.';return;}
+  const redirect=location.href.split('#')[0];
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:redirect});
+  if(error){errEl.textContent='재설정 메일 발송 실패: '+error.message;return;}
+  noticeEl.textContent=email+' 로 비밀번호 재설정 메일을 보냈습니다. 메일의 링크를 열어 새 비밀번호를 설정하세요.';
+}
+function updateResetBtn(){
+  const a=document.getElementById('rpw').value,b=document.getElementById('rpw2').value;
+  const m=document.getElementById('rpwMatch'),btn=document.getElementById('resetBtn');
+  if(!b){m.textContent='';}
+  else if(a===b){m.textContent='✓ 비밀번호가 일치합니다';m.style.color='var(--work)';}
+  else{m.textContent='비밀번호가 일치하지 않습니다';m.style.color='var(--admin)';}
+  const ok=a.length>=6&&a===b; btn.disabled=!ok; btn.style.opacity=ok?'':'.5';
+}
+async function saveNewPassword(){
+  const errEl=document.getElementById('resetErr');errEl.textContent='';
+  const pw=document.getElementById('rpw').value;
+  if(pw.length<6){errEl.textContent='비밀번호는 6자 이상이어야 합니다.';return;}
+  const {error}=await sb.auth.updateUser({password:pw});
+  if(error){errEl.textContent='변경 실패: '+error.message;return;}
+  await sb.auth.signOut();
+  alert('비밀번호가 변경되었습니다. 새 비밀번호로 로그인하세요.');
+  location.href=location.href.split('#')[0];
+}
 // 본인이 만들지 않은 모임방에서 나가기
 async function leaveRoom(){
   if(!active)return;
@@ -1322,7 +1371,12 @@ function closeModal(id){document.getElementById(id).classList.remove('on');}
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
 
 /* ====== 시작: 기존 세션 있으면 자동 로그인 ====== */
-(async()=>{const {data:{session}}=await sb.auth.getSession();if(session)await loadApp();else show('login');})();
+(async()=>{
+  if(recovering){show('reset');return;}                 // 비밀번호 재설정 링크로 진입 → 새 비번 화면
+  const {data:{session}}=await sb.auth.getSession();
+  if(recovering){show('reset');return;}
+  if(session)await loadApp();else show('login');
+})();
 </script>
 </body>
 </html>

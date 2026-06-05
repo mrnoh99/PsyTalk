@@ -21,12 +21,19 @@ enum MoimRepository {
         try await supabase.auth.signOut()
     }
 
-    /// 회원가입: 이름·직군을 메타데이터로 전달 → 트리거가 profiles 생성
-    static func signUp(email: String, password: String, name: String, memberType: String) async throws {
+    /// 회원가입: 이름·직군·핸드폰·소개를 메타데이터로 전달 → 트리거가 profiles 생성/보강
+    static func signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String) async throws {
         try await supabase.auth.signUp(
             email: email, password: password,
-            data: ["name": .string(name), "member_type": .string(memberType)]
+            data: ["name": .string(name), "member_type": .string(memberType),
+                   "phone": .string(phone), "intro": .string(intro)]
         )
+    }
+
+    /// 핸드폰번호 → 이메일 조회 (핸드폰 로그인용). 없으면 nil
+    static func emailForPhone(_ phone: String) async throws -> String? {
+        let res: String? = try await supabase.rpc("moim_email_for_phone", params: ["p_phone": phone]).execute().value
+        return res
     }
 
     static func myProfile() async throws -> Profile {

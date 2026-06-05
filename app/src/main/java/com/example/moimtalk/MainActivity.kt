@@ -184,11 +184,11 @@ class MoimViewModel : ViewModel() {
         }
     }
 
-    fun signUp(email: String, pw: String, name: String, memberType: String) {
+    fun signUp(email: String, pw: String, name: String, memberType: String, phone: String, intro: String) {
         viewModelScope.launch {
             loading = true; error = null; notice = null
             try {
-                MoimRepository.signUp(email, pw, name, memberType)
+                MoimRepository.signUp(email, pw, name, memberType, phone, intro)
                 if (MoimRepository.currentUserId() != null) {
                     myProfile = MoimRepository.myProfile()
                     rooms = MoimRepository.rooms()
@@ -207,11 +207,15 @@ class MoimViewModel : ViewModel() {
         }
     }
 
-    fun login(email: String, pw: String) {
+    fun login(idInput: String, pw: String) {
         viewModelScope.launch {
             loading = true
             error = null
             try {
+                // 이메일 또는 핸드폰번호 로그인: @ 없으면 핸드폰번호로 보고 이메일을 조회
+                val email = if (idInput.contains("@")) idInput
+                    else MoimRepository.emailForPhone(idInput)
+                        ?: throw Exception("등록되지 않은 핸드폰번호입니다. 이메일로 로그인하거나 번호를 확인하세요.")
                 MoimRepository.signIn(email, pw)
                 try {
                     myProfile = MoimRepository.myProfile()

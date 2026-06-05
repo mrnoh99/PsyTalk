@@ -37,17 +37,25 @@ object MoimRepository {
         supabase.auth.signOut()
     }
 
-    /** 회원가입: 이름·직군을 메타데이터로 전달 → 트리거가 profiles 생성 */
-    suspend fun signUp(email: String, password: String, name: String, memberType: String) {
+    /** 회원가입: 이름·직군·핸드폰·소개를 메타데이터로 전달 → 트리거가 profiles 생성/보강 */
+    suspend fun signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String) {
         supabase.auth.signUpWith(Email) {
             this.email = email
             this.password = password
             data = buildJsonObject {
                 put("name", name)
                 put("member_type", memberType)
+                put("phone", phone)
+                put("intro", intro)
             }
         }
     }
+
+    /** 핸드폰번호 → 이메일 조회 (핸드폰 로그인용). 없으면 null */
+    suspend fun emailForPhone(phone: String): String? = try {
+        supabase.postgrest.rpc("moim_email_for_phone", buildJsonObject { put("p_phone", phone) })
+            .decodeAs<String?>()
+    } catch (_: Exception) { null }
 
     suspend fun myProfile(): Profile {
         val uid = currentUserId() ?: error("Not logged in")

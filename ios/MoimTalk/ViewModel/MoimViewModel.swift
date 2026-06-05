@@ -29,11 +29,11 @@ final class MoimViewModel: ObservableObject {
     @Published var notice: String?
     @Published var loading = false
 
-    func signUp(email: String, password: String, name: String, memberType: String) {
+    func signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String) {
         Task {
             loading = true; error = nil; notice = nil
             do {
-                try await MoimRepository.signUp(email: email, password: password, name: name, memberType: memberType)
+                try await MoimRepository.signUp(email: email, password: password, name: name, memberType: memberType, phone: phone, intro: intro)
                 if MoimRepository.currentUserId() != nil {
                     myProfile = try await MoimRepository.myProfile()
                     rooms = try await MoimRepository.rooms()
@@ -138,10 +138,16 @@ final class MoimViewModel: ObservableObject {
         messagePollTask = nil
     }
 
-    func login(email: String, password: String) {
+    func login(idInput: String, password: String) {
         Task {
             loading = true; error = nil
             do {
+                // 이메일 또는 핸드폰번호 로그인: @ 없으면 핸드폰번호로 보고 이메일을 조회
+                var email = idInput
+                if !idInput.contains("@") {
+                    if let found = try? await MoimRepository.emailForPhone(idInput), let e = found { email = e }
+                    else { throw NSError(domain: "moim", code: 1, userInfo: [NSLocalizedDescriptionKey: "등록되지 않은 핸드폰번호입니다. 이메일로 로그인하거나 번호를 확인하세요."]) }
+                }
                 try await MoimRepository.signIn(email: email, password: password)
                 myProfile = try await MoimRepository.myProfile()
                 rooms = try await MoimRepository.rooms()

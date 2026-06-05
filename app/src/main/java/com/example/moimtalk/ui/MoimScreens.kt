@@ -87,6 +87,8 @@ fun LoginScreen(vm: MoimViewModel) {
     var pw by remember { mutableStateOf("") }
     var signup by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    var intro by remember { mutableStateOf("") }
     var memberType by remember { mutableStateOf("의국") }
     val memberTypes = listOf("교실", "의국", "심리실", "연구실", "PA", "간호사", "SW", "보조원", "생명사랑", "비서", "의국동문", "심리실 동문", "기타")
 
@@ -115,7 +117,7 @@ fun LoginScreen(vm: MoimViewModel) {
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text("이메일") },
+            label = { Text(if (signup) "이메일" else "이메일 또는 핸드폰번호") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
@@ -135,6 +137,21 @@ fun LoginScreen(vm: MoimViewModel) {
                 onValueChange = { name = it },
                 label = { Text("이름") },
                 singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = phone,
+                onValueChange = { phone = it },
+                label = { Text("핸드폰번호 (예: 010-1234-5678)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = intro,
+                onValueChange = { intro = it },
+                label = { Text("간단한 소개 (예: 3년차 전공의)") },
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
@@ -171,7 +188,7 @@ fun LoginScreen(vm: MoimViewModel) {
         Spacer(Modifier.height(22.dp))
         Button(
             onClick = {
-                if (signup) vm.signUp(email.trim(), pw, name.trim(), memberType)
+                if (signup) vm.signUp(email.trim(), pw, name.trim(), memberType, phone.trim(), intro.trim())
                 else vm.login(email.trim(), pw)
             },
             enabled = !vm.loading,

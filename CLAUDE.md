@@ -111,6 +111,9 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
     `auth.users.banned_until` 로 로그인 차단). **leave_account.sql 의 하드삭제를 비활성으로 덮어씀 → 반드시 실행.**
 22. `room_appearance.sql` — **방표식(아바타) 색상·사진**: `rooms.color`(hex)·`rooms.icon_url` 컬럼.
     방 만들 때/이름변경 시 색상 팔레트 선택 + 사진 업로드(공개 `room-files`). 수정 권한은 기존 rooms UPDATE 정책.
+23. `signup_extra_fields.sql` — **가입 추가정보(핸드폰·소개) + 핸드폰/이메일 로그인**: `profiles.intro` 컬럼 +
+    가입 시 메타데이터(phone·intro)를 profiles 에 저장(BEFORE INSERT 트리거) + `moim_email_for_phone(phone)`(핸드폰→이메일,
+    anon 허용). 가입칸=이름·핸드폰·이메일·비밀번호·소개·직군, 로그인=**이메일 또는 핸드폰번호**+비밀번호.
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 회원 8명(직군별). 운영 전 정리.
 

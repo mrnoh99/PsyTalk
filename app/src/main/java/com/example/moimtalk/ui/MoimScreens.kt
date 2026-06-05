@@ -650,12 +650,13 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     var input by remember { mutableStateOf("") }
     var showAttach by remember { mutableStateOf(false) }
     val context = LocalContext.current
-    // 카톡식 + 첨부: 사진 / 파일 선택 → 업로드 후 메시지 전송
+    // 카톡식 + 첨부: 선택하면 '대기'에 담고, 보내기(➤) 누르면 전송. (name, bytes, kind)
+    var pendingAttach by remember { mutableStateOf<Triple<String, ByteArray, String>?>(null) }
     val imgPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) readUri(context, uri)?.let { (n, b) -> vm.sendAttachment(n, b, "image") }
+        if (uri != null) readUri(context, uri)?.let { (n, b) -> pendingAttach = Triple(n, b, "image") }
     }
     val filePicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) readUri(context, uri)?.let { (n, b) -> vm.sendAttachment(n, b, "file") }
+        if (uri != null) readUri(context, uri)?.let { (n, b) -> pendingAttach = Triple(n, b, "file") }
     }
     var showRename by remember { mutableStateOf(false) }
     var renameText by remember { mutableStateOf("") }
@@ -764,12 +765,38 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
         bottomBar = {
             if (tab == "chat") {
                 if (canPost) {
-                    Row(
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .navigationBarsPadding()
                             .imePadding()
                             .background(MoimPaper)
+                    ) {
+                        // 첨부 대기 미리보기 (선택 후 ➤ 누르면 전송)
+                        pendingAttach?.let { (name, _, kind) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 12.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "${if (kind == "image") "🖼" else "📎"}  $name",
+                                    fontSize = 12.5.sp, color = MoimInk,
+                                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    "✕", fontSize = 15.sp, color = MoimAdmin, fontWeight = FontWeight.Bold,
+                                    modifier = Modifier
+                                        .clickable { pendingAttach = null }
+                                        .padding(horizontal = 6.dp)
+                                )
+                            }
+                        }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -810,6 +837,9 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                 .size(33.dp)
                                 .background(MoimYellow, CircleShape)
                                 .clickable {
+                                    pendingAttach?.let { (n, b, k) ->
+                                        vm.sendAttachment(n, b, k); pendingAttach = null
+                                    }
                                     if (input.isNotBlank()) {
                                         vm.send(input.trim())
                                         input = ""
@@ -819,6 +849,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         ) {
                             Text("➤", fontSize = 14.sp)
                         }
+                    }
                     }
                 } else {
                     Box(

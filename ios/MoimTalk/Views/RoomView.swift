@@ -16,6 +16,8 @@ struct RoomView: View {
     @State private var pickPhoto = false
     @State private var pickFile = false
     @State private var photoItem: PhotosPickerItem?
+    // 선택 후 ➤ 누르면 전송 (name, data, type)
+    @State private var pendingAttach: (name: String, data: Data, type: String)?
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
@@ -155,32 +157,49 @@ struct ChatView: View {
 
     @ViewBuilder private var chatInputBar: some View {
         if canPost {
-            HStack(spacing: 8) {
-                Menu {
-                    Button { pickPhoto = true } label: { Label("사진", systemImage: "photo") }
-                    Button { pickFile = true } label: { Label("파일", systemImage: "paperclip") }
-                } label: {
-                    Text("＋").font(.system(size: 20)).foregroundColor(Moim.sub)
-                        .frame(width: 33, height: 33).background(Moim.white).clipShape(Circle())
+            VStack(spacing: 0) {
+                if let p = pendingAttach {
+                    HStack(spacing: 8) {
+                        Text("\(p.type == "image" ? "🖼" : "📎")  \(p.name)")
+                            .font(.system(size: 12.5)).foregroundColor(Moim.ink).lineLimit(1)
+                        Spacer()
+                        Button { pendingAttach = nil } label: {
+                            Text("✕").font(.system(size: 15, weight: .bold)).foregroundColor(Moim.admin)
+                        }
+                    }
+                    .padding(.horizontal, 12).padding(.top, 8)
                 }
-                TextField("메시지 입력", text: $input)
-                    .textFieldStyle(.roundedBorder)
-                Button {
-                    let t = input.trimmingCharacters(in: .whitespaces)
-                    if !t.isEmpty { vm.send(t); input = "" }
-                } label: {
-                    Text("➤").font(.system(size: 14))
-                        .frame(width: 33, height: 33).background(Moim.yellow).clipShape(Circle())
+                HStack(spacing: 8) {
+                    Menu {
+                        Button { pickPhoto = true } label: { Label("사진", systemImage: "photo") }
+                        Button { pickFile = true } label: { Label("파일", systemImage: "paperclip") }
+                    } label: {
+                        Text("＋").font(.system(size: 20)).foregroundColor(Moim.sub)
+                            .frame(width: 33, height: 33).background(Moim.white).clipShape(Circle())
+                    }
+                    TextField("메시지 입력", text: $input)
+                        .textFieldStyle(.roundedBorder)
+                    Button {
+                        if let p = pendingAttach {
+                            vm.sendAttachment(fileName: p.name, data: p.data, type: p.type)
+                            pendingAttach = nil
+                        }
+                        let t = input.trimmingCharacters(in: .whitespaces)
+                        if !t.isEmpty { vm.send(t); input = "" }
+                    } label: {
+                        Text("➤").font(.system(size: 14))
+                            .frame(width: 33, height: 33).background(Moim.yellow).clipShape(Circle())
+                    }
                 }
+                .padding(.horizontal, 12).padding(.vertical, 9)
             }
-            .padding(.horizontal, 12).padding(.vertical, 9)
             .background(Moim.paper)
             .photosPicker(isPresented: $pickPhoto, selection: $photoItem, matching: .images)
             .onChange(of: photoItem) { newItem in
                 guard let newItem else { return }
                 Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self) {
-                        vm.sendAttachment(fileName: "photo_\(Int(Date().timeIntervalSince1970)).jpg", data: data, type: "image")
+                        pendingAttach = (name: "photo_\(Int(Date().timeIntervalSince1970)).jpg", data: data, type: "image")
                     }
                     photoItem = nil
                 }
@@ -190,7 +209,7 @@ struct ChatView: View {
                     let access = url.startAccessingSecurityScopedResource()
                     defer { if access { url.stopAccessingSecurityScopedResource() } }
                     if let data = try? Data(contentsOf: url) {
-                        vm.sendAttachment(fileName: url.lastPathComponent, data: data, type: "file")
+                        pendingAttach = (name: url.lastPathComponent, data: data, type: "file")
                     }
                 }
             }

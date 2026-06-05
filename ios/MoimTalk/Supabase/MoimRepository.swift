@@ -138,13 +138,13 @@ enum MoimRepository {
         try await supabase.from("messages").insert(payload).execute()
     }
 
-    /// 카톡식 첨부 전송: 비공개 chat-files 업로드 후 path 를 담아 메시지 삽입 (type = image | file)
+    /// 카톡식 첨부 전송: 공개 room-files 업로드 후 공개 URL 을 담아 메시지 삽입 (type = image | file)
     static func sendAttachment(roomId: String, fileName: String, data: Data, type: String) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
-        let path = try await uploadChatFile(roomId: roomId, fileName: fileName, data: data)
+        let url = try await uploadToStorage(roomId: roomId, fileName: fileName, data: data)
         let payload = MessageInsert(
             roomId: roomId, senderId: uid, content: nil, type: type,
-            attachmentUrl: path, attachmentName: fileName
+            attachmentUrl: url, attachmentName: fileName
         )
         try await supabase.from("messages").insert(payload).execute()
     }
@@ -266,16 +266,7 @@ enum MoimRepository {
         return try bucket.getPublicURL(path: path).absoluteString
     }
 
-    /// 채팅 첨부를 비공개 'chat-files' 버킷에 올리고 path 반환 (공개 URL 아님)
-    static func uploadChatFile(roomId: String, fileName: String, data: Data) async throws -> String {
-        let safe = fileName.replacingOccurrences(
-            of: "[^A-Za-z0-9._가-힣-]", with: "_", options: .regularExpression)
-        let path = "\(roomId)/\(Int(Date().timeIntervalSince1970 * 1000))_\(safe)"
-        try await supabase.storage.from(chatBucket).upload(path, data: data, options: FileOptions(upsert: true))
-        return path
-    }
-
-    /// 채팅 첨부 path → 1시간 서명 URL (비구성원은 RLS 로 발급 실패 → nil). 레거시 http URL 은 그대로.
+    /// 첨부 URL 통과(공개 URL 이면 그대로, 과거 비공개 path 면 서명 URL 발급)
     static func chatSignedUrl(_ path: String) async -> String? {
         if path.hasPrefix("http") { return path }
         return try? await supabase.storage.from(chatBucket)

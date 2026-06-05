@@ -89,9 +89,9 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 11. `signup_unapproved.sql` — **새 가입자는 불승인(approved=false)으로 시작** 강제(트리거) + superadmin 유지
 12. `protect_superadmin.sql` — **전체관리자(jsnoh@ajou.ac.kr) 고정·보호**: superadmin+승인으로 보정 후
     누구도 퇴출(미승인)·강등·삭제 불가(BEFORE INSERT/UPDATE/DELETE 트리거)
-13. `chat_attachments.sql` — **채팅 첨부(사진/파일)**: messages 에 `type`·`attachment_url`(=path)·`attachment_name`
-    컬럼 추가. **비공개 `chat-files` 버킷 + RLS(방 가시성 규칙)** → **그 방 구성원만 다운로드**.
-    클라이언트는 path 저장 후 `createSignedUrl` 로 서명 URL 발급(비구성원은 발급 불가). 카톡식 `+` 첨부.
+13. `chat_attachments.sql` — **채팅 첨부(사진/파일)**: messages 에 `type`·`attachment_url`(공개 URL)·`attachment_name`
+    컬럼 추가. 파일은 **공개 `room-files` 버킷**에 저장(누구나 URL 다운로드).
+    카톡식 `+` 로 사진/파일 **선택 → 미리보기 → ➤(보내기) 눌러야 전송**.
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
 

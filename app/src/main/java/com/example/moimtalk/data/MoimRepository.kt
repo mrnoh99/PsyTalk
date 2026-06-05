@@ -124,14 +124,14 @@ object MoimRepository {
         )
     }
 
-    /** 카톡식 첨부 전송: 비공개 chat-files 업로드 후 path 를 담아 메시지 삽입 (type = image | file) */
+    /** 카톡식 첨부 전송: 공개 room-files 업로드 후 공개 URL 을 담아 메시지 삽입 (type = image | file) */
     suspend fun sendAttachment(roomId: String, fileName: String, bytes: ByteArray, type: String) {
         val uid = currentUserId() ?: error("Not logged in")
-        val path = uploadChatFile(roomId, fileName, bytes)
+        val url = uploadToStorage(roomId, fileName, bytes)
         supabase.from("messages").insert(
             MessageInsert(
                 roomId = roomId, senderId = uid, content = null, type = type,
-                attachmentUrl = path, attachmentName = fileName,
+                attachmentUrl = url, attachmentName = fileName,
             )
         )
     }
@@ -299,15 +299,7 @@ object MoimRepository {
         return bucket.publicUrl(path)
     }
 
-    /** 채팅 첨부를 비공개 'chat-files' 버킷에 올리고 path 를 반환 (공개 URL 아님) */
-    private suspend fun uploadChatFile(roomId: String, fileName: String, bytes: ByteArray): String {
-        val safe = fileName.replace(Regex("[^A-Za-z0-9._가-힣-]"), "_")
-        val path = "$roomId/${System.currentTimeMillis()}_$safe"
-        supabase.storage.from(CHAT_BUCKET).upload(path, bytes) { upsert = true }
-        return path
-    }
-
-    /** 채팅 첨부 path → 1시간 서명 URL (비구성원은 RLS 로 발급 실패 → null). 레거시 http URL 은 그대로. */
+    /** 첨부 URL 통과(공개 URL 이면 그대로, 과거 비공개 path 면 서명 URL 발급) */
     suspend fun chatSignedUrl(path: String): String? = try {
         if (path.startsWith("http")) path
         else supabase.storage.from(CHAT_BUCKET).createSignedUrl(path, 1.hours)

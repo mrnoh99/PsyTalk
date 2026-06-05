@@ -21,6 +21,8 @@ final class MoimViewModel: ObservableObject {
     @Published var unreadByMsg: [String: Int] = [:]
     // 방별 마지막 메시지 (방 목록 미리보기)
     @Published var lastMsgByRoom: [String: LastMsg] = [:]
+    // 개인 고정 방 순서 (room id, 최대 5)
+    @Published var roomPins: [String] = []
     @Published var error: String?
     @Published var notice: String?
     @Published var loading = false
@@ -172,6 +174,7 @@ final class MoimViewModel: ObservableObject {
                 loadRoomMemberCounts()
                 loadUnreadCounts()
                 loadLastMessages()
+                loadRoomPins()
                 if let list = try? await MoimRepository.allProfiles() {
                     profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                 }
@@ -227,6 +230,18 @@ final class MoimViewModel: ObservableObject {
     /// 방별 마지막 메시지 갱신 (방 목록)
     func loadLastMessages() {
         Task { do { lastMsgByRoom = try await MoimRepository.roomLastMessages() } catch {} }
+    }
+
+    /// 개인 고정 방 순서 불러오기
+    func loadRoomPins() {
+        Task { do { roomPins = try await MoimRepository.roomPins() } catch {} }
+    }
+    /// 고정 방 순서 저장 (최대 5)
+    func saveRoomPins(_ ids: [String]) {
+        Task {
+            do { try await MoimRepository.setRoomPins(ids); roomPins = Array(ids.prefix(5)) }
+            catch { self.error = "방 순서 저장: \(error.localizedDescription)" }
+        }
     }
 
     /// 현재 방 읽음 처리 + 안읽은 수 갱신

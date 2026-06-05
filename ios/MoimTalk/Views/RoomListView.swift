@@ -6,6 +6,7 @@ struct RoomListView: View {
     let onAdmin: () -> Void
     let onWard: () -> Void
     let onCreateRoom: () -> Void
+    @State private var showPinSettings = false
 
     private var pendingApprovalCount: Int {
         vm.profilesById.values.filter { $0.approved == false }.count
@@ -15,8 +16,18 @@ struct RoomListView: View {
     private var weekRoom: Room? {
         vm.rooms.first { $0.category != "custom" && $0.defaultView == "week" }
     }
+    // 고정(핀) 우선 + 나머지는 최근 메시지순
     private var listRooms: [Room] {
-        vm.rooms.filter { $0.id != weekRoom?.id }.sorted { $0.sortOrder < $1.sortOrder }
+        let flat = vm.rooms.filter { $0.id != weekRoom?.id }
+        let pinned = vm.roomPins.compactMap { id in flat.first { $0.id == id } }
+        let pinnedIds = Set(pinned.map { $0.id })
+        let rest = flat.filter { !pinnedIds.contains($0.id) }.sorted {
+            let a = vm.lastMsgByRoom[$0.id]?.createdAt ?? ""
+            let b = vm.lastMsgByRoom[$1.id]?.createdAt ?? ""
+            if a != b { return a > b }
+            return $0.sortOrder < $1.sortOrder
+        }
+        return pinned + rest
     }
 
     var body: some View {
@@ -49,10 +60,14 @@ struct RoomListView: View {
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Moim.yellow).clipShape(Capsule())
                 Spacer()
+                Button { showPinSettings = true } label: { Text("⚙️").font(.system(size: 16)) }
                 Button("로그아웃") { vm.logout() }.font(.system(size: 12))
             }
             .padding(.horizontal, 18).padding(.vertical, 14)
             Divider().background(Moim.line)
+        }
+        .sheet(isPresented: $showPinSettings) {
+            PinSettingsView(vm: vm, rooms: vm.rooms.filter { $0.id != weekRoom?.id })
         }
         .background(Moim.paper)
     }
@@ -243,5 +258,59 @@ struct EmptyBox: View {
                 .font(.system(size: 13)).foregroundColor(Moim.sub)
         }
         .frame(maxWidth: .infinity).padding(.vertical, 50).padding(.horizontal, 30)
+    }
+}
+
+// 방 순서(핀) 설정 — 최대 5개 고정·재정렬
+struct PinSettingsView: View {
+    @ObservedObject var vm: MoimViewModel
+    let rooms: [Room]
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft: [String] = []
+
+    var body: some View {
+        NavigationView {
+            List {
+                Section("고정된 방 (\(draft.count)/5)") {
+                    if draft.isEmpty {
+                        Text("고정된 방 없음").foregroundColor(Moim.sub).font(.system(size: 13))
+                    }
+                    ForEach(Array(draft.enumerated()), id: \.element) { idx, id in
+                        if let r = rooms.first(where: { $0.id == id }) {
+                            HStack {
+                                Text("\(idx + 1). \(r.name)").lineLimit(1)
+                                Spacer()
+                                Button { move(idx, -1) } label: { Image(systemName: "arrow.up") }.buttonStyle(.borderless)
+                                Button { move(idx, 1) } label: { Image(systemName: "arrow.down") }.buttonStyle(.borderless)
+                                Button(role: .destructive) { draft.removeAll { $0 == id } } label: { Image(systemName: "xmark") }.buttonStyle(.borderless)
+                            }
+                        }
+                    }
+                }
+                Section("방 목록") {
+                    ForEach(rooms.filter { !draft.contains($0.id) }) { r in
+                        HStack {
+                            Text(r.name).lineLimit(1)
+                            Spacer()
+                            Button("📌 고정") { if draft.count < 5 { draft.append(r.id) } }
+                                .buttonStyle(.borderless)
+                                .disabled(draft.count >= 5)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("방 순서 설정")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
+                ToolbarItem(placement: .confirmationAction) { Button("저장") { vm.saveRoomPins(draft); dismiss() } }
+            }
+            .onAppear { draft = vm.roomPins.filter { id in rooms.contains { $0.id == id } } }
+        }
+    }
+    private func move(_ i: Int, _ d: Int) {
+        let j = i + d
+        guard j >= 0 && j < draft.count else { return }
+        draft.swapAt(i, j)
     }
 }

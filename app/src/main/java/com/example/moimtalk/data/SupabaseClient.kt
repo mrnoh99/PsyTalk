@@ -100,6 +100,10 @@ data class LastMsg(
     @SerialName("created_at") val createdAt: String? = null,
 )
 
+// 개인 고정 방 (순서)
+@Serializable
+data class RoomPinRow(@SerialName("room_id") val roomId: String)
+
 // 읽음 추적 RPC 결과
 @Serializable
 data class UnreadRoomRow(@SerialName("room_id") val roomId: String, val cnt: Long)

@@ -154,6 +154,16 @@ enum MoimRepository {
         return Dictionary(rows.map { ($0.roomId, $0) }, uniquingKeysWith: { a, _ in a })
     }
 
+    // 개인 고정 방 순서
+    static func roomPins() async throws -> [String] {
+        let rows: [RoomPinRow] = try await supabase.from("room_pins")
+            .select("room_id, position").order("position").execute().value
+        return rows.map { $0.roomId }
+    }
+    static func setRoomPins(_ ids: [String]) async throws {
+        try await supabase.rpc("moim_set_room_pins", params: ["p_rooms": Array(ids.prefix(5))]).execute()
+    }
+
     static func sendMessage(roomId: String, text: String) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
         let payload = MessageInsert(roomId: roomId, senderId: uid, content: text)

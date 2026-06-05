@@ -8,6 +8,8 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 import kotlin.time.Duration.Companion.hours
+import kotlinx.serialization.json.add
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -143,6 +145,19 @@ object MoimRepository {
     suspend fun roomLastMessages(): Map<String, LastMsg> =
         supabase.postgrest.rpc("moim_room_last_messages")
             .decodeList<LastMsg>().associateBy { it.roomId }
+
+    /** 개인 고정 방 순서 (room id 목록) */
+    suspend fun roomPins(): List<String> =
+        supabase.from("room_pins").select(Columns.list("room_id", "position")) {
+            order("position", Order.ASCENDING)
+        }.decodeList<RoomPinRow>().map { it.roomId }
+
+    /** 고정 방 순서 저장 (최대 5, 배열 순서) */
+    suspend fun setRoomPins(ids: List<String>) {
+        supabase.postgrest.rpc("moim_set_room_pins", buildJsonObject {
+            put("p_rooms", buildJsonArray { ids.take(5).forEach { add(it) } })
+        })
+    }
 
     /** 방의 메시지별 안읽은 사람 수 */
     suspend fun messageUnreadCounts(roomId: String): Map<String, Int> =

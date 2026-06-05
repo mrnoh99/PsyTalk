@@ -101,6 +101,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
     일정 삭제=작성자/관리자/직군(교실·의국·비서·심리실). `moim_my_member_type()` 헬퍼. (일정 작성은 누구나)
 18. `room_last_messages.sql` — **방 목록 마지막 메시지**: `moim_room_last_messages()`(방별 최근 1건).
     방이름 아래 미리보기 + 우측 시간(오늘=HH:mm/이전=M/d)에 사용.
+19. `room_pins.sql` — **방 순서 개인 고정**: `room_pins`(user·room·position) + `moim_set_room_pins(uuid[])`.
+    방목록 헤더 ⚙️로 최대 5개 고정·순서, 나머지는 최근 메시지순.
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
 

@@ -440,7 +440,21 @@ fun RoomListScreen(
     val profile = vm.myProfile
     // 주간 학술활동(default_view=week)은 목록에서 빼고 별도 바로 표시. 나머지는 전체방(첫번째)+모임방 평면 목록.
     val weekRoom = vm.rooms.firstOrNull { it.category != "custom" && it.defaultView == "week" }
-    val listRooms = vm.rooms.filter { it.id != weekRoom?.id }.sortedBy { it.sortOrder }
+    // 고정(핀) 우선 + 나머지는 최근 메시지순
+    val flatRooms = vm.rooms.filter { it.id != weekRoom?.id }
+    val pinnedRooms = vm.roomPins.mapNotNull { id -> flatRooms.find { it.id == id } }
+    val pinnedIds = pinnedRooms.map { it.id }.toSet()
+    val listRooms = pinnedRooms + flatRooms.filter { it.id !in pinnedIds }
+        .sortedWith(compareByDescending<Room> { vm.lastMsgByRoom[it.id]?.createdAt ?: "" }.thenBy { it.sortOrder })
+    var showPinSettings by remember { mutableStateOf(false) }
+    if (showPinSettings) {
+        PinSettingsDialog(
+            rooms = flatRooms,
+            pins = vm.roomPins,
+            onSave = { vm.saveRoomPins(it); showPinSettings = false },
+            onDismiss = { showPinSettings = false }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -464,6 +478,7 @@ fun RoomListScreen(
                     )
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = { vm.loadRooms() }) { Text("↻", fontSize = 17.sp) }
+                    TextButton(onClick = { showPinSettings = true }) { Text("⚙️", fontSize = 15.sp) }
                     TextButton(onClick = { vm.logout() }) { Text("로그아웃", fontSize = 12.sp) }
                 }
                 HorizontalDivider(color = MoimLine)
@@ -1152,6 +1167,65 @@ private fun CreateRoomButton(onClick: () -> Unit) {
                 .padding(horizontal = 14.dp, vertical = 8.dp)
         )
     }
+}
+
+// 방 순서(핀) 설정 — 최대 5개 고정·재정렬
+@Composable
+private fun PinSettingsDialog(
+    rooms: List<Room>,
+    pins: List<String>,
+    onSave: (List<String>) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var draft by remember { mutableStateOf(pins.filter { id -> rooms.any { it.id == id } }) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("방 순서 설정") },
+        text = {
+            Column(modifier = Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
+                Text("상단에 고정할 방 최대 5개. 나머지는 새 메시지 순.", fontSize = 12.sp, color = MoimSub)
+                Spacer(Modifier.height(8.dp))
+                Text("고정된 방 (${draft.size}/5)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+                if (draft.isEmpty()) Text("고정된 방 없음", fontSize = 13.sp, color = MoimSub, modifier = Modifier.padding(vertical = 4.dp))
+                draft.forEachIndexed { i, id ->
+                    val r = rooms.find { it.id == id } ?: return@forEachIndexed
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text("${i + 1}. ${r.name}", fontSize = 14.sp, color = MoimInk, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        PinIcon("▲") { if (i > 0) { val m = draft.toMutableList(); val t = m[i]; m[i] = m[i - 1]; m[i - 1] = t; draft = m } }
+                        PinIcon("▼") { if (i < draft.size - 1) { val m = draft.toMutableList(); val t = m[i]; m[i] = m[i + 1]; m[i + 1] = t; draft = m } }
+                        PinIcon("✕", MoimAdmin) { draft = draft.filter { it != id } }
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text("방 목록", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+                rooms.filter { it.id !in draft }.forEach { r ->
+                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(r.name, fontSize = 14.sp, color = MoimInk, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        val enabled = draft.size < 5
+                        Text(
+                            "📌 고정", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                            color = if (enabled) MoimAccent else MoimSub.copy(alpha = 0.4f),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .then(if (enabled) Modifier.clickable { draft = draft + r.id } else Modifier)
+                                .background(MoimBg, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(draft) }) { Text("저장", fontWeight = FontWeight.Bold) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } }
+    )
+}
+
+@Composable
+private fun PinIcon(t: String, color: Color = MoimAccent, onClick: () -> Unit) {
+    Text(
+        t, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color,
+        modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 4.dp)
+    )
 }
 
 // 잔여 병실 현황 — 메모 형식 자유 텍스트 (편집 → 게시, 모두에게 공유)

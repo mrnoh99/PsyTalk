@@ -111,6 +111,12 @@ struct LastMsg: Decodable {
     }
 }
 
+// 개인 고정 방 (순서)
+struct RoomPinRow: Decodable {
+    let roomId: String
+    enum CodingKeys: String, CodingKey { case roomId = "room_id" }
+}
+
 // 읽음 추적 RPC 결과
 struct UnreadRoomRow: Decodable {
     let roomId: String

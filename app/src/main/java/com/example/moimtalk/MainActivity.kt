@@ -62,6 +62,8 @@ class MoimViewModel : ViewModel() {
     var unreadByMsg by mutableStateOf<Map<String, Int>>(emptyMap())
     // 방별 마지막 메시지 (방 목록 미리보기)
     var lastMsgByRoom by mutableStateOf<Map<String, LastMsg>>(emptyMap())
+    // 개인 고정 방 순서 (room id, 최대 5)
+    var roomPins by mutableStateOf<List<String>>(emptyList())
     var error by mutableStateOf<String?>(null)
     var notice by mutableStateOf<String?>(null)
     var loading by mutableStateOf(false)
@@ -256,6 +258,7 @@ class MoimViewModel : ViewModel() {
                 loadRoomMemberCounts()
                 loadUnreadCounts()
                 loadLastMessages()
+                loadRoomPins()
                 try {
                     profilesById = MoimRepository.allProfiles().associateBy { it.id }
                 } catch (_: Exception) {
@@ -597,6 +600,21 @@ class MoimViewModel : ViewModel() {
     fun loadLastMessages() {
         viewModelScope.launch {
             try { lastMsgByRoom = MoimRepository.roomLastMessages() } catch (_: Exception) {}
+        }
+    }
+
+    /** 개인 고정 방 순서 불러오기 */
+    fun loadRoomPins() {
+        viewModelScope.launch {
+            try { roomPins = MoimRepository.roomPins() } catch (_: Exception) {}
+        }
+    }
+
+    /** 고정 방 순서 저장 (최대 5) */
+    fun saveRoomPins(ids: List<String>) {
+        viewModelScope.launch {
+            try { MoimRepository.setRoomPins(ids); roomPins = ids.take(5) }
+            catch (e: Exception) { error = friendlySupabaseError(e, "방 순서 저장") }
         }
     }
 

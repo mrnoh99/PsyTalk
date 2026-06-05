@@ -73,4 +73,7 @@ dependencies {
 
     // --- 이미지 로딩 (채팅 사진 첨부 표시) ---
     implementation("io.coil-kt:coil-compose:2.7.0")
+
+    // --- 푸시 알림 (OneSignal) ---
+    implementation("com.onesignal:OneSignal:5.1.6")
 }

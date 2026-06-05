@@ -128,6 +128,10 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
   **구성원 초대·제거 + 자신이 만든 방 삭제** 가능. 방 삭제 권한 = 생성자 또는 superadmin (`room_manage.sql`).
 
 ## 아직 앱에 없는 것 (우선순위 참고)
-멀티 방 게시 · `room_writers`(방 작성자 지정) 연동 ·
-방 목록의 마지막 메시지·안 읽음 배지
-(모임방 생성 ✅ 카톡식 누구나 · 관리자 콘솔 ✅ iPad/Mac superadmin: 조회+역할지정)
+멀티 방 게시 · `room_writers`(방 작성자 지정) 연동
+(안 읽음 배지 ✅ · 메시지별 안읽은 수 ✅ · 캘린더 이동/복귀 ✅)
+
+## 푸시 알림 (OneSignal)
+- 앱 코드(iOS `Push.swift`·Android `Push.kt`·`MoimApp`)와 발송 함수(`supabase/functions/notify-message`)는 구현됨.
+- **외부 설정 필요**(OneSignal 가입·Apple APNs 키·Firebase FCM·App ID 교체·Edge Function 배포·Database Webhook):
+  **`docs/PUSH_SETUP.md`** 단계대로. 새 메시지 → 방 구성원(보낸이 제외)에게 푸시.

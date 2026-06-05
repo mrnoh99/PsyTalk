@@ -2,7 +2,7 @@ name: Deploy web to GitHub Pages
 
 # web/ 폴더(단일 HTML 웹앱)를 GitHub Pages 로 배포합니다.
 # 최초 1회: 저장소 Settings → Pages → Source 를 "GitHub Actions" 로 설정해야 합니다.
-# 이후 main 의 web/ 가 바뀔 때마다 자동 배포 → https://mrnoh99.github.io/psytalk/
+# 이후 main 의 web/ 가 바뀔 때마다 자동 배포 → https://mrnoh99.github.io/PsyTalk/  (대소문자 정확히)
 
 on:
   push:

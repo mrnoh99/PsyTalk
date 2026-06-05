@@ -1,7 +1,9 @@
 package com.example.moimtalk.ui
 
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
@@ -517,12 +519,7 @@ private fun RoomManageRow(r: Room, count: Int, onManage: (Room) -> Unit) {
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier.size(40.dp).background(catColor(r.category), RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(r.name, color = Color.White, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(2.dp))
-        }
+        RoomAvatar(r, 40, 12, 8.5)
         Spacer(Modifier.width(11.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(r.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
@@ -681,8 +678,85 @@ private fun SectionHead(title: String, action: String? = null, onAction: (() -> 
 }
 
 @Composable
+@Composable
+fun ColorSwatchRow(selected: String?, onPick: (String) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        ROOM_COLORS.forEach { hex ->
+            val sel = hex.equals(selected, ignoreCase = true)
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(parseHexColor(hex) ?: MoimSub)
+                    .border(if (sel) 3.dp else 0.dp, if (sel) MoimInk else Color.Transparent, RoundedCornerShape(8.dp))
+                    .clickable { onPick(hex) }
+            )
+        }
+    }
+}
+
+// 방표식(색상·사진) 편집기 — 생성/이름변경 공통
+@Composable
+fun RoomAppearancePicker(
+    name: String,
+    color: String,
+    onColor: (String) -> Unit,
+    iconUri: Uri?,
+    existingIconUrl: String?,
+    onPickPhoto: () -> Unit,
+    onClearPhoto: () -> Unit,
+) {
+    Text("방표식 색상", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+    Spacer(Modifier.height(6.dp))
+    ColorSwatchRow(color, onColor)
+    Spacer(Modifier.height(10.dp))
+    Text("방표식 사진 (선택)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+    Spacer(Modifier.height(6.dp))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        val shape = RoundedCornerShape(12.dp)
+        val img: Any? = iconUri ?: existingIconUrl
+        if (img != null) {
+            AsyncImage(model = img, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(44.dp).clip(shape))
+        } else {
+            Box(modifier = Modifier.size(44.dp).background(parseHexColor(color) ?: MoimSub, shape), contentAlignment = Alignment.Center) {
+                Text(name.ifBlank { "방" }.take(3), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+        Spacer(Modifier.width(10.dp))
+        TextButton(onClick = onPickPhoto) { Text("사진 선택") }
+        if (img != null) TextButton(onClick = onClearPhoto) { Text("제거", color = MoimAdmin) }
+    }
+}
+
+@Composable
+fun RoomAvatar(room: Room, sizeDp: Int, cornerDp: Int, fontSp: Double) {
+    val shape = RoundedCornerShape(cornerDp.dp)
+    if (!room.iconUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = room.iconUrl,
+            contentDescription = room.name,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.size(sizeDp.dp).clip(shape)
+        )
+    } else {
+        Box(
+            modifier = Modifier.size(sizeDp.dp).background(roomColor(room), shape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                room.name, color = Color.White, fontWeight = FontWeight.ExtraBold,
+                fontSize = fontSp.sp, lineHeight = (fontSp + 1.5).sp, textAlign = TextAlign.Center,
+                maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(horizontal = 3.dp)
+            )
+        }
+    }
+}
+
+@Composable
 fun RoomRow(room: Room, unread: Int = 0, lastMsg: LastMsg? = null, onOpen: (Room) -> Unit) {
-    val c = catColor(room.category)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -690,24 +764,7 @@ fun RoomRow(room: Room, unread: Int = 0, lastMsg: LastMsg? = null, onOpen: (Room
             .padding(horizontal = 18.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .background(c, RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                room.name,
-                color = Color.White,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 10.5.sp,
-                lineHeight = 12.sp,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(horizontal = 3.dp)
-            )
-        }
+        RoomAvatar(room, 48, 16, 10.5)
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -768,6 +825,15 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     }
     var showRename by remember { mutableStateOf(false) }
     var renameText by remember { mutableStateOf("") }
+    // 방표식(색상·사진) 편집 상태
+    var editColor by remember { mutableStateOf(ROOM_COLORS[1]) }
+    var editIconUri by remember { mutableStateOf<Uri?>(null) }
+    var editIconBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var editIconName by remember { mutableStateOf<String?>(null) }
+    var editIconCleared by remember { mutableStateOf(false) }
+    val iconPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) { editIconUri = uri; editIconCleared = false; readUri(context, uri)?.let { (n, b) -> editIconName = n; editIconBytes = b } }
+    }
     var showSettings by remember { mutableStateOf(false) }
     var showLeave by remember { mutableStateOf(false) }
     val profile = vm.myProfile
@@ -803,18 +869,29 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     if (showRename) {
         AlertDialog(
             onDismissRequest = { showRename = false },
-            title = { Text("방 이름 변경") },
+            title = { Text("방 정보 변경") },
             text = {
-                OutlinedTextField(
-                    value = renameText,
-                    onValueChange = { renameText = it },
-                    singleLine = true,
-                    label = { Text("방 이름") }
-                )
+                Column {
+                    OutlinedTextField(
+                        value = renameText,
+                        onValueChange = { renameText = it },
+                        singleLine = true,
+                        label = { Text("방 이름") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Spacer(Modifier.height(14.dp))
+                    RoomAppearancePicker(
+                        name = renameText, color = editColor, onColor = { editColor = it },
+                        iconUri = editIconUri,
+                        existingIconUrl = if (editIconCleared) null else liveRoom.iconUrl,
+                        onPickPhoto = { iconPicker.launch("image/*") },
+                        onClearPhoto = { editIconUri = null; editIconBytes = null; editIconName = null; editIconCleared = true }
+                    )
+                }
             },
             confirmButton = {
                 TextButton(onClick = {
-                    vm.renameRoom(liveRoom, renameText)
+                    vm.updateRoomAppearance(liveRoom, renameText, editColor, editIconBytes, editIconName, editIconCleared)
                     showRename = false
                 }) { Text("저장") }
             },
@@ -841,8 +918,10 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         if (canRenameRoom(profile, liveRoom)) {
                             TextButton(onClick = {
                                 renameText = liveRoom.name
+                                editColor = liveRoom.color ?: ROOM_COLORS[1]
+                                editIconUri = null; editIconBytes = null; editIconName = null; editIconCleared = false
                                 showRename = true
-                            }) { Text("✏️", fontSize = 17.sp) }
+                            }) { Text("이름변경", fontSize = 13.sp, color = MoimAccent, fontWeight = FontWeight.Bold) }
                         }
                         if (canManageRoom(profile, liveRoom)) {
                             TextButton(onClick = {
@@ -1650,6 +1729,14 @@ fun RoomSettingsDialog(
 fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var selected by remember { mutableStateOf(setOf<String>()) }
+    var color by remember { mutableStateOf(ROOM_COLORS[1]) }
+    var iconUri by remember { mutableStateOf<Uri?>(null) }
+    var iconBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var iconName by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val iconPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) { iconUri = uri; readUri(context, uri)?.let { (n, b) -> iconName = n; iconBytes = b } }
+    }
     val people = vm.otherProfiles()
 
     Scaffold(
@@ -1677,6 +1764,13 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 placeholder = { Text("방 이름 (예: 우울증 연구모임)") },
                 singleLine = true,
                 shape = RoundedCornerShape(11.dp)
+            )
+            Spacer(Modifier.height(14.dp))
+            RoomAppearancePicker(
+                name = name, color = color, onColor = { color = it },
+                iconUri = iconUri, existingIconUrl = null,
+                onPickPhoto = { iconPicker.launch("image/*") },
+                onClearPhoto = { iconUri = null; iconBytes = null; iconName = null }
             )
             Spacer(Modifier.height(14.dp))
             Text("참여 회원 선택", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
@@ -1729,7 +1823,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
             Button(
                 onClick = {
                     val nm = name.trim().ifBlank { "새 모임방" }
-                    vm.createRoom(nm, selected.toList()) { onBack() }
+                    vm.createRoom(nm, selected.toList(), color, iconBytes, iconName) { onBack() }
                 },
                 modifier = Modifier
                     .fillMaxWidth()

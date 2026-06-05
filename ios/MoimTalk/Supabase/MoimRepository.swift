@@ -73,11 +73,13 @@ enum MoimRepository {
 
     /// 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 회원) 등록
     @discardableResult
-    static func createRoom(name: String, memberIds: [String]) async throws -> String {
+    static func createRoom(name: String, memberIds: [String], color: String? = nil, iconData: Data? = nil, iconName: String? = nil) async throws -> String {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
         let roomId = UUID().uuidString.lowercased()
         let order = Int(Date().timeIntervalSince1970)
-        let room = RoomInsert(id: roomId, name: name, sortOrder: order, createdBy: uid)
+        var iconUrl: String? = nil
+        if let d = iconData { iconUrl = try await uploadToStorage(roomId: roomId, fileName: iconName ?? "icon.png", data: d) }
+        let room = RoomInsert(id: roomId, name: name, sortOrder: order, createdBy: uid, color: color, iconUrl: iconUrl)
         try await supabase.from("rooms").insert(room).execute()
         let ids = Array(Set(memberIds + [uid]))
         let members = ids.map { RoomMemberInsert(roomId: roomId, userId: $0) }
@@ -88,6 +90,37 @@ enum MoimRepository {
     /// 방 이름 변경 (생성자 또는 관리자 — RLS 로 강제)
     static func updateRoomName(roomId: String, name: String) async throws {
         try await supabase.from("rooms").update(["name": name]).eq("id", value: roomId).execute()
+    }
+
+    /// icon_url 을 null 로도 명시 설정할 수 있는 방 정보 변경 페이로드
+    private struct RoomAppearancePayload: Encodable {
+        let name: String
+        let color: String?
+        let setIcon: Bool
+        let iconUrl: String?
+        enum K: String, CodingKey { case name, color; case iconUrl = "icon_url" }
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: K.self)
+            try c.encode(name, forKey: .name)
+            try c.encodeIfPresent(color, forKey: .color)
+            if setIcon {
+                if let u = iconUrl { try c.encode(u, forKey: .iconUrl) } else { try c.encodeNil(forKey: .iconUrl) }
+            }
+        }
+    }
+
+    /// 방 정보 변경: 이름·방표식 색상·사진 (생성자/관리자 — RLS). clearIcon=true 면 사진 제거(null)
+    static func updateRoomAppearance(roomId: String, name: String, color: String?, iconData: Data?, iconName: String?, clearIcon: Bool) async throws {
+        var iconUrl: String? = nil
+        var setIcon = false
+        if let d = iconData {
+            iconUrl = try await uploadToStorage(roomId: roomId, fileName: iconName ?? "icon.png", data: d)
+            setIcon = true
+        } else if clearIcon {
+            setIcon = true
+        }
+        let payload = RoomAppearancePayload(name: name, color: color, setIcon: setIcon, iconUrl: iconUrl)
+        try await supabase.from("rooms").update(payload).eq("id", value: roomId).execute()
     }
 
     /// 모임방 삭제 (생성자 또는 관리자 — RLS). 회원·메시지·일정·자료는 CASCADE 삭제.

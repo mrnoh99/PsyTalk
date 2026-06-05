@@ -30,13 +30,16 @@ struct Room: Codable, Identifiable, Hashable {
     var sortOrder: Int
     var defaultView: String?
     var createdBy: String?
+    var color: String?            // 방표식 색상(hex), nil=카테고리 기본색
+    var iconUrl: String?          // 방표식 사진 URL, nil=색+이름
 
     enum CodingKeys: String, CodingKey {
-        case id, name, category
+        case id, name, category, color
         case postPolicy = "post_policy"
         case sortOrder = "sort_order"
         case defaultView = "default_view"
         case createdBy = "created_by"
+        case iconUrl = "icon_url"
     }
 }
 
@@ -48,12 +51,15 @@ struct RoomInsert: Encodable {
     var postPolicy: String = "members"
     let sortOrder: Int
     let createdBy: String
+    var color: String? = nil
+    var iconUrl: String? = nil
 
     enum CodingKeys: String, CodingKey {
-        case id, name, category
+        case id, name, category, color
         case postPolicy = "post_policy"
         case sortOrder = "sort_order"
         case createdBy = "created_by"
+        case iconUrl = "icon_url"
     }
 }
 

@@ -384,7 +384,7 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
-    func createRoom(name: String, memberIds: [String], onDone: @escaping () -> Void) {
+    func createRoom(name: String, memberIds: [String], color: String? = nil, iconData: Data? = nil, iconName: String? = nil, onDone: @escaping () -> Void) {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         // 같은 이름의 모임방 금지 (보이는 방 기준 즉시 검사 + DB 유니크 인덱스가 최종 강제)
         if rooms.contains(where: { $0.category == "custom" && $0.name == trimmed }) {
@@ -393,7 +393,7 @@ final class MoimViewModel: ObservableObject {
         }
         Task {
             do {
-                _ = try await MoimRepository.createRoom(name: trimmed, memberIds: memberIds)
+                _ = try await MoimRepository.createRoom(name: trimmed, memberIds: memberIds, color: color, iconData: iconData, iconName: iconName)
                 rooms = try await MoimRepository.rooms()
                 onDone()
             } catch { self.error = "방 만들기: \(friendlyError(error))" }
@@ -521,6 +521,18 @@ final class MoimViewModel: ObservableObject {
                 rooms = try await MoimRepository.rooms()
                 onDone()
             } catch { self.error = "방 이름 변경: \(error.localizedDescription)" }
+        }
+    }
+
+    /// 방 정보 변경: 이름·방표식 색상·사진
+    func updateRoomAppearance(_ room: Room, name: String, color: String?, iconData: Data?, iconName: String?, clearIcon: Bool, onDone: @escaping () -> Void = {}) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces).isEmpty ? room.name : name.trimmingCharacters(in: .whitespaces)
+        Task {
+            do {
+                try await MoimRepository.updateRoomAppearance(roomId: room.id, name: trimmed, color: color, iconData: iconData, iconName: iconName, clearIcon: clearIcon)
+                rooms = try await MoimRepository.rooms()
+                onDone()
+            } catch { self.error = "방 정보 변경: \(error.localizedDescription)" }
         }
     }
 

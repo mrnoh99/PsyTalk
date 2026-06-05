@@ -192,14 +192,7 @@ struct AdminPlaceholderView: View {
     private func roomRow(_ r: Room) -> some View {
         Button { selectedRoom = r } label: {
             HStack(spacing: 10) {
-                Text(r.name)
-                    .font(.system(size: 8.5, weight: .bold)).foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.6)
-                    .padding(2)
-                    .frame(width: 36, height: 36)
-                    .background(catColor(r.category)).clipShape(RoundedRectangle(cornerRadius: 11))
+                RoomAvatarView(room: r, size: 36, corner: 11, font: 8.5)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(r.name).font(.system(size: 13.5, weight: .bold)).foregroundColor(Moim.ink)
                     Text("\(catLabel(r.category)) · \(r.postPolicy) · \(vm.roomMemberCounts[r.id, default: 0])명")
@@ -246,14 +239,7 @@ struct AdminRoomManageView: View {
             }
 
             HStack(spacing: 12) {
-                Text(room.name)
-                    .font(.system(size: 8.5, weight: .bold)).foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.6)
-                    .padding(4)
-                    .frame(width: 44, height: 44)
-                    .background(catColor(room.category)).clipShape(RoundedRectangle(cornerRadius: 12))
+                RoomAvatarView(room: room, size: 44, corner: 12, font: 8.5)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(room.name).font(.system(size: 17, weight: .bold)).foregroundColor(Moim.ink)
                     Text("\(catLabel(room.category)) · \(memberIds.count)명 참여")

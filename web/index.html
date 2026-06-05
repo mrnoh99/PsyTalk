@@ -131,6 +131,9 @@
   .pinrow{display:flex;align-items:center;gap:6px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin-bottom:7px;background:#fff;font-size:14px}
   .pinbtn{cursor:pointer;font-size:13px;font-weight:700;padding:4px 9px;border-radius:8px;background:var(--bg);color:var(--accent);user-select:none}
   .draghandle{cursor:grab;color:var(--sub);font-size:16px;padding:0 2px;user-select:none}
+  .swatches{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
+  .swatch{width:30px;height:30px;border-radius:8px;cursor:pointer;border:3px solid transparent;box-sizing:border-box}
+  .swatch.sel{border-color:var(--ink)}
   .pinrow.dragging{opacity:.45}
   @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
   #roomScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1)}
@@ -189,7 +192,7 @@
   <section id="roomScreen" class="hidden app-screen">
     <div class="hdr"><button class="back" onclick="closeRoom()">‹</button>
       <h1 id="roomTitle" style="font-size:16px"></h1><span class="spacer"></span>
-      <button id="renameBtn" class="back" style="display:none;font-size:17px" onclick="renameRoom()">✏️</button>
+      <button id="renameBtn" class="lk" style="display:none" onclick="openRoomEdit()">이름변경</button>
       <button id="settingsBtn" class="back" style="display:none;font-size:17px" onclick="openRoomSettings()">⚙️</button>
       <button id="leaveBtn" class="lk" style="display:none" onclick="leaveRoom()">나가기</button></div>
     <div class="tabs">
@@ -242,11 +245,35 @@
   </div></div>
 
   <div class="modal" id="cmodal"><div class="sheet">
-    <h2>새 모임방 만들기</h2><p>이름을 정하고 참여할 회원를 선택하세요.</p>
+    <h2>새 모임방 만들기</h2><p>이름·방표식을 정하고 참여할 회원을 선택하세요.</p>
     <input class="field" id="newRoomName" placeholder="예: 우울증 연구모임">
+    <span class="lbl">방표식 색상</span><div id="cColors" class="swatches"></div>
+    <span class="lbl">방표식 사진 (선택)</span>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <div id="cIconPrev" class="av" style="width:44px;height:44px;border-radius:12px;font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word"></div>
+      <button class="lk" style="background:var(--bg);padding:8px 12px;border-radius:10px" onclick="document.getElementById('cIconInput').click()">사진 선택</button>
+      <button class="lk" id="cIconClear" style="display:none;color:var(--admin)" onclick="clearCreateIcon()">제거</button>
+      <input type="file" id="cIconInput" accept="image/*" style="display:none" onchange="onCreateIconPicked(this)">
+    </div>
     <span class="lbl">회원 선택</span><div id="cpickList"></div>
     <button class="primary" onclick="createRoom()">방 만들기</button>
     <button class="ghost" onclick="closeModal('cmodal')">취소</button>
+  </div></div>
+
+  <!-- ROOM EDIT MODAL (이름·방표식 변경) -->
+  <div class="modal" id="reditmodal"><div class="sheet">
+    <h2>방 정보 변경</h2><p>방 이름과 방표식(색상·사진)을 바꿀 수 있습니다.</p>
+    <input class="field" id="editRoomName" placeholder="방 이름">
+    <span class="lbl">방표식 색상</span><div id="eColors" class="swatches"></div>
+    <span class="lbl">방표식 사진 (선택)</span>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+      <div id="eIconPrev" class="av" style="width:44px;height:44px;border-radius:12px;font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word"></div>
+      <button class="lk" style="background:var(--bg);padding:8px 12px;border-radius:10px" onclick="document.getElementById('eIconInput').click()">사진 선택</button>
+      <button class="lk" id="eIconClear" style="display:none;color:var(--admin)" onclick="clearEditIcon()">제거</button>
+      <input type="file" id="eIconInput" accept="image/*" style="display:none" onchange="onEditIconPicked(this)">
+    </div>
+    <button class="primary" onclick="saveRoomEdit()">저장</button>
+    <button class="ghost" onclick="closeModal('reditmodal')">취소</button>
   </div></div>
 
   <!-- ROOM SETTINGS MODAL -->
@@ -387,6 +414,9 @@ let evPending=[]; // 새로 고른 파일 (등록·수정 전) [{file,n}]
 let calMode="month", fileSort="date", monthAnchor=new Date();
 let selDate=new Date(); selDate.setHours(0,0,0,0); // 선택한 날짜(기본 오늘)
 let cpick=new Set(), editEventId=null, pendingFile=null;
+// 방표식(색상·사진) 상태 — 생성/편집
+let createColor=ROOM_COLORS[1], createIconFile=null, createIconPreview=null;
+let editColor=null, editIconFile=null, editIconPreview=null, editIconCleared=false;
 let realtimeGlobal=null, realtimeRoom=null;
 
 function debounce(fn,ms=400){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
@@ -436,6 +466,25 @@ function stopRealtime(){
 
 const TYPE_COLOR={'교실':'#b5651d','의국':'#4a6fa5','심리실':'#6d597a','연구실':'#3d8361','PA':'#0d8a8a','간호사':'#c0452f','SW':'#9a6a00','보조원':'#777','생명사랑':'#1f9b8e','비서':'#a0526d','의국동문':'#5b7c99','심리실 동문':'#8a7aa0','기타':'#8a817a'};
 const CAT={notice:{l:'공지',c:'#b5651d'},group:{l:'그룹',c:'#4a6fa5'},work:{l:'업무',c:'#3d8361'},research:{l:'연구',c:'#6d597a'},custom:{l:'모임',c:'#8a817a'}};
+// 방표식(아바타) 색상 팔레트 + 헬퍼
+const ROOM_COLORS=['#c7a008','#4a6fa5','#3d8361','#b5651d','#6d597a','#c0452f','#3a7ca5','#d98b3a','#5b8c5a','#586b7d'];
+const roomColorOf=r=>r.color||(CAT[r.category]||CAT.custom).c;
+function roomAvatarStyle(r){
+  return r.icon_url
+    ? `background-image:url('${esc(r.icon_url)}');background-size:cover;background-position:center`
+    : `background:${roomColorOf(r)};font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word`;
+}
+function renderSwatches(containerId, selected, onpick){
+  document.getElementById(containerId).innerHTML=ROOM_COLORS.map(c=>
+    `<span class="swatch${c===(selected||'').toLowerCase()?' sel':''}" style="background:${c}" onclick="${onpick}('${c}')"></span>`).join('');
+}
+async function uploadRoomIcon(roomId,file){
+  const ext=((file.name||'png').split('.').pop()||'png').replace(/[^a-z0-9]/gi,'')||'png';
+  const path=`${roomId}/icon_${Date.now()}.${ext}`;
+  const {error}=await sb.storage.from('room-files').upload(path,file,{upsert:true});
+  if(error)throw error;
+  return sb.storage.from('room-files').getPublicUrl(path).data.publicUrl;
+}
 const ini=n=>(n||'?').slice(0,3);
 const tcolor=t=>TYPE_COLOR[t]||'#888';
 const nameOf=id=>(profilesById[id]||{}).name||'?';
@@ -563,7 +612,7 @@ function renderRoomList(){
     const prev=lm?esc(msgPreview(lm)):(r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'');
     const time=lm?fmtListTime(lm.created_at):'';
     return `<div class="room" onclick="openRoom('${r.id}')">
-    <div class="av" style="background:${c.c};font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word">${esc(r.name)}</div>
+    <div class="av" style="${roomAvatarStyle(r)}">${r.icon_url?'':esc(r.name)}</div>
     <div class="room-mid"><div class="room-top"><span class="catdot" style="background:${c.c}">${c.l}</span>
     <span class="room-name">${esc(r.name)}</span></div>
     <div class="room-msg">${prev}</div></div>
@@ -633,7 +682,7 @@ function renderRoomsAdmin(){
   let h=`<p style="color:var(--sub);font-size:12px;margin-bottom:10px">방을 눌러 구성원을 편집하거나 삭제하세요.</p>`;
   return h+rooms.map(r=>{const c=CAT[r.category]||CAT.custom;
     return `<div onclick="adminManageRoom('${r.id}')" style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer">
-      <div class="av" style="width:40px;height:40px;border-radius:12px;background:${c.c};color:#fff;font-size:9px;line-height:1.05;text-align:center;padding:2px;display:flex;align-items:center;justify-content:center;word-break:break-word">${esc(r.name)}</div>
+      <div class="av" style="width:40px;height:40px;border-radius:12px;color:#fff;display:flex;align-items:center;justify-content:center;${roomAvatarStyle(r)}">${r.icon_url?'':esc(r.name)}</div>
       <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(r.name)}</div>
       <div style="color:var(--sub);font-size:11.5px">${c.l} · ${esc(r.post_policy)}</div></div><span style="color:var(--sub)">›</span></div>`;
   }).join('');
@@ -687,17 +736,37 @@ async function openRoom(id){
   layoutChat();
 }
 async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);show('listScreen');loadUnreadCounts();loadLastMessages();}
-async function renameRoom(){
+/* ====== 방 정보 변경 (이름·방표식 색상·사진) ====== */
+function openRoomEdit(){
   if(!active)return;
-  const name=prompt('방 이름 변경', active.name);
-  if(name===null)return;
-  const t=name.trim();
-  if(!t||t===active.name)return;
-  const {error}=await sb.from('rooms').update({name:t}).eq('id',active.id);
-  if(error){alert('이름 변경 실패: '+error.message);return;}
-  active.name=t;
+  document.getElementById('editRoomName').value=active.name||'';
+  editColor=active.color||roomColorOf(active);
+  editIconFile=null;editIconPreview=null;editIconCleared=false;
+  renderSwatches('eColors',editColor,'pickEditColor');renderEditIconPreview();
+  document.getElementById('reditmodal').classList.add('on');
+}
+function pickEditColor(c){editColor=c;renderSwatches('eColors',editColor,'pickEditColor');renderEditIconPreview();}
+function onEditIconPicked(input){const f=input.files&&input.files[0];if(!f)return;editIconFile=f;editIconPreview=URL.createObjectURL(f);editIconCleared=false;renderEditIconPreview();input.value='';}
+function clearEditIcon(){editIconFile=null;editIconPreview=null;editIconCleared=true;renderEditIconPreview();}
+function renderEditIconPreview(){
+  const el=document.getElementById('eIconPrev');const nm=document.getElementById('editRoomName').value.trim()||'방';
+  const img=editIconPreview||(!editIconCleared&&active&&active.icon_url);
+  if(img){el.style.backgroundImage=`url('${img}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';}
+  else{el.style.backgroundImage='';el.style.background=editColor;el.textContent=nm;}
+  document.getElementById('eIconClear').style.display=img?'':'none';
+}
+async function saveRoomEdit(){
+  if(!active)return;
+  const t=document.getElementById('editRoomName').value.trim();
+  if(!t){alert('방 이름을 입력하세요.');return;}
+  const upd={name:t,color:editColor};
+  if(editIconFile){try{upd.icon_url=await uploadRoomIcon(active.id,editIconFile);}catch(e){alert('사진 업로드 실패: '+e.message);return;}}
+  else if(editIconCleared){upd.icon_url=null;}
+  const {error}=await sb.from('rooms').update(upd).eq('id',active.id);
+  if(error){alert('변경 실패: '+error.message);return;}
+  active.name=t;active.color=editColor;if('icon_url' in upd)active.icon_url=upd.icon_url;
   document.getElementById('roomTitle').textContent=t;
-  await loadRooms();
+  closeModal('reditmodal');await loadRooms();
 }
 
 /* ====== 모임방 설정 (구성원 초대·제거 · 삭제) ====== */
@@ -1140,6 +1209,8 @@ async function wardSave(){
 /* ====== 모임방 만들기 ====== */
 function openCreate(){
   cpick=new Set();document.getElementById('newRoomName').value='';
+  createColor=ROOM_COLORS[1];createIconFile=null;createIconPreview=null;
+  renderSwatches('cColors',createColor,'pickCreateColor');renderCreateIconPreview();
   // 본인 제외 + 승인된 회원만 (대기 중인 가입자는 방에 추가 불가)
   const others=Object.values(profilesById).filter(p=>p.id!==me.id&&p.approved!==false&&!p.withdrawn).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   document.getElementById('cpickList').innerHTML=others.length?others.map(p=>`
@@ -1152,12 +1223,23 @@ function openCreate(){
 function toggleC(id){cpick.has(id)?cpick.delete(id):cpick.add(id);
   const el=document.querySelector(`#cpickList .pick[data-id="${id}"]`);
   el.classList.toggle('sel',cpick.has(id));el.querySelector('.chk').style.visibility=cpick.has(id)?'visible':'hidden';}
+function pickCreateColor(c){createColor=c;renderSwatches('cColors',createColor,'pickCreateColor');renderCreateIconPreview();}
+function onCreateIconPicked(input){const f=input.files&&input.files[0];if(!f)return;createIconFile=f;createIconPreview=URL.createObjectURL(f);renderCreateIconPreview();input.value='';}
+function clearCreateIcon(){createIconFile=null;createIconPreview=null;renderCreateIconPreview();}
+function renderCreateIconPreview(){
+  const el=document.getElementById('cIconPrev');const nm=document.getElementById('newRoomName').value.trim()||'방';
+  if(createIconPreview){el.style.backgroundImage=`url('${createIconPreview}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';}
+  else{el.style.backgroundImage='';el.style.background=createColor;el.textContent=nm;}
+  document.getElementById('cIconClear').style.display=createIconPreview?'':'none';
+}
 async function createRoom(){
   const name=document.getElementById('newRoomName').value.trim()||'새 모임방';
   // 같은 이름의 모임방 금지 (보이는 방 기준 즉시 검사 + DB 유니크 인덱스가 최종 강제)
   if(rooms.some(r=>r.category==='custom'&&r.name===name)){alert('같은 이름의 모임방이 이미 있습니다. 다른 이름을 사용하세요.');return;}
   const id=crypto.randomUUID();const order=Math.floor(Date.now()/1000);
-  const {error}=await sb.from('rooms').insert({id,name,category:'custom',post_policy:'members',sort_order:order,created_by:me.id});
+  let iconUrl=null;
+  if(createIconFile){try{iconUrl=await uploadRoomIcon(id,createIconFile);}catch(e){alert('사진 업로드 실패: '+e.message);return;}}
+  const {error}=await sb.from('rooms').insert({id,name,category:'custom',post_policy:'members',sort_order:order,created_by:me.id,color:createColor,icon_url:iconUrl});
   if(error){
     const dup=(error.code==='23505')||/duplicate key|rooms_custom_name_unique/i.test(error.message||'');
     alert(dup?'같은 이름의 모임방이 이미 있습니다. 다른 이름을 사용하세요.':'방 생성 실패: '+error.message);return;}

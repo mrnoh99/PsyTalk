@@ -13,7 +13,18 @@ extension Color {
             opacity: 1
         )
     }
+    /// "#4a6fa5" 형태의 hex 문자열에서 색상 생성
+    init?(hexString: String) {
+        var s = hexString.trimmingCharacters(in: .whitespaces)
+        if s.hasPrefix("#") { s.removeFirst() }
+        guard s.count == 6, let v = UInt32(s, radix: 16) else { return nil }
+        self.init(hex: v)
+    }
 }
+
+// 방표식(아바타) 색상 팔레트 + 헬퍼
+let ROOM_COLORS = ["#c7a008", "#4a6fa5", "#3d8361", "#b5651d", "#6d597a", "#c0452f", "#3a7ca5", "#d98b3a", "#5b8c5a", "#586b7d"]
+func roomColor(_ room: Room) -> Color { (room.color.flatMap { Color(hexString: $0) }) ?? catColor(room.category) }
 
 enum Moim {
     static let bg = Color(hex: 0xE9E4DD)

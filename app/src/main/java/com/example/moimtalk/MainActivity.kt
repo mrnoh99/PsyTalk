@@ -491,7 +491,14 @@ class MoimViewModel : ViewModel() {
         }
     }
 
-    fun createRoom(name: String, memberIds: List<String>, onDone: () -> Unit) {
+    fun createRoom(
+        name: String,
+        memberIds: List<String>,
+        color: String? = null,
+        iconBytes: ByteArray? = null,
+        iconName: String? = null,
+        onDone: () -> Unit,
+    ) {
         val trimmed = name.trim()
         // 같은 이름의 모임방 금지 (보이는 방 기준 즉시 검사 + DB 유니크 인덱스가 최종 강제)
         if (rooms.any { it.category == "custom" && it.name.equals(trimmed, ignoreCase = false) }) {
@@ -500,7 +507,7 @@ class MoimViewModel : ViewModel() {
         }
         viewModelScope.launch {
             try {
-                MoimRepository.createRoom(trimmed, memberIds)
+                MoimRepository.createRoom(trimmed, memberIds, color, iconBytes, iconName)
                 rooms = MoimRepository.rooms()
                 onDone()
             } catch (e: Exception) {
@@ -614,6 +621,28 @@ class MoimViewModel : ViewModel() {
                 onDone()
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "방 이름 변경")
+            }
+        }
+    }
+
+    /** 방 정보 변경: 이름·방표식 색상·사진 */
+    fun updateRoomAppearance(
+        room: Room,
+        newName: String,
+        color: String?,
+        iconBytes: ByteArray?,
+        iconName: String?,
+        clearIcon: Boolean,
+        onDone: () -> Unit = {},
+    ) {
+        val trimmed = newName.trim().ifEmpty { room.name }
+        viewModelScope.launch {
+            try {
+                MoimRepository.updateRoomAppearance(room.id, trimmed, color, iconBytes, iconName, clearIcon)
+                rooms = MoimRepository.rooms()
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "방 정보 변경")
             }
         }
     }

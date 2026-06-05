@@ -1,4 +1,71 @@
 import SwiftUI
+import PhotosUI
+
+// 방표식 아바타 — 사진이 있으면 사진, 없으면 색상+이름
+struct RoomAvatarView: View {
+    let room: Room
+    var size: CGFloat = 48
+    var corner: CGFloat = 16
+    var font: CGFloat = 10.5
+    var body: some View {
+        if let u = room.iconUrl, !u.isEmpty, let url = URL(string: u) {
+            AsyncImage(url: url) { img in img.resizable().scaledToFill() } placeholder: { roomColor(room) }
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: corner))
+        } else {
+            Text(room.name)
+                .font(.system(size: font, weight: .heavy)).foregroundColor(.white)
+                .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.6).padding(2)
+                .frame(width: size, height: size)
+                .background(roomColor(room)).clipShape(RoundedRectangle(cornerRadius: corner))
+        }
+    }
+}
+
+// 방표식(색상·사진) 편집기 — 생성/이름변경 공통
+struct RoomAppearanceEditor: View {
+    let name: String
+    @Binding var color: String
+    @Binding var photoItem: PhotosPickerItem?
+    let previewData: Data?
+    let existingIconUrl: String?
+    let onClear: () -> Void
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("방표식 색상").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(ROOM_COLORS, id: \.self) { hex in
+                        let sel = hex.lowercased() == color.lowercased()
+                        RoundedRectangle(cornerRadius: 8).fill(Color(hexString: hex) ?? Moim.sub)
+                            .frame(width: 30, height: 30)
+                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Moim.ink, lineWidth: sel ? 3 : 0))
+                            .onTapGesture { color = hex }
+                    }
+                }.padding(.vertical, 2)
+            }
+            Text("방표식 사진 (선택)").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
+            HStack(spacing: 10) {
+                Group {
+                    if let d = previewData, let ui = UIImage(data: d) {
+                        Image(uiImage: ui).resizable().scaledToFill()
+                    } else if let u = existingIconUrl, let url = URL(string: u) {
+                        AsyncImage(url: url) { i in i.resizable().scaledToFill() } placeholder: { Color(hexString: color) ?? Moim.sub }
+                    } else {
+                        Color(hexString: color) ?? Moim.sub
+                    }
+                }
+                .frame(width: 44, height: 44).clipShape(RoundedRectangle(cornerRadius: 12))
+                PhotosPicker(selection: $photoItem, matching: .images) {
+                    Text("사진 선택").font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
+                }
+                if previewData != nil || existingIconUrl != nil {
+                    Button("제거") { onClear() }.font(.system(size: 13, weight: .bold)).foregroundColor(Moim.admin)
+                }
+            }
+        }
+    }
+}
 
 struct RoomListView: View {
     @ObservedObject var vm: MoimViewModel
@@ -217,14 +284,7 @@ struct RoomRow: View {
     var body: some View {
         Button { onOpen(room) } label: {
             HStack(spacing: 12) {
-                Text(room.name)
-                    .font(.system(size: 10.5, weight: .heavy)).foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.6)
-                    .padding(2)
-                    .frame(width: 48, height: 48)
-                    .background(catColor(room.category)).clipShape(RoundedRectangle(cornerRadius: 16))
+                RoomAvatarView(room: room)
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
                         Text(catLabel(room.category))

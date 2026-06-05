@@ -26,6 +26,14 @@ fun catColor(category: String): Color = when (category) {
     else -> MoimSub
 }
 
+// 방표식(아바타) 색상 팔레트 + 헬퍼
+val ROOM_COLORS = listOf("#c7a008", "#4a6fa5", "#3d8361", "#b5651d", "#6d597a", "#c0452f", "#3a7ca5", "#d98b3a", "#5b8c5a", "#586b7d")
+fun parseHexColor(hex: String?): Color? = hex?.let {
+    try { Color(android.graphics.Color.parseColor(it)) } catch (_: Exception) { null }
+}
+/** 방표식 배경색: 커스텀 색상 우선, 없으면 카테고리 기본색 */
+fun roomColor(room: Room): Color = parseHexColor(room.color) ?: catColor(room.category)
+
 fun catLabel(category: String): String = when (category) {
     "notice" -> "공지"
     "group" -> "그룹"

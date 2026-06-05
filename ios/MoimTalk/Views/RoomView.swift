@@ -11,6 +11,10 @@ struct RoomView: View {
     @State private var input = ""
     @State private var showRename = false
     @State private var renameText = ""
+    @State private var editColor = ROOM_COLORS[1]
+    @State private var editPhotoItem: PhotosPickerItem?
+    @State private var editIconData: Data?
+    @State private var editIconCleared = false
     @State private var showSettings = false
     @State private var showLeave = false
 
@@ -48,12 +52,13 @@ struct RoomView: View {
             }
             Spacer()
             if canRenameRoom(vm.myProfile, liveRoom) {
-                Button {
+                Button("이름변경") {
                     renameText = liveRoom.name
+                    editColor = liveRoom.color ?? ROOM_COLORS[1]
+                    editPhotoItem = nil; editIconData = nil; editIconCleared = false
                     showRename = true
-                } label: {
-                    Text("✏️").font(.system(size: 17))
                 }
+                .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
             }
             if vm.canManageRoom(liveRoom) {
                 Button {
@@ -71,10 +76,34 @@ struct RoomView: View {
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(Moim.paper)
-        .alert("방 이름 변경", isPresented: $showRename) {
-            TextField("방 이름", text: $renameText)
-            Button("취소", role: .cancel) {}
-            Button("저장") { vm.renameRoom(liveRoom, to: renameText) {} }
+        .sheet(isPresented: $showRename) {
+            NavigationView {
+                VStack(alignment: .leading, spacing: 16) {
+                    TextField("방 이름", text: $renameText).textFieldStyle(.roundedBorder)
+                    RoomAppearanceEditor(
+                        name: renameText, color: $editColor, photoItem: $editPhotoItem,
+                        previewData: editIconData,
+                        existingIconUrl: editIconCleared ? nil : liveRoom.iconUrl,
+                        onClear: { editPhotoItem = nil; editIconData = nil; editIconCleared = true }
+                    )
+                    Spacer()
+                }
+                .padding(16)
+                .navigationTitle("방 정보 변경")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("취소") { showRename = false } }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("저장") {
+                            vm.updateRoomAppearance(liveRoom, name: renameText, color: editColor, iconData: editIconData, iconName: "icon.jpg", clearIcon: editIconCleared) {}
+                            showRename = false
+                        }
+                    }
+                }
+                .onChange(of: editPhotoItem) { _ in
+                    Task { if let item = editPhotoItem, let data = try? await item.loadTransferable(type: Data.self) { editIconData = data; editIconCleared = false } }
+                }
+            }
         }
         .alert("방 나가기", isPresented: $showLeave) {
             Button("취소", role: .cancel) {}

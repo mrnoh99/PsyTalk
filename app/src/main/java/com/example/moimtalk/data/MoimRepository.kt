@@ -64,12 +64,19 @@ object MoimRepository {
         }.decodeList()
 
     /** 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 회원) 등록 */
-    suspend fun createRoom(name: String, memberIds: List<String>): String {
+    suspend fun createRoom(
+        name: String,
+        memberIds: List<String>,
+        color: String? = null,
+        iconBytes: ByteArray? = null,
+        iconName: String? = null,
+    ): String {
         val uid = currentUserId() ?: error("Not logged in")
         val roomId = java.util.UUID.randomUUID().toString()
         val order = (System.currentTimeMillis() / 1000).toInt()
+        val iconUrl = if (iconBytes != null) uploadToStorage(roomId, iconName ?: "icon.png", iconBytes) else null
         supabase.from("rooms").insert(
-            RoomInsert(id = roomId, name = name, sortOrder = order, createdBy = uid)
+            RoomInsert(id = roomId, name = name, sortOrder = order, createdBy = uid, color = color, iconUrl = iconUrl)
         )
         val members = (memberIds + uid).distinct().map { RoomMemberInsert(roomId = roomId, userId = it) }
         supabase.from("room_members").insert(members)
@@ -81,6 +88,24 @@ object MoimRepository {
         supabase.from("rooms").update(RoomNameUpdate(name = name)) {
             filter { eq("id", roomId) }
         }
+    }
+
+    /** 방 정보 변경: 이름·방표식 색상·사진 (생성자/관리자, RLS). setIcon=true 면 icon_url 갱신(사진 또는 제거) */
+    suspend fun updateRoomAppearance(
+        roomId: String,
+        name: String,
+        color: String?,
+        iconBytes: ByteArray?,
+        iconName: String?,
+        clearIcon: Boolean,
+    ) {
+        val newIconUrl = if (iconBytes != null) uploadToStorage(roomId, iconName ?: "icon.png", iconBytes) else null
+        supabase.from("rooms").update({
+            set("name", name)
+            set("color", color)
+            if (iconBytes != null) set("icon_url", newIconUrl)
+            else if (clearIcon) set<String?>("icon_url", null)
+        }) { filter { eq("id", roomId) } }
     }
 
     /** 모임방 삭제 (생성자 또는 관리자, RLS 로 강제). 회원·메시지·일정·자료는 CASCADE 삭제. */

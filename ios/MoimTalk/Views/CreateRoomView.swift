@@ -1,12 +1,16 @@
 import SwiftUI
+import PhotosUI
 
-// 모임방 만들기 (카톡처럼 누구나) — 이름 + 참여 회원 선택
+// 모임방 만들기 (카톡처럼 누구나) — 이름 + 방표식(색상·사진) + 참여 회원 선택
 struct CreateRoomView: View {
     @ObservedObject var vm: MoimViewModel
     let onBack: () -> Void
 
     @State private var name = ""
     @State private var selected: Set<String> = []
+    @State private var color = ROOM_COLORS[1]
+    @State private var photoItem: PhotosPickerItem?
+    @State private var iconData: Data?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -23,6 +27,13 @@ struct CreateRoomView: View {
                 TextField("방 이름 (예: 우울증 연구모임)", text: $name)
                     .textFieldStyle(.roundedBorder)
                     .padding(.bottom, 14)
+
+                RoomAppearanceEditor(
+                    name: name, color: $color, photoItem: $photoItem,
+                    previewData: iconData, existingIconUrl: nil,
+                    onClear: { photoItem = nil; iconData = nil }
+                )
+                .padding(.bottom, 14)
 
                 Text("참여 회원 선택").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
                     .padding(.bottom, 8)
@@ -60,7 +71,7 @@ struct CreateRoomView: View {
 
                 Button {
                     let nm = name.trimmingCharacters(in: .whitespaces)
-                    vm.createRoom(name: nm.isEmpty ? "새 모임방" : nm, memberIds: Array(selected)) { onBack() }
+                    vm.createRoom(name: nm.isEmpty ? "새 모임방" : nm, memberIds: Array(selected), color: color, iconData: iconData, iconName: "icon.jpg") { onBack() }
                 } label: {
                     Text("방 만들기 (\(selected.count + 1)명)")
                         .font(.system(size: 15, weight: .bold)).foregroundColor(.white)
@@ -72,5 +83,8 @@ struct CreateRoomView: View {
             .padding(16)
         }
         .background(Moim.paper.ignoresSafeArea())
+        .onChange(of: photoItem) { _ in
+            Task { if let item = photoItem, let data = try? await item.loadTransferable(type: Data.self) { iconData = data } }
+        }
     }
 }

@@ -109,6 +109,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
     `profiles.withdrawn` 컬럼 + `moim_approve_user`(관리자/전체관리자 승인) +
     `moim_delete_my_account`/`moim_admin_withdraw`(비활성: 방·고정만 정리, **메시지·자료·일정·이름은 보존**,
     `auth.users.banned_until` 로 로그인 차단). **leave_account.sql 의 하드삭제를 비활성으로 덮어씀 → 반드시 실행.**
+22. `room_appearance.sql` — **방표식(아바타) 색상·사진**: `rooms.color`(hex)·`rooms.icon_url` 컬럼.
+    방 만들 때/이름변경 시 색상 팔레트 선택 + 사진 업로드(공개 `room-files`). 수정 권한은 기존 rooms UPDATE 정책.
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 회원 8명(직군별). 운영 전 정리.
 

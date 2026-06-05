@@ -84,15 +84,23 @@ BEGIN
   END LOOP;
 END $$;
 
--- 2) 매일 03:00(UTC) 자동 실행 (pg_cron). 기존 동일 작업이 있으면 교체.
-DO $$ BEGIN
+-- 2) 매일 03:00(UTC) 자동 실행 (pg_cron). pg_cron 미설치면 스케줄만 건너뜀(함수는 생성됨).
+DO $$
+BEGIN
   PERFORM cron.unschedule('moim_cleanup_old_files');
-EXCEPTION WHEN OTHERS THEN NULL; END $$;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
-SELECT cron.schedule('moim_cleanup_old_files', '0 3 * * *',
-                     $$ SELECT public.moim_cleanup_old_files(); $$);
+DO $$
+BEGIN
+  PERFORM cron.schedule('moim_cleanup_old_files', '0 3 * * *',
+                        $cron$ SELECT public.moim_cleanup_old_files(); $cron$);
+  RAISE NOTICE 'pg_cron 스케줄 등록 완료 (매일 03:00 UTC)';
+EXCEPTION WHEN OTHERS THEN
+  RAISE NOTICE 'pg_cron 미설치 → 자동 스케줄 생략. 대시보드 Database→Extensions 에서 pg_cron 활성화 후 이 파일을 다시 실행하세요. (함수는 정상 생성됨, 수동 실행 가능)';
+END $$;
 
 -- 수동 실행/테스트:  SELECT public.moim_cleanup_old_files();
--- 스케줄 확인:       SELECT jobname, schedule FROM cron.job;
+-- 스케줄 확인(pg_cron 활성화 후):  SELECT jobname, schedule FROM cron.job;
 -- 보관 기간 변경:    위 함수의 interval '28 days' 수정 후 다시 실행.
 -- =============================================================================

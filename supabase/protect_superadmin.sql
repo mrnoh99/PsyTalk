@@ -20,18 +20,14 @@ UPDATE public.profiles
 SET role = 'superadmin', approved = true, name = '노재성', phone = '01025310730'
 WHERE id = (SELECT id FROM auth.users WHERE lower(email) = 'jsnoh@ajou.ac.kr');
 
--- 2) 보호 트리거: 이 계정의 role/approved/name/phone 을 항상 고정값으로 되돌림
---    (INSERT·UPDATE 모두. 누가 무엇을 시도하든 강등/미승인/이름·전화 변경 불가)
+-- 2) 보호 트리거: 이미 superadmin 인 행은 강등/미승인/이름·전화 변경 불가.
+--    auth.users 조회에 의존하지 않고 OLD.role 로 판별 → 실행 맥락과 무관하게 항상 동작.
 CREATE OR REPLACE FUNCTION public.moim_protect_superadmin()
 RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public AS $$
-DECLARE
-  em text;
+LANGUAGE plpgsql AS $$
 BEGIN
-  SELECT lower(email) INTO em FROM auth.users WHERE id = NEW.id;
-  IF em = 'jsnoh@ajou.ac.kr' THEN
+  -- 기존에 superadmin 이던 행은 어떤 UPDATE 가 와도 고정값 유지
+  IF TG_OP = 'UPDATE' AND OLD.role = 'superadmin' THEN
     NEW.role := 'superadmin';
     NEW.approved := true;
     NEW.name := '노재성';
@@ -42,20 +38,15 @@ END $$;
 
 DROP TRIGGER IF EXISTS trg_profiles_protect_superadmin ON public.profiles;
 CREATE TRIGGER trg_profiles_protect_superadmin
-  BEFORE INSERT OR UPDATE ON public.profiles
+  BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.moim_protect_superadmin();
 
--- 3) 삭제 방지: 이 계정의 프로필은 삭제 불가
+-- 3) 삭제 방지: superadmin 행은 삭제 불가
 CREATE OR REPLACE FUNCTION public.moim_block_superadmin_delete()
 RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public AS $$
-DECLARE
-  em text;
+LANGUAGE plpgsql AS $$
 BEGIN
-  SELECT lower(email) INTO em FROM auth.users WHERE id = OLD.id;
-  IF em = 'jsnoh@ajou.ac.kr' THEN
+  IF OLD.role = 'superadmin' THEN
     RAISE EXCEPTION '전체관리자 계정은 삭제할 수 없습니다.';
   END IF;
   RETURN OLD;

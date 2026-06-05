@@ -40,8 +40,35 @@ fun catLabel(category: String): String = when (category) {
     "work" -> "업무"
     "research" -> "연구"
     "custom" -> "모임"
+    "direct" -> "1:1"
     else -> category
 }
+
+// 직군 정렬 순서 (직종별 보기 그룹 헤더 순서)
+val MTYPE_ORDER = listOf("교실", "의국", "심리실", "연구실", "PA", "간호사", "SW", "보조원", "생명사랑", "비서", "의국동문", "심리실 동문", "기타")
+
+/** 사람(프로필) 아바타 배경색: 커스텀 색상 우선, 없으면 직군색 (사진은 별도 처리) */
+fun personColor(profile: Profile?): Color =
+    parseHexColor(profile?.color) ?: typeColor(profile?.memberType ?: "")
+
+// ── 1:1 DM 헬퍼 (dm_key 'a_b' 에서 상대 user id·프로필·표시이름 계산) ──
+fun dmOtherId(room: Room): String? {
+    val key = room.dmKey ?: return null
+    val ids = key.split("_")
+    if (ids.size < 2) return null
+    val me = MoimRepository.currentUserId()
+    return if (ids[0] == me) ids[1] else ids[0]
+}
+
+fun dmOther(room: Room, profiles: Map<String, Profile>): Profile? =
+    dmOtherId(room)?.let { profiles[it] }
+
+/** 방 표시 이름: DM 이면 상대 이름, 그 외에는 방 이름 */
+fun roomDisplayName(room: Room, profiles: Map<String, Profile>): String =
+    if (room.category == "direct") dmOther(room, profiles)?.name ?: "(알 수 없음)" else room.name
+
+/** DM = 채팅 전용 (캘린더·자료실 탭, 이름변경·설정·나가기 모두 숨김) */
+fun isDirect(room: Room): Boolean = room.category == "direct"
 
 fun typeColor(memberType: String): Color = when (memberType) {
     "교실" -> Color(0xFFB5651D)

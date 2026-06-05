@@ -29,6 +29,13 @@ final class MoimViewModel: ObservableObject {
     @Published var notice: String?
     @Published var loading = false
 
+    // 설정 화면 (내 정보 / 방 순서 / 회원 검색)
+    @Published var settingsTab: String = "myInfo"   // myInfo | order | search
+    @Published var memberSearchQ: String = ""
+    @Published var memberSearchSort: String = "name"   // name | type
+    // 관리자 콘솔 회원 관리 정렬
+    @Published var memAdminSort: String = "name"       // name | type
+
     func signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String) {
         Task {
             loading = true; error = nil; notice = nil
@@ -509,6 +516,59 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    // ── 내 정보 변경 / 회원 검색(1:1 DM) ──
+
+    /// 설정 화면에서 startDirect 등으로 열 방을 RootView 가 관찰해 화면 전환
+    @Published var pendingOpenRoom: Room?
+
+    /// 내 정보 저장: 새 사진이 있으면 먼저 업로드 후 intro/avatar_url/color 갱신
+    func saveMyInfo(intro: String, color: String?, avatarData: Data?, avatarExt: String?, clearAvatar: Bool, onDone: @escaping () -> Void) {
+        Task {
+            do {
+                var avatarUrl: String? = clearAvatar ? nil : myProfile?.avatarUrl
+                if let d = avatarData {
+                    avatarUrl = try await MoimRepository.uploadProfileAvatar(data: d, ext: avatarExt ?? "jpg")
+                }
+                let trimmed = intro.trimmingCharacters(in: .whitespaces)
+                try await MoimRepository.updateMyProfile(intro: trimmed.isEmpty ? nil : trimmed, avatarUrl: avatarUrl, color: color)
+                if let list = try? await MoimRepository.allProfiles() {
+                    profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+                    if let uid = MoimRepository.currentUserId() { myProfile = profilesById[uid] }
+                }
+                notice = "내 정보가 저장되었습니다."
+                onDone()
+            } catch { self.error = "내 정보 저장: \(error.localizedDescription)" }
+        }
+    }
+
+    /// 비밀번호 변경 (전체관리자 계정은 변경 불가 — 클라이언트 1차 방어 + DB 트리거 최종 강제)
+    func changeMyPassword(_ newPassword: String, onResult: @escaping (Result<String, String>) -> Void) {
+        if (myProfile?.role == "superadmin") {
+            onResult(.failure("전체관리자 계정의 비밀번호는 변경할 수 없습니다."))
+            return
+        }
+        Task {
+            do {
+                try await MoimRepository.changePassword(newPassword)
+                onResult(.success("비밀번호가 변경되었습니다."))
+            } catch { onResult(.failure("변경 실패: \(error.localizedDescription)")) }
+        }
+    }
+
+    /// 1:1 DM 열기: 상대 user id → 방 id → 방 목록 갱신 후 해당 방 열기
+    func startDirect(otherId: String) {
+        Task {
+            do {
+                let rid = try await MoimRepository.openDirect(otherId: otherId)
+                rooms = try await MoimRepository.rooms()
+                if let ids = try? await MoimRepository.myRoomIds() { myRoomIds = Set(ids) }
+                if let room = rooms.first(where: { $0.id == rid }) {
+                    pendingOpenRoom = room
+                }
+            } catch { self.error = "대화 열기: \(error.localizedDescription)" }
+        }
+    }
+
     /// 같은 이름 모임방 등 친화적 오류 메시지
     private func friendlyError(_ error: Error) -> String {
         let m = error.localizedDescription
@@ -637,6 +697,26 @@ final class MoimViewModel: ObservableObject {
     }
 
     func name(of userId: String) -> String { profilesById[userId]?.name ?? "?" }
+
+    // ── 1:1 DM 표시 헬퍼 (dm_key 'a_b' 에서 상대방 계산) ──
+
+    /// DM 방의 상대 user id
+    func dmOtherId(_ room: Room) -> String? {
+        guard room.category == "direct", let key = room.dmKey else { return nil }
+        let ids = key.split(separator: "_").map(String.init)
+        guard ids.count == 2, let me = MoimRepository.currentUserId() else { return nil }
+        return ids[0] == me ? ids[1] : ids[0]
+    }
+    /// DM 방의 상대 프로필
+    func dmOther(_ room: Room) -> Profile? {
+        guard let id = dmOtherId(room) else { return nil }
+        return profilesById[id]
+    }
+    /// 방 표시 이름 — DM 이면 상대 이름, 그 외엔 방 이름
+    func roomDisplayName(_ room: Room) -> String {
+        if room.category == "direct" { return dmOther(room)?.name ?? "(알 수 없음)" }
+        return room.name
+    }
 
     func isMine(_ m: Message) -> Bool { m.senderId == MoimRepository.currentUserId() }
 

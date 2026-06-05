@@ -13,10 +13,12 @@ struct Profile: Codable, Identifiable, Hashable {
     var approved: Bool?           // 관리자 가입 승인 (nil=마이그레이션 전이면 승인으로 간주)
     var withdrawn: Bool?          // 탈퇴(비활성). true=글·자료는 남기되 활동·로그인 불가
     var phone: String?            // 전화번호
-    var avatarUrl: String?
+    var intro: String?            // 자기소개
+    var avatarUrl: String?        // 프로필 사진(공개 URL)
+    var color: String?            // 프로필 아바타 색상(hex)
 
     enum CodingKeys: String, CodingKey {
-        case id, name, role, approved, withdrawn, phone
+        case id, name, role, approved, withdrawn, phone, intro, color
         case memberType = "member_type"
         case avatarUrl = "avatar_url"
     }
@@ -25,13 +27,14 @@ struct Profile: Codable, Identifiable, Hashable {
 struct Room: Codable, Identifiable, Hashable {
     let id: String
     let name: String
-    let category: String          // notice | group | work | research | custom
+    let category: String          // notice | group | work | research | custom | direct
     let postPolicy: String        // restricted | members
     var sortOrder: Int
     var defaultView: String?
     var createdBy: String?
     var color: String?            // 방표식 색상(hex), nil=카테고리 기본색
     var iconUrl: String?          // 방표식 사진 URL, nil=색+이름
+    var dmKey: String?            // 1:1 DM 식별 키('a_b'), 일반/모임방은 nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, category, color
@@ -40,6 +43,7 @@ struct Room: Codable, Identifiable, Hashable {
         case defaultView = "default_view"
         case createdBy = "created_by"
         case iconUrl = "icon_url"
+        case dmKey = "dm_key"
     }
 }
 

@@ -26,6 +26,23 @@ extension Color {
 let ROOM_COLORS = ["#c7a008", "#4a6fa5", "#3d8361", "#b5651d", "#6d597a", "#c0452f", "#3a7ca5", "#d98b3a", "#5b8c5a", "#586b7d"]
 func roomColor(_ room: Room) -> Color { (room.color.flatMap { Color(hexString: $0) }) ?? catColor(room.category) }
 
+// 직종별 정렬 순서 (회원 검색·회원 관리 그룹 순서) — web MTYPE_ORDER 와 동일
+let MTYPE_ORDER = ["교실", "의국", "심리실", "연구실", "PA", "간호사", "SW", "보조원", "생명사랑", "비서", "의국동문", "심리실 동문", "기타"]
+
+/// 사람(프로필) 아바타 색상: 사진이 없을 때 → 본인 지정 색상 > 직군색
+func personColor(_ p: Profile?) -> Color {
+    guard let p = p else { return Moim.sub }
+    return (p.color.flatMap { Color(hexString: $0) }) ?? typeColor(p.memberType)
+}
+
+/// 이름 머리글자 (아바타용) — 앞 3글자
+func initials(_ name: String?) -> String { String((name ?? "?").prefix(3)) }
+
+/// 이름 한국어 로케일 정렬 비교
+func byName(_ a: Profile, _ b: Profile) -> Bool {
+    a.name.localizedCompare(b.name) == .orderedAscending
+}
+
 enum Moim {
     static let bg = Color(hex: 0xE9E4DD)
     static let paper = Color(hex: 0xF5F1EA)

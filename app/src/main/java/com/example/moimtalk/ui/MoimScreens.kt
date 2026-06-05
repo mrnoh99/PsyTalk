@@ -518,16 +518,14 @@ private fun MemberManageRow(p: Profile, vm: MoimViewModel) {
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier.size(38.dp).background(typeColor(p.memberType), RoundedCornerShape(11.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(p.name.take(3), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-        }
+        PersonAvatar(p, 38, 11, 11.0)
         Spacer(Modifier.width(11.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
             Text("${p.memberType} · ${roleLabel(p.role)}", fontSize = 11.5.sp, color = MoimSub)
+            if (!p.intro.isNullOrBlank()) {
+                Text(p.intro!!, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
         }
         val isAdmin = p.role == "admin"
         Text(
@@ -631,28 +629,22 @@ fun RoomListScreen(
     onOpen: (Room) -> Unit,
     onWard: () -> Unit,
     onCreateRoom: () -> Unit,
-    onApprovals: () -> Unit
+    onApprovals: () -> Unit,
+    onSettings: () -> Unit
 ) {
     val profile = vm.myProfile
     // 주간 학술활동(default_view=week)은 목록에서 빼고 별도 바로 표시. 나머지는 전체방(첫번째)+모임방 평면 목록.
     val weekRoom = vm.rooms.firstOrNull { it.category != "custom" && it.defaultView == "week" }
     // 고정(핀) 우선 + 나머지는 최근 메시지순
-    // 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입한 것만 (관리자 콘솔은 전체 vm.rooms 사용)
-    val flatRooms = vm.rooms.filter { it.id != weekRoom?.id && (it.category != "custom" || vm.myRoomIds.contains(it.id)) }
+    // 홈 목록: 기본 방은 항상, 모임방(custom)·1:1(direct)은 내가 가입한 것만 (관리자 콘솔은 전체 vm.rooms 사용)
+    val flatRooms = vm.rooms.filter {
+        it.id != weekRoom?.id &&
+            (if (it.category == "custom" || it.category == "direct") vm.myRoomIds.contains(it.id) else true)
+    }
     val pinnedRooms = vm.roomPins.mapNotNull { id -> flatRooms.find { it.id == id } }
     val pinnedIds = pinnedRooms.map { it.id }.toSet()
     val listRooms = pinnedRooms + flatRooms.filter { it.id !in pinnedIds }
         .sortedWith(compareByDescending<Room> { vm.lastMsgByRoom[it.id]?.createdAt ?: "" }.thenBy { it.sortOrder })
-    var showPinSettings by remember { mutableStateOf(false) }
-    if (showPinSettings) {
-        PinSettingsDialog(
-            vm = vm,
-            rooms = flatRooms,
-            pins = vm.roomPins,
-            onSave = { vm.saveRoomPins(it); showPinSettings = false },
-            onDismiss = { showPinSettings = false }
-        )
-    }
 
     Scaffold(
         topBar = {
@@ -681,8 +673,8 @@ fun RoomListScreen(
                         "superadmin" -> TextButton(onClick = onApprovals) { Text("관리자모드", fontSize = 12.sp, color = MoimAdmin, fontWeight = FontWeight.Bold) }
                         "admin" -> TextButton(onClick = onApprovals) { Text("가입승인", fontSize = 12.sp, color = MoimAdmin, fontWeight = FontWeight.Bold) }
                     }
-                    // 설정(⚙️): 방 순서 + 회원 탈퇴·로그아웃
-                    TextButton(onClick = { showPinSettings = true }) { Text("⚙️", fontSize = 15.sp) }
+                    // 설정(⚙️): 내 정보 / 방 순서 / 회원 검색
+                    TextButton(onClick = onSettings) { Text("⚙️", fontSize = 15.sp) }
                 }
                 HorizontalDivider(color = MoimLine)
             }
@@ -700,7 +692,7 @@ fun RoomListScreen(
             if (listRooms.isEmpty()) {
                 item { EmptyBox("🔒", "아직 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
             } else {
-                items(listRooms) { room -> RoomRow(room, vm.unreadByRoom[room.id] ?: 0, vm.lastMsgByRoom[room.id], onOpen) }
+                items(listRooms) { room -> RoomRow(room, vm.unreadByRoom[room.id] ?: 0, vm.lastMsgByRoom[room.id], vm.profilesById, onOpen) }
             }
             vm.error?.let { err ->
                 item {
@@ -845,8 +837,40 @@ fun RoomAvatar(room: Room, sizeDp: Int, cornerDp: Int, fontSp: Double) {
     }
 }
 
+/** 사람(프로필) 아바타: 사진 > 색상 > 직군색 (사진 없으면 이름 앞 3글자) */
 @Composable
-fun RoomRow(room: Room, unread: Int = 0, lastMsg: LastMsg? = null, onOpen: (Room) -> Unit) {
+fun PersonAvatar(profile: Profile?, sizeDp: Int, cornerDp: Int, fontSp: Double) {
+    val shape = RoundedCornerShape(cornerDp.dp)
+    if (!profile?.avatarUrl.isNullOrBlank()) {
+        AsyncImage(
+            model = profile?.avatarUrl,
+            contentDescription = profile?.name,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.size(sizeDp.dp).clip(shape)
+        )
+    } else {
+        Box(
+            modifier = Modifier.size(sizeDp.dp).background(personColor(profile), shape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                (profile?.name ?: "?").take(3), color = Color.White, fontWeight = FontWeight.Bold,
+                fontSize = fontSp.sp, textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
+@Composable
+fun RoomRow(
+    room: Room,
+    unread: Int = 0,
+    lastMsg: LastMsg? = null,
+    profiles: Map<String, Profile> = emptyMap(),
+    onOpen: (Room) -> Unit,
+) {
+    val isDM = room.category == "direct"
+    val other = if (isDM) dmOther(room, profiles) else null
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -854,7 +878,7 @@ fun RoomRow(room: Room, unread: Int = 0, lastMsg: LastMsg? = null, onOpen: (Room
             .padding(horizontal = 18.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        RoomAvatar(room, 48, 16, 10.5)
+        if (isDM) PersonAvatar(other, 48, 16, 13.0) else RoomAvatar(room, 48, 16, 10.5)
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -864,13 +888,17 @@ fun RoomRow(room: Room, unread: Int = 0, lastMsg: LastMsg? = null, onOpen: (Room
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.White,
                     modifier = Modifier
-                        .background(c, RoundedCornerShape(5.dp))
+                        .background(if (isDM) Color(0xFF7A8A99) else catColor(room.category), RoundedCornerShape(5.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 )
-                Text(room.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MoimInk)
+                Text(roomDisplayName(room, profiles), fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MoimInk)
             }
             val desc = msgPreview(lastMsg).ifBlank {
-                if (room.postPolicy == "restricted") "공지 · 관리자/지정작성자" else ""
+                when {
+                    isDM -> other?.memberType.orEmpty()
+                    room.postPolicy == "restricted" -> "공지 · 관리자/지정작성자"
+                    else -> ""
+                }
             }
             Text(desc, fontSize = 12.5.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -928,6 +956,9 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     var showLeave by remember { mutableStateOf(false) }
     val profile = vm.myProfile
     val canPost = canPostInRoom(profile, room)
+    // 1:1 DM 은 채팅 전용 (캘린더·자료실 탭, 이름변경·설정·나가기 모두 숨김). 제목=상대 이름.
+    val dm = isDirect(liveRoom)
+    val titleName = roomDisplayName(liveRoom, vm.profilesById)
 
     if (showLeave) {
         AlertDialog(
@@ -997,7 +1028,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 TopAppBar(
                     title = {
                         Column {
-                            Text(liveRoom.name, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                            Text(titleName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             Text(catLabel(liveRoom.category), fontSize = 12.sp, color = MoimSub)
                         }
                     },
@@ -1005,7 +1036,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
                     },
                     actions = {
-                        if (canRenameRoom(profile, liveRoom)) {
+                        if (!dm && canRenameRoom(profile, liveRoom)) {
                             TextButton(onClick = {
                                 renameText = liveRoom.name
                                 editColor = liveRoom.color ?: ROOM_COLORS[1]
@@ -1013,14 +1044,14 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                 showRename = true
                             }) { Text("이름변경", fontSize = 13.sp, color = MoimAccent, fontWeight = FontWeight.Bold) }
                         }
-                        if (canManageRoom(profile, liveRoom)) {
+                        if (!dm && canManageRoom(profile, liveRoom)) {
                             TextButton(onClick = {
                                 vm.loadRoomMembers(liveRoom.id)
                                 showSettings = true
                             }) { Text("⚙️", fontSize = 17.sp) }
                         }
                         // 본인이 만들지 않은 모임방: 나가기
-                        if (canLeaveRoom(profile, liveRoom)) {
+                        if (!dm && canLeaveRoom(profile, liveRoom)) {
                             TextButton(onClick = { showLeave = true }) {
                                 Text("나가기", fontSize = 13.sp, color = MoimAdmin)
                             }
@@ -1029,10 +1060,11 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
                 )
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
-                    // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시
-                    val chatLabel = liveRoom.createdBy?.let { "개설자: ${vm.nameOf(it)}" } ?: "💬 채팅"
-                    val tabs = if (room.category != "custom")
+                    // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)·1:1(direct)은 채팅만.
+                    // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시. DM 은 '💬 상대이름'.
+                    val chatLabel = if (dm) "💬 $titleName"
+                        else liveRoom.createdBy?.let { "개설자: ${vm.nameOf(it)}" } ?: "💬 채팅"
+                    val tabs = if (room.category != "custom" && !dm)
                         listOf("chat" to "💬 채팅", "files" to "📁 자료실", "cal" to "📅 캘린더")
                     else listOf("chat" to chatLabel)
                     tabs.forEach { (id, label) ->
@@ -1475,21 +1507,60 @@ private fun CreateRoomButton(onClick: () -> Unit) {
     }
 }
 
-// 방 순서(핀) 설정 — 최대 5개 고정·드래그 재정렬 + 회원 탈퇴·로그아웃
+// =====================================================================
+//  설정 화면 — 내 정보 / 방 순서 / 회원 검색 (방목록 ⚙️로 진입)
+// =====================================================================
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PinSettingsDialog(
-    vm: MoimViewModel,
-    rooms: List<Room>,
-    pins: List<String>,
-    onSave: (List<String>) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var draft by remember { mutableStateOf(pins.filter { id -> rooms.any { it.id == id } }) }
+fun SettingsScreen(vm: MoimViewModel, onBack: () -> Unit, onOpenRoom: (Room) -> Unit) {
+    val tabs = listOf("내 정보", "방 순서", "회원 검색")
+    var tab by remember { mutableStateOf(0) }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("설정", fontWeight = FontWeight.Bold) },
+                navigationIcon = { TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) } },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
+            )
+        },
+        containerColor = MoimPaper
+    ) { pad ->
+        Column(modifier = Modifier.padding(pad).fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)) {
+                tabs.forEachIndexed { i, t ->
+                    SortChip(t, tab == i) { tab = i }
+                    if (i < tabs.lastIndex) Spacer(Modifier.width(8.dp))
+                }
+            }
+            when (tab) {
+                0 -> MyInfoTab(vm)
+                1 -> OrderTab(vm)
+                else -> MemberSearchTab(vm, onOpenRoom)
+            }
+        }
+    }
+}
+
+// ── 내 정보 변경 (이름·이메일·직군 읽기전용 / 자기소개·비밀번호·아바타 변경 + 회원 탈퇴) ──
+@Composable
+private fun MyInfoTab(vm: MoimViewModel) {
+    val me = vm.myProfile
+    val context = LocalContext.current
+    var intro by remember(me?.id) { mutableStateOf(me?.intro ?: "") }
+    var color by remember(me?.id) { mutableStateOf(me?.color ?: "") }
+    var avatarUri by remember(me?.id) { mutableStateOf<Uri?>(null) }
+    var avatarBytes by remember(me?.id) { mutableStateOf<ByteArray?>(null) }
+    var avatarName by remember(me?.id) { mutableStateOf<String?>(null) }
+    var clearAvatar by remember(me?.id) { mutableStateOf(false) }
+    var pw by remember { mutableStateOf("") }
+    var pw2 by remember { mutableStateOf("") }
+    var pwMsg by remember { mutableStateOf<Pair<Boolean, String>?>(null) }   // (성공 여부, 메시지)
+    var savedMsg by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
-    // 드래그 재정렬 상태
-    var dragIndex by remember { mutableStateOf(-1) }
-    var dragOffset by remember { mutableStateOf(0f) }
-    var rowHeightPx by remember { mutableStateOf(1f) }
+    val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) { avatarUri = uri; clearAvatar = false; readUri(context, uri)?.let { (n, b) -> avatarName = n; avatarBytes = b } }
+    }
+    val isSuper = (MoimRepository.currentUserEmail() ?: "").equals("jsnoh@ajou.ac.kr", ignoreCase = true)
 
     if (showDelete) {
         AlertDialog(
@@ -1501,86 +1572,273 @@ private fun PinSettingsDialog(
         )
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("방 순서 설정") },
-        text = {
-            Column(modifier = Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
-                // 회원 탈퇴 · 로그아웃 (방 순서 위)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-                    Text("로그아웃", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimSub,
-                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { vm.logout() }.padding(horizontal = 10.dp, vertical = 6.dp))
-                    Text("회원 탈퇴", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
-                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { showDelete = true }.padding(horizontal = 10.dp, vertical = 6.dp))
-                }
-                HorizontalDivider(color = MoimLine, modifier = Modifier.padding(vertical = 6.dp))
-                Text("상단에 고정할 방 최대 5개. ☰ 를 길게 눌러 드래그로 순서 변경. 나머지는 새 메시지 순.", fontSize = 12.sp, color = MoimSub)
-                Spacer(Modifier.height(8.dp))
-                Text("고정된 방 (${draft.size}/5)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-                if (draft.isEmpty()) Text("고정된 방 없음", fontSize = 13.sp, color = MoimSub, modifier = Modifier.padding(vertical = 4.dp))
-                draft.forEachIndexed { i, id ->
-                    val r = rooms.find { it.id == id } ?: return@forEachIndexed
-                    val dragging = dragIndex == i
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .onSizeChanged { if (it.height > 0) rowHeightPx = it.height.toFloat() }
-                            .zIndex(if (dragging) 1f else 0f)
-                            .graphicsLayer { translationY = if (dragging) dragOffset else 0f }
-                            .padding(vertical = 3.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "☰", fontSize = 16.sp, color = MoimSub,
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .pointerInput(id) {
-                                    detectDragGesturesAfterLongPress(
-                                        onDragStart = { dragIndex = i; dragOffset = 0f },
-                                        onDragEnd = { dragIndex = -1; dragOffset = 0f },
-                                        onDragCancel = { dragIndex = -1; dragOffset = 0f },
-                                        onDrag = { change, amount ->
-                                            change.consume()
-                                            dragOffset += amount.y
-                                            val cur = dragIndex
-                                            if (cur < 0) return@detectDragGesturesAfterLongPress
-                                            if (dragOffset > rowHeightPx / 2 && cur < draft.size - 1) {
-                                                val m = draft.toMutableList(); val t = m.removeAt(cur); m.add(cur + 1, t)
-                                                draft = m; dragIndex = cur + 1; dragOffset -= rowHeightPx
-                                            } else if (dragOffset < -rowHeightPx / 2 && cur > 0) {
-                                                val m = draft.toMutableList(); val t = m.removeAt(cur); m.add(cur - 1, t)
-                                                draft = m; dragIndex = cur - 1; dragOffset += rowHeightPx
-                                            }
-                                        }
-                                    )
-                                }
-                        )
-                        Text("${i + 1}. ${r.name}", fontSize = 14.sp, color = MoimInk, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        PinIcon("✕", MoimAdmin) { draft = draft.filter { it != id } }
-                    }
-                }
-                Spacer(Modifier.height(10.dp))
-                Text("방 목록", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-                rooms.filter { it.id !in draft }.forEach { r ->
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Text(r.name, fontSize = 14.sp, color = MoimInk, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        val enabled = draft.size < 5
-                        Text(
-                            "📌 고정", fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                            color = if (enabled) MoimAccent else MoimSub.copy(alpha = 0.4f),
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .then(if (enabled) Modifier.clickable { draft = draft + r.id } else Modifier)
-                                .background(MoimBg, RoundedCornerShape(8.dp))
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
+    Column(
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
+    ) {
+        // 아바타 미리보기 + 사진 선택/제거 + 색상 팔레트
+        Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            val shape = RoundedCornerShape(26.dp)
+            val img: Any? = avatarUri ?: (if (clearAvatar) null else me?.avatarUrl)
+            if (img != null) {
+                AsyncImage(model = img, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(84.dp).clip(shape))
+            } else {
+                Box(modifier = Modifier.size(84.dp).background(parseHexColor(color) ?: personColor(me), shape), contentAlignment = Alignment.Center) {
+                    Text((me?.name ?: "?").take(3), color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = { onSave(draft) }) { Text("저장", fontWeight = FontWeight.Bold) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } }
-    )
+            Spacer(Modifier.height(9.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = { avatarPicker.launch("image/*") }) { Text("사진 선택") }
+                if (img != null) TextButton(onClick = { avatarUri = null; avatarBytes = null; avatarName = null; clearAvatar = true }) {
+                    Text("사진 제거", color = MoimAdmin)
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            ColorSwatchRow(color) { color = it }
+        }
+        Spacer(Modifier.height(16.dp))
+        Text("이름 (변경 불가)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+        OutlinedTextField(value = me?.name ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(10.dp))
+        Text("직군", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+        OutlinedTextField(value = me?.memberType ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(10.dp))
+        Text("자기소개", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+        OutlinedTextField(
+            value = intro, onValueChange = { intro = it; savedMsg = false },
+            placeholder = { Text("자기소개를 입력하세요") }, modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(14.dp))
+        Button(
+            onClick = {
+                vm.saveMyInfo(intro, color.ifBlank { null }, avatarBytes, avatarName, clearAvatar) {
+                    avatarUri = null; avatarBytes = null; avatarName = null; clearAvatar = false; savedMsg = true
+                }
+            },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
+            shape = RoundedCornerShape(12.dp)
+        ) { Text("내 정보 저장", fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+        if (savedMsg) {
+            Spacer(Modifier.height(8.dp))
+            Text("내 정보가 저장되었습니다.", color = catColor("work"), fontSize = 12.5.sp)
+        }
+
+        HorizontalDivider(color = MoimLine, modifier = Modifier.padding(vertical = 20.dp))
+        Text("비밀번호 변경", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+        Spacer(Modifier.height(8.dp))
+        if (isSuper) {
+            Text("전체관리자 계정의 비밀번호는 변경할 수 없습니다.", color = MoimSub, fontSize = 12.5.sp)
+        } else {
+            OutlinedTextField(
+                value = pw, onValueChange = { pw = it; pwMsg = null },
+                placeholder = { Text("새 비밀번호 (6자 이상)") }, singleLine = true,
+                visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = pw2, onValueChange = { pw2 = it; pwMsg = null },
+                placeholder = { Text("새 비밀번호 확인") }, singleLine = true,
+                visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()
+            )
+            pwMsg?.let { (ok, m) ->
+                Spacer(Modifier.height(8.dp))
+                Text(m, color = if (ok) catColor("work") else MoimAdmin, fontSize = 12.5.sp)
+            }
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    when {
+                        pw.length < 6 -> pwMsg = false to "비밀번호는 6자 이상이어야 합니다."
+                        pw != pw2 -> pwMsg = false to "비밀번호가 일치하지 않습니다."
+                        else -> vm.changeMyPassword(pw) { ok, m ->
+                            pwMsg = ok to m
+                            if (ok) { pw = ""; pw2 = "" }
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth().height(46.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MoimLine, contentColor = MoimInk),
+                shape = RoundedCornerShape(12.dp)
+            ) { Text("비밀번호 변경", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+        }
+
+        HorizontalDivider(color = MoimLine, modifier = Modifier.padding(vertical = 20.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+            Text("로그아웃", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimSub,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { vm.logout() }.padding(horizontal = 12.dp, vertical = 6.dp))
+            Spacer(Modifier.width(10.dp))
+            Text("회원 탈퇴", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { showDelete = true }.padding(horizontal = 12.dp, vertical = 6.dp))
+        }
+        Spacer(Modifier.height(20.dp))
+    }
+}
+
+// ── 방 순서(핀) 설정 — 최대 5개 고정·드래그 재정렬 (방목록 ⚙️ → 방 순서 탭) ──
+@Composable
+private fun OrderTab(vm: MoimViewModel) {
+    // 고정 가능한 방 = 방목록에 보이는 방(주간 학술활동 제외, 가입한 모임방·DM 포함)
+    val weekRoom = vm.rooms.firstOrNull { it.category != "custom" && it.defaultView == "week" }
+    val rooms = vm.rooms.filter {
+        it.id != weekRoom?.id &&
+            (if (it.category == "custom" || it.category == "direct") vm.myRoomIds.contains(it.id) else true)
+    }
+    var draft by remember(vm.roomPins) { mutableStateOf(vm.roomPins.filter { id -> rooms.any { it.id == id } }) }
+    var savedMsg by remember { mutableStateOf(false) }
+    var dragIndex by remember { mutableStateOf(-1) }
+    var dragOffset by remember { mutableStateOf(0f) }
+    var rowHeightPx by remember { mutableStateOf(1f) }
+    fun labelOf(r: Room) = roomDisplayName(r, vm.profilesById)
+
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Text("상단에 고정할 방 최대 5개. ☰ 를 길게 눌러 드래그로 순서 변경. 나머지는 새 메시지 순.", fontSize = 12.sp, color = MoimSub)
+        Spacer(Modifier.height(10.dp))
+        Text("고정된 방 (${draft.size}/5)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+        if (draft.isEmpty()) Text("고정된 방 없음", fontSize = 13.sp, color = MoimSub, modifier = Modifier.padding(vertical = 4.dp))
+        draft.forEachIndexed { i, id ->
+            val r = rooms.find { it.id == id } ?: return@forEachIndexed
+            val dragging = dragIndex == i
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onSizeChanged { if (it.height > 0) rowHeightPx = it.height.toFloat() }
+                    .zIndex(if (dragging) 1f else 0f)
+                    .graphicsLayer { translationY = if (dragging) dragOffset else 0f }
+                    .padding(vertical = 3.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "☰", fontSize = 16.sp, color = MoimSub,
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .pointerInput(id) {
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { dragIndex = i; dragOffset = 0f },
+                                onDragEnd = { dragIndex = -1; dragOffset = 0f },
+                                onDragCancel = { dragIndex = -1; dragOffset = 0f },
+                                onDrag = { change, amount ->
+                                    change.consume()
+                                    dragOffset += amount.y
+                                    val cur = dragIndex
+                                    if (cur < 0) return@detectDragGesturesAfterLongPress
+                                    if (dragOffset > rowHeightPx / 2 && cur < draft.size - 1) {
+                                        val m = draft.toMutableList(); val t = m.removeAt(cur); m.add(cur + 1, t)
+                                        draft = m; dragIndex = cur + 1; dragOffset -= rowHeightPx
+                                    } else if (dragOffset < -rowHeightPx / 2 && cur > 0) {
+                                        val m = draft.toMutableList(); val t = m.removeAt(cur); m.add(cur - 1, t)
+                                        draft = m; dragIndex = cur - 1; dragOffset += rowHeightPx
+                                    }
+                                }
+                            )
+                        }
+                )
+                Text("${i + 1}. ${labelOf(r)}", fontSize = 14.sp, color = MoimInk, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                PinIcon("✕", MoimAdmin) { draft = draft.filter { it != id }; savedMsg = false }
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Text("방 목록", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+        rooms.filter { it.id !in draft }.forEach { r ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(labelOf(r), fontSize = 14.sp, color = MoimInk, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val enabled = draft.size < 5
+                Text(
+                    "📌 고정", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    color = if (enabled) MoimAccent else MoimSub.copy(alpha = 0.4f),
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .then(if (enabled) Modifier.clickable { draft = draft + r.id; savedMsg = false } else Modifier)
+                        .background(MoimBg, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        Button(
+            onClick = { vm.saveRoomPins(draft); savedMsg = true },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
+            shape = RoundedCornerShape(12.dp)
+        ) { Text("순서 저장", fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+        if (savedMsg) {
+            Spacer(Modifier.height(8.dp))
+            Text("순서를 저장했습니다.", color = catColor("work"), fontSize = 12.5.sp, modifier = Modifier.align(Alignment.CenterHorizontally))
+        }
+    }
+}
+
+// ── 회원 검색 — 전체 명단·이름/직종 정렬·검색·메시지(1:1 DM 열기) ──
+@Composable
+private fun MemberSearchTab(vm: MoimViewModel, onOpenRoom: (Room) -> Unit) {
+    val collator = remember { java.text.Collator.getInstance(java.util.Locale.KOREAN) }
+    val byName = Comparator<Profile> { a, b -> collator.compare(a.name, b.name) }
+    val list = vm.searchableMembers()
+    val byType = vm.memberSearchByType
+
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        OutlinedTextField(
+            value = vm.memberSearchQuery,
+            onValueChange = { vm.memberSearchQuery = it },
+            placeholder = { Text("🔍 이름으로 검색") },
+            singleLine = true, modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(Modifier.height(10.dp))
+        Row {
+            SortChip("이름순", !byType) { vm.memberSearchByType = false }
+            Spacer(Modifier.width(8.dp))
+            SortChip("직종별", byType) { vm.memberSearchByType = true }
+        }
+        Spacer(Modifier.height(12.dp))
+        LazyColumn(modifier = Modifier.fillMaxSize()) {
+            if (list.isEmpty()) {
+                item {
+                    Text(
+                        if (vm.memberSearchQuery.isBlank()) "표시할 회원이 없습니다." else "검색 결과가 없습니다.",
+                        fontSize = 13.sp, color = MoimSub
+                    )
+                }
+            } else if (byType) {
+                val groups = list.groupBy { it.memberType }
+                val order = MTYPE_ORDER.filter { groups.containsKey(it) } + groups.keys.filter { it !in MTYPE_ORDER }
+                order.forEach { t ->
+                    val g = groups[t] ?: return@forEach
+                    item { Text("$t · ${g.size}명", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = typeColor(t), modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)) }
+                    items(g.sortedWith(byName), key = { it.id }) { p -> MemberSearchRow(p) { vm.startDirect(p.id, onOpenRoom) } }
+                }
+            } else {
+                items(list.sortedWith(byName), key = { it.id }) { p -> MemberSearchRow(p) { vm.startDirect(p.id, onOpenRoom) } }
+            }
+        }
+    }
+}
+
+@Composable
+private fun MemberSearchRow(p: Profile, onMessage: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MoimWhite, RoundedCornerShape(12.dp))
+            .padding(11.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        PersonAvatar(p, 42, 13, 12.0)
+        Spacer(Modifier.width(11.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+            Text(p.memberType, fontSize = 11.5.sp, color = MoimSub)
+            if (!p.intro.isNullOrBlank()) {
+                Text(p.intro!!, fontSize = 11.5.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            "메시지", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onMessage).background(MoimAccent).padding(horizontal = 14.dp, vertical = 8.dp)
+        )
+    }
 }
 
 @Composable

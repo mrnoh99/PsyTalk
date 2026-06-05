@@ -58,6 +58,22 @@ struct RootView: View {
         } message: {
             Text(vm.error ?? "")
         }
+        .alert("알림", isPresented: Binding(
+            get: { vm.loggedIn && vm.notice != nil },
+            set: { if !$0 { vm.notice = nil } }
+        )) {
+            Button("확인", role: .cancel) { vm.notice = nil }
+        } message: {
+            Text(vm.notice ?? "")
+        }
+        // 회원 검색에서 1:1 DM 열기 → 해당 방으로 전환
+        .onChange(of: vm.pendingOpenRoom) { room in
+            if let room = room {
+                withAnimation(.easeOut(duration: 0.26)) { openedRoom = room }
+                vm.openRoom(room)
+                vm.pendingOpenRoom = nil
+            }
+        }
         .onAppear { if vm.loggedIn { vm.loadRooms() } }
         .onChange(of: vm.loggedIn) { newValue in
             if newValue { vm.loadRooms() }

@@ -38,6 +38,7 @@ import com.example.moimtalk.ui.CreateRoomScreen
 import com.example.moimtalk.ui.LoginScreen
 import com.example.moimtalk.ui.RoomListScreen
 import com.example.moimtalk.ui.RoomScreen
+import com.example.moimtalk.ui.SettingsScreen
 import com.example.moimtalk.ui.AdminConsoleScreen
 import com.example.moimtalk.ui.isAdminRole
 import com.example.moimtalk.ui.PendingApprovalScreen
@@ -77,6 +78,10 @@ class MoimViewModel : ViewModel() {
     var roomMemberIds by mutableStateOf<List<String>>(emptyList())
     var roomMembersLoaded by mutableStateOf(false)
     var roomMemberCounts by mutableStateOf<Map<String, Int>>(emptyMap())
+
+    // 설정 화면(내 정보 / 방 순서 / 회원 검색) 상태
+    var memberSearchQuery by mutableStateOf("")
+    var memberSearchByType by mutableStateOf(false)   // false=이름순, true=직종별
 
     private var activeRoom: String? = null
     private var memberListRoomId: String? = null
@@ -575,6 +580,74 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    // ── 내 정보 변경 / 회원 검색(1:1 DM) ──
+
+    /** 내 정보 저장: 새 사진이 있으면 먼저 업로드 후 intro/avatar_url/color 갱신 */
+    fun saveMyInfo(
+        intro: String,
+        color: String?,
+        avatarBytes: ByteArray?,
+        avatarName: String?,
+        clearAvatar: Boolean,
+        onDone: () -> Unit = {},
+    ) {
+        viewModelScope.launch {
+            try {
+                var avatarUrl: String? = if (clearAvatar) null else myProfile?.avatarUrl
+                if (avatarBytes != null) {
+                    avatarUrl = MoimRepository.uploadProfileAvatar(avatarName ?: "avatar.png", avatarBytes)
+                }
+                val trimmed = intro.trim().takeIf { it.isNotBlank() }
+                MoimRepository.updateMyProfile(trimmed, avatarUrl, color)
+                profilesById = MoimRepository.allProfiles().associateBy { it.id }
+                MoimRepository.currentUserId()?.let { uid -> profilesById[uid]?.let { myProfile = it } }
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "내 정보 저장")
+            }
+        }
+    }
+
+    /** 비밀번호 변경 (전체관리자 계정은 변경 불가 — 클라이언트 1차 방어 + DB 트리거 최종 강제) */
+    fun changeMyPassword(newPassword: String, onResult: (Boolean, String) -> Unit) {
+        if (MoimRepository.currentUserEmail()?.equals("jsnoh@ajou.ac.kr", ignoreCase = true) == true) {
+            onResult(false, "전체관리자 계정의 비밀번호는 변경할 수 없습니다.")
+            return
+        }
+        viewModelScope.launch {
+            try {
+                MoimRepository.changePassword(newPassword)
+                onResult(true, "비밀번호가 변경되었습니다.")
+            } catch (e: Exception) {
+                onResult(false, friendlySupabaseError(e, "비밀번호 변경"))
+            }
+        }
+    }
+
+    /** 1:1 DM 열기: 상대 user id → 방 id → 방 목록 갱신 후 해당 방을 콜백으로 전달해 화면 전환 */
+    fun startDirect(otherId: String, onOpen: (Room) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val rid = MoimRepository.openDirect(otherId)
+                rooms = MoimRepository.rooms()
+                myRoomIds = try { MoimRepository.myRoomIds().toSet() } catch (_: Exception) { myRoomIds }
+                rooms.firstOrNull { it.id == rid }?.let { onOpen(it) }
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "대화 열기")
+            }
+        }
+    }
+
+    /** 회원 검색 목록: 본인·전체관리자 제외 + 승인·미탈퇴, 이름 부분일치(대소문자 무시) */
+    fun searchableMembers(): List<Profile> {
+        val q = memberSearchQuery.trim().lowercase()
+        return profilesById.values.filter {
+            it.id != MoimRepository.currentUserId() &&
+                it.role != "superadmin" && it.approved && !it.withdrawn &&
+                (q.isEmpty() || it.name.lowercase().contains(q))
+        }
+    }
+
     /** room_members 변경 시 회원 목록·인원만 갱신 (방 목록은 Realtime 에서 loadRooms 로 처리) */
     private fun onRoomMembersChangedOnly() {
         memberListRoomId?.let { loadRoomMembers(it) }
@@ -797,7 +870,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
 /** 채팅방이 열릴 때 오른쪽 → 왼쪽으로 펼쳐 나오는 효과 */
 @Composable
 private fun SlideInFromRight(content: @Composable () -> Unit) {
@@ -816,6 +888,7 @@ fun App(vm: MoimViewModel = viewModel()) {
     var showWard by remember { mutableStateOf(false) }
     var showCreateRoom by remember { mutableStateOf(false) }
     var showApprovals by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -862,6 +935,15 @@ fun App(vm: MoimViewModel = viewModel()) {
         vm.myProfile != null && vm.myProfile?.approved != true -> PendingApprovalScreen(vm)
         showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
         showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
+        showSettings -> SettingsScreen(
+            vm = vm,
+            onBack = { showSettings = false },
+            onOpenRoom = { room ->
+                showSettings = false
+                openedRoom = room
+                vm.openRoom(room)
+            }
+        )
         showApprovals && vm.myProfile?.let { isAdminRole(it.role) } == true ->
             AdminConsoleScreen(vm = vm, onBack = { showApprovals = false })
         openedRoom == null -> RoomListScreen(
@@ -872,7 +954,8 @@ fun App(vm: MoimViewModel = viewModel()) {
             },
             onWard = { showWard = true },
             onCreateRoom = { showCreateRoom = true },
-            onApprovals = { showApprovals = true }
+            onApprovals = { showApprovals = true },
+            onSettings = { showSettings = true }
         )
         else -> SlideInFromRight {
             RoomScreen(

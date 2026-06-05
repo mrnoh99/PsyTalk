@@ -127,6 +127,8 @@
   .tag{font-size:10px;font-weight:700;padding:3px 7px;border-radius:20px}
   .tag.super{background:var(--admin);color:#fff}.tag.admin{background:var(--notice);color:#fff}.tag.user{background:var(--line);color:var(--accent)}
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30;padding:14px}
+  /* 공용 확인/알림 대화상자는 다른 모달(일정 상세 등) 위에 항상 표시 */
+  #uiDialog{z-index:60}
   .modal.on{display:flex}
   .sheet{background:var(--paper);width:100%;max-width:430px;border-radius:18px;padding:20px;max-height:88vh;overflow-y:auto}
   .sheet h2{font-size:18px;font-weight:800;margin-bottom:4px}.sheet p{font-size:13px;color:var(--sub);margin-bottom:14px}

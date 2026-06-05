@@ -41,7 +41,9 @@ data class Profile(
     val approved: Boolean = false,    // 관리자 가입 승인 (기본값 불승인: 값이 없으면 승인 대기)
     val withdrawn: Boolean = false,   // 탈퇴(비활성): 글·자료는 남기되 활동·로그인 불가
     val phone: String? = null,        // 전화번호
+    val intro: String? = null,        // 자기소개 (내 정보 변경)
     @SerialName("avatar_url") val avatarUrl: String? = null,
+    val color: String? = null,        // 프로필 아바타 색상(hex), null=직군 기본색
     @SerialName("created_at") val createdAt: String? = null,
 )
 
@@ -49,13 +51,14 @@ data class Profile(
 data class Room(
     val id: String,
     val name: String,
-    val category: String,             // notice | group | work | research | custom
+    val category: String,             // notice | group | work | research | custom | direct
     @SerialName("post_policy") val postPolicy: String,  // restricted | members
     @SerialName("sort_order") val sortOrder: Int = 999,
     @SerialName("default_view") val defaultView: String? = null,
     @SerialName("created_by") val createdBy: String? = null,
     val color: String? = null,                          // 방표식 색상(hex), null=카테고리 기본색
     @SerialName("icon_url") val iconUrl: String? = null, // 방표식 사진 URL, null=색+이름
+    @SerialName("dm_key") val dmKey: String? = null,    // 1:1 DM 식별 키('a_b'), 일반/모임방은 null
 )
 
 // 모임방 생성 DTO (사용자가 카톡처럼 방 생성)

@@ -32,6 +32,14 @@ struct AdminPlaceholderView: View {
             .sorted { $0.name < $1.name }
     }
 
+    // 직종별 정렬 그룹 (MTYPE_ORDER 우선 + 기타 직군)
+    private var memberSections: [(type: String, members: [Profile])] {
+        var groups: [String: [Profile]] = [:]
+        for p in members { groups[p.memberType.isEmpty ? "기타" : p.memberType, default: []].append(p) }
+        let order = MTYPE_ORDER.filter { groups[$0] != nil } + groups.keys.filter { !MTYPE_ORDER.contains($0) }.sorted()
+        return order.map { ($0, (groups[$0] ?? []).sorted(by: byName)) }
+    }
+
     // 비활성(탈퇴) 회원 — 복구 대상
     private var withdrawnMembers: [Profile] {
         vm.profilesById.values
@@ -127,8 +135,23 @@ struct AdminPlaceholderView: View {
     private var membersContent: some View {
         VStack(alignment: .leading, spacing: 13) {
             card(title: "👥 회원 관리 · \(members.count)명 · 관리자 지위 지정 / 계정 비활성화") {
+                // 이름순 / 직종별 정렬 토글
+                HStack(spacing: 7) {
+                    memSortButton("이름순", "name")
+                    memSortButton("직종별", "type")
+                    Spacer()
+                }
+                .padding(.bottom, 10)
                 if members.isEmpty {
                     Text("승인된 회원이 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
+                } else if vm.memAdminSort == "type" {
+                    ForEach(memberSections, id: \.type) { sec in
+                        Text("\(sec.type) · \(sec.members.count)명")
+                            .font(.system(size: 10.5, weight: .bold)).foregroundColor(Moim.sub)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 6).padding(.bottom, 2)
+                        ForEach(sec.members) { p in memberRow(p) }
+                    }
                 } else {
                     ForEach(members) { p in memberRow(p) }
                 }
@@ -183,15 +206,25 @@ struct AdminPlaceholderView: View {
         .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 15))
     }
 
+    private func memSortButton(_ title: String, _ key: String) -> some View {
+        let on = vm.memAdminSort == key
+        return Button { vm.memAdminSort = key } label: {
+            Text(title)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(on ? .white : Moim.accent)
+                .padding(.horizontal, 12).padding(.vertical, 5)
+                .background(on ? Moim.accent : Moim.bg)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
     private func memberRow(_ p: Profile) -> some View {
         let role: (Color, String) = p.role == "superadmin" ? (Moim.admin, "전체관리자")
             : p.role == "admin" ? (Color(hex: 0xB5651D), "관리자") : (Moim.line, "회원")
         let pending = p.approved == false
         return HStack(spacing: 10) {
-            Text(String(p.name.prefix(3)))
-                .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
-                .frame(width: 36, height: 36)
-                .background(typeColor(p.memberType)).clipShape(RoundedRectangle(cornerRadius: 11))
+            PersonAvatarView(profile: p, size: 36, corner: 11, font: 13)
             VStack(alignment: .leading, spacing: 1) {
                 HStack(spacing: 4) {
                     Text(p.name).font(.system(size: 13.5, weight: .bold)).foregroundColor(Moim.ink)
@@ -203,6 +236,9 @@ struct AdminPlaceholderView: View {
                     }
                 }
                 Text(p.memberType).font(.system(size: 11.5)).foregroundColor(Moim.sub)
+                if let intro = p.intro, !intro.isEmpty {
+                    Text(intro).font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1)
+                }
             }
             .contentShape(Rectangle())
             .onTapGesture {

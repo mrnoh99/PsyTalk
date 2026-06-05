@@ -53,6 +53,38 @@ enum MoimRepository {
         try await supabase.from("profiles").select().execute().value
     }
 
+    /// 내 정보 변경: 자기소개(intro)·아바타 사진(avatar_url)·색상(color) — RPC(본인 안전 컬럼만)
+    static func updateMyProfile(intro: String?, avatarUrl: String?, color: String?) async throws {
+        let params: [String: AnyJSON] = [
+            "p_intro": intro.map { AnyJSON.string($0) } ?? .null,
+            "p_avatar_url": avatarUrl.map { AnyJSON.string($0) } ?? .null,
+            "p_color": color.map { AnyJSON.string($0) } ?? .null,
+        ]
+        try await supabase.rpc("moim_update_my_profile", params: params).execute()
+    }
+
+    /// 1:1 DM 열기(없으면 생성) — 상대 user id 를 받아 방 id 반환 (RPC)
+    static func openDirect(otherId: String) async throws -> String {
+        let rid: String = try await supabase.rpc("moim_open_direct", params: ["p_other": otherId]).execute().value
+        return rid
+    }
+
+    /// 비밀번호 변경 — 클라이언트 auth.update (전체관리자는 DB 트리거가 차단)
+    static func changePassword(_ newPassword: String) async throws {
+        try await supabase.auth.update(user: UserAttributes(password: newPassword))
+    }
+
+    /// 프로필 사진 업로드 → 공개 room-files 버킷에 저장하고 공개 URL 반환
+    static func uploadProfileAvatar(data: Data, ext: String) async throws -> String {
+        guard let uid = currentUserId() else { throw AppError.notLoggedIn }
+        let safeExt = ext.replacingOccurrences(of: "[^A-Za-z0-9]", with: "", options: .regularExpression)
+        let e = safeExt.isEmpty ? "png" : safeExt
+        let path = "profiles/\(uid)/avatar_\(Int(Date().timeIntervalSince1970 * 1000)).\(e)"
+        let bucket = supabase.storage.from(filesBucket)
+        try await bucket.upload(path, data: data, options: FileOptions(upsert: true))
+        return try bucket.getPublicURL(path: path).absoluteString
+    }
+
     /// 역할 지정 (전체관리자만 — RLS 로 강제). role: user | admin | superadmin
     static func updateRole(userId: String, role: String) async throws {
         try await supabase.from("profiles").update(["role": role]).eq("id", value: userId).execute()

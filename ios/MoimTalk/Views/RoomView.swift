@@ -26,7 +26,8 @@ struct RoomView: View {
 
     // 이름 변경이 반영되도록 최신 방 정보를 vm.rooms 에서 조회
     private var liveRoom: Room { vm.rooms.first { $0.id == room.id } ?? room }
-    private var canPost: Bool { canPostInRoom(vm.myProfile, room) }
+    private var isDM: Bool { liveRoom.category == "direct" }
+    private var canPost: Bool { isDM ? true : canPostInRoom(vm.myProfile, room) }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -47,11 +48,11 @@ struct RoomView: View {
         HStack {
             Button(action: onBack) { Text("‹").font(.system(size: 25)) }
             VStack(alignment: .leading, spacing: 2) {
-                Text(liveRoom.name).font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
-                Text(catLabel(liveRoom.category)).font(.system(size: 12)).foregroundColor(Moim.sub)
+                Text(vm.roomDisplayName(liveRoom)).font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
+                Text(isDM ? "1:1 대화" : catLabel(liveRoom.category)).font(.system(size: 12)).foregroundColor(Moim.sub)
             }
             Spacer()
-            if canRenameRoom(vm.myProfile, liveRoom) {
+            if !isDM, canRenameRoom(vm.myProfile, liveRoom) {
                 Button("이름변경") {
                     renameText = liveRoom.name
                     editColor = liveRoom.color ?? ROOM_COLORS[1]
@@ -60,7 +61,7 @@ struct RoomView: View {
                 }
                 .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
             }
-            if vm.canManageRoom(liveRoom) {
+            if !isDM, vm.canManageRoom(liveRoom) {
                 Button {
                     vm.loadRoomMembers(liveRoom.id)
                     showSettings = true
@@ -69,7 +70,7 @@ struct RoomView: View {
                 }
             }
             // 본인이 만들지 않은 모임방: 나가기
-            if vm.canLeaveRoom(liveRoom) {
+            if !isDM, vm.canLeaveRoom(liveRoom) {
                 Button("나가기") { showLeave = true }
                     .font(.system(size: 13)).foregroundColor(Moim.admin)
             }
@@ -120,6 +121,8 @@ struct RoomView: View {
 
     // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
     private var tabItems: [(String, String)] {
+        // DM: 채팅만, 라벨 '💬 <상대 이름>'
+        if isDM { return [("chat", "💬 \(vm.roomDisplayName(liveRoom))")] }
         // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시
         let chatLabel = liveRoom.createdBy.map { "개설자: \(vm.name(of: $0))" } ?? "💬 채팅"
         return room.category != "custom"

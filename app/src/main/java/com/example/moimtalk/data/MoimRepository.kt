@@ -37,6 +37,15 @@ object MoimRepository {
         supabase.auth.signOut()
     }
 
+    /** 현재 로그인 사용자 이메일 (전체관리자 비밀번호 변경 차단 등에 사용) */
+    fun currentUserEmail(): String? =
+        supabase.auth.currentSessionOrNull()?.user?.email
+
+    /** 비밀번호 변경 (auth.updateUser). 전체관리자는 서버 트리거가 추가로 차단 */
+    suspend fun changePassword(newPassword: String) {
+        supabase.auth.updateUser { password = newPassword }
+    }
+
     /** 회원가입: 이름·직군·핸드폰·소개를 메타데이터로 전달 → 트리거가 profiles 생성/보강 */
     suspend fun signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String) {
         supabase.auth.signUpWith(Email) {
@@ -240,6 +249,30 @@ object MoimRepository {
     // ── 회원 이름 표시용 (작성자·업로더) ──
     suspend fun allProfiles(): List<Profile> =
         supabase.from("profiles").select().decodeList()
+
+    /** 내 정보 변경: 자기소개·아바타 사진 URL·색상 (본인 안전 컬럼만, RPC SECURITY DEFINER) */
+    suspend fun updateMyProfile(intro: String?, avatarUrl: String?, color: String?) {
+        supabase.postgrest.rpc("moim_update_my_profile", buildJsonObject {
+            put("p_intro", intro)
+            put("p_avatar_url", avatarUrl)
+            put("p_color", color)
+        })
+    }
+
+    /** 1:1 DM 열기(없으면 생성). 상대 user id → 방 id 반환 */
+    suspend fun openDirect(otherId: String): String =
+        supabase.postgrest.rpc("moim_open_direct", buildJsonObject { put("p_other", otherId) })
+            .decodeAs<String>()
+
+    /** 프로필 아바타 사진 업로드: 공개 room-files 버킷 profiles/<uid>/avatar_<ts>.<ext> → 공개 URL */
+    suspend fun uploadProfileAvatar(fileName: String, bytes: ByteArray): String {
+        val uid = currentUserId() ?: error("Not logged in")
+        val ext = fileName.substringAfterLast('.', "png").replace(Regex("[^A-Za-z0-9]"), "").ifBlank { "png" }
+        val path = "profiles/$uid/avatar_${System.currentTimeMillis()}.$ext"
+        val bucket = supabase.storage.from(FILES_BUCKET)
+        bucket.upload(path, bytes) { upsert = true }
+        return bucket.publicUrl(path)
+    }
 
     /** 가입 승인/취소 (전체관리자만 — RLS 로 강제) */
     suspend fun setApproved(userId: String, approved: Boolean) {

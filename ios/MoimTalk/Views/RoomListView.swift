@@ -22,6 +22,26 @@ struct RoomAvatarView: View {
     }
 }
 
+// 사람(프로필) 아바타 — 사진 > 색상 > 직군색 + 이름 머리글자
+struct PersonAvatarView: View {
+    let profile: Profile?
+    var size: CGFloat = 42
+    var corner: CGFloat = 13
+    var font: CGFloat = 13
+    var body: some View {
+        if let u = profile?.avatarUrl, !u.isEmpty, let url = URL(string: u) {
+            AsyncImage(url: url) { img in img.resizable().scaledToFill() } placeholder: { personColor(profile) }
+                .frame(width: size, height: size)
+                .clipShape(RoundedRectangle(cornerRadius: corner))
+        } else {
+            Text(initials(profile?.name))
+                .font(.system(size: font, weight: .bold)).foregroundColor(.white)
+                .frame(width: size, height: size)
+                .background(personColor(profile)).clipShape(RoundedRectangle(cornerRadius: corner))
+        }
+    }
+}
+
 // 방표식(색상·사진) 편집기 — 생성/이름변경 공통
 struct RoomAppearanceEditor: View {
     let name: String
@@ -73,7 +93,7 @@ struct RoomListView: View {
     let onAdmin: () -> Void
     let onWard: () -> Void
     let onCreateRoom: () -> Void
-    @State private var showPinSettings = false
+    @State private var showSettings = false
 
     private var pendingApprovalCount: Int {
         vm.profilesById.values.filter { $0.role != "superadmin" && $0.withdrawn != true && $0.approved == false }.count
@@ -85,8 +105,8 @@ struct RoomListView: View {
     }
     // 고정(핀) 우선 + 나머지는 최근 메시지순
     private var listRooms: [Room] {
-        // 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입한 것만 (관리자 콘솔은 전체 vm.rooms 사용)
-        let flat = vm.rooms.filter { $0.id != weekRoom?.id && ($0.category != "custom" || vm.myRoomIds.contains($0.id)) }
+        // 홈 목록: 기본 방은 항상, 모임방(custom)·DM(direct)은 내가 가입한 것만 (관리자 콘솔은 전체 vm.rooms 사용)
+        let flat = vm.rooms.filter { $0.id != weekRoom?.id && (($0.category != "custom" && $0.category != "direct") || vm.myRoomIds.contains($0.id)) }
         let pinned = vm.roomPins.compactMap { id in flat.first { $0.id == id } }
         let pinnedIds = Set(pinned.map { $0.id })
         let rest = flat.filter { !pinnedIds.contains($0.id) }.sorted {
@@ -110,7 +130,7 @@ struct RoomListView: View {
                         EmptyBox(emoji: "🔒", title: "아직 방이 없어요",
                                  subtitle: "전체관리자가 방에 배정하면\n여기에 표시됩니다.")
                     } else {
-                        ForEach(listRooms) { RoomRow(room: $0, unread: vm.unreadByRoom[$0.id] ?? 0, lastMsg: vm.lastMsgByRoom[$0.id], onOpen: onOpen) }
+                        ForEach(listRooms) { RoomRow(vm: vm, room: $0, unread: vm.unreadByRoom[$0.id] ?? 0, lastMsg: vm.lastMsgByRoom[$0.id], onOpen: onOpen) }
                     }
                 }
             }
@@ -133,14 +153,15 @@ struct RoomListView: View {
                 } else if vm.myProfile?.role == "admin" {
                     Button("가입승인") { onAdmin() }.font(.system(size: 12, weight: .bold)).foregroundColor(Moim.admin)
                 }
-                // 설정(⚙️): 방 순서 + 회원 탈퇴·로그아웃
-                Button { showPinSettings = true } label: { Text("⚙️").font(.system(size: 16)) }
+                // 설정(⚙️): 내 정보 / 방 순서 / 회원 검색 + 회원 탈퇴
+                Button { showSettings = true } label: { Text("⚙️").font(.system(size: 16)) }
+                Button("로그아웃") { vm.logout() }.font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
             }
             .padding(.horizontal, 18).padding(.vertical, 14)
             Divider().background(Moim.line)
         }
-        .sheet(isPresented: $showPinSettings) {
-            PinSettingsView(vm: vm, rooms: vm.rooms.filter { $0.id != weekRoom?.id && ($0.category != "custom" || vm.myRoomIds.contains($0.id)) })
+        .sheet(isPresented: $showSettings) {
+            SettingsView(vm: vm, pinRooms: vm.rooms.filter { $0.id != weekRoom?.id && (($0.category != "custom" && $0.category != "direct") || vm.myRoomIds.contains($0.id)) })
         }
         .background(Moim.paper)
     }
@@ -278,24 +299,30 @@ struct UnreadBadge: View {
 }
 
 struct RoomRow: View {
+    @ObservedObject var vm: MoimViewModel
     let room: Room
     var unread: Int = 0
     var lastMsg: LastMsg? = nil
     let onOpen: (Room) -> Void
+
+    private var isDM: Bool { room.category == "direct" }
+    private var other: Profile? { isDM ? vm.dmOther(room) : nil }
+
     var body: some View {
         Button { onOpen(room) } label: {
             HStack(spacing: 12) {
-                RoomAvatarView(room: room)
+                if isDM { PersonAvatarView(profile: other, size: 48, corner: 16) }
+                else { RoomAvatarView(room: room) }
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {
-                        Text(catLabel(room.category))
+                        Text(isDM ? "1:1" : catLabel(room.category))
                             .font(.system(size: 9, weight: .heavy)).foregroundColor(.white)
                             .padding(.horizontal, 6).padding(.vertical, 2)
-                            .background(catColor(room.category)).clipShape(RoundedRectangle(cornerRadius: 5))
-                        Text(room.name).font(.system(size: 15, weight: .bold)).foregroundColor(Moim.ink)
+                            .background(isDM ? Color(hex: 0x7A8A99) : catColor(room.category)).clipShape(RoundedRectangle(cornerRadius: 5))
+                        Text(isDM ? vm.roomDisplayName(room) : room.name).font(.system(size: 15, weight: .bold)).foregroundColor(Moim.ink)
                     }
                     Text(msgPreview(lastMsg).isEmpty
-                         ? (room.postPolicy == "restricted" ? "공지 · 관리자/지정작성자" : "")
+                         ? (isDM ? (other?.memberType ?? "") : (room.postPolicy == "restricted" ? "공지 · 관리자/지정작성자" : ""))
                          : msgPreview(lastMsg))
                         .font(.system(size: 12.5)).foregroundColor(Moim.sub).lineLimit(1)
                 }
@@ -327,66 +354,47 @@ struct EmptyBox: View {
     }
 }
 
-// 방 순서(핀) 설정 — 최대 5개 고정·드래그 재정렬 + 회원 탈퇴·로그아웃
-struct PinSettingsView: View {
+// 방 순서(핀) 설정 — 최대 5개 고정·드래그 재정렬 (설정 화면 '방 순서' 탭에 임베드)
+struct PinOrderTab: View {
     @ObservedObject var vm: MoimViewModel
     let rooms: [Room]
-    @Environment(\.dismiss) private var dismiss
     @State private var draft: [String] = []
-    @State private var showDelete = false
 
     var body: some View {
-        NavigationView {
-            List {
-                // 회원 탈퇴 · 로그아웃 (방 순서 위)
-                Section {
-                    Button("로그아웃") { dismiss(); vm.logout() }
-                        .foregroundColor(Moim.sub)
-                    Button("회원 탈퇴") { showDelete = true }
-                        .foregroundColor(Moim.admin)
+        List {
+            Section("고정된 방 (\(draft.count)/5) · ☰ 드래그로 순서 변경") {
+                if draft.isEmpty {
+                    Text("고정된 방 없음").foregroundColor(Moim.sub).font(.system(size: 13))
                 }
-                Section("고정된 방 (\(draft.count)/5) · ☰ 드래그로 순서 변경") {
-                    if draft.isEmpty {
-                        Text("고정된 방 없음").foregroundColor(Moim.sub).font(.system(size: 13))
-                    }
-                    ForEach(Array(draft.enumerated()), id: \.element) { idx, id in
-                        if let r = rooms.first(where: { $0.id == id }) {
-                            HStack {
-                                Text("\(idx + 1). \(r.name)").lineLimit(1)
-                                Spacer()
-                                Button(role: .destructive) { draft.removeAll { $0 == id } } label: { Image(systemName: "xmark") }.buttonStyle(.borderless)
-                            }
-                        }
-                    }
-                    .onMove { from, to in draft.move(fromOffsets: from, toOffset: to) }
-                }
-                Section("방 목록") {
-                    ForEach(rooms.filter { !draft.contains($0.id) }) { r in
+                ForEach(Array(draft.enumerated()), id: \.element) { idx, id in
+                    if let r = rooms.first(where: { $0.id == id }) {
                         HStack {
-                            Text(r.name).lineLimit(1)
+                            Text("\(idx + 1). \(vm.roomDisplayName(r))").lineLimit(1)
                             Spacer()
-                            Button("📌 고정") { if draft.count < 5 { draft.append(r.id) } }
-                                .buttonStyle(.borderless)
-                                .disabled(draft.count >= 5)
+                            Button(role: .destructive) { draft.removeAll { $0 == id } } label: { Image(systemName: "xmark") }.buttonStyle(.borderless)
                         }
                     }
                 }
+                .onMove { from, to in draft.move(fromOffsets: from, toOffset: to) }
             }
-            // 항상 재정렬 가능(드래그 핸들 ☰ 표시)
-            .environment(\.editMode, .constant(.active))
-            .navigationTitle("방 순서 설정")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("취소") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("저장") { vm.saveRoomPins(draft); dismiss() } }
+            Section("방 목록") {
+                ForEach(rooms.filter { !draft.contains($0.id) }) { r in
+                    HStack {
+                        Text(vm.roomDisplayName(r)).lineLimit(1)
+                        Spacer()
+                        Button("📌 고정") { if draft.count < 5 { draft.append(r.id) } }
+                            .buttonStyle(.borderless)
+                            .disabled(draft.count >= 5)
+                    }
+                }
             }
-            .onAppear { draft = vm.roomPins.filter { id in rooms.contains { $0.id == id } } }
-            .alert("회원 탈퇴", isPresented: $showDelete) {
-                Button("취소", role: .cancel) {}
-                Button("탈퇴", role: .destructive) { dismiss(); vm.deleteAccount() }
-            } message: {
-                Text("정말 탈퇴할까요?\n계정이 비활성화되어 다시 로그인할 수 없으며 모든 방에서 나가집니다.")
+            Section {
+                Button("순서 저장") { vm.saveRoomPins(draft) }
+                    .font(.system(size: 14, weight: .bold))
             }
         }
+        // 항상 재정렬 가능(드래그 핸들 ☰ 표시)
+        .environment(\.editMode, .constant(.active))
+        .onAppear { draft = vm.roomPins.filter { id in rooms.contains { $0.id == id } } }
     }
 }

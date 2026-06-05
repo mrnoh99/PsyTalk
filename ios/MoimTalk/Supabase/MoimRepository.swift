@@ -109,6 +109,18 @@ enum MoimRepository {
             .eq("room_id", value: roomId).eq("user_id", value: userId).execute()
     }
 
+    /// 방 나가기: 본인 멤버십 삭제 (생성자가 아닌 모임방, RLS 로 본인만 허용)
+    static func leaveRoom(roomId: String) async throws {
+        guard let uid = currentUserId() else { throw AppError.notLoggedIn }
+        try await supabase.from("room_members").delete()
+            .eq("room_id", value: roomId).eq("user_id", value: uid).execute()
+    }
+
+    /// 회원 탈퇴: 본인 데이터 정리 후 계정 삭제 (전체관리자 불가 — RPC 로 강제)
+    static func deleteAccount() async throws {
+        try await supabase.rpc("moim_delete_my_account").execute()
+    }
+
     /// 구성원 초대 (방에 멤버 추가 — 방 생성자/관리자, RLS). 이미 참여 중이면 무시.
     static func addRoomMembers(roomId: String, userIds: [String]) async throws {
         guard !userIds.isEmpty else { return }

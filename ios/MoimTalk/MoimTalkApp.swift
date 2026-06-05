@@ -37,10 +37,12 @@ struct RootView: View {
                 RoomView(vm: vm, room: room, onBack: {
                     vm.closeRoom(); openedRoom = nil
                 })
+                // 채팅방 열릴 때 오른쪽 → 왼쪽으로 펼쳐 나오는 효과
+                .transition(.move(edge: .trailing))
             } else {
                 RoomListView(
                     vm: vm,
-                    onOpen: { room in openedRoom = room; vm.openRoom(room) },
+                    onOpen: { room in withAnimation(.easeOut(duration: 0.26)) { openedRoom = room }; vm.openRoom(room) },
                     onAdmin: { showAdmin = true },
                     onWard: { showWard = true },
                     onCreateRoom: { showCreateRoom = true }

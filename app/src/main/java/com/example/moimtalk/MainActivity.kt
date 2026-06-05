@@ -4,6 +4,10 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -493,6 +497,33 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    /** 방 나가기 (본인이 만들지 않은 모임방). 성공 시 방 목록으로 복귀 */
+    fun leaveRoom(room: Room, onDone: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.leaveRoom(room.id)
+                activeRoom = null
+                rooms = MoimRepository.rooms()
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "방 나가기")
+            }
+        }
+    }
+
+    /** 회원 탈퇴 (본인 데이터 정리 후 계정 삭제, 전체관리자 불가). 성공 시 로그아웃 */
+    fun deleteAccount(onDone: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.deleteAccount()
+                logout()
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "회원 탈퇴")
+            }
+        }
+    }
+
     /** room_members 변경 시 멤버 목록·인원만 갱신 (방 목록은 Realtime 에서 loadRooms 로 처리) */
     private fun onRoomMembersChangedOnly() {
         memberListRoomId?.let { loadRoomMembers(it) }
@@ -694,6 +725,19 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
+/** 채팅방이 열릴 때 오른쪽 → 왼쪽으로 펼쳐 나오는 효과 */
+@Composable
+private fun SlideInFromRight(content: @Composable () -> Unit) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+    AnimatedVisibility(
+        visible = visible,
+        enter = slideInHorizontally(animationSpec = tween(260)) { it },
+        exit = ExitTransition.None
+    ) { content() }
+}
+
+@Composable
 fun App(vm: MoimViewModel = viewModel()) {
     var openedRoom by remember { mutableStateOf<Room?>(null) }
     var showWard by remember { mutableStateOf(false) }
@@ -757,14 +801,16 @@ fun App(vm: MoimViewModel = viewModel()) {
             onCreateRoom = { showCreateRoom = true },
             onApprovals = { showApprovals = true }
         )
-        else -> RoomScreen(
-            vm = vm,
-            room = openedRoom!!,
-            onBack = {
-                vm.closeRoom()
-                openedRoom = null
-            }
-        )
+        else -> SlideInFromRight {
+            RoomScreen(
+                vm = vm,
+                room = openedRoom!!,
+                onBack = {
+                    vm.closeRoom()
+                    openedRoom = null
+                }
+            )
+        }
     }
 
     // 전역 오류 표시 (등록/수정/업로드 실패 원인이 보이도록)

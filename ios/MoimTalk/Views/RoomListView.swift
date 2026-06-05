@@ -60,8 +60,8 @@ struct RoomListView: View {
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Moim.yellow).clipShape(Capsule())
                 Spacer()
+                // 설정(⚙️): 방 순서 + 회원 탈퇴·로그아웃
                 Button { showPinSettings = true } label: { Text("⚙️").font(.system(size: 16)) }
-                Button("로그아웃") { vm.logout() }.font(.system(size: 12))
             }
             .padding(.horizontal, 18).padding(.vertical, 14)
             Divider().background(Moim.line)
@@ -261,17 +261,25 @@ struct EmptyBox: View {
     }
 }
 
-// 방 순서(핀) 설정 — 최대 5개 고정·재정렬
+// 방 순서(핀) 설정 — 최대 5개 고정·드래그 재정렬 + 회원 탈퇴·로그아웃
 struct PinSettingsView: View {
     @ObservedObject var vm: MoimViewModel
     let rooms: [Room]
     @Environment(\.dismiss) private var dismiss
     @State private var draft: [String] = []
+    @State private var showDelete = false
 
     var body: some View {
         NavigationView {
             List {
-                Section("고정된 방 (\(draft.count)/5)") {
+                // 회원 탈퇴 · 로그아웃 (방 순서 위)
+                Section {
+                    Button("로그아웃") { dismiss(); vm.logout() }
+                        .foregroundColor(Moim.sub)
+                    Button("회원 탈퇴") { showDelete = true }
+                        .foregroundColor(Moim.admin)
+                }
+                Section("고정된 방 (\(draft.count)/5) · ☰ 드래그로 순서 변경") {
                     if draft.isEmpty {
                         Text("고정된 방 없음").foregroundColor(Moim.sub).font(.system(size: 13))
                     }
@@ -280,12 +288,11 @@ struct PinSettingsView: View {
                             HStack {
                                 Text("\(idx + 1). \(r.name)").lineLimit(1)
                                 Spacer()
-                                Button { move(idx, -1) } label: { Image(systemName: "arrow.up") }.buttonStyle(.borderless)
-                                Button { move(idx, 1) } label: { Image(systemName: "arrow.down") }.buttonStyle(.borderless)
                                 Button(role: .destructive) { draft.removeAll { $0 == id } } label: { Image(systemName: "xmark") }.buttonStyle(.borderless)
                             }
                         }
                     }
+                    .onMove { from, to in draft.move(fromOffsets: from, toOffset: to) }
                 }
                 Section("방 목록") {
                     ForEach(rooms.filter { !draft.contains($0.id) }) { r in
@@ -299,6 +306,8 @@ struct PinSettingsView: View {
                     }
                 }
             }
+            // 항상 재정렬 가능(드래그 핸들 ☰ 표시)
+            .environment(\.editMode, .constant(.active))
             .navigationTitle("방 순서 설정")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -306,11 +315,12 @@ struct PinSettingsView: View {
                 ToolbarItem(placement: .confirmationAction) { Button("저장") { vm.saveRoomPins(draft); dismiss() } }
             }
             .onAppear { draft = vm.roomPins.filter { id in rooms.contains { $0.id == id } } }
+            .alert("회원 탈퇴", isPresented: $showDelete) {
+                Button("취소", role: .cancel) {}
+                Button("탈퇴", role: .destructive) { dismiss(); vm.deleteAccount() }
+            } message: {
+                Text("정말 탈퇴할까요?\n계정과 내 데이터(보낸 메시지·올린 자료 등)가 삭제되며 되돌릴 수 없습니다.")
+            }
         }
-    }
-    private func move(_ i: Int, _ d: Int) {
-        let j = i + d
-        guard j >= 0 && j < draft.count else { return }
-        draft.swapAt(i, j)
     }
 }

@@ -26,6 +26,10 @@
 | 관리자 콘솔 — 작성자 지정 (writers) | ✅ | ❌ | ❌ | `room_writers` 스키마만 존재 |
 | 방 참석 멤버 지정 (`room_members`) | ✅ (목 데이터) | ❌ | ❌ | 스키마만 존재, 앱 미연동 |
 | 샘플 데이터 (10명·일정 5개·파일) | ✅ JS 목 데이터 | ➖ DB 실데이터 | ✅ | 목업 샘플은 데모 전용. 앱은 시드(방 12개)만, 일정/파일은 사용자 입력 |
+| 방 순서 고정 — 드래그 정렬 | ➖ | ✅ ⚙️ 설정(드래그 ☰) | ✅ | 최대 5개 핀, `room_pins`/`moim_set_room_pins`. 웹=HTML5 DnD, Android=longpress drag, iOS=List `.onMove` |
+| 방 나가기 (본인이 만들지 않은 모임방) | ➖ | ✅ 방 헤더 나가기 | ✅ | 확인 후 `room_members` 본인 삭제, `leave_account.sql` RLS |
+| 회원 탈퇴 (계정·내 데이터 삭제) | ➖ | ✅ ⚙️ 설정 회원 탈퇴 | ✅ | `moim_delete_my_account()`(전체관리자 불가). 웹=핀 모달 상단, 앱=설정에 로그아웃 동거 |
+| 채팅방 열기 슬라이드(우→좌) | ➖ | ✅ slideInRight | ✅ | 웹=CSS keyframe, Android=`slideInHorizontally`, iOS=`.move(edge:.trailing)` |
 
 **범례:** ✅ 일치 · ❌ 불일치(앱 미구현) · ➖ 의도된 차이/부분
 

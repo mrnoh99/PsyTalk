@@ -77,6 +77,12 @@ fun canManageRoom(profile: Profile?, room: Room): Boolean {
     return room.createdBy != null && room.createdBy == MoimRepository.currentUserId()
 }
 
+/** 방 나가기 권한: 본인이 만들지 않은 모임방(custom) — 관리자·생성자가 아닌 경우 */
+fun canLeaveRoom(profile: Profile?, room: Room): Boolean {
+    if (profile == null || room.category != "custom") return false
+    return !canManageRoom(profile, room)
+}
+
 /** 방 삭제 권한: 모임방(custom)에 한해 생성자(본인이 만든 방) 또는 전체관리자(superadmin) */
 fun canDeleteRoom(profile: Profile?, room: Room): Boolean {
     if (profile == null || room.category != "custom") return false

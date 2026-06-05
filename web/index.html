@@ -130,6 +130,10 @@
   textarea.field{resize:vertical;min-height:60px}.twocol{display:flex;gap:9px}.twocol .field{flex:1}
   .pinrow{display:flex;align-items:center;gap:6px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin-bottom:7px;background:#fff;font-size:14px}
   .pinbtn{cursor:pointer;font-size:13px;font-weight:700;padding:4px 9px;border-radius:8px;background:var(--bg);color:var(--accent);user-select:none}
+  .draghandle{cursor:grab;color:var(--sub);font-size:16px;padding:0 2px;user-select:none}
+  .pinrow.dragging{opacity:.45}
+  @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
+  #roomScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1)}
   .pick{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;border:1px solid var(--line);margin-bottom:7px;background:#fff}
   .pick.sel{border-color:var(--accent);background:#fff8e0}.pick .av{width:32px;height:32px;border-radius:10px;font-size:11px}
   .pick .pn{flex:1;font-size:13.5px;font-weight:600}.chk{font-weight:800;color:var(--accent)}
@@ -186,7 +190,8 @@
     <div class="hdr"><button class="back" onclick="closeRoom()">‹</button>
       <h1 id="roomTitle" style="font-size:16px"></h1><span class="spacer"></span>
       <button id="renameBtn" class="back" style="display:none;font-size:17px" onclick="renameRoom()">✏️</button>
-      <button id="settingsBtn" class="back" style="display:none;font-size:17px" onclick="openRoomSettings()">⚙️</button></div>
+      <button id="settingsBtn" class="back" style="display:none;font-size:17px" onclick="openRoomSettings()">⚙️</button>
+      <button id="leaveBtn" class="lk" style="display:none" onclick="leaveRoom()">나가기</button></div>
     <div class="tabs">
       <div class="tab on" data-t="chat" onclick="tab('chat')">💬 채팅</div>
       <div class="tab" data-t="files" onclick="tab('files')">📁 자료실</div>
@@ -221,7 +226,8 @@
   <!-- CREATE ROOM MODAL -->
   <!-- 방 순서(핀) 설정 -->
   <div class="modal" id="pinmodal"><div class="sheet">
-    <h2>방 순서 설정</h2><p>상단에 고정할 방을 최대 5개까지 정하세요. 나머지는 새 메시지 순으로 표시됩니다.</p>
+    <div style="text-align:right;margin-bottom:4px"><button class="lk" style="color:var(--admin);font-weight:700" onclick="deleteAccount()">회원 탈퇴</button></div>
+    <h2>방 순서 설정</h2><p>고정할 방을 드래그(☰)해 순서를 정하세요. 최대 5개. 나머지는 새 메시지 순으로 표시됩니다.</p>
     <div id="pinBody"></div>
     <button class="primary" onclick="savePins()">저장</button>
     <button class="ghost" onclick="closeModal('pinmodal')">취소</button>
@@ -298,10 +304,9 @@ function openPinSettings(){ pinDraft=[...roomPins]; renderPinSettings(); documen
 function renderPinSettings(){
   const flat=flatRoomList(), byId=id=>flat.find(r=>r.id===id);
   let h=`<span class="lbl">고정된 방 (${pinDraft.length}/5)</span>`;
-  h+= pinDraft.length ? pinDraft.map((id,i)=>{const r=byId(id); if(!r)return ''; return `<div class="pinrow">
+  h+= pinDraft.length ? pinDraft.map((id,i)=>{const r=byId(id); if(!r)return ''; return `<div class="pinrow" draggable="true" ondragstart="pinDragStart(event,${i})" ondragover="pinDragOver(event)" ondrop="pinDrop(event,${i})" ondragend="pinDragFrom=-1">
+      <span class="draghandle">☰</span>
       <span style="flex:1">${i+1}. ${esc(r.name)}</span>
-      <span class="pinbtn" onclick="pinMove(${i},-1)">▲</span>
-      <span class="pinbtn" onclick="pinMove(${i},1)">▼</span>
       <span class="pinbtn" style="color:var(--admin)" onclick="pinRemove('${id}')">✕</span></div>`;}).join('')
     : `<div style="color:var(--sub);font-size:13px;padding:4px 2px 8px">고정된 방 없음</div>`;
   const rest=flat.filter(r=>!pinDraft.includes(r.id));
@@ -313,7 +318,11 @@ function renderPinSettings(){
 }
 function pinAdd(id){ if(pinDraft.length>=5||pinDraft.includes(id))return; pinDraft.push(id); renderPinSettings(); }
 function pinRemove(id){ pinDraft=pinDraft.filter(x=>x!==id); renderPinSettings(); }
-function pinMove(i,d){ const j=i+d; if(j<0||j>=pinDraft.length)return; const t=pinDraft[i];pinDraft[i]=pinDraft[j];pinDraft[j]=t; renderPinSettings(); }
+// 드래그 정렬
+let pinDragFrom=-1;
+function pinDragStart(e,i){pinDragFrom=i;e.dataTransfer.effectAllowed='move';}
+function pinDragOver(e){e.preventDefault();e.dataTransfer.dropEffect='move';}
+function pinDrop(e,i){e.preventDefault(); if(pinDragFrom<0||pinDragFrom===i){pinDragFrom=-1;return;} const m=[...pinDraft]; const x=m.splice(pinDragFrom,1)[0]; m.splice(i,0,x); pinDraft=m; pinDragFrom=-1; renderPinSettings();}
 async function savePins(){
   const {error}=await sb.rpc('moim_set_room_pins',{p_rooms:pinDraft});
   if(error){alert('저장 실패: '+error.message);return;}
@@ -461,7 +470,21 @@ async function submitAuth(){
     await loadApp();
   }
 }
-async function doLogout(){stopRealtime();await sb.auth.signOut();me=null;show('login');}
+async function doLogout(){if(!confirm('로그아웃 할까요?'))return;stopRealtime();await sb.auth.signOut();me=null;show('login');}
+// 본인이 만들지 않은 모임방에서 나가기
+async function leaveRoom(){
+  if(!active||!confirm(`'${active.name}' 방에서 나갈까요?`))return;
+  const {error}=await sb.from('room_members').delete().eq('room_id',active.id).eq('user_id',me.id);
+  if(error){alert('나가기 실패: '+error.message);return;}
+  await closeRoom();await loadRooms();
+}
+// 회원 탈퇴 (본인 데이터·계정 삭제)
+async function deleteAccount(){
+  if(!confirm('정말 탈퇴할까요?\n계정과 내 데이터(보낸 메시지·올린 자료 등)가 삭제되며 되돌릴 수 없습니다.'))return;
+  const {error}=await sb.rpc('moim_delete_my_account');
+  if(error){alert('탈퇴 실패: '+error.message);return;}
+  stopRealtime();await sb.auth.signOut();location.reload();
+}
 
 async function loadApp(){
   const {data:{user}}=await sb.auth.getUser();
@@ -520,6 +543,8 @@ async function openRoom(id){
   document.getElementById('roomTitle').textContent=active.name;
   document.getElementById('renameBtn').style.display=canRename(active)?'':'none';
   document.getElementById('settingsBtn').style.display=canManage(active)?'':'none';
+  // 본인이 만들지 않은 모임방: 나가기
+  document.getElementById('leaveBtn').style.display=(active.category==='custom'&&!canManage(active))?'':'none';
   calMode=active.default_view==='week'?'week':'month';
   selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
   // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
@@ -527,6 +552,8 @@ async function openRoom(id){
   document.querySelector('.tab[data-t="files"]').style.display=isDefault?'':'none';
   document.querySelector('.tab[data-t="cal"]').style.display=isDefault?'':'none';
   show('roomScreen');
+  const rs=document.getElementById('roomScreen');         // 오른쪽→왼쪽 펼침 효과
+  rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');
   await setRoomRealtime(id);
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
   tab(isDefault&&active.default_view==='week'?'cal':'chat');

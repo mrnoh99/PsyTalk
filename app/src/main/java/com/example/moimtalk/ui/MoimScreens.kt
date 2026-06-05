@@ -3,6 +3,11 @@ package com.example.moimtalk.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -449,6 +454,7 @@ fun RoomListScreen(
     var showPinSettings by remember { mutableStateOf(false) }
     if (showPinSettings) {
         PinSettingsDialog(
+            vm = vm,
             rooms = flatRooms,
             pins = vm.roomPins,
             onSave = { vm.saveRoomPins(it); showPinSettings = false },
@@ -478,8 +484,8 @@ fun RoomListScreen(
                     )
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = { vm.loadRooms() }) { Text("↻", fontSize = 17.sp) }
+                    // 설정(⚙️): 방 순서 + 회원 탈퇴·로그아웃
                     TextButton(onClick = { showPinSettings = true }) { Text("⚙️", fontSize = 15.sp) }
-                    TextButton(onClick = { vm.logout() }) { Text("로그아웃", fontSize = 12.sp) }
                 }
                 HorizontalDivider(color = MoimLine)
             }
@@ -656,8 +662,24 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     var showRename by remember { mutableStateOf(false) }
     var renameText by remember { mutableStateOf("") }
     var showSettings by remember { mutableStateOf(false) }
+    var showLeave by remember { mutableStateOf(false) }
     val profile = vm.myProfile
     val canPost = canPostInRoom(profile, room)
+
+    if (showLeave) {
+        AlertDialog(
+            onDismissRequest = { showLeave = false },
+            title = { Text("방 나가기") },
+            text = { Text("'${liveRoom.name}' 방에서 나갈까요?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showLeave = false
+                    vm.leaveRoom(liveRoom) { onBack() }
+                }) { Text("나가기", color = MoimAdmin) }
+            },
+            dismissButton = { TextButton(onClick = { showLeave = false }) { Text("취소") } }
+        )
+    }
 
     // 채팅 첨부(path) → 서명 URL 해석 (방 구성원만)
     LaunchedEffect(vm.messages) { vm.resolveAttachments() }
@@ -720,6 +742,12 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                 vm.loadRoomMembers(liveRoom.id)
                                 showSettings = true
                             }) { Text("⚙️", fontSize = 17.sp) }
+                        }
+                        // 본인이 만들지 않은 모임방: 나가기
+                        if (canLeaveRoom(profile, liveRoom)) {
+                            TextButton(onClick = { showLeave = true }) {
+                                Text("나가기", fontSize = 13.sp, color = MoimAdmin)
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
@@ -1169,30 +1197,87 @@ private fun CreateRoomButton(onClick: () -> Unit) {
     }
 }
 
-// 방 순서(핀) 설정 — 최대 5개 고정·재정렬
+// 방 순서(핀) 설정 — 최대 5개 고정·드래그 재정렬 + 회원 탈퇴·로그아웃
 @Composable
 private fun PinSettingsDialog(
+    vm: MoimViewModel,
     rooms: List<Room>,
     pins: List<String>,
     onSave: (List<String>) -> Unit,
     onDismiss: () -> Unit
 ) {
     var draft by remember { mutableStateOf(pins.filter { id -> rooms.any { it.id == id } }) }
+    var showDelete by remember { mutableStateOf(false) }
+    // 드래그 재정렬 상태
+    var dragIndex by remember { mutableStateOf(-1) }
+    var dragOffset by remember { mutableStateOf(0f) }
+    var rowHeightPx by remember { mutableStateOf(1f) }
+
+    if (showDelete) {
+        AlertDialog(
+            onDismissRequest = { showDelete = false },
+            title = { Text("회원 탈퇴") },
+            text = { Text("정말 탈퇴할까요?\n계정과 내 데이터(보낸 메시지·올린 자료 등)가 삭제되며 되돌릴 수 없습니다.") },
+            confirmButton = { TextButton(onClick = { showDelete = false; vm.deleteAccount() }) { Text("탈퇴", color = MoimAdmin) } },
+            dismissButton = { TextButton(onClick = { showDelete = false }) { Text("취소") } }
+        )
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("방 순서 설정") },
         text = {
-            Column(modifier = Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
-                Text("상단에 고정할 방 최대 5개. 나머지는 새 메시지 순.", fontSize = 12.sp, color = MoimSub)
+            Column(modifier = Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState())) {
+                // 회원 탈퇴 · 로그아웃 (방 순서 위)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    Text("로그아웃", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimSub,
+                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { vm.logout() }.padding(horizontal = 10.dp, vertical = 6.dp))
+                    Text("회원 탈퇴", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
+                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { showDelete = true }.padding(horizontal = 10.dp, vertical = 6.dp))
+                }
+                HorizontalDivider(color = MoimLine, modifier = Modifier.padding(vertical = 6.dp))
+                Text("상단에 고정할 방 최대 5개. ☰ 를 길게 눌러 드래그로 순서 변경. 나머지는 새 메시지 순.", fontSize = 12.sp, color = MoimSub)
                 Spacer(Modifier.height(8.dp))
                 Text("고정된 방 (${draft.size}/5)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
                 if (draft.isEmpty()) Text("고정된 방 없음", fontSize = 13.sp, color = MoimSub, modifier = Modifier.padding(vertical = 4.dp))
                 draft.forEachIndexed { i, id ->
                     val r = rooms.find { it.id == id } ?: return@forEachIndexed
-                    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                    val dragging = dragIndex == i
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onSizeChanged { if (it.height > 0) rowHeightPx = it.height.toFloat() }
+                            .zIndex(if (dragging) 1f else 0f)
+                            .graphicsLayer { translationY = if (dragging) dragOffset else 0f }
+                            .padding(vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "☰", fontSize = 16.sp, color = MoimSub,
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .pointerInput(id) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = { dragIndex = i; dragOffset = 0f },
+                                        onDragEnd = { dragIndex = -1; dragOffset = 0f },
+                                        onDragCancel = { dragIndex = -1; dragOffset = 0f },
+                                        onDrag = { change, amount ->
+                                            change.consume()
+                                            dragOffset += amount.y
+                                            val cur = dragIndex
+                                            if (cur < 0) return@detectDragGesturesAfterLongPress
+                                            if (dragOffset > rowHeightPx / 2 && cur < draft.size - 1) {
+                                                val m = draft.toMutableList(); val t = m.removeAt(cur); m.add(cur + 1, t)
+                                                draft = m; dragIndex = cur + 1; dragOffset -= rowHeightPx
+                                            } else if (dragOffset < -rowHeightPx / 2 && cur > 0) {
+                                                val m = draft.toMutableList(); val t = m.removeAt(cur); m.add(cur - 1, t)
+                                                draft = m; dragIndex = cur - 1; dragOffset += rowHeightPx
+                                            }
+                                        }
+                                    )
+                                }
+                        )
                         Text("${i + 1}. ${r.name}", fontSize = 14.sp, color = MoimInk, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        PinIcon("▲") { if (i > 0) { val m = draft.toMutableList(); val t = m[i]; m[i] = m[i - 1]; m[i - 1] = t; draft = m } }
-                        PinIcon("▼") { if (i < draft.size - 1) { val m = draft.toMutableList(); val t = m[i]; m[i] = m[i + 1]; m[i + 1] = t; draft = m } }
                         PinIcon("✕", MoimAdmin) { draft = draft.filter { it != id } }
                     }
                 }

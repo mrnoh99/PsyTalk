@@ -108,6 +108,19 @@ object MoimRepository {
         }
     }
 
+    /** 방 나가기: 본인 멤버십 삭제 (생성자가 아닌 모임방, RLS 로 본인만 허용) */
+    suspend fun leaveRoom(roomId: String) {
+        val uid = currentUserId() ?: return
+        supabase.from("room_members").delete {
+            filter { eq("room_id", roomId); eq("user_id", uid) }
+        }
+    }
+
+    /** 회원 탈퇴: 본인 데이터 정리 후 계정 삭제 (전체관리자 불가 — RPC 로 강제) */
+    suspend fun deleteAccount() {
+        supabase.postgrest.rpc("moim_delete_my_account")
+    }
+
     /** 구성원 초대 (방에 멤버 추가). 이미 참여 중이면 무시. */
     suspend fun addRoomMembers(roomId: String, userIds: List<String>) {
         if (userIds.isEmpty()) return

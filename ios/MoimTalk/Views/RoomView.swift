@@ -12,6 +12,7 @@ struct RoomView: View {
     @State private var showRename = false
     @State private var renameText = ""
     @State private var showSettings = false
+    @State private var showLeave = false
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
@@ -62,6 +63,11 @@ struct RoomView: View {
                     Text("⚙️").font(.system(size: 17))
                 }
             }
+            // 본인이 만들지 않은 모임방: 나가기
+            if vm.canLeaveRoom(liveRoom) {
+                Button("나가기") { showLeave = true }
+                    .font(.system(size: 13)).foregroundColor(Moim.admin)
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(Moim.paper)
@@ -69,6 +75,12 @@ struct RoomView: View {
             TextField("방 이름", text: $renameText)
             Button("취소", role: .cancel) {}
             Button("저장") { vm.renameRoom(liveRoom, to: renameText) {} }
+        }
+        .alert("방 나가기", isPresented: $showLeave) {
+            Button("취소", role: .cancel) {}
+            Button("나가기", role: .destructive) { vm.leaveRoom(liveRoom) { onBack() } }
+        } message: {
+            Text("'\(liveRoom.name)' 방에서 나갈까요?")
         }
         .sheet(isPresented: $showSettings) {
             RoomSettingsView(vm: vm, room: liveRoom,

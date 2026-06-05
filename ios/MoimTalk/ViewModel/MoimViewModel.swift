@@ -474,6 +474,32 @@ final class MoimViewModel: ObservableObject {
         return room.createdBy != nil && room.createdBy == MoimRepository.currentUserId()
     }
 
+    /// 방 나가기 권한: 본인이 만들지 않은 모임방(custom) — 관리자·생성자가 아닌 경우
+    func canLeaveRoom(_ room: Room) -> Bool {
+        room.category == "custom" && !canManageRoom(room)
+    }
+
+    /// 방 나가기 (본인이 만들지 않은 모임방). 성공 시 방 목록으로 복귀
+    func leaveRoom(_ room: Room, onDone: @escaping () -> Void) {
+        Task {
+            do {
+                try await MoimRepository.leaveRoom(roomId: room.id)
+                rooms = try await MoimRepository.rooms()
+                onDone()
+            } catch { self.error = "방 나가기: \(error.localizedDescription)" }
+        }
+    }
+
+    /// 회원 탈퇴 (본인 데이터 정리 후 계정 삭제, 전체관리자 불가). 성공 시 로그아웃
+    func deleteAccount() {
+        Task {
+            do {
+                try await MoimRepository.deleteAccount()
+                logout()
+            } catch { self.error = "회원 탈퇴: \(error.localizedDescription)" }
+        }
+    }
+
     /// 같은 이름 모임방 등 친화적 오류 메시지
     private func friendlyError(_ error: Error) -> String {
         let m = error.localizedDescription

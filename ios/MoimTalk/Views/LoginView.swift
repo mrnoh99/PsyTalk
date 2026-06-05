@@ -4,6 +4,7 @@ struct LoginView: View {
     @ObservedObject var vm: MoimViewModel
     @State private var email = ""
     @State private var pw = ""
+    @State private var pwConfirm = ""
     @State private var signup = false
     @State private var name = ""
     @State private var phone = ""
@@ -34,6 +35,14 @@ struct LoginView: View {
                 .textFieldStyle(.roundedBorder)
 
             if signup {
+                Spacer().frame(height: 12)
+                SecureField("비밀번호 확인", text: $pwConfirm).textFieldStyle(.roundedBorder)
+                if !pwConfirm.isEmpty {
+                    Text(pw == pwConfirm ? "✓ 비밀번호가 일치합니다" : "비밀번호가 일치하지 않습니다")
+                        .font(.system(size: 12))
+                        .foregroundColor(pw == pwConfirm ? catColor("work") : Moim.admin)
+                        .padding(.top, 4)
+                }
                 Spacer().frame(height: 12)
                 TextField("이름", text: $name).textFieldStyle(.roundedBorder)
                 Spacer().frame(height: 12)
@@ -86,11 +95,11 @@ struct LoginView: View {
                     .background(Moim.accent).foregroundColor(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 13))
             }
-            .disabled(vm.loading)
+            .disabled(vm.loading || (signup && (pw.isEmpty || pw != pwConfirm)))
 
             Spacer().frame(height: 14)
             Button {
-                signup.toggle(); vm.error = nil; vm.notice = nil
+                signup.toggle(); pwConfirm = ""; vm.error = nil; vm.notice = nil
             } label: {
                 Text(signup ? "이미 계정이 있나요?  로그인" : "계정이 없나요?  회원가입")
                     .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)

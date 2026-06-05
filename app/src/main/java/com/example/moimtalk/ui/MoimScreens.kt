@@ -85,6 +85,7 @@ import com.example.moimtalk.data.Room
 fun LoginScreen(vm: MoimViewModel) {
     var email by remember { mutableStateOf("") }
     var pw by remember { mutableStateOf("") }
+    var pwConfirm by remember { mutableStateOf("") }
     var signup by remember { mutableStateOf(false) }
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
@@ -131,6 +132,23 @@ fun LoginScreen(vm: MoimViewModel) {
             modifier = Modifier.fillMaxWidth()
         )
         if (signup) {
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = pwConfirm,
+                onValueChange = { pwConfirm = it },
+                label = { Text("비밀번호 확인") },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                isError = pwConfirm.isNotEmpty() && pw != pwConfirm,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (pwConfirm.isNotEmpty()) {
+                Text(
+                    if (pw == pwConfirm) "✓ 비밀번호가 일치합니다" else "비밀번호가 일치하지 않습니다",
+                    color = if (pw == pwConfirm) catColor("work") else MoimAdmin,
+                    fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp)
+                )
+            }
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = name,
@@ -191,7 +209,7 @@ fun LoginScreen(vm: MoimViewModel) {
                 if (signup) vm.signUp(email.trim(), pw, name.trim(), memberType, phone.trim(), intro.trim())
                 else vm.login(email.trim(), pw)
             },
-            enabled = !vm.loading,
+            enabled = !vm.loading && (!signup || (pw.isNotEmpty() && pw == pwConfirm)),
             colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
             modifier = Modifier
                 .fillMaxWidth()

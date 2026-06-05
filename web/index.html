@@ -164,9 +164,11 @@
     <h1>아주 정신</h1><div class="sub">정신건강의학과 · Web</div>
     <input id="email" type="text" placeholder="이메일 또는 핸드폰번호" autocomplete="username">
     <input id="pw" type="password" placeholder="비밀번호" autocomplete="current-password"
-      onkeydown="if(event.key==='Enter')submitAuth()">
+      oninput="updateSignupBtn()" onkeydown="if(event.key==='Enter')submitAuth()">
     <div id="signupFields" class="hidden">
-      <input id="suName" type="text" placeholder="이름" style="margin-top:12px">
+      <input id="pwConfirm" type="password" placeholder="비밀번호 확인" oninput="updateSignupBtn()" style="margin-top:0">
+      <div id="pwMatch" style="font-size:12px;margin:-6px 0 6px"></div>
+      <input id="suName" type="text" placeholder="이름" style="margin-top:6px">
       <input id="suPhone" type="tel" placeholder="핸드폰번호 (예: 010-1234-5678)" style="margin-top:10px">
       <textarea id="suIntro" placeholder="간단한 소개 (예: 3년차 전공의)" style="margin-top:10px;min-height:54px;resize:vertical"></textarea>
       <div style="font-size:12px;font-weight:700;color:var(--sub);margin:10px 0 6px">직군</div>
@@ -555,7 +557,20 @@ function toggleSignup(){
   document.getElementById('loginBtn').textContent=signupMode?'회원가입':'로그인';
   document.getElementById('authToggle').textContent=signupMode?'이미 계정이 있나요?  로그인':'계정이 없나요?  회원가입';
   document.getElementById('loginErr').textContent='';document.getElementById('loginNotice').textContent='';
+  document.getElementById('pwConfirm').value='';
   if(signupMode)renderSuTypes();
+  updateSignupBtn();
+}
+// 가입 시 비밀번호 2개가 일치할 때만 '회원가입' 버튼 활성화
+function updateSignupBtn(){
+  const btn=document.getElementById('loginBtn'), m=document.getElementById('pwMatch');
+  if(!signupMode){ btn.disabled=false; btn.style.opacity=''; m.textContent=''; return; }
+  const pw=document.getElementById('pw').value, pc=document.getElementById('pwConfirm').value;
+  if(!pc){ m.textContent=''; }
+  else if(pw===pc){ m.textContent='✓ 비밀번호가 일치합니다'; m.style.color='var(--work)'; }
+  else { m.textContent='비밀번호가 일치하지 않습니다'; m.style.color='var(--admin)'; }
+  const ok = pw.length>0 && pw===pc;
+  btn.disabled=!ok; btn.style.opacity=ok?'':'.5';
 }
 async function submitAuth(){
   const idInput=document.getElementById('email').value.trim();
@@ -567,7 +582,10 @@ async function submitAuth(){
     const name=document.getElementById('suName').value.trim();
     const phone=document.getElementById('suPhone').value.trim();
     const intro=document.getElementById('suIntro').value.trim();
+    const pwConfirm=document.getElementById('pwConfirm').value;
     if(!email.includes('@')){errEl.textContent='올바른 이메일을 입력하세요';return;}
+    if(!password){errEl.textContent='비밀번호를 입력하세요';return;}
+    if(password!==pwConfirm){errEl.textContent='비밀번호가 일치하지 않습니다';return;}
     if(!name){errEl.textContent='이름을 입력하세요';return;}
     if(!phone){errEl.textContent='핸드폰번호를 입력하세요';return;}
     btn.textContent='가입 중...';

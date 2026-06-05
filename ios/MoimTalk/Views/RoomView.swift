@@ -118,11 +118,6 @@ struct ChatView: View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 6) {
-                    Text("2026년 6월 3일 화요일")
-                        .font(.system(size: 11)).foregroundColor(.white)
-                        .padding(.horizontal, 12).padding(.vertical, 4)
-                        .background(Color.black.opacity(0.18)).clipShape(Capsule())
-                        .padding(.vertical, 8)
                     if vm.messages.isEmpty {
                         Text("대화를 시작해보세요").font(.system(size: 14)).foregroundColor(Moim.sub).padding(32)
                     } else {

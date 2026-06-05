@@ -95,6 +95,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 14. `message_delete.sql` — **본인이 쓴 메시지(텍스트/사진/파일) 삭제** RLS(본인·관리자). 🗑 버튼/길게눌러 삭제.
 15. `cleanup_old_files.sql` — **첨부/자료 4주 자동정리**(pg_cron): 채팅첨부·자료실 업로드 28일 경과 시
     스토리지+DB 삭제 + 스토리지 90% 초과 시 오래된 것부터. (대시보드에서 `pg_cron` 확장 먼저 활성화)
+16. `read_tracking.sql` — **읽음 표시**: `room_reads` 테이블 + RPC(`moim_unread_counts`/`moim_message_unread_counts`/
+    `moim_mark_read`/`moim_room_member_ids`). 안읽은 방 배지 + 메시지별 안읽은 사람 수에 **필수**.
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
 

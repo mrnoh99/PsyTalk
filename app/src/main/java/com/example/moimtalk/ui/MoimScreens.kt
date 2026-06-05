@@ -921,23 +921,6 @@ private fun ChatPane(
         verticalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(bottom = 8.dp),
     ) {
-        item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "2026년 6월 3일 화요일",
-                    fontSize = 11.sp,
-                    color = Color.White,
-                    modifier = Modifier
-                        .background(Color(0x2E000000), RoundedCornerShape(20.dp))
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
-                )
-            }
-        }
         if (messages.isEmpty()) {
             item {
                 Text(

@@ -42,6 +42,7 @@ fun typeColor(memberType: String): Color = when (memberType) {
     "간호사" -> Color(0xFFC0452F)
     "SW" -> Color(0xFF9A6A00)
     "보조원" -> Color(0xFF777777)
+    "생명사랑" -> Color(0xFF1F9B8E)
     "비서" -> Color(0xFFA0526D)
     "의국동문" -> Color(0xFF5B7C99)
     "심리실 동문" -> Color(0xFF8A7AA0)

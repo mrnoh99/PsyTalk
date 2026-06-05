@@ -7,7 +7,7 @@ struct LoginView: View {
     @State private var signup = false
     @State private var name = ""
     @State private var memberType = "의국"
-    private let memberTypes = ["교실", "의국", "심리실", "연구실", "PA", "간호사", "SW", "보조원", "비서", "의국동문", "심리실 동문", "기타"]
+    private let memberTypes = ["교실", "의국", "심리실", "연구실", "PA", "간호사", "SW", "보조원", "생명사랑", "비서", "의국동문", "심리실 동문", "기타"]
 
     var body: some View {
         VStack(alignment: .leading) {

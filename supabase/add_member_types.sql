@@ -8,6 +8,7 @@
 -- 실행: Supabase SQL Editor
 -- =============================================================================
 
+ALTER TYPE public.member_type ADD VALUE IF NOT EXISTS '생명사랑';
 ALTER TYPE public.member_type ADD VALUE IF NOT EXISTS '비서';
 ALTER TYPE public.member_type ADD VALUE IF NOT EXISTS '의국동문';
 ALTER TYPE public.member_type ADD VALUE IF NOT EXISTS '심리실 동문';

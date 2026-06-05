@@ -59,6 +59,7 @@ func typeColor(_ memberType: String) -> Color {
     case "간호사": return Color(hex: 0xC0452F)
     case "SW": return Color(hex: 0x9A6A00)
     case "보조원": return Color(hex: 0x777777)
+    case "생명사랑": return Color(hex: 0x1F9B8E)
     case "비서": return Color(hex: 0xA0526D)
     case "의국동문": return Color(hex: 0x5B7C99)
     case "심리실 동문": return Color(hex: 0x8A7AA0)

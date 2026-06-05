@@ -382,7 +382,11 @@ private fun MemberManageTab(vm: MoimViewModel, collator: java.text.Collator) {
     val base = vm.profilesById.values.filter { it.role != "superadmin" && !it.withdrawn && it.approved }
     val cmp: Comparator<Profile> = if (byType) Comparator { a, b ->
         val t = collator.compare(a.memberType, b.memberType); if (t != 0) t else collator.compare(a.name, b.name)
-    } else Comparator { a, b -> collator.compare(a.name, b.name) }
+    } else Comparator { a, b ->
+        // 이름순: 관리자(admin)를 맨 위로, 그 안에서 가나다순
+        val ad = (if (a.role == "admin") 0 else 1) - (if (b.role == "admin") 0 else 1)
+        if (ad != 0) ad else collator.compare(a.name, b.name)
+    }
     val members = base.sortedWith(cmp)
     // 비활성(탈퇴) 회원 — 복구 대상
     val withdrawn = vm.profilesById.values.filter { it.role != "superadmin" && it.withdrawn }

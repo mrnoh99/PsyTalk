@@ -25,11 +25,15 @@ struct AdminPlaceholderView: View {
         vm.isSuperAdmin ? AdminConsoleTab.allCases : [.approval]
     }
 
-    // 회원 관리 명단: 승인됨 + 미탈퇴 (전체관리자 제외)
+    // 회원 관리 명단: 승인됨 + 미탈퇴 (전체관리자 제외). 이름순일 때 관리자(admin)를 맨 위로.
     private var members: [Profile] {
         vm.profilesById.values
             .filter { $0.role != "superadmin" && $0.withdrawn != true && ($0.approved == true) }
-            .sorted { $0.name < $1.name }
+            .sorted { a, b in
+                let aa = a.role == "admin" ? 0 : 1
+                let bb = b.role == "admin" ? 0 : 1
+                return aa != bb ? aa < bb : byName(a, b)
+            }
     }
 
     // 직종별 정렬 그룹 (MTYPE_ORDER 우선 + 기타 직군)

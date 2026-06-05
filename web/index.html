@@ -429,7 +429,7 @@ function renderMyInfo(){
 function renderMyAvatarPreview(){
   const el=document.getElementById('meAvPrev'); if(!el)return;
   const url=meAvatarPreview||(meClearAvatar?null:meAvatarUrl);
-  if(url){el.style.backgroundImage=`url('${url}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.style.background='';el.textContent='';}
+  if(url){el.style.background='';el.style.backgroundImage=`url('${url}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';}
   else{el.style.backgroundImage='';el.style.background=meColor;el.textContent=ini(me.name);}
   const clr=document.getElementById('meAvClear'); if(clr)clr.style.display=(meAvatarPreview||(!meClearAvatar&&meAvatarUrl))?'':'none';
 }
@@ -955,7 +955,8 @@ function renderMembers(){
     const order=MTYPE_ORDER.filter(t=>groups[t]).concat(Object.keys(groups).filter(t=>!MTYPE_ORDER.includes(t)));
     h+=order.map(t=>`<div class="lbl" style="margin-top:8px">${esc(t)} · ${groups[t].length}명</div>`+groups[t].sort(byName).map(memberMgmtRow).join('')).join('');
   } else {
-    h+=mem.sort(byName).map(memberMgmtRow).join('');
+    // 이름순: 관리자(admin)를 맨 위로, 그 안에서 이름순
+    h+=mem.sort((a,b)=>{const ad=(a.role==='admin'?0:1)-(b.role==='admin'?0:1);return ad!==0?ad:byName(a,b);}).map(memberMgmtRow).join('');
   }
   // 비활성(탈퇴) 회원 — 복구
   const wd=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&p.withdrawn)

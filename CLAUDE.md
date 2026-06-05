@@ -105,7 +105,9 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 - **iOS(iPad/Mac) 앱에만** 포함. 접근 = **전체관리자(superadmin)만**. `ios/.../AdminPlaceholderView.swift`
   (iPad 앱이 Apple Silicon Mac에서 실행됨. `project.yml` device family `1,2`)
 - **탭: 방 관리 + 가입 승인**
-- 멤버: **역할 지정**(관리자/멤버 **둘만** — 전체관리자는 콘솔에서 지정 불가) + **이름 편집** 앱에서 직접(SQL 없이).
+- **가입 승인 화면**(iOS 콘솔 탭 + Android `ApprovalScreen`): 미승인 → **승인**, 승인됨 → **퇴출**(=승인 취소).
+  **전체관리자(superadmin)는 목록에서 제외**. 기본 **가나다순**(상태가 바뀌어도 줄 위치 유지) + **직군별 보기** 토글.
+- 멤버: **역할 지정**(관리자/멤버 **둘만** — 전체관리자는 콘솔에서 지정 불가, 목록에도 미표시) + **이름 편집** 앱에서 직접(SQL 없이).
   변경 권한은 `admin_roles.sql`(전체관리자만, SECURITY DEFINER `moim_is_superadmin()` + profiles UPDATE 정책).
 - 방 관리: 방을 누르면 **구성원 초대 / 구성원 제거(confirm) / 방 삭제(confirm)**.
   방 삭제는 **superadmin만**, **기본 방(전체공지·학술활동)은 삭제 불가**.

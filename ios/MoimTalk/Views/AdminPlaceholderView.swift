@@ -21,10 +21,10 @@ struct AdminPlaceholderView: View {
     @State private var deleteRoom: Room?
 
     private var members: [Profile] {
-        vm.profilesById.values.sorted {
-            if $0.role != $1.role { return $0.role < $1.role }
-            return $0.name < $1.name
-        }
+        // 전체관리자(superadmin)는 역할 변경 대상에서 제외. 기본 가나다순(이름).
+        vm.profilesById.values
+            .filter { $0.role != "superadmin" }
+            .sorted { $0.name < $1.name }
     }
 
     private var pendingCount: Int {

@@ -246,11 +246,19 @@ private fun ApprovalBanner(pending: Int, onClick: () -> Unit) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ApprovalScreen(vm: MoimViewModel, onBack: () -> Unit) {
-    val members = vm.profilesById.values.sortedWith(compareBy({ it.approved }, { it.role }, { it.name }))
+    var byType by remember { mutableStateOf(false) }  // false=가나다순(기본), true=직군별
+    val collator = remember { java.text.Collator.getInstance(java.util.Locale.KOREAN) }
+    // 전체관리자(superadmin) 제외 + 기본 가나다순 정렬 → 상태(승인/퇴출)가 바뀌어도 줄 위치 유지
+    val base = vm.profilesById.values.filter { it.role != "superadmin" }
+    val cmp: Comparator<Profile> = if (byType) Comparator { a, b ->
+        val t = collator.compare(a.memberType, b.memberType)
+        if (t != 0) t else collator.compare(a.name, b.name)
+    } else Comparator { a, b -> collator.compare(a.name, b.name) }
+    val members = base.sortedWith(cmp)
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("가입 승인", fontWeight = FontWeight.Bold) },
+                title = { Text("가입 승인 / 멤버", fontWeight = FontWeight.Bold) },
                 navigationIcon = { TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
             )
@@ -264,16 +272,50 @@ fun ApprovalScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 .padding(16.dp)
         ) {
             item {
-                Text("미승인자가 위에 표시됩니다. ‘가입 확인’을 누르면 앱을 이용할 수 있습니다.", fontSize = 12.sp, color = MoimSub)
+                Row(modifier = Modifier.padding(bottom = 10.dp)) {
+                    SortChip("가나다순", !byType) { byType = false }
+                    Spacer(Modifier.width(8.dp))
+                    SortChip("직군별", byType) { byType = true }
+                }
+                Text(
+                    "미승인 → ‘승인’, 승인됨 → ‘퇴출’. 줄 순서는 가나다순으로 유지됩니다. (전체관리자 제외)",
+                    fontSize = 12.sp, color = MoimSub
+                )
                 Spacer(Modifier.height(12.dp))
             }
             if (members.isEmpty()) {
                 item { Text("멤버 정보가 없습니다.", fontSize = 13.sp, color = MoimSub) }
+            } else if (byType) {
+                members.groupBy { it.memberType }.forEach { (type, list) ->
+                    item {
+                        Text(
+                            "$type · ${list.size}", fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                            color = typeColor(type),
+                            modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
+                        )
+                    }
+                    items(list, key = { it.id }) { p -> ApprovalRow(p, vm) }
+                }
             } else {
-                items(members) { p -> ApprovalRow(p, vm) }
+                items(members, key = { it.id }) { p -> ApprovalRow(p, vm) }
             }
         }
     }
+}
+
+@Composable
+private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    Text(
+        label,
+        fontSize = 12.sp,
+        fontWeight = FontWeight.Bold,
+        color = if (selected) Color.White else MoimSub,
+        modifier = Modifier
+            .clip(RoundedCornerShape(20.dp))
+            .clickable(onClick = onClick)
+            .background(if (selected) MoimAccent else MoimBg)
+            .padding(horizontal = 14.dp, vertical = 7.dp)
+    )
 }
 
 @Composable
@@ -285,11 +327,11 @@ private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
     if (confirmApprove) {
         AlertDialog(
             onDismissRequest = { confirmApprove = false },
-            title = { Text("가입 확인") },
-            text = { Text("‘${p.name}’ 님의 가입을 확인할까요?\n확인하면 앱을 바로 이용할 수 있습니다.") },
+            title = { Text("가입 승인") },
+            text = { Text("‘${p.name}’ 님의 가입을 승인할까요?\n승인하면 앱을 바로 이용할 수 있습니다.") },
             confirmButton = {
                 TextButton(onClick = { confirmApprove = false; vm.approveUser(p.id, true) }) {
-                    Text("가입 확인", color = catColor("work"), fontWeight = FontWeight.Bold)
+                    Text("승인", color = catColor("work"), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = { TextButton(onClick = { confirmApprove = false }) { Text("취소") } }
@@ -298,11 +340,11 @@ private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
     if (confirmRevoke) {
         AlertDialog(
             onDismissRequest = { confirmRevoke = false },
-            title = { Text("가입 취소") },
-            text = { Text("‘${p.name}’ 님의 가입을 취소할까요?\n다시 승인 대기 상태가 되어 앱을 이용할 수 없습니다.") },
+            title = { Text("퇴출") },
+            text = { Text("‘${p.name}’ 님을 퇴출할까요?\n다시 승인 대기 상태가 되어 앱을 이용할 수 없습니다.") },
             confirmButton = {
                 TextButton(onClick = { confirmRevoke = false; vm.approveUser(p.id, false) }) {
-                    Text("가입 취소", color = MoimAdmin, fontWeight = FontWeight.Bold)
+                    Text("퇴출", color = MoimAdmin, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = { TextButton(onClick = { confirmRevoke = false }) { Text("취소") } }
@@ -328,26 +370,39 @@ private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
         }
         Spacer(Modifier.width(11.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+                Spacer(Modifier.width(6.dp))
+                // 상태 분류: 대기 / 승인됨 (줄은 안 움직이고 칩으로 구분)
+                val stColor = if (p.approved) catColor("work") else MoimAdmin
+                Text(
+                    if (p.approved) "승인됨" else "대기",
+                    color = stColor, fontSize = 9.5.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(stColor.copy(alpha = 0.12f))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
             Text("${p.memberType} · ${roleLabel(p.role)}", fontSize = 11.5.sp, color = MoimSub)
         }
         if (!p.approved) {
             Text(
-                "가입 확인", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                "승인", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
                     .clickable { confirmApprove = true }
                     .background(catColor("work"))
-                    .padding(horizontal = 14.dp, vertical = 7.dp)
+                    .padding(horizontal = 16.dp, vertical = 7.dp)
             )
         } else {
             Text(
-                "가입 취소", color = MoimSub, fontSize = 11.5.sp, fontWeight = FontWeight.Bold,
+                "퇴출", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
                     .clickable { confirmRevoke = true }
-                    .background(MoimBg)
-                    .padding(horizontal = 12.dp, vertical = 7.dp)
+                    .background(MoimAdmin)
+                    .padding(horizontal = 16.dp, vertical = 7.dp)
             )
         }
     }

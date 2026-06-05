@@ -120,9 +120,11 @@ struct RoomView: View {
 
     // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
     private var tabItems: [(String, String)] {
-        room.category != "custom"
+        // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시
+        let chatLabel = liveRoom.createdBy.map { "개설자: \(vm.name(of: $0))" } ?? "💬 채팅"
+        return room.category != "custom"
             ? [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
-            : [("chat", "💬 채팅")]
+            : [("chat", chatLabel)]
     }
 
     private var tabBar: some View {

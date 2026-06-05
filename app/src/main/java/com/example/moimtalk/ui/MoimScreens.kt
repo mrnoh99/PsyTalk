@@ -940,9 +940,11 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 )
                 Row(modifier = Modifier.fillMaxWidth()) {
                     // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
+                    // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시
+                    val chatLabel = liveRoom.createdBy?.let { "개설자: ${vm.nameOf(it)}" } ?: "💬 채팅"
                     val tabs = if (room.category != "custom")
                         listOf("chat" to "💬 채팅", "files" to "📁 자료실", "cal" to "📅 캘린더")
-                    else listOf("chat" to "💬 채팅")
+                    else listOf("chat" to chatLabel)
                     tabs.forEach { (id, label) ->
                         val on = tab == id
                         Column(

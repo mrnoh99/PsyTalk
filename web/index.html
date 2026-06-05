@@ -201,7 +201,7 @@
       <button id="settingsBtn" class="back" style="display:none;font-size:17px" onclick="openRoomSettings()">⚙️</button>
       <button id="leaveBtn" class="lk" style="display:none" onclick="leaveRoom()">나가기</button></div>
     <div class="tabs">
-      <div class="tab on" data-t="chat" onclick="tab('chat')">💬 채팅</div>
+      <div class="tab on" data-t="chat" id="chatTab" onclick="tab('chat')">💬 채팅</div>
       <div class="tab" data-t="files" onclick="tab('files')">📁 자료실</div>
       <div class="tab" data-t="cal" onclick="tab('cal')">📅 캘린더</div></div>
     <div class="pane on" id="pane-chat">
@@ -736,6 +736,9 @@ async function openRoom(id){
   const isDefault=active.category!=='custom';
   document.querySelector('.tab[data-t="files"]').style.display=isDefault?'':'none';
   document.querySelector('.tab[data-t="cal"]').style.display=isDefault?'':'none';
+  // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시
+  const creatorName=active.created_by?(profilesById[active.created_by]||{}).name:null;
+  document.getElementById('chatTab').textContent=(active.category==='custom'&&creatorName)?('개설자: '+creatorName):'💬 채팅';
   show('roomScreen');
   const rs=document.getElementById('roomScreen');         // 오른쪽→왼쪽 펼침 효과
   rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');

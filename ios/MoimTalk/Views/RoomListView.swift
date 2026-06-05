@@ -276,11 +276,8 @@ struct PinSettingsView: View {
                 Section {
                     Button("로그아웃") { dismiss(); vm.logout() }
                         .foregroundColor(Moim.sub)
-                    // 전체관리자(superadmin)는 탈퇴 불가
-                    if !vm.isSuperAdmin {
-                        Button("회원 탈퇴") { showDelete = true }
-                            .foregroundColor(Moim.admin)
-                    }
+                    Button("회원 탈퇴") { showDelete = true }
+                        .foregroundColor(Moim.admin)
                 }
                 Section("고정된 방 (\(draft.count)/5) · ☰ 드래그로 순서 변경") {
                     if draft.isEmpty {

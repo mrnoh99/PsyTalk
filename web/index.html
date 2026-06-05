@@ -226,7 +226,7 @@
   <!-- CREATE ROOM MODAL -->
   <!-- 방 순서(핀) 설정 -->
   <div class="modal" id="pinmodal"><div class="sheet">
-    <div id="leaveAccountRow" style="text-align:right;margin-bottom:4px"><button class="lk" style="color:var(--admin);font-weight:700" onclick="deleteAccount()">회원 탈퇴</button></div>
+    <div style="text-align:right;margin-bottom:4px"><button class="lk" style="color:var(--admin);font-weight:700" onclick="deleteAccount()">회원 탈퇴</button></div>
     <h2>방 순서 설정</h2><p>고정할 방을 드래그(☰)해 순서를 정하세요. 최대 5개. 나머지는 새 메시지 순으로 표시됩니다.</p>
     <div id="pinBody"></div>
     <button class="primary" onclick="savePins()">저장</button>
@@ -300,9 +300,7 @@ async function loadRoomPins(){
 // 주간 학술활동(바)을 제외한 방 목록
 function flatRoomList(){ const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week'); return rooms.filter(r=>r!==week); }
 // ── 방 순서(핀) 설정 ──
-function openPinSettings(){ pinDraft=[...roomPins]; renderPinSettings();
-  document.getElementById('leaveAccountRow').style.display=(me&&me.role==='superadmin')?'none':''; // 전체관리자는 탈퇴 불가
-  document.getElementById('pinmodal').classList.add('on'); }
+function openPinSettings(){ pinDraft=[...roomPins]; renderPinSettings(); document.getElementById('pinmodal').classList.add('on'); }
 function renderPinSettings(){
   const flat=flatRoomList(), byId=id=>flat.find(r=>r.id===id);
   let h=`<span class="lbl">고정된 방 (${pinDraft.length}/5)</span>`;

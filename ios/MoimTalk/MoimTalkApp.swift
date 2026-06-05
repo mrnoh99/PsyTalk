@@ -19,7 +19,8 @@ struct RootView: View {
         Group {
             if !vm.loggedIn {
                 LoginView(vm: vm)
-            } else if vm.myProfile?.approved == false {
+            } else if vm.myProfile != nil && vm.myProfile?.approved != true {
+                // 기본값 불승인: approved 가 true 가 아니면(false·nil·미설정) 승인 대기
                 PendingApprovalView(vm: vm)
             } else if showAdmin {
                 AdminPlaceholderView(vm: vm, onBack: { showAdmin = false })

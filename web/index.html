@@ -332,8 +332,9 @@ async function loadApp(){
   const {data:{user}}=await sb.auth.getUser();
   if(!user){show('login');return;}
   const {data:prof}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
-  me=prof||{id:user.id,name:user.email,member_type:'',role:'user'};
-  if(me.approved===false){
+  me=prof||{id:user.id,name:user.email,member_type:'',role:'user',approved:false};
+  // 기본값 불승인: approved 가 명시적으로 true 가 아니면(미설정·null·false) 승인 대기
+  if(me.approved!==true){
     document.getElementById('pendingWho').textContent=(me.name||'')+(me.member_type?' · '+me.member_type:'');
     show('pending');return;
   }

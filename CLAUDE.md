@@ -84,6 +84,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 8. `admin_roles.sql` — 앱에서 역할 지정(전체관리자만) 권한
 9. `room_manage.sql` — 모임방 삭제·멤버 내보내기 RLS + **동일 이름 모임방 금지**(유니크 인덱스)
 10. `realtime_setup.sql` — Realtime publication — 앱 **거의 실시간 동기화**에 필요
+11. `signup_unapproved.sql` — **새 가입자는 불승인(approved=false)으로 시작** 강제(트리거) + superadmin 유지
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
 

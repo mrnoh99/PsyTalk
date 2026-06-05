@@ -485,7 +485,8 @@ fun App(vm: MoimViewModel = viewModel()) {
 
     when {
         !vm.loggedIn -> LoginScreen(vm)
-        vm.myProfile?.approved == false -> PendingApprovalScreen(vm)
+        // 기본값 불승인: approved 가 true 가 아니면(false·미설정) 승인 대기
+        vm.myProfile != null && vm.myProfile?.approved != true -> PendingApprovalScreen(vm)
         showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
         showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
         showApprovals && vm.myProfile?.let { isAdminRole(it.role) } == true ->

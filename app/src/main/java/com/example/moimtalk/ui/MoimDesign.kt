@@ -62,10 +62,17 @@ fun canRenameRoom(profile: Profile?, room: Room): Boolean {
     return room.createdBy != null && room.createdBy == MoimRepository.currentUserId()
 }
 
-/** 모임방 관리(삭제·멤버 내보내기) 권한: 모임방(custom)에 한해 생성자 또는 관리자 */
+/** 모임방 관리(구성원 초대·제거) 권한: 모임방(custom)에 한해 생성자 또는 관리자 */
 fun canManageRoom(profile: Profile?, room: Room): Boolean {
     if (room.category != "custom") return false
     return canRenameRoom(profile, room)
+}
+
+/** 방 삭제 권한: 모임방(custom)에 한해 생성자(본인이 만든 방) 또는 전체관리자(superadmin) */
+fun canDeleteRoom(profile: Profile?, room: Room): Boolean {
+    if (profile == null || room.category != "custom") return false
+    if (isSuperAdmin(profile.role)) return true
+    return room.createdBy != null && room.createdBy == MoimRepository.currentUserId()
 }
 
 fun viewBadgeText(profile: Profile?): String {

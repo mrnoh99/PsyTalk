@@ -97,6 +97,13 @@ enum MoimRepository {
             .eq("room_id", value: roomId).eq("user_id", value: userId).execute()
     }
 
+    /// 구성원 초대 (방에 멤버 추가 — 관리자/생성자, RLS). 중복은 무시(upsert).
+    static func addRoomMembers(roomId: String, userIds: [String]) async throws {
+        guard !userIds.isEmpty else { return }
+        let rows = userIds.map { RoomMemberInsert(roomId: roomId, userId: $0) }
+        try await supabase.from("room_members").upsert(rows).execute()
+    }
+
     // ── 채팅 ──
     static func messages(roomId: String) async throws -> [Message] {
         try await supabase.from("messages")

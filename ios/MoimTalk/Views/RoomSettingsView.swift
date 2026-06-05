@@ -9,10 +9,24 @@ struct RoomSettingsView: View {
 
     @State private var confirmDelete = false
     @State private var kickTarget: String?
+    @State private var showInvite = false
+
+    // 방 삭제는 생성자(방장) 또는 전체관리자만
+    private var canDelete: Bool {
+        room.createdBy == MoimRepository.currentUserId() || vm.isSuperAdmin
+    }
 
     var body: some View {
         NavigationView {
             List {
+                Section {
+                    Button {
+                        showInvite = true
+                    } label: {
+                        Label("구성원 초대", systemImage: "person.badge.plus")
+                    }
+                }
+
                 Section(header: Text("참여 멤버 (\(vm.roomMemberIds.count)명)")) {
                     if vm.roomMemberIds.isEmpty {
                         Text("멤버 정보를 불러오는 중…").font(.system(size: 13)).foregroundColor(Moim.sub)
@@ -32,11 +46,13 @@ struct RoomSettingsView: View {
                     }
                 }
 
-                Section {
-                    Button(role: .destructive) {
-                        confirmDelete = true
-                    } label: {
-                        Text("이 모임방 삭제").frame(maxWidth: .infinity)
+                if canDelete {
+                    Section {
+                        Button(role: .destructive) {
+                            confirmDelete = true
+                        } label: {
+                            Text("이 모임방 삭제").frame(maxWidth: .infinity)
+                        }
                     }
                 }
             }
@@ -64,6 +80,10 @@ struct RoomSettingsView: View {
                 }
                 Button("취소", role: .cancel) { kickTarget = nil }
             }
+            .sheet(isPresented: $showInvite) {
+                RoomMemberPicker(vm: vm, room: room, mode: .invite) { showInvite = false }
+            }
         }
+        .onAppear { vm.loadRoomMembers(room.id) }
     }
 }

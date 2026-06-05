@@ -286,6 +286,19 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    /// 구성원 초대 (방에 멤버 추가 — 관리자 콘솔)
+    func inviteRoomMember(roomId: String, userId: String) {
+        Task {
+            do {
+                try await MoimRepository.addRoomMembers(roomId: roomId, userIds: [userId])
+                roomMemberIds = (try? await MoimRepository.roomMemberIds(roomId: roomId)) ?? []
+            } catch { self.error = "구성원 초대: \(error.localizedDescription)" }
+        }
+    }
+
+    /// 전체관리자 여부 (관리자 콘솔의 방 삭제 권한)
+    var isSuperAdmin: Bool { myProfile?.role == "superadmin" }
+
     /// 모임방 관리 권한 (custom 방에 한해 생성자 또는 관리자)
     func canManageRoom(_ room: Room) -> Bool {
         guard room.category == "custom" else { return false }

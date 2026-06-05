@@ -394,6 +394,18 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    /** 구성원 초대 (방에 멤버 추가). 성공 시 멤버 목록 갱신. */
+    fun inviteRoomMember(roomId: String, userId: String) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.addRoomMembers(roomId, listOf(userId))
+                roomMemberIds = MoimRepository.roomMemberIds(roomId)
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "구성원 초대")
+            }
+        }
+    }
+
     fun renameRoom(room: Room, newName: String, onDone: () -> Unit = {}) {
         val trimmed = newName.trim()
         if (trimmed.isEmpty() || trimmed == room.name) { onDone(); return }

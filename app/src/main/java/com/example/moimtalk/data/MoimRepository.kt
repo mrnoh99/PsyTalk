@@ -90,6 +90,13 @@ object MoimRepository {
         }
     }
 
+    /** 구성원 초대 (방에 멤버 추가). 중복은 무시(upsert). */
+    suspend fun addRoomMembers(roomId: String, userIds: List<String>) {
+        if (userIds.isEmpty()) return
+        val rows = userIds.map { RoomMemberInsert(roomId = roomId, userId = it) }
+        supabase.from("room_members").upsert(rows)
+    }
+
     suspend fun messages(roomId: String): List<Message> =
         supabase.from("messages").select {
             filter { eq("room_id", roomId) }

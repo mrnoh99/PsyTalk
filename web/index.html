@@ -190,9 +190,10 @@
 
   <!-- ROOM SETTINGS MODAL -->
   <div class="modal" id="smodal"><div class="sheet">
-    <h2>모임방 설정</h2><p>멤버를 내보내거나 모임방을 삭제할 수 있습니다.</p>
-    <span class="lbl">참여 멤버</span><div id="smList"></div>
-    <button class="primary" style="background:var(--admin)" onclick="deleteRoom()">이 모임방 삭제</button>
+    <h2>모임방 설정</h2><p>구성원을 초대·제거하거나 모임방을 삭제할 수 있습니다.</p>
+    <span class="lbl">참여 멤버 (제거)</span><div id="smList"></div>
+    <span class="lbl">구성원 초대</span><div id="smInvite"></div>
+    <button class="primary" id="smDeleteBtn" style="background:var(--admin)" onclick="deleteRoom()">이 모임방 삭제</button>
     <button class="ghost" onclick="closeModal('smodal')">닫기</button>
   </div></div>
 
@@ -400,30 +401,52 @@ async function renameRoom(){
   await loadRooms();
 }
 
-/* ====== 모임방 설정 (멤버 내보내기 · 삭제) ====== */
+/* ====== 모임방 설정 (구성원 초대·제거 · 삭제) ====== */
+// 방 삭제는 생성자(방장) 또는 전체관리자(superadmin)만
+const canDeleteRoom=r=>r.category==='custom'&&(me.role==='superadmin'||(!!r.created_by&&r.created_by===me.id));
+let smMemberIds=[];
 async function openRoomSettings(){
   if(!active)return;
   document.getElementById('smodal').classList.add('on');
-  await renderRoomMembers();
+  document.getElementById('smDeleteBtn').style.display=canDeleteRoom(active)?'':'none';
+  await loadRoomMembersUI();
 }
-async function renderRoomMembers(){
+async function loadRoomMembersUI(){
   const {data}=await sb.from('room_members').select('user_id').eq('room_id',active.id);
-  const ids=(data||[]).map(r=>r.user_id);
+  smMemberIds=(data||[]).map(r=>r.user_id);
+  renderRoomMembers();renderInviteList();
+}
+function renderRoomMembers(){
   const el=document.getElementById('smList');
-  if(!ids.length){el.innerHTML='<p style="color:var(--sub);font-size:13px">멤버 정보를 불러올 수 없습니다.</p>';return;}
-  el.innerHTML=ids.map(uid=>{
+  if(!smMemberIds.length){el.innerHTML='<p style="color:var(--sub);font-size:13px">구성원이 없습니다.</p>';return;}
+  el.innerHTML=smMemberIds.map(uid=>{
     const p=profilesById[uid]||{}; const isCreator=uid===active.created_by; const isMe=uid===me.id;
     const tag=isCreator?' (방장)':(isMe?' (나)':'');
-    const btn=isCreator?'':`<span class="evkeptx" style="font-size:13px" onclick="kickMember('${uid}')">내보내기</span>`;
+    const btn=isCreator?'':`<span class="evkeptx" style="font-size:13px" onclick="kickMember('${uid}')">제거</span>`;
     return `<div class="evkept"><span>${esc(p.name||'?')}${tag}</span>${btn}</div>`;
   }).join('');
 }
+function renderInviteList(){
+  const el=document.getElementById('smInvite');
+  // 본인 제외 + 승인된 멤버 + 아직 참여 안 한 사람
+  const cands=Object.values(profilesById)
+    .filter(p=>p.id!==me.id&&p.approved!==false&&!smMemberIds.includes(p.id))
+    .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  if(!cands.length){el.innerHTML='<p style="color:var(--sub);font-size:13px">초대할 수 있는 멤버가 없습니다.</p>';return;}
+  el.innerHTML=cands.map(p=>`<div class="evkept"><span>${esc(p.name||'?')} · ${esc(p.member_type||'')}</span>`
+    +`<span class="evkeptx" style="color:var(--work);font-size:13px" onclick="inviteMember('${p.id}')">초대</span></div>`).join('');
+}
 async function kickMember(uid){
   const p=profilesById[uid]||{};
-  if(!confirm(`'${p.name||'이 멤버'}' 님을 이 모임방에서 내보낼까요?`))return;
+  if(!confirm(`'${p.name||'이 멤버'}' 님을 이 모임방에서 제거할까요?`))return;
   const {error}=await sb.from('room_members').delete().eq('room_id',active.id).eq('user_id',uid);
-  if(error){alert('멤버 내보내기 실패: '+error.message);return;}
-  await renderRoomMembers();
+  if(error){alert('구성원 제거 실패: '+error.message);return;}
+  await loadRoomMembersUI();
+}
+async function inviteMember(uid){
+  const {error}=await sb.from('room_members').upsert({room_id:active.id,user_id:uid});
+  if(error){alert('구성원 초대 실패: '+error.message);return;}
+  await loadRoomMembersUI();
 }
 async function deleteRoom(){
   if(!active)return;

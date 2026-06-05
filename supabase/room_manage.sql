@@ -18,15 +18,16 @@ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
   );
 $$;
 
--- 3) 방 삭제: 생성자 또는 관리자 (CASCADE 로 멤버·메시지·일정·자료 함께 삭제)
+-- 3) 방 삭제: 생성자(본인이 만든 방) 또는 전체관리자(superadmin)만.
+--    일반 관리자(admin)는 방을 삭제할 수 없음 (방 삭제 = 콘솔의 superadmin / 본인 방의 생성자).
+--    CASCADE 로 멤버·메시지·일정·자료 함께 삭제.
 GRANT DELETE ON TABLE public.rooms TO authenticated;
 DROP POLICY IF EXISTS "rooms_delete_owner_admin" ON public.rooms;
 CREATE POLICY "rooms_delete_owner_admin"
   ON public.rooms FOR DELETE TO authenticated
   USING (
     created_by = auth.uid()
-    OR EXISTS (SELECT 1 FROM public.profiles p
-               WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin'))
+    OR public.moim_is_superadmin()
   );
 
 -- 4) 멤버 목록 조회: 본인 / 방 생성자(자기 방) / 관리자

@@ -1049,16 +1049,41 @@ fun RoomSettingsDialog(
                         }
                     }
                 }
+
+                // 구성원 초대 — 아직 참여하지 않은 승인 멤버
+                val candidates = vm.otherProfiles().filter { it.id !in memberIds }
                 Spacer(Modifier.height(14.dp))
                 HorizontalDivider(color = MoimLine)
                 Spacer(Modifier.height(12.dp))
-                Button(
-                    onClick = { confirmDelete = true },
-                    modifier = Modifier.fillMaxWidth().height(46.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MoimAdmin),
-                    shape = RoundedCornerShape(11.dp)
-                ) {
-                    Text("이 모임방 삭제", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text("구성원 초대", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+                Spacer(Modifier.height(8.dp))
+                if (candidates.isEmpty()) {
+                    Text("초대할 수 있는 멤버가 없습니다.", fontSize = 13.sp, color = MoimSub)
+                }
+                candidates.forEach { p ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("${p.name} · ${p.memberType}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MoimInk, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { vm.inviteRoomMember(room.id, p.id) }) {
+                            Text("초대", fontSize = 13.sp, color = catColor("work"))
+                        }
+                    }
+                }
+
+                if (canDeleteRoom(vm.myProfile, room)) {
+                    Spacer(Modifier.height(14.dp))
+                    HorizontalDivider(color = MoimLine)
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = { confirmDelete = true },
+                        modifier = Modifier.fillMaxWidth().height(46.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MoimAdmin),
+                        shape = RoundedCornerShape(11.dp)
+                    ) {
+                        Text("이 모임방 삭제", fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         },

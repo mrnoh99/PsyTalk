@@ -102,9 +102,13 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 ## 관리자 콘솔 (관리 프로그램)
 - **iOS(iPad/Mac) 앱에만** 포함. 접근 = **전체관리자(superadmin)만**. `ios/.../AdminPlaceholderView.swift`
   (iPad 앱이 Apple Silicon Mac에서 실행됨. `project.yml` device family `1,2`)
-- 기능: 멤버(직군·역할)·방 목록 조회 + **역할 지정**(멤버/관리자/전체관리자) + **이름 편집** 앱에서 직접(SQL 없이).
+- **탭: 방 관리 + 가입 승인**
+- 멤버: **역할 지정**(관리자/멤버 **둘만** — 전체관리자는 콘솔에서 지정 불가) + **이름 편집** 앱에서 직접(SQL 없이).
   변경 권한은 `admin_roles.sql`(전체관리자만, SECURITY DEFINER `moim_is_superadmin()` + profiles UPDATE 정책).
-- **Android·웹·iOS 폰**: 관리자 메뉴 없음(웹·Android는 명시적으로 제외).
+- 방 관리: 방을 누르면 **구성원 초대 / 구성원 제거(confirm) / 방 삭제(confirm)**.
+  방 삭제는 **superadmin만**, **기본 방(전체공지·학술활동)은 삭제 불가**.
+- **Android·웹·iOS 폰**: 관리자 콘솔 없음. 단, **각 모임방 ⚙️ 설정**에서 방 생성자(비관리자 포함)가
+  **구성원 초대·제거 + 자신이 만든 방 삭제** 가능. 방 삭제 권한 = 생성자 또는 superadmin (`room_manage.sql`).
 
 ## 아직 앱에 없는 것 (우선순위 참고)
 멀티 방 게시 · `room_writers`(방 작성자 지정) 연동 ·

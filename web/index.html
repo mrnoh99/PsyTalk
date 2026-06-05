@@ -66,6 +66,8 @@
   .mrow .mav{width:36px;height:36px;border-radius:13px;font-size:13px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}
   .col{display:flex;flex-direction:column;gap:3px;min-width:0}.name{font-size:12px;color:#6b635c;font-weight:600;margin-left:3px}
   .mdel{align-self:center;cursor:pointer;font-size:13px;opacity:.4;padding:2px 4px}.mdel:hover{opacity:1}
+  .munread{align-self:flex-end;font-size:11px;color:#e0922f;font-weight:800;margin:0 4px;white-space:nowrap}
+  .unread{background:var(--admin);color:#fff;font-size:11px;font-weight:800;min-width:19px;height:19px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0}
   .bubble{padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.42;word-break:break-word;max-width:260px}
   .mrow.you .bubble{background:var(--you)}.mrow.me .bubble{background:var(--me)}
   .bimg{max-width:200px;max-height:240px;border-radius:14px;cursor:pointer;display:block;object-fit:cover}
@@ -271,6 +273,19 @@ const BUCKET = "room-files";
 
 /* ====== 상태 ====== */
 let me=null, rooms=[], profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
+let unreadByRoom={}, unreadByMsg={};  // #1 방별 안읽은 수, #2 메시지별 안읽은 사람 수
+async function loadUnreadCounts(){
+  const {data}=await sb.rpc('moim_unread_counts');
+  unreadByRoom={};(data||[]).forEach(r=>unreadByRoom[r.room_id]=Number(r.cnt));
+  if(!document.getElementById('listScreen').classList.contains('hidden'))renderRoomList();
+}
+async function markRead(roomId){ if(roomId){ try{await sb.rpc('moim_mark_read',{p_room:roomId});}catch(e){} } }
+async function loadMsgUnread(){
+  if(!active)return;
+  const {data}=await sb.rpc('moim_message_unread_counts',{p_room:active.id});
+  unreadByMsg={};(data||[]).forEach(r=>unreadByMsg[r.message_id]=r.unread);
+  renderMsgs();
+}
 let evKept=[]; // 일정 수정 시 유지할 기존 첨부 [{n,u}]
 let evPending=[]; // 새로 고른 파일 (등록·수정 전) [{file,n}]
 let calMode="month", fileSort="date", monthAnchor=new Date();
@@ -280,6 +295,7 @@ let realtimeGlobal=null, realtimeRoom=null;
 
 function debounce(fn,ms=400){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
 const debouncedLoadRooms=debounce(()=>loadRooms(),400);
+const debouncedLoadUnread=debounce(()=>loadUnreadCounts(),600);
 const debouncedRoomMembers=debounce(()=>{if(document.getElementById('smodal').classList.contains('on'))loadRoomMembersUI();},400);
 const debouncedRefreshRoom=debounce(async()=>{
   if(!active)return;
@@ -300,6 +316,7 @@ function startRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'rooms'},debouncedLoadRooms)
     .on('postgres_changes',{event:'*',schema:'public',table:'room_members'},()=>{debouncedLoadRooms();debouncedRoomMembers();})
     .on('postgres_changes',{event:'*',schema:'public',table:'ward_status'},debouncedLoadWard)
+    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},debouncedLoadUnread)
     .subscribe((status)=>{if(status==='CHANNEL_ERROR')console.warn('realtime global',status);});
 }
 async function setRoomRealtime(roomId){
@@ -389,7 +406,7 @@ async function loadApp(){
 }
 async function loadRooms(){
   const {data}=await sb.from('rooms').select('*').order('sort_order',{ascending:true});
-  rooms=data||[];renderRoomList();
+  rooms=data||[];renderRoomList();loadUnreadCounts();
 }
 
 /* ====== 방 목록 ====== */
@@ -399,15 +416,16 @@ function renderRoomList(){
   // 주간 학술활동 방(default_view=week)은 목록에서 빼고 별도 바로 고정
   const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week');
   const listRooms=rooms.filter(r=>r!==week); // 전체방(첫번째) + 모임방, sort_order 순
+  const ubadge=id=>{const u=unreadByRoom[id]||0;return u>0?`<span class="unread">${u>99?'99+':u}</span>`:'';};
   const item=r=>{const c=CAT[r.category]||CAT.custom;return `<div class="room" onclick="openRoom('${r.id}')">
     <div class="av" style="background:${c.c};font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word">${esc(r.name)}</div>
     <div class="room-mid"><div class="room-top"><span class="catdot" style="background:${c.c}">${c.l}</span>
     <span class="room-name">${esc(r.name)}</span></div>
-    <div class="room-msg">${r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'멤버 누구나'}</div></div></div>`;};
+    <div class="room-msg">${r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'멤버 누구나'}</div></div>${ubadge(r.id)}</div>`;};
   let h=`<div class="banner" onclick="openWard()"><span style="font-size:20px">🛏</span>
     <div style="flex:1"><b>잔여 병실 현황</b><small>남 · 여 잔여 병상 보기</small></div><span>›</span></div>`;
   if(week)h+=`<div class="wkbar" onclick="openRoom('${week.id}')"><span style="font-size:20px">📅</span>
-    <div style="flex:1"><b>${esc(week.name)}</b><small>주간 학술활동 · 일정 보기</small></div><span>›</span></div>`;
+    <div style="flex:1"><b>${esc(week.name)}</b><small>주간 학술활동 · 일정 보기</small></div>${ubadge(week.id)}<span>›</span></div>`;
   h+=`<div class="mkrow"><button class="mkbtn" onclick="openCreate()">＋ 모임방 만들기</button></div>`;
   h+=listRooms.length?listRooms.map(item).join(''):`<div style="padding:14px 18px;color:var(--sub);font-size:13px">방이 없습니다.</div>`;
   document.getElementById('roomList').innerHTML=h;
@@ -438,7 +456,7 @@ async function openRoom(id){
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
   layoutChat();
 }
-async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);show('listScreen');}
+async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);show('listScreen');loadUnreadCounts();}
 async function renameRoom(){
   if(!active)return;
   const name=prompt('방 이름 변경', active.name);
@@ -517,7 +535,8 @@ function tab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle(
   if(t==='files')renderFiles();if(t==='cal')renderCal();}
 
 /* ====== 채팅 ====== */
-async function loadMsgs(){const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:true});msgs=data||[];renderMsgs();}
+async function loadMsgs(){const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:true});msgs=data||[];renderMsgs();
+  if(active){await markRead(active.id);loadMsgUnread();loadUnreadCounts();}}
 /** 채팅 msgs 높이 — pane.clientHeight 대신 화면 기준(내용만큼 pane이 늘어나 스크롤 안 되는 Chrome 버그 회피) */
 function layoutChat(){
   const screen=document.getElementById('roomScreen');
@@ -549,7 +568,7 @@ function renderMsgs(){
   const el=document.getElementById('msgs');
   el.innerHTML=msgs.length?msgs.map(m=>{const mine=m.sender_id===me.id,who=profilesById[m.sender_id]||{};
     return `<div class="mrow ${mine?'me':'you'}">${!mine?`<div class="mav" style="background:${tcolor(who.member_type)}">${ini(who.name)}</div>`:''}
-    <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleHtml(m)}</div>${mine?`<span class="mdel" onclick="delMsg('${m.id}')" title="삭제">🗑</span>`:''}</div>`;}).join('')
+    <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleHtml(m)}</div>${(unreadByMsg[m.id]||0)>0?`<span class="munread">${unreadByMsg[m.id]}</span>`:''}${mine?`<span class="mdel" onclick="delMsg('${m.id}')" title="삭제">🗑</span>`:''}</div>`;}).join('')
     :`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`;
   scrollMsgsToBottom();
   resolveAttachments();

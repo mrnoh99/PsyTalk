@@ -16,6 +16,9 @@ final class MoimViewModel: ObservableObject {
     @Published var profilesById: [String: Profile] = [:]
     // 채팅 첨부 path → 서명 URL 캐시 (방 구성원만 발급됨)
     @Published var attachmentUrls: [String: String] = [:]
+    // 읽음 표시: #1 방별 안읽은 수, #2 메시지별 안읽은 사람 수
+    @Published var unreadByRoom: [String: Int] = [:]
+    @Published var unreadByMsg: [String: Int] = [:]
     @Published var error: String?
     @Published var notice: String?
     @Published var loading = false
@@ -78,6 +81,7 @@ final class MoimViewModel: ObservableObject {
         do {
             myProfile = try await MoimRepository.myProfile()
             rooms = try await MoimRepository.rooms()
+            unreadByRoom = (try? await MoimRepository.unreadCounts()) ?? unreadByRoom
         } catch { /* 조용히 재시도 — 다음 이벤트에서 갱신 */ }
     }
 
@@ -101,6 +105,7 @@ final class MoimViewModel: ObservableObject {
     private func refreshActiveRoom(_ roomId: String) async {
         guard activeRoom == roomId else { return }
         do { messages = try await MoimRepository.messages(roomId: roomId) } catch { }
+        markActiveRead()
         await loadRoomData(roomId)
         resolveAttachments()
     }
@@ -159,6 +164,7 @@ final class MoimViewModel: ObservableObject {
                 myProfile = try await MoimRepository.myProfile()
                 rooms = try await MoimRepository.rooms()
                 loadRoomMemberCounts()
+                loadUnreadCounts()
                 if let list = try? await MoimRepository.allProfiles() {
                     profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                 }
@@ -178,6 +184,7 @@ final class MoimViewModel: ObservableObject {
             await loadRoomData(room.id)
             resolveAttachments()
             startMessagePolling()
+            markActiveRead()
         }
     }
 
@@ -202,6 +209,23 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.sendMessage(roomId: rid, text: text)
                 messages = try await MoimRepository.messages(roomId: rid)
             } catch { self.error = "전송: \(error.localizedDescription)" }
+        }
+    }
+
+    /// 방별 안읽은 수 갱신 (방 목록)
+    func loadUnreadCounts() {
+        Task { do { unreadByRoom = try await MoimRepository.unreadCounts() } catch {} }
+    }
+
+    /// 현재 방 읽음 처리 + 안읽은 수 갱신
+    func markActiveRead() {
+        guard let rid = activeRoom else { return }
+        Task {
+            do {
+                try await MoimRepository.markRead(roomId: rid)
+                unreadByMsg = try await MoimRepository.messageUnreadCounts(roomId: rid)
+                unreadByRoom = try await MoimRepository.unreadCounts()
+            } catch {}
         }
     }
 

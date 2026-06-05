@@ -56,6 +56,9 @@ class MoimViewModel : ViewModel() {
     var profilesById by mutableStateOf<Map<String, Profile>>(emptyMap())
     // 채팅 첨부 path → 서명 URL 캐시 (방 구성원만 발급됨)
     var attachmentUrls by mutableStateOf<Map<String, String>>(emptyMap())
+    // 읽음 표시: #1 방별 안읽은 수, #2 메시지별 안읽은 사람 수
+    var unreadByRoom by mutableStateOf<Map<String, Int>>(emptyMap())
+    var unreadByMsg by mutableStateOf<Map<String, Int>>(emptyMap())
     var error by mutableStateOf<String?>(null)
     var notice by mutableStateOf<String?>(null)
     var loading by mutableStateOf(false)
@@ -88,6 +91,7 @@ class MoimViewModel : ViewModel() {
         try {
             rooms = MoimRepository.rooms()
             loadRoomMemberCounts()
+            unreadByRoom = MoimRepository.unreadCounts()
         } catch (_: Exception) {
         }
     }
@@ -164,6 +168,7 @@ class MoimViewModel : ViewModel() {
             } catch (_: Exception) {
             }
             loadRoomData(roomId)
+            markActiveRead()
         }
     }
 
@@ -242,6 +247,7 @@ class MoimViewModel : ViewModel() {
                 myProfile = MoimRepository.myProfile()
                 rooms = MoimRepository.rooms()
                 loadRoomMemberCounts()
+                loadUnreadCounts()
                 try {
                     profilesById = MoimRepository.allProfiles().associateBy { it.id }
                 } catch (_: Exception) {
@@ -267,6 +273,7 @@ class MoimViewModel : ViewModel() {
                 error = friendlySupabaseError(e, "메시지 불러오기")
             }
             loadRoomData(room.id)
+            markActiveRead()
         }
     }
 
@@ -556,6 +563,25 @@ class MoimViewModel : ViewModel() {
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "전송")
             }
+        }
+    }
+
+    /** 방별 안읽은 수 갱신 (방 목록) */
+    fun loadUnreadCounts() {
+        viewModelScope.launch {
+            try { unreadByRoom = MoimRepository.unreadCounts() } catch (_: Exception) {}
+        }
+    }
+
+    /** 현재 방을 읽음 처리 + 안읽은 수 갱신 */
+    fun markActiveRead() {
+        val rid = activeRoom ?: return
+        viewModelScope.launch {
+            try {
+                MoimRepository.markRead(rid)
+                unreadByMsg = MoimRepository.messageUnreadCounts(rid)
+                unreadByRoom = MoimRepository.unreadCounts()
+            } catch (_: Exception) {}
         }
     }
 

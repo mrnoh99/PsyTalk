@@ -132,7 +132,8 @@ struct ChatView: View {
                                 attachUrl: m.attachmentUrl.flatMap { url in
                                     vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
                                 },
-                                onDelete: { deleteTarget = m }
+                                onDelete: { deleteTarget = m },
+                                unread: vm.unreadByMsg[m.id] ?? 0
                             )
                             .id(m.id)
                         }
@@ -250,6 +251,12 @@ struct MessageBubble: View {
     let senderName: String
     var attachUrl: String? = nil   // path 에서 해석된 서명 URL (방 구성원만)
     var onDelete: () -> Void = {}
+    var unread: Int = 0
+
+    private var unreadText: some View {
+        Text(unread > 99 ? "99+" : "\(unread)")
+            .font(.system(size: 11, weight: .bold)).foregroundColor(Color(hex: 0xE0922F))
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -260,6 +267,7 @@ struct MessageBubble: View {
                 }
                 .buttonStyle(.plain)
             }
+            if mine && unread > 0 { unreadText }
             if !mine {
                 Text(String(senderName.prefix(3)))
                     .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
@@ -317,6 +325,7 @@ struct MessageBubble: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
             }
+            if !mine && unread > 0 { unreadText }
             if !mine { Spacer(minLength: 40) }
         }
     }

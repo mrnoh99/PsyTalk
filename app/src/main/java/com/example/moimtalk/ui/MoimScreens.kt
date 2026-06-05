@@ -476,7 +476,7 @@ fun RoomListScreen(
                 .fillMaxSize()
         ) {
             item { WardStatusBanner(onWard) }
-            weekRoom?.let { wr -> item { WeekRoomBar(wr, onOpen) } }
+            weekRoom?.let { wr -> item { WeekRoomBar(wr, vm.unreadByRoom[wr.id] ?: 0, onOpen) } }
             if (profile != null && isAdminRole(profile.role)) {
                 item { ApprovalBanner(vm.profilesById.values.count { !it.approved }, onApprovals) }
             }
@@ -484,7 +484,7 @@ fun RoomListScreen(
             if (listRooms.isEmpty()) {
                 item { EmptyBox("🔒", "아직 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
             } else {
-                items(listRooms) { room -> RoomRow(room, onOpen) }
+                items(listRooms) { room -> RoomRow(room, vm.unreadByRoom[room.id] ?: 0, onOpen) }
             }
             vm.error?.let { err ->
                 item {
@@ -552,7 +552,7 @@ private fun SectionHead(title: String, action: String? = null, onAction: (() -> 
 }
 
 @Composable
-fun RoomRow(room: Room, onOpen: (Room) -> Unit) {
+fun RoomRow(room: Room, unread: Int = 0, onOpen: (Room) -> Unit) {
     val c = catColor(room.category)
     Row(
         modifier = Modifier
@@ -600,9 +600,24 @@ fun RoomRow(room: Room, onOpen: (Room) -> Unit) {
             }
             Text(desc, fontSize = 12.5.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
+        if (unread > 0) {
+            UnreadBadge(unread)
+            Spacer(Modifier.width(6.dp))
+        }
         Text("›", color = MoimSub, fontSize = 20.sp)
     }
     HorizontalDivider(color = MoimLine.copy(alpha = 0.4f))
+}
+
+@Composable
+private fun UnreadBadge(n: Int) {
+    Text(
+        if (n > 99) "99+" else n.toString(),
+        color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold,
+        modifier = Modifier
+            .background(MoimAdmin, RoundedCornerShape(11.dp))
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -846,7 +861,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 isMine = vm::isMine,
                 nameOf = vm::nameOf,
                 attachUrl = { vm.attachmentUrls[it] },
-                onDelete = { vm.deleteMessage(it.id) }
+                onDelete = { vm.deleteMessage(it.id) },
+                unreadOf = { vm.unreadByMsg[it.id] ?: 0 }
             )
             "files" -> FilesPane(
                 vm = vm,
@@ -870,7 +886,8 @@ private fun ChatPane(
     isMine: (Message) -> Boolean,
     nameOf: (String) -> String,
     attachUrl: (String) -> String?,
-    onDelete: (Message) -> Unit
+    onDelete: (Message) -> Unit,
+    unreadOf: (Message) -> Int
 ) {
     var deleteTarget by remember { mutableStateOf<Message?>(null) }
     deleteTarget?.let { tgt ->
@@ -934,7 +951,7 @@ private fun ChatPane(
             }
         } else {
             items(messages) { m ->
-                MessageBubble(m, isMine(m), nameOf(m.senderId), attachUrl, onDelete = { deleteTarget = m })
+                MessageBubble(m, isMine(m), nameOf(m.senderId), attachUrl, onDelete = { deleteTarget = m }, unread = unreadOf(m))
             }
         }
     }
@@ -943,7 +960,7 @@ private fun ChatPane(
 @Composable
 fun MessageBubble(
     m: Message, mine: Boolean, senderName: String,
-    attachUrl: (String) -> String? = { null }, onDelete: () -> Unit = {}
+    attachUrl: (String) -> String? = { null }, onDelete: () -> Unit = {}, unread: Int = 0
 ) {
     Row(
         modifier = Modifier
@@ -971,6 +988,13 @@ fun MessageBubble(
                 Text(senderName.take(3), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.width(8.dp))
+        }
+        if (mine && unread > 0) {
+            Text(
+                if (unread > 99) "99+" else unread.toString(),
+                color = Color(0xFFE0922F), fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.Bottom).padding(horizontal = 4.dp)
+            )
         }
         val bg = if (mine) MoimYellow else MoimWhite
         val shape = if (mine) {
@@ -1031,6 +1055,13 @@ fun MessageBubble(
                 }
             }
         }
+        if (!mine && unread > 0) {
+            Text(
+                if (unread > 99) "99+" else unread.toString(),
+                color = Color(0xFFE0922F), fontSize = 11.sp, fontWeight = FontWeight.Bold,
+                modifier = Modifier.align(Alignment.Bottom).padding(horizontal = 4.dp)
+            )
+        }
     }
 }
 
@@ -1059,7 +1090,7 @@ private fun WardStatusBanner(onClick: () -> Unit) {
 
 // 주간 학술활동 고정 바 (잔여 병실 현황 아래, 파란색)
 @Composable
-private fun WeekRoomBar(room: Room, onOpen: (Room) -> Unit) {
+private fun WeekRoomBar(room: Room, unread: Int = 0, onOpen: (Room) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1076,6 +1107,10 @@ private fun WeekRoomBar(room: Room, onOpen: (Room) -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(room.name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
             Text("주간 학술활동 · 일정 보기", color = Color(0xFFDDE6F3), fontSize = 11.5.sp)
+        }
+        if (unread > 0) {
+            UnreadBadge(unread)
+            Spacer(Modifier.width(6.dp))
         }
         Text("›", color = Color.White, fontSize = 20.sp)
     }

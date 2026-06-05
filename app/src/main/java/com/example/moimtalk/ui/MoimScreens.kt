@@ -646,7 +646,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     // 이름 변경이 반영되도록 최신 방 정보를 vm.rooms 에서 조회
     val liveRoom = vm.rooms.firstOrNull { it.id == room.id } ?: room
     // 주간 학술활동 등 default_view='week' 방은 열자마자 캘린더(주간 목록)로 (프로토타입과 동일)
-    var tab by remember { mutableStateOf(if (room.defaultView == "week") "cal" else "chat") }
+    var tab by remember { mutableStateOf(if (room.category != "custom" && room.defaultView == "week") "cal" else "chat") }
     var input by remember { mutableStateOf("") }
     var showAttach by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -729,7 +729,11 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                     colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
                 )
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    listOf("chat" to "💬 채팅", "files" to "📁 자료실", "cal" to "📅 캘린더").forEach { (id, label) ->
+                    // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
+                    val tabs = if (room.category != "custom")
+                        listOf("chat" to "💬 채팅", "files" to "📁 자료실", "cal" to "📅 캘린더")
+                    else listOf("chat" to "💬 채팅")
+                    tabs.forEach { (id, label) ->
                         val on = tab == id
                         Column(
                             modifier = Modifier

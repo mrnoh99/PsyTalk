@@ -19,8 +19,8 @@ struct RoomView: View {
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
-        // default_view='week' 방은 열자마자 캘린더(주간) 탭으로 (Android 와 동일)
-        _tab = State(initialValue: room.defaultView == "week" ? "cal" : "chat")
+        // default_view='week' 방은 열자마자 캘린더(주간) 탭으로 (기본 방만; 모임방은 채팅)
+        _tab = State(initialValue: (room.category != "custom" && room.defaultView == "week") ? "cal" : "chat")
     }
 
     // 이름 변경이 반영되도록 최신 방 정보를 vm.rooms 에서 조회
@@ -81,9 +81,16 @@ struct RoomView: View {
         }
     }
 
+    // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
+    private var tabItems: [(String, String)] {
+        room.category != "custom"
+            ? [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
+            : [("chat", "💬 채팅")]
+    }
+
     private var tabBar: some View {
         HStack(spacing: 0) {
-            ForEach([("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")], id: \.0) { id, label in
+            ForEach(tabItems, id: \.0) { id, label in
                 let on = tab == id
                 VStack(spacing: 8) {
                     Text(label).font(.system(size: 13, weight: .bold))

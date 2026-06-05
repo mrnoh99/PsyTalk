@@ -412,10 +412,14 @@ async function openRoom(id){
   document.getElementById('settingsBtn').style.display=canManage(active)?'':'none';
   calMode=active.default_view==='week'?'week':'month';
   selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
+  // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
+  const isDefault=active.category!=='custom';
+  document.querySelector('.tab[data-t="files"]').style.display=isDefault?'':'none';
+  document.querySelector('.tab[data-t="cal"]').style.display=isDefault?'':'none';
   show('roomScreen');
   await setRoomRealtime(id);
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
-  tab(active.default_view==='week'?'cal':'chat');
+  tab(isDefault&&active.default_view==='week'?'cal':'chat');
   const allow=canPost(active);
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);

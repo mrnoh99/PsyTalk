@@ -545,6 +545,19 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    /** 본인이 쓴 메시지(텍스트/사진/파일) 삭제 */
+    fun deleteMessage(id: String) {
+        val rid = activeRoom ?: return
+        viewModelScope.launch {
+            try {
+                MoimRepository.deleteMessage(id)
+                messages = MoimRepository.messages(rid)
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "메시지 삭제")
+            }
+        }
+    }
+
     /** 카톡식 첨부 전송 (type = image | file) */
     fun sendAttachment(fileName: String, bytes: ByteArray, type: String) {
         val rid = activeRoom

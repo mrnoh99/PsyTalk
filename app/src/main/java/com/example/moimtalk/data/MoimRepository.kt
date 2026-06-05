@@ -117,6 +117,11 @@ object MoimRepository {
             order("created_at", Order.ASCENDING)
         }.decodeList()
 
+    /** 본인이 쓴 메시지(텍스트/사진/파일) 삭제. RLS 로 본인·관리자만 허용 */
+    suspend fun deleteMessage(id: String) {
+        supabase.from("messages").delete { filter { eq("id", id) } }
+    }
+
     suspend fun sendMessage(roomId: String, text: String) {
         val uid = currentUserId() ?: error("Not logged in")
         supabase.from("messages").insert(

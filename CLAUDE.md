@@ -92,6 +92,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 13. `chat_attachments.sql` — **채팅 첨부(사진/파일)**: messages 에 `type`·`attachment_url`(공개 URL)·`attachment_name`
     컬럼 추가. 파일은 **공개 `room-files` 버킷**에 저장(누구나 URL 다운로드).
     카톡식 `+` 로 사진/파일 **선택 → 미리보기 → ➤(보내기) 눌러야 전송**.
+14. `message_delete.sql` — **본인이 쓴 메시지(텍스트/사진/파일) 삭제** RLS(본인·관리자). 🗑 버튼/길게눌러 삭제.
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
 

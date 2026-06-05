@@ -132,6 +132,11 @@ enum MoimRepository {
             .order("created_at", ascending: true).execute().value
     }
 
+    /// 본인이 쓴 메시지(텍스트/사진/파일) 삭제. RLS 로 본인·관리자만 허용
+    static func deleteMessage(id: String) async throws {
+        try await supabase.from("messages").delete().eq("id", value: id).execute()
+    }
+
     static func sendMessage(roomId: String, text: String) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
         let payload = MessageInsert(roomId: roomId, senderId: uid, content: text)

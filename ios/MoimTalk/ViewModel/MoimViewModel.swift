@@ -174,6 +174,17 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    /// 본인이 쓴 메시지(텍스트/사진/파일) 삭제
+    func deleteMessage(_ id: String) {
+        guard let rid = activeRoom else { return }
+        Task {
+            do {
+                try await MoimRepository.deleteMessage(id: id)
+                messages = try await MoimRepository.messages(roomId: rid)
+            } catch { self.error = "메시지 삭제: \(error.localizedDescription)" }
+        }
+    }
+
     /// 카톡식 첨부 전송 (type = image | file)
     func sendAttachment(fileName: String, data: Data, type: String) {
         guard let rid = activeRoom else { return }

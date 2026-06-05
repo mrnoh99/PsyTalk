@@ -112,6 +112,7 @@ struct ChatView: View {
     @State private var photoItem: PhotosPickerItem?
     // 선택 후 ➤ 누르면 전송 (name, data, type)
     @State private var pendingAttach: (name: String, data: Data, type: String)?
+    @State private var deleteTarget: Message?
 
     var body: some View {
         ScrollViewReader { proxy in
@@ -128,7 +129,8 @@ struct ChatView: View {
                         ForEach(vm.messages) { m in
                             MessageBubble(
                                 message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
-                                attachUrl: m.attachmentUrl.flatMap { vm.attachmentUrls[$0] }
+                                attachUrl: m.attachmentUrl.flatMap { vm.attachmentUrls[$0] },
+                                onDelete: { deleteTarget = m }
                             )
                             .id(m.id)
                         }
@@ -145,6 +147,12 @@ struct ChatView: View {
                 vm.resolveAttachments()
             }
             .onAppear { vm.resolveAttachments() }
+            .confirmationDialog("이 메시지를 삭제할까요?",
+                                isPresented: Binding(get: { deleteTarget != nil }, set: { if !$0 { deleteTarget = nil } }),
+                                titleVisibility: .visible) {
+                Button("삭제", role: .destructive) { if let t = deleteTarget { vm.deleteMessage(t.id) }; deleteTarget = nil }
+                Button("취소", role: .cancel) { deleteTarget = nil }
+            }
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
                 scrollToBottom(proxy, animated: true)
             }
@@ -239,10 +247,17 @@ struct MessageBubble: View {
     let mine: Bool
     let senderName: String
     var attachUrl: String? = nil   // path 에서 해석된 서명 URL (방 구성원만)
+    var onDelete: () -> Void = {}
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
-            if mine { Spacer(minLength: 40) }
+            if mine {
+                Spacer(minLength: 40)
+                Button { onDelete() } label: {
+                    Text("🗑").font(.system(size: 13)).opacity(0.5)
+                }
+                .buttonStyle(.plain)
+            }
             if !mine {
                 Text(String(senderName.prefix(3)))
                     .font(.system(size: 13, weight: .bold)).foregroundColor(.white)

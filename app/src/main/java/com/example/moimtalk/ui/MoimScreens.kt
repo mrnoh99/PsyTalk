@@ -845,7 +845,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 messages = vm.messages,
                 isMine = vm::isMine,
                 nameOf = vm::nameOf,
-                attachUrl = { vm.attachmentUrls[it] }
+                attachUrl = { vm.attachmentUrls[it] },
+                onDelete = { vm.deleteMessage(it.id) }
             )
             "files" -> FilesPane(
                 vm = vm,
@@ -868,8 +869,23 @@ private fun ChatPane(
     messages: List<Message>,
     isMine: (Message) -> Boolean,
     nameOf: (String) -> String,
-    attachUrl: (String) -> String?
+    attachUrl: (String) -> String?,
+    onDelete: (Message) -> Unit
 ) {
+    var deleteTarget by remember { mutableStateOf<Message?>(null) }
+    deleteTarget?.let { tgt ->
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text("메시지 삭제") },
+            text = { Text("이 메시지를 삭제할까요?") },
+            confirmButton = {
+                TextButton(onClick = { deleteTarget = null; onDelete(tgt) }) {
+                    Text("삭제", color = MoimAdmin, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = { TextButton(onClick = { deleteTarget = null }) { Text("취소") } }
+        )
+    }
     val listState = rememberLazyListState()
     val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
     val lastIndex = if (messages.isEmpty()) 1 else messages.size
@@ -917,19 +933,34 @@ private fun ChatPane(
                 )
             }
         } else {
-            items(messages) { m -> MessageBubble(m, isMine(m), nameOf(m.senderId), attachUrl) }
+            items(messages) { m ->
+                MessageBubble(m, isMine(m), nameOf(m.senderId), attachUrl, onDelete = { deleteTarget = m })
+            }
         }
     }
 }
 
 @Composable
-fun MessageBubble(m: Message, mine: Boolean, senderName: String, attachUrl: (String) -> String? = { null }) {
+fun MessageBubble(
+    m: Message, mine: Boolean, senderName: String,
+    attachUrl: (String) -> String? = { null }, onDelete: () -> Unit = {}
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(top = 4.dp),
         horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start
     ) {
+        if (mine) {
+            // 본인 메시지 삭제
+            Text(
+                "🗑", fontSize = 13.sp,
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
+                    .clickable { onDelete() }
+                    .padding(horizontal = 6.dp)
+            )
+        }
         if (!mine) {
             Box(
                 modifier = Modifier

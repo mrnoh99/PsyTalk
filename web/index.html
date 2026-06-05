@@ -436,12 +436,18 @@ function renderMyAvatarPreview(){
 function pickMyColor(c){meColor=c;renderSwatches('meColors',meColor,'pickMyColor');renderMyAvatarPreview();}
 function onMyAvatarPicked(input){const f=input.files&&input.files[0];if(!f)return;meAvatarFile=f;meAvatarPreview=URL.createObjectURL(f);meClearAvatar=false;renderMyAvatarPreview();input.value='';}
 function clearMyAvatar(){meAvatarFile=null;meAvatarPreview=null;meAvatarUrl=null;meClearAvatar=true;renderMyAvatarPreview();}
+// Supabase 오류 상세 포맷터 (message·details·hint·code)
+function sbErr(e){ if(!e)return''; return [e.message,e.details,e.hint,e.code?('['+e.code+']'):''].filter(Boolean).join(' · '); }
+// 새 RPC/컬럼이 아직 없을 때(스키마 미적용·캐시) 안내
+function needSqlHint(e){ const s=((e&&e.message)||'')+((e&&e.code)||'')+((e&&e.details)||'');
+  return /schema cache|PGRST202|42883|42703|does not exist|could not find|function .* does not exist/i.test(s)
+    ? '\n\n※ Supabase SQL Editor 에서 profile_edit.sql · direct_messages.sql 을 실행했는지 확인하세요.\n이미 실행했다면 대시보드 Settings → API → "Reload schema" 후 다시 시도하세요.' : ''; }
 async function saveMyInfo(){
   const intro=document.getElementById('meIntro').value.trim();
   let avatarUrl=meClearAvatar?null:meAvatarUrl;
-  if(meAvatarFile){try{avatarUrl=await uploadProfileAvatar(meAvatarFile);}catch(e){alert('사진 업로드 실패: '+e.message);return;}}
+  if(meAvatarFile){try{avatarUrl=await uploadProfileAvatar(meAvatarFile);}catch(e){alert('사진 업로드 실패: '+(e.message||e));return;}}
   const {error}=await sb.rpc('moim_update_my_profile',{p_intro:intro||null,p_avatar_url:avatarUrl,p_color:meColor});
-  if(error){alert('저장 실패: '+error.message);return;}
+  if(error){alert('저장 실패: '+sbErr(error)+needSqlHint(error));return;}
   me.intro=intro; me.avatar_url=avatarUrl; me.color=meColor;
   if(profilesById[me.id]){Object.assign(profilesById[me.id],{intro,avatar_url:avatarUrl,color:meColor});}
   renderRoomList(); alert('내 정보가 저장되었습니다.'); renderMyInfo();
@@ -499,7 +505,8 @@ function renderMemberSearchList(){
 }
 async function startDirect(otherId){
   const {data:rid,error}=await sb.rpc('moim_open_direct',{p_other:otherId});
-  if(error){alert('대화 열기 실패: '+error.message);return;}
+  if(error){alert('대화 열기 실패: '+sbErr(error)+needSqlHint(error));return;}
+  if(!rid){alert('대화 열기 실패: 방 ID를 받지 못했습니다.'+needSqlHint({}));return;}
   await loadRooms();
   openRoom(rid);
 }

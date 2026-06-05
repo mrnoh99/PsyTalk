@@ -15,10 +15,10 @@
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone text;
 
 -- 1) 현재 상태 보정: superadmin + 승인 + 이름(노재성) + 전화(01025310730)
-UPDATE public.profiles p
+--    ※ UPDATE 부터 세미콜론(;) 까지 '한 문장 전체'를 실행하세요. SET 줄만 따로 실행 금지.
+UPDATE public.profiles
 SET role = 'superadmin', approved = true, name = '노재성', phone = '01025310730'
-FROM auth.users u
-WHERE p.id = u.id AND lower(u.email) = 'jsnoh@ajou.ac.kr';
+WHERE id = (SELECT id FROM auth.users WHERE lower(email) = 'jsnoh@ajou.ac.kr');
 
 -- 2) 보호 트리거: 이 계정의 role/approved/name/phone 을 항상 고정값으로 되돌림
 --    (INSERT·UPDATE 모두. 누가 무엇을 시도하든 강등/미승인/이름·전화 변경 불가)

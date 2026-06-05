@@ -19,7 +19,8 @@
 > member_type 이 ENUM 이면 값 추가는 `supabase/add_member_types.sql` 실행.
 
 ### 역할·권한 (`role`)
-- **superadmin** (전체관리자, 1명): 모든 방·멤버·권한 관리, 과 전체공지·캘린더 작성, 방 참석자 지정
+- **superadmin** (전체관리자, 1명 = **jsnoh@ajou.ac.kr 고정**): 모든 방·멤버·권한 관리, 과 전체공지·캘린더 작성, 방 참석자 지정.
+  DB 트리거(`protect_superadmin.sql`)로 **퇴출(미승인)·강등·삭제 불가**, UI 목록에서도 제외.
 - **admin** (관리자): superadmin이 지정, 공지·캘린더 작성 가능
 - **user** (멤버): 소속 방에서 정책에 따라 읽기/쓰기
 
@@ -86,6 +87,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 9. `room_manage.sql` — 모임방 삭제·멤버 내보내기 RLS + **동일 이름 모임방 금지**(유니크 인덱스)
 10. `realtime_setup.sql` — Realtime publication — 앱 **거의 실시간 동기화**에 필요
 11. `signup_unapproved.sql` — **새 가입자는 불승인(approved=false)으로 시작** 강제(트리거) + superadmin 유지
+12. `protect_superadmin.sql` — **전체관리자(jsnoh@ajou.ac.kr) 고정·보호**: superadmin+승인으로 보정 후
+    누구도 퇴출(미승인)·강등·삭제 불가(BEFORE INSERT/UPDATE/DELETE 트리거)
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
 

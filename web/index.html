@@ -4,8 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>아주 정신 — 정신건강의학과 (Web)</title>
-<!-- Supabase JS v2 (UMD, 파일 직접 열기 가능) -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Supabase JS v2 (UMD) — 같은 출처(vendor)에서 먼저 로드(병원망에서 외부 CDN 차단 대비). 실패 시 CDN 폴백 -->
+<script src="vendor/supabase.js"></script>
+<script>
+  if(!window.supabase||!window.supabase.createClient){
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"><\/script>');
+  }
+</script>
 <style>
   :root{
     --bg:#e9e4dd;--paper:#f5f1ea;--ink:#231f1c;--sub:#8a817a;
@@ -328,6 +333,13 @@
 /* ====== Supabase (Android/iOS 와 동일 백엔드) ====== */
 const SUPABASE_URL = "https://orkbcprkfloosyttfybg.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ya2JjcHJrZmxvb3N5dHRmeWJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0NzAyNjAsImV4cCI6MjA5NjA0NjI2MH0.ju2bN3gWERBIdfs9WaMUDVJCkj_bAjtgmeXwgu-RxUo";
+if(!window.supabase||!window.supabase.createClient){
+  document.body.innerHTML='<div style="padding:40px;font-family:sans-serif;line-height:1.6;color:#231f1c">'+
+    '<h2>로그인 모듈을 불러오지 못했습니다</h2>'+
+    '<p>Supabase 라이브러리(<code>vendor/supabase.js</code>)가 차단되었거나 로드되지 않았습니다.<br>'+
+    '네트워크·방화벽 설정을 확인하거나 페이지를 새로고침하세요.</p></div>';
+  throw new Error('Supabase library failed to load');
+}
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const BUCKET = "room-files";
 
@@ -415,7 +427,7 @@ let calMode="month", fileSort="date", monthAnchor=new Date();
 let selDate=new Date(); selDate.setHours(0,0,0,0); // 선택한 날짜(기본 오늘)
 let cpick=new Set(), editEventId=null, pendingFile=null;
 // 방표식(색상·사진) 상태 — 생성/편집
-let createColor=ROOM_COLORS[1], createIconFile=null, createIconPreview=null;
+let createColor='#4a6fa5', createIconFile=null, createIconPreview=null;
 let editColor=null, editIconFile=null, editIconPreview=null, editIconCleared=false;
 let realtimeGlobal=null, realtimeRoom=null;
 

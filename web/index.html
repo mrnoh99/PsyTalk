@@ -181,7 +181,7 @@
   <!-- ROOM LIST -->
   <section id="listScreen" class="hidden app-screen">
     <div class="hdr"><h1>아주 정신</h1><span class="badge" id="badge"></span>
-      <span class="spacer"></span><button class="lk" onclick="openPinSettings()" title="방 순서 설정">⚙️</button><button class="lk" onclick="doLogout()">로그아웃</button></div>
+      <span class="spacer"></span><button class="lk" id="adminEntryBtn" style="display:none;color:var(--admin);font-weight:700" onclick="openAdmin()"></button><button class="lk" onclick="openPinSettings()" title="방 순서 설정">⚙️</button><button class="lk" onclick="doLogout()">로그아웃</button></div>
     <div class="list" id="roomList"></div>
   </section>
 
@@ -568,11 +568,13 @@ function renderRoomList(){
     <span class="room-name">${esc(r.name)}</span></div>
     <div class="room-msg">${prev}</div></div>
     <div class="room-right"><div class="room-time">${time}</div>${ubadge(r.id)}</div></div>`;};
+  // 관리자 진입: 헤더(설정 옆) 버튼 — admin='가입승인' / superadmin='관리자모드'
+  const ab=document.getElementById('adminEntryBtn');
+  if(me.role==='superadmin'){ab.textContent='관리자모드';ab.style.display='';}
+  else if(me.role==='admin'){ab.textContent='가입승인';ab.style.display='';}
+  else ab.style.display='none';
   let h=`<div class="banner" onclick="openWard()"><span style="font-size:20px">🛏</span>
     <div style="flex:1"><b>잔여 병실 현황</b><small>남 · 여 잔여 병상 보기</small></div><span>›</span></div>`;
-  if(isAdmin()){const pend=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&!p.withdrawn&&p.approved!==true).length;
-    h+=`<div class="adminbar" style="border-radius:14px;margin:0 14px 10px" onclick="openAdmin()"><div class="dot">🛡</div>
-      <div style="flex:1"><b>관리자 콘솔</b><small>${pend>0?'가입 승인 대기 '+pend+'명':'가입 승인 · 회원/방 관리'}</small></div><span>›</span></div>`;}
   if(week)h+=`<div class="wkbar" onclick="openRoom('${week.id}')"><span style="font-size:20px">📅</span>
     <div style="flex:1"><b>${esc(week.name)}</b><small>주간 학술활동 · 일정 보기</small></div>${ubadge(week.id)}<span>›</span></div>`;
   h+=`<div class="mkrow"><button class="mkbtn" onclick="openCreate()">＋ 모임방 만들기</button></div>`;

@@ -589,6 +589,11 @@ fun RoomListScreen(
                     )
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = { vm.loadRooms() }) { Text("↻", fontSize = 17.sp) }
+                    // 관리자 진입: admin='가입승인' / superadmin='관리자모드'
+                    when (profile?.role) {
+                        "superadmin" -> TextButton(onClick = onApprovals) { Text("관리자모드", fontSize = 12.sp, color = MoimAdmin, fontWeight = FontWeight.Bold) }
+                        "admin" -> TextButton(onClick = onApprovals) { Text("가입승인", fontSize = 12.sp, color = MoimAdmin, fontWeight = FontWeight.Bold) }
+                    }
                     // 설정(⚙️): 방 순서 + 회원 탈퇴·로그아웃
                     TextButton(onClick = { showPinSettings = true }) { Text("⚙️", fontSize = 15.sp) }
                 }
@@ -604,9 +609,6 @@ fun RoomListScreen(
         ) {
             item { WardStatusBanner(onWard) }
             weekRoom?.let { wr -> item { WeekRoomBar(wr, vm.unreadByRoom[wr.id] ?: 0, onOpen) } }
-            if (profile != null && isAdminRole(profile.role)) {
-                item { ApprovalBanner(vm.profilesById.values.count { it.role != "superadmin" && !it.withdrawn && !it.approved }, onApprovals) }
-            }
             item { CreateRoomButton(onCreateRoom) }
             if (listRooms.isEmpty()) {
                 item { EmptyBox("🔒", "아직 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }

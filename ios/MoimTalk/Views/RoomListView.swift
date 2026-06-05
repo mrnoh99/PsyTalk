@@ -46,7 +46,6 @@ struct RoomListView: View {
                     }
                 }
             }
-            if let p = vm.myProfile, isAdminRole(p.role) { adminBar(pending: pendingApprovalCount) }
         }
         .background(Moim.paper.ignoresSafeArea())
     }
@@ -60,6 +59,12 @@ struct RoomListView: View {
                     .padding(.horizontal, 8).padding(.vertical, 3)
                     .background(Moim.yellow).clipShape(Capsule())
                 Spacer()
+                // 관리자 진입: admin='가입승인' / superadmin='관리자모드'
+                if vm.myProfile?.role == "superadmin" {
+                    Button("관리자모드") { onAdmin() }.font(.system(size: 12, weight: .bold)).foregroundColor(Moim.admin)
+                } else if vm.myProfile?.role == "admin" {
+                    Button("가입승인") { onAdmin() }.font(.system(size: 12, weight: .bold)).foregroundColor(Moim.admin)
+                }
                 // 설정(⚙️): 방 순서 + 회원 탈퇴·로그아웃
                 Button { showPinSettings = true } label: { Text("⚙️").font(.system(size: 16)) }
             }

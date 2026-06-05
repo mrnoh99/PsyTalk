@@ -128,6 +128,8 @@
   .lbl{font-size:11.5px;font-weight:700;color:var(--sub);margin:13px 0 6px;display:block}
   .field{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:#fff;outline:none}
   textarea.field{resize:vertical;min-height:60px}.twocol{display:flex;gap:9px}.twocol .field{flex:1}
+  .pinrow{display:flex;align-items:center;gap:6px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin-bottom:7px;background:#fff;font-size:14px}
+  .pinbtn{cursor:pointer;font-size:13px;font-weight:700;padding:4px 9px;border-radius:8px;background:var(--bg);color:var(--accent);user-select:none}
   .pick{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;border:1px solid var(--line);margin-bottom:7px;background:#fff}
   .pick.sel{border-color:var(--accent);background:#fff8e0}.pick .av{width:32px;height:32px;border-radius:10px;font-size:11px}
   .pick .pn{flex:1;font-size:13.5px;font-weight:600}.chk{font-weight:800;color:var(--accent)}
@@ -175,7 +177,7 @@
   <!-- ROOM LIST -->
   <section id="listScreen" class="hidden app-screen">
     <div class="hdr"><h1>아주 정신</h1><span class="badge" id="badge"></span>
-      <span class="spacer"></span><button class="lk" onclick="doLogout()">로그아웃</button></div>
+      <span class="spacer"></span><button class="lk" onclick="openPinSettings()" title="방 순서 설정">⚙️</button><button class="lk" onclick="doLogout()">로그아웃</button></div>
     <div class="list" id="roomList"></div>
   </section>
 
@@ -217,6 +219,14 @@
   </section>
 
   <!-- CREATE ROOM MODAL -->
+  <!-- 방 순서(핀) 설정 -->
+  <div class="modal" id="pinmodal"><div class="sheet">
+    <h2>방 순서 설정</h2><p>상단에 고정할 방을 최대 5개까지 정하세요. 나머지는 새 메시지 순으로 표시됩니다.</p>
+    <div id="pinBody"></div>
+    <button class="primary" onclick="savePins()">저장</button>
+    <button class="ghost" onclick="closeModal('pinmodal')">취소</button>
+  </div></div>
+
   <div class="modal" id="cmodal"><div class="sheet">
     <h2>새 모임방 만들기</h2><p>이름을 정하고 참여할 멤버를 선택하세요.</p>
     <input class="field" id="newRoomName" placeholder="예: 우울증 연구모임">
@@ -275,6 +285,53 @@ const BUCKET = "room-files";
 /* ====== 상태 ====== */
 let me=null, rooms=[], profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
 let unreadByRoom={}, unreadByMsg={}, lastMsgByRoom={};  // #1 안읽은 수, #2 메시지별 안읽은 수, 방별 마지막 메시지
+let roomPins=[], pinDraft=[];  // 개인 고정 방 순서(room id 배열, 최대 5)
+async function loadRoomPins(){
+  const {data}=await sb.from('room_pins').select('room_id,position').order('position',{ascending:true});
+  roomPins=(data||[]).map(r=>r.room_id);
+  if(!document.getElementById('listScreen').classList.contains('hidden'))renderRoomList();
+}
+// 주간 학술활동(바)을 제외한 방 목록
+function flatRoomList(){ const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week'); return rooms.filter(r=>r!==week); }
+// ── 방 순서(핀) 설정 ──
+function openPinSettings(){ pinDraft=[...roomPins]; renderPinSettings(); document.getElementById('pinmodal').classList.add('on'); }
+function renderPinSettings(){
+  const flat=flatRoomList(), byId=id=>flat.find(r=>r.id===id);
+  let h=`<span class="lbl">고정된 방 (${pinDraft.length}/5)</span>`;
+  h+= pinDraft.length ? pinDraft.map((id,i)=>{const r=byId(id); if(!r)return ''; return `<div class="pinrow">
+      <span style="flex:1">${i+1}. ${esc(r.name)}</span>
+      <span class="pinbtn" onclick="pinMove(${i},-1)">▲</span>
+      <span class="pinbtn" onclick="pinMove(${i},1)">▼</span>
+      <span class="pinbtn" style="color:var(--admin)" onclick="pinRemove('${id}')">✕</span></div>`;}).join('')
+    : `<div style="color:var(--sub);font-size:13px;padding:4px 2px 8px">고정된 방 없음</div>`;
+  const rest=flat.filter(r=>!pinDraft.includes(r.id));
+  h+=`<span class="lbl" style="margin-top:10px;display:block">방 목록</span>`;
+  h+= rest.length ? rest.map(r=>`<div class="pinrow"><span style="flex:1">${esc(r.name)}</span>
+      <span class="pinbtn" ${pinDraft.length>=5?'style="opacity:.35;pointer-events:none"':''} onclick="pinAdd('${r.id}')">📌 고정</span></div>`).join('')
+    : `<div style="color:var(--sub);font-size:13px;padding:4px 2px">없음</div>`;
+  document.getElementById('pinBody').innerHTML=h;
+}
+function pinAdd(id){ if(pinDraft.length>=5||pinDraft.includes(id))return; pinDraft.push(id); renderPinSettings(); }
+function pinRemove(id){ pinDraft=pinDraft.filter(x=>x!==id); renderPinSettings(); }
+function pinMove(i,d){ const j=i+d; if(j<0||j>=pinDraft.length)return; const t=pinDraft[i];pinDraft[i]=pinDraft[j];pinDraft[j]=t; renderPinSettings(); }
+async function savePins(){
+  const {error}=await sb.rpc('moim_set_room_pins',{p_rooms:pinDraft});
+  if(error){alert('저장 실패: '+error.message);return;}
+  roomPins=[...pinDraft]; closeModal('pinmodal'); renderRoomList();
+}
+// 핀 우선 + 나머지는 최근 메시지순
+function orderedRooms(){
+  const flat=flatRoomList();
+  const pinned=roomPins.map(id=>flat.find(r=>r.id===id)).filter(Boolean);
+  const pinnedIds=new Set(pinned.map(r=>r.id));
+  const rest=flat.filter(r=>!pinnedIds.has(r.id)).sort((a,b)=>{
+    const ta=lastMsgByRoom[a.id]?.created_at||'', tb=lastMsgByRoom[b.id]?.created_at||'';
+    if(ta&&tb)return tb.localeCompare(ta);
+    if(ta)return -1; if(tb)return 1;
+    return (a.sort_order||999)-(b.sort_order||999);
+  });
+  return pinned.concat(rest);
+}
 async function loadLastMessages(){
   const {data}=await sb.rpc('moim_room_last_messages');
   lastMsgByRoom={};(data||[]).forEach(r=>lastMsgByRoom[r.room_id]=r);
@@ -424,7 +481,7 @@ async function loadApp(){
 }
 async function loadRooms(){
   const {data}=await sb.from('rooms').select('*').order('sort_order',{ascending:true});
-  rooms=data||[];renderRoomList();loadUnreadCounts();loadLastMessages();
+  rooms=data||[];renderRoomList();loadUnreadCounts();loadLastMessages();loadRoomPins();
 }
 
 /* ====== 방 목록 ====== */
@@ -433,7 +490,7 @@ function renderRoomList(){
     me.role==='superadmin'?'전체관리자':me.role==='admin'?'관리자':(me.name+' · '+(me.member_type||''));
   // 주간 학술활동 방(default_view=week)은 목록에서 빼고 별도 바로 고정
   const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week');
-  const listRooms=rooms.filter(r=>r!==week); // 전체방(첫번째) + 모임방, sort_order 순
+  const listRooms=orderedRooms(); // 고정(핀) 우선 + 나머지는 최근 메시지순
   const ubadge=id=>{const u=unreadByRoom[id]||0;return u>0?`<span class="unread">${u>99?'99+':u}</span>`:'';};
   const item=r=>{const c=CAT[r.category]||CAT.custom;const lm=lastMsgByRoom[r.id];
     const prev=lm?esc(msgPreview(lm)):(r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'');

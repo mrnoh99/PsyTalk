@@ -663,6 +663,9 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     val profile = vm.myProfile
     val canPost = canPostInRoom(profile, room)
 
+    // 채팅 첨부(path) → 서명 URL 해석 (방 구성원만)
+    LaunchedEffect(vm.messages) { vm.resolveAttachments() }
+
     if (showSettings) {
         RoomSettingsDialog(
             vm = vm,
@@ -841,7 +844,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 modifier = Modifier.padding(pad),
                 messages = vm.messages,
                 isMine = vm::isMine,
-                nameOf = vm::nameOf
+                nameOf = vm::nameOf,
+                attachUrl = { vm.attachmentUrls[it] }
             )
             "files" -> FilesPane(
                 vm = vm,
@@ -863,7 +867,8 @@ private fun ChatPane(
     modifier: Modifier,
     messages: List<Message>,
     isMine: (Message) -> Boolean,
-    nameOf: (String) -> String
+    nameOf: (String) -> String,
+    attachUrl: (String) -> String?
 ) {
     val listState = rememberLazyListState()
     val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
@@ -912,13 +917,13 @@ private fun ChatPane(
                 )
             }
         } else {
-            items(messages) { m -> MessageBubble(m, isMine(m), nameOf(m.senderId)) }
+            items(messages) { m -> MessageBubble(m, isMine(m), nameOf(m.senderId), attachUrl) }
         }
     }
 }
 
 @Composable
-fun MessageBubble(m: Message, mine: Boolean, senderName: String) {
+fun MessageBubble(m: Message, mine: Boolean, senderName: String, attachUrl: (String) -> String? = { null }) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -953,23 +958,26 @@ fun MessageBubble(m: Message, mine: Boolean, senderName: String) {
                 )
             }
             val uriHandler = LocalUriHandler.current
-            val url = m.attachmentUrl
+            val path = m.attachmentUrl
+            // path → 서명 URL (방 구성원만 발급됨). 아직 미해석이면 null.
+            val resolved = path?.let { attachUrl(it) }
             when {
-                m.type == "image" && url != null -> AsyncImage(
-                    model = url,
+                m.type == "image" && path != null -> AsyncImage(
+                    model = resolved,
                     contentDescription = "사진",
                     modifier = Modifier
                         .widthIn(max = 220.dp)
                         .heightIn(max = 260.dp)
                         .clip(RoundedCornerShape(14.dp))
-                        .clickable { uriHandler.openUri(url) }
+                        .background(MoimBg, RoundedCornerShape(14.dp))
+                        .clickable { resolved?.let { uriHandler.openUri(it) } }
                 )
-                m.type == "file" && url != null -> Row(
+                m.type == "file" && path != null -> Row(
                     modifier = Modifier
                         .widthIn(max = 225.dp)
                         .clip(shape)
                         .background(MoimWhite, shape)
-                        .clickable { uriHandler.openUri(url) }
+                        .clickable { resolved?.let { uriHandler.openUri(it) } }
                         .padding(horizontal = 12.dp, vertical = 11.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {

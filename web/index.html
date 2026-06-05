@@ -535,6 +535,7 @@ function renderMsgs(){
     <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleHtml(m)}</div></div>`;}).join('')
     :`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`;
   scrollMsgsToBottom();
+  resolveAttachments();
 }
 window.addEventListener('resize',layoutChat);
 if(window.visualViewport){
@@ -544,14 +545,35 @@ async function sendMsg(){const i=document.getElementById('msgInput'),t=i.value.t
   i.value='';const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:t});
   if(error){alert('전송 실패: '+error.message);return;}await loadMsgs();}
 
-/* ====== 카톡식 + 첨부(사진/파일) ====== */
+/* ====== 카톡식 + 첨부(사진/파일) — 비공개 버킷, 그 방 구성원만 다운로드 ====== */
+const CHAT_BUCKET="chat-files";
+const _signedCache={};
+// path → 서명 URL (비구성원은 발급 실패). 레거시 공개 URL(http...)은 그대로 사용.
+async function chatSignedUrl(u){
+  if(!u)return null;
+  if(/^https?:\/\//.test(u))return u;
+  if(_signedCache[u])return _signedCache[u];
+  const {data,error}=await sb.storage.from(CHAT_BUCKET).createSignedUrl(u,3600);
+  if(error||!data)return null;
+  _signedCache[u]=data.signedUrl;return data.signedUrl;
+}
 function bubbleHtml(m){
   if(m.type==='image'&&m.attachment_url)
-    return `<img class="bimg" src="${encodeURI(m.attachment_url)}" onclick="window.open('${encodeURI(m.attachment_url)}','_blank')" alt="사진">`;
+    return `<img class="bimg" data-att="${esc(m.attachment_url)}" alt="사진" style="min-width:90px;min-height:60px;background:#e9e4dd">`;
   if(m.type==='file'&&m.attachment_url)
-    return `<a class="bfile" href="${encodeURI(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a>`;
+    return `<a class="bfile" href="#" data-att="${esc(m.attachment_url)}" onclick="return openChatFile(event,this)">📎 <span>${esc(m.attachment_name||'파일')}</span></a>`;
   return `<div class="bubble">${esc(m.content||'')}</div>`;
 }
+// 화면의 첨부 이미지에 서명 URL 적용 (다운로드는 클릭 시 발급)
+async function resolveAttachments(){
+  for(const el of document.querySelectorAll('#msgs .bimg[data-att]')){
+    const u=await chatSignedUrl(el.getAttribute('data-att'));
+    if(u){el.src=u;el.onclick=()=>window.open(u,'_blank');}
+  }
+}
+function openChatFile(e,a){e.preventDefault();
+  chatSignedUrl(a.getAttribute('data-att')).then(u=>{u?window.open(u,'_blank'):alert('이 방의 구성원만 받을 수 있습니다.');});
+  return false;}
 function toggleAttachMenu(e){if(e)e.stopPropagation();document.getElementById('attachMenu').classList.toggle('on');}
 function pickAttach(kind){document.getElementById('attachMenu').classList.remove('on');document.getElementById(kind==='image'?'chatImgInput':'chatFileInput').click();}
 document.addEventListener('click',e=>{const m=document.getElementById('attachMenu');if(m&&m.classList.contains('on')&&!e.target.closest('#attachMenu')&&e.target.id!=='plusBtn')m.classList.remove('on');});
@@ -559,10 +581,10 @@ async function onAttachPicked(inp,kind){
   const f=inp.files&&inp.files[0];inp.value='';if(!f||!active)return;
   if(kind==='image'&&f.type&&!/^image\//.test(f.type)){alert('사진 파일을 선택하세요.');return;}
   const path=active.id+'/'+Date.now()+'_'+f.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
-  const {error:upErr}=await sb.storage.from(BUCKET).upload(path,f,{upsert:true});
+  const {error:upErr}=await sb.storage.from(CHAT_BUCKET).upload(path,f,{upsert:true});
   if(upErr){alert('업로드 실패: '+upErr.message);return;}
-  const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-  const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:null,type:kind,attachment_url:url,attachment_name:f.name});
+  // 공개 URL 대신 'path' 를 저장 → 다운로드 시 구성원만 서명 URL 발급 가능
+  const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:null,type:kind,attachment_url:path,attachment_name:f.name});
   if(error){alert('전송 실패: '+error.message);return;}await loadMsgs();}
 
 /* ====== 자료실 ====== */

@@ -6,12 +6,14 @@ import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
+import kotlin.time.Duration.Companion.hours
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 object MoimRepository {
 
     private const val FILES_BUCKET = "room-files"
+    private const val CHAT_BUCKET = "chat-files"   // 채팅 첨부(비공개·방 구성원만)
 
     fun currentUserId(): String? =
         supabase.auth.currentSessionOrNull()?.user?.id
@@ -122,14 +124,14 @@ object MoimRepository {
         )
     }
 
-    /** 카톡식 첨부 전송: Storage 업로드 후 첨부 메시지 삽입 (type = image | file) */
+    /** 카톡식 첨부 전송: 비공개 chat-files 업로드 후 path 를 담아 메시지 삽입 (type = image | file) */
     suspend fun sendAttachment(roomId: String, fileName: String, bytes: ByteArray, type: String) {
         val uid = currentUserId() ?: error("Not logged in")
-        val url = uploadToStorage(roomId, fileName, bytes)
+        val path = uploadChatFile(roomId, fileName, bytes)
         supabase.from("messages").insert(
             MessageInsert(
                 roomId = roomId, senderId = uid, content = null, type = type,
-                attachmentUrl = url, attachmentName = fileName,
+                attachmentUrl = path, attachmentName = fileName,
             )
         )
     }
@@ -295,5 +297,21 @@ object MoimRepository {
         val bucket = supabase.storage.from(FILES_BUCKET)
         bucket.upload(path, bytes) { upsert = true }
         return bucket.publicUrl(path)
+    }
+
+    /** 채팅 첨부를 비공개 'chat-files' 버킷에 올리고 path 를 반환 (공개 URL 아님) */
+    private suspend fun uploadChatFile(roomId: String, fileName: String, bytes: ByteArray): String {
+        val safe = fileName.replace(Regex("[^A-Za-z0-9._가-힣-]"), "_")
+        val path = "$roomId/${System.currentTimeMillis()}_$safe"
+        supabase.storage.from(CHAT_BUCKET).upload(path, bytes) { upsert = true }
+        return path
+    }
+
+    /** 채팅 첨부 path → 1시간 서명 URL (비구성원은 RLS 로 발급 실패 → null). 레거시 http URL 은 그대로. */
+    suspend fun chatSignedUrl(path: String): String? = try {
+        if (path.startsWith("http")) path
+        else supabase.storage.from(CHAT_BUCKET).createSignedUrl(path, 1.hours)
+    } catch (_: Exception) {
+        null
     }
 }

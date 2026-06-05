@@ -14,6 +14,8 @@ final class MoimViewModel: ObservableObject {
     @Published var events: [CalendarEvent] = []
     @Published var files: [RoomFile] = []
     @Published var profilesById: [String: Profile] = [:]
+    // 채팅 첨부 path → 서명 URL 캐시 (방 구성원만 발급됨)
+    @Published var attachmentUrls: [String: String] = [:]
     @Published var error: String?
     @Published var notice: String?
     @Published var loading = false
@@ -179,7 +181,22 @@ final class MoimViewModel: ObservableObject {
             do {
                 try await MoimRepository.sendAttachment(roomId: rid, fileName: fileName, data: data, type: type)
                 messages = try await MoimRepository.messages(roomId: rid)
+                resolveAttachments()
             } catch { self.error = "첨부 전송: \(error.localizedDescription)" }
+        }
+    }
+
+    /// 채팅 첨부(path) → 서명 URL 해석 (방 구성원만). messages 변경 시 호출.
+    func resolveAttachments() {
+        let paths = messages.compactMap { $0.attachmentUrl }
+            .filter { !$0.isEmpty && attachmentUrls[$0] == nil }
+        guard !paths.isEmpty else { return }
+        Task {
+            var map = attachmentUrls
+            for p in Set(paths) {
+                if let u = await MoimRepository.chatSignedUrl(p) { map[p] = u }
+            }
+            attachmentUrls = map
         }
     }
 

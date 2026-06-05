@@ -54,6 +54,8 @@ class MoimViewModel : ViewModel() {
     var events by mutableStateOf<List<CalendarEvent>>(emptyList())
     var files by mutableStateOf<List<RoomFile>>(emptyList())
     var profilesById by mutableStateOf<Map<String, Profile>>(emptyMap())
+    // 채팅 첨부 path → 서명 URL 캐시 (방 구성원만 발급됨)
+    var attachmentUrls by mutableStateOf<Map<String, String>>(emptyMap())
     var error by mutableStateOf<String?>(null)
     var notice by mutableStateOf<String?>(null)
     var loading by mutableStateOf(false)
@@ -559,6 +561,19 @@ class MoimViewModel : ViewModel() {
 
     fun isMine(m: Message): Boolean {
         return m.senderId == MoimRepository.currentUserId()
+    }
+
+    /** 채팅 첨부(path) → 서명 URL 해석. messages 변경 시 호출(LaunchedEffect). */
+    fun resolveAttachments() {
+        val paths = messages.mapNotNull { it.attachmentUrl }
+            .filter { it.isNotBlank() && !attachmentUrls.containsKey(it) }
+            .distinct()
+        if (paths.isEmpty()) return
+        viewModelScope.launch {
+            val map = attachmentUrls.toMutableMap()
+            for (p in paths) MoimRepository.chatSignedUrl(p)?.let { map[p] = it }
+            attachmentUrls = map
+        }
     }
 }
 

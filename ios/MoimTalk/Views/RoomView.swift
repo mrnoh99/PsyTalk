@@ -118,8 +118,11 @@ struct ChatView: View {
                         Text("대화를 시작해보세요").font(.system(size: 14)).foregroundColor(Moim.sub).padding(32)
                     } else {
                         ForEach(vm.messages) { m in
-                            MessageBubble(message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId))
-                                .id(m.id)
+                            MessageBubble(
+                                message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
+                                attachUrl: m.attachmentUrl.flatMap { vm.attachmentUrls[$0] }
+                            )
+                            .id(m.id)
                         }
                     }
                 }
@@ -131,7 +134,9 @@ struct ChatView: View {
             }
             .onChange(of: vm.messages.count) { _ in
                 scrollToBottom(proxy, animated: true)
+                vm.resolveAttachments()
             }
+            .onAppear { vm.resolveAttachments() }
             .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
                 scrollToBottom(proxy, animated: true)
             }
@@ -208,6 +213,7 @@ struct MessageBubble: View {
     let message: Message
     let mine: Bool
     let senderName: String
+    var attachUrl: String? = nil   // path 에서 해석된 서명 URL (방 구성원만)
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -222,30 +228,44 @@ struct MessageBubble: View {
                 if !mine {
                     Text(senderName).font(.system(size: 12, weight: .semibold)).foregroundColor(Color(hex: 0x6B635C))
                 }
-                if message.type == "image", let s = message.attachmentUrl, let u = URL(string: s) {
-                    Link(destination: u) {
-                        AsyncImage(url: u) { phase in
-                            if let img = phase.image {
-                                img.resizable().scaledToFit()
-                            } else if phase.error != nil {
-                                Color.gray.opacity(0.15)
-                            } else {
-                                ProgressView().frame(width: 120, height: 120)
+                if message.type == "image", message.attachmentUrl != nil {
+                    // 서명 URL 해석 전이면 placeholder
+                    let u = attachUrl.flatMap { URL(string: $0) }
+                    Group {
+                        if let u {
+                            Link(destination: u) {
+                                AsyncImage(url: u) { phase in
+                                    if let img = phase.image {
+                                        img.resizable().scaledToFit()
+                                    } else if phase.error != nil {
+                                        Color.gray.opacity(0.15)
+                                    } else {
+                                        ProgressView().frame(width: 120, height: 120)
+                                    }
+                                }
+                                .frame(maxWidth: 200, maxHeight: 240)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
                             }
+                        } else {
+                            Color.gray.opacity(0.12)
+                                .frame(width: 140, height: 100)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .overlay(ProgressView())
                         }
-                        .frame(maxWidth: 200, maxHeight: 240)
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
-                } else if message.type == "file", let s = message.attachmentUrl, let u = URL(string: s) {
-                    Link(destination: u) {
-                        HStack(spacing: 7) {
-                            Text("📎").font(.system(size: 15))
-                            Text(message.attachmentName ?? "파일")
-                                .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink)
-                                .lineLimit(1)
-                        }
-                        .padding(.horizontal, 12).padding(.vertical, 11)
-                        .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 16))
+                } else if message.type == "file", message.attachmentUrl != nil {
+                    let chip = HStack(spacing: 7) {
+                        Text("📎").font(.system(size: 15))
+                        Text(message.attachmentName ?? "파일")
+                            .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink)
+                            .lineLimit(1)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 11)
+                    .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 16))
+                    if let u = attachUrl.flatMap({ URL(string: $0) }) {
+                        Link(destination: u) { chip }
+                    } else {
+                        chip
                     }
                 } else {
                     Text(message.content ?? "")

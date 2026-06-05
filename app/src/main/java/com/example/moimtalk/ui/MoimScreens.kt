@@ -1232,8 +1232,11 @@ private fun PinSettingsDialog(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                     Text("로그아웃", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimSub,
                         modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { vm.logout() }.padding(horizontal = 10.dp, vertical = 6.dp))
-                    Text("회원 탈퇴", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
-                        modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { showDelete = true }.padding(horizontal = 10.dp, vertical = 6.dp))
+                    // 전체관리자(superadmin)는 탈퇴 불가
+                    if (vm.myProfile?.role != "superadmin") {
+                        Text("회원 탈퇴", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
+                            modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { showDelete = true }.padding(horizontal = 10.dp, vertical = 6.dp))
+                    }
                 }
                 HorizontalDivider(color = MoimLine, modifier = Modifier.padding(vertical = 6.dp))
                 Text("상단에 고정할 방 최대 5개. ☰ 를 길게 눌러 드래그로 순서 변경. 나머지는 새 메시지 순.", fontSize = 12.sp, color = MoimSub)

@@ -154,10 +154,16 @@ struct CalendarView: View {
     private var weekView: some View {
         // 선택한 날짜가 속한 주를 보여준다 (월~일)
         let monday = CalDate.mondayOf(selected)
+        let sunday = CalDate.cal.date(byAdding: .day, value: 6, to: monday)!
         let dow = ["월","화","수","목","금","토","일"]
         return VStack(alignment: .leading, spacing: 0) {
-            Text("주간 · \(CalDate.dayLabel(monday))(월) ~ \(CalDate.dayLabel(CalDate.cal.date(byAdding: .day, value: 6, to: monday)!))(일)")
-                .font(.system(size: 11, weight: .heavy)).foregroundColor(Moim.sub).padding(.bottom, 10)
+            calNavBar(
+                center: "\(CalDate.dayLabel(monday)) ~ \(CalDate.dayLabel(sunday))",
+                isCurrent: CalDate.sameDay(monday, CalDate.mondayOf(CalDate.today())),
+                returnLabel: "이번주로",
+                onPrev: { selected = CalDate.cal.date(byAdding: .day, value: -7, to: selected)! },
+                onNext: { selected = CalDate.cal.date(byAdding: .day, value: 7, to: selected)! }
+            )
             ForEach(0..<7, id: \.self) { offset in
                 let date = CalDate.cal.date(byAdding: .day, value: offset, to: monday)!
                 let isToday = CalDate.sameDay(date, CalDate.today())
@@ -196,9 +202,14 @@ struct CalendarView: View {
     private var dayView: some View {
         let dayEvents = vm.events.filter { CalDate.eventDay($0.startAt).map { CalDate.sameDay($0, selected) } == true }
             .sorted { $0.startAt < $1.startAt }
-        let label = CalDate.sameDay(selected, CalDate.today()) ? "금일 · \(CalDate.dayLabel(selected))" : "\(CalDate.dayLabel(selected)) 일정"
         return VStack(alignment: .leading, spacing: 0) {
-            Text(label).font(.system(size: 11, weight: .heavy)).foregroundColor(Moim.sub).padding(.bottom, 10)
+            calNavBar(
+                center: CalDate.dayLabel(selected),
+                isCurrent: CalDate.sameDay(selected, CalDate.today()),
+                returnLabel: "오늘로",
+                onPrev: { selected = CalDate.cal.date(byAdding: .day, value: -1, to: selected)! },
+                onNext: { selected = CalDate.cal.date(byAdding: .day, value: 1, to: selected)! }
+            )
             if dayEvents.isEmpty { noEvents } else {
                 ForEach(dayEvents) { EventCard(event: $0, vm: vm, onEdit: { editing = $0 }) }
             }
@@ -207,6 +218,29 @@ struct CalendarView: View {
 
     private var noEvents: some View {
         Text("등록된 일정이 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub).padding(.vertical, 4)
+    }
+
+    // 금일/주간 < 가운데 > 이동 + (오늘/이번주가 아니면) 복귀 버튼
+    private func calNavBar(center: String, isCurrent: Bool, returnLabel: String,
+                           onPrev: @escaping () -> Void, onNext: @escaping () -> Void) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button(action: onPrev) { Text("‹").font(.system(size: 22)).foregroundColor(Moim.sub) }
+                Spacer()
+                Text(center).font(.system(size: 14, weight: .bold)).foregroundColor(Moim.ink)
+                Spacer()
+                Button(action: onNext) { Text("›").font(.system(size: 22)).foregroundColor(Moim.sub) }
+            }
+            if !isCurrent {
+                Button { selected = CalDate.startOfDay(CalDate.today()) } label: {
+                    Text(returnLabel).font(.system(size: 12, weight: .bold)).foregroundColor(.white)
+                        .padding(.horizontal, 14).padding(.vertical, 6)
+                        .background(Moim.accent).clipShape(Capsule())
+                }
+                .padding(.top, 6)
+            }
+        }
+        .padding(.bottom, 10)
     }
 }
 

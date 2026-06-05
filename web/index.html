@@ -89,6 +89,10 @@
   .upbtn,.addev{width:100%;border-radius:12px;padding:13px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:13px}
   .upbtn{border:2px dashed var(--line);background:#fff;color:var(--sub)}
   .addev{background:var(--accent);color:#fff;border:none}
+  .calnav{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+  .calnav b{font-size:14px;color:var(--ink)}
+  .narr{cursor:pointer;font-size:22px;color:var(--sub);padding:0 10px;user-select:none}
+  .calret{cursor:pointer;background:var(--accent);color:#fff;font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px}
   .file,.ev{display:flex;gap:11px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px}
   .ficon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff}
   .finfo{flex:1;min-width:0}.finfo b{font-size:13.5px;display:block}.finfo .desc{font-size:12px;opacity:.75;margin-top:2px}
@@ -726,19 +730,38 @@ function renderCal(){
     const mon=new Date(selDate);mon.setDate(selDate.getDate()-((selDate.getDay()+6)%7));
     const dow=['월','화','수','목','금','토','일'];
     const sun=new Date(mon);sun.setDate(mon.getDate()+6);
-    h+=`<h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">주간 · ${mon.getMonth()+1}/${mon.getDate()}(월) ~ ${sun.getMonth()+1}/${sun.getDate()}(일)</h4>`;
+    h+=calNav('week',today);
     for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);
       const de=events.filter(e=>sameDay(evDate(e),d));const isT=sameDay(d,today),isSel=sameDay(d,selDate);
       h+=`<div class="wday ${isT?'wtoday':''}" style="cursor:pointer;${isSel?'box-shadow:inset 0 0 0 2px var(--accent);border-radius:11px;':''}" onclick="selectDay(${d.getFullYear()},${d.getMonth()},${d.getDate()})"><div class="wdate"><b>${dow[i]}</b><span>${d.getMonth()+1}/${d.getDate()}</span></div>
         <div class="wevents">${de.length?de.map(evCard).join(''):'<div class="noev">— 일정 없음</div>'}</div></div>`;}
   }else{
-    h+=`<h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">${sameDay(selDate,today)?'금일':selLabel()} · ${selLabel()}</h4>`;
+    h+=calNav('day',today);
     h+=dayEventsHtml(selDate);
   }
   document.getElementById('calBody').innerHTML=h;
 }
 function selectDay(y,m,d){selDate=new Date(y,m,d);selDate.setHours(0,0,0,0);renderCal();}
 function monthShift(n){monthAnchor=new Date(monthAnchor.getFullYear(),monthAnchor.getMonth()+n,1);renderCal();}
+// 금일/주간 < > 이동 + 오늘/이번주 복귀
+function dayShift(n){selDate.setDate(selDate.getDate()+n);renderCal();}
+function weekShift(n){selDate.setDate(selDate.getDate()+n*7);renderCal();}
+function gotoToday(){selDate=new Date();selDate.setHours(0,0,0,0);renderCal();}
+function calNav(mode,today){
+  let center,isCur,fn;
+  if(mode==='day'){
+    center=`${selDate.getFullYear()}. ${selDate.getMonth()+1}/${selDate.getDate()}`;
+    isCur=sameDay(selDate,today);fn='dayShift';
+  }else{
+    const mon=new Date(selDate);mon.setDate(selDate.getDate()-((selDate.getDay()+6)%7));
+    const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+    center=`${mon.getMonth()+1}/${mon.getDate()} ~ ${sun.getMonth()+1}/${sun.getDate()}`;
+    const tmon=new Date(today);tmon.setDate(today.getDate()-((today.getDay()+6)%7));
+    isCur=sameDay(mon,tmon);fn='weekShift';
+  }
+  const ret=isCur?'':`<div style="text-align:center;margin-bottom:12px"><span class="calret" onclick="gotoToday()">${mode==='day'?'오늘로':'이번주로'}</span></div>`;
+  return `<div class="calnav"><span class="narr" onclick="${fn}(-1)">‹</span><b>${center}</b><span class="narr" onclick="${fn}(1)">›</span></div>${ret}`;
+}
 function openEvent(id){
   editEventId=id||null;
   const e=id?events.find(x=>x.id===id):null;

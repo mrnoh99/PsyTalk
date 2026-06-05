@@ -364,7 +364,7 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
         when (mode) {
             "month" -> monthContent(this, vm, ym, today, selected, { ym = it }, { selected = it }, { editing = it })
             "week" -> weekContent(this, vm, today, selected, { selected = it }, { editing = it })
-            else -> dayContent(this, vm, today, selected, { editing = it })
+            else -> dayContent(this, vm, today, selected, { selected = it }, { editing = it })
         }
     }
 
@@ -492,10 +492,15 @@ private fun weekContent(
     // 선택한 날짜가 속한 주를 보여준다 (월~일)
     val monday = selected.minusDays((selected.dayOfWeek.value - 1).toLong())
     val sunday = monday.plusDays(6)
+    val thisMonday = today.minusDays((today.dayOfWeek.value - 1).toLong())
     scope.item {
-        Text(
-            "주간 · ${monday.format(FMT_DAY)}(월) ~ ${sunday.format(FMT_DAY)}(일)",
-            fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = MoimSub, modifier = Modifier.padding(bottom = 10.dp)
+        CalNavBar(
+            center = "${monday.format(FMT_DAY)} ~ ${sunday.format(FMT_DAY)}",
+            isCurrent = monday == thisMonday,
+            returnLabel = "이번주로",
+            onPrev = { onSelect(selected.minusWeeks(1)) },
+            onNext = { onSelect(selected.plusWeeks(1)) },
+            onReturn = { onSelect(today) }
         )
     }
     for (offset in 0..6) {
@@ -535,17 +540,55 @@ private fun dayContent(
     vm: MoimViewModel,
     today: LocalDate,
     selected: LocalDate,
+    onSelect: (LocalDate) -> Unit,
     onEdit: (CalendarEvent) -> Unit,
 ) {
     val dayEvents = vm.events.filter { eventDate(it.startAt) == selected }.sortedBy { it.startAt }
-    val label = if (selected == today) "금일 · ${selected.format(FMT_DAY)}" else "${selected.format(FMT_DAY)} 일정"
     scope.item {
-        Text(label, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold, color = MoimSub, modifier = Modifier.padding(bottom = 10.dp))
+        CalNavBar(
+            center = "${selected.year}. ${selected.monthValue}/${selected.dayOfMonth}",
+            isCurrent = selected == today,
+            returnLabel = "오늘로",
+            onPrev = { onSelect(selected.minusDays(1)) },
+            onNext = { onSelect(selected.plusDays(1)) },
+            onReturn = { onSelect(today) }
+        )
     }
     if (dayEvents.isEmpty()) {
         scope.item { NoEvents() }
     } else {
         scope.items(dayEvents.size) { i -> EventCard(dayEvents[i], vm, onEdit) }
+    }
+}
+
+// 금일/주간 < 가운데 > 이동 + (오늘/이번주가 아니면) 복귀 버튼
+@Composable
+private fun CalNavBar(
+    center: String, isCurrent: Boolean, returnLabel: String,
+    onPrev: () -> Unit, onNext: () -> Unit, onReturn: () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("‹", fontSize = 22.sp, color = MoimSub,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onPrev).padding(horizontal = 12.dp, vertical = 2.dp))
+            Text(center, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+            Text("›", fontSize = 22.sp, color = MoimSub,
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable(onClick = onNext).padding(horizontal = 12.dp, vertical = 2.dp))
+        }
+        if (!isCurrent) {
+            Box(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), contentAlignment = Alignment.Center) {
+                Text(returnLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable(onClick = onReturn)
+                        .background(MoimAccent)
+                        .padding(horizontal = 14.dp, vertical = 6.dp))
+            }
+        }
     }
 }
 

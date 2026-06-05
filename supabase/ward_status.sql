@@ -32,13 +32,19 @@ DROP POLICY IF EXISTS "ward_status_select" ON public.ward_status;
 CREATE POLICY "ward_status_select"
   ON public.ward_status FOR SELECT TO authenticated USING (true);
 
--- 인증 사용자 편집 (병동 운영 정보 — 필요 시 admin 으로 제한 가능)
+-- 편집/추가: 관리자 또는 직군(교실·의국·간호사)만. (열린 USING(true) 금지 — 연구실 등 차단)
 DROP POLICY IF EXISTS "ward_status_update" ON public.ward_status;
 CREATE POLICY "ward_status_update"
-  ON public.ward_status FOR UPDATE TO authenticated USING (true);
+  ON public.ward_status FOR UPDATE TO authenticated
+  USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid()
+                 AND (p.role IN ('superadmin','admin') OR p.member_type IN ('교실','의국','간호사'))))
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid()
+                 AND (p.role IN ('superadmin','admin') OR p.member_type IN ('교실','의국','간호사'))));
 
 DROP POLICY IF EXISTS "ward_status_insert" ON public.ward_status;
 CREATE POLICY "ward_status_insert"
-  ON public.ward_status FOR INSERT TO authenticated WITH CHECK (true);
+  ON public.ward_status FOR INSERT TO authenticated
+  WITH CHECK (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid()
+                 AND (p.role IN ('superadmin','admin') OR p.member_type IN ('교실','의국','간호사'))));
 
 NOTIFY pgrst, 'reload schema';

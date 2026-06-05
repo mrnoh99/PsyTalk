@@ -344,7 +344,7 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const BUCKET = "room-files";
 
 /* ====== 상태 ====== */
-let me=null, rooms=[], profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
+let me=null, rooms=[], myRoomIds=new Set(), profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
 let unreadByRoom={}, unreadByMsg={}, lastMsgByRoom={};  // #1 안읽은 수, #2 메시지별 안읽은 수, 방별 마지막 메시지
 let roomPins=[], pinDraft=[];  // 개인 고정 방 순서(room id 배열, 최대 5)
 async function loadRoomPins(){
@@ -353,7 +353,8 @@ async function loadRoomPins(){
   if(!document.getElementById('listScreen').classList.contains('hidden'))renderRoomList();
 }
 // 주간 학술활동(바)을 제외한 방 목록
-function flatRoomList(){ const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week'); return rooms.filter(r=>r!==week); }
+// 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입(room_members)한 것만. (관리자 콘솔은 전체 rooms 사용)
+function flatRoomList(){ const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week'); return rooms.filter(r=>r!==week&&(r.category!=='custom'||myRoomIds.has(r.id))); }
 // ── 방 순서(핀) 설정 ──
 function openPinSettings(){ pinDraft=[...roomPins]; renderPinSettings(); document.getElementById('pinmodal').classList.add('on'); }
 function renderPinSettings(){
@@ -609,7 +610,11 @@ async function loadApp(){
 }
 async function loadRooms(){
   const {data}=await sb.from('rooms').select('*').order('sort_order',{ascending:true});
-  rooms=data||[];renderRoomList();loadUnreadCounts();loadLastMessages();loadRoomPins();
+  rooms=data||[];
+  // 내가 가입한 모임방 id (superadmin/admin 도 홈에는 가입한 방만 표시)
+  const {data:mem}=await sb.from('room_members').select('room_id').eq('user_id',me.id);
+  myRoomIds=new Set((mem||[]).map(r=>r.room_id));
+  renderRoomList();loadUnreadCounts();loadLastMessages();loadRoomPins();
 }
 
 /* ====== 방 목록 ====== */

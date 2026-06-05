@@ -66,6 +66,8 @@ class MoimViewModel : ViewModel() {
     var unreadByMsg by mutableStateOf<Map<String, Int>>(emptyMap())
     // 방별 마지막 메시지 (방 목록 미리보기)
     var lastMsgByRoom by mutableStateOf<Map<String, LastMsg>>(emptyMap())
+    // 내가 가입한 방 id (홈 목록에서 superadmin/admin 도 가입 방만 표시; 관리자 콘솔은 전체 rooms)
+    var myRoomIds by mutableStateOf<Set<String>>(emptySet())
     // 개인 고정 방 순서 (room id, 최대 5)
     var roomPins by mutableStateOf<List<String>>(emptyList())
     var error by mutableStateOf<String?>(null)
@@ -259,6 +261,7 @@ class MoimViewModel : ViewModel() {
                 if (MoimRepository.currentUserId() == null) return@launch
                 myProfile = MoimRepository.myProfile()
                 rooms = MoimRepository.rooms()
+                myRoomIds = try { MoimRepository.myRoomIds().toSet() } catch (_: Exception) { myRoomIds }
                 loadRoomMemberCounts()
                 loadUnreadCounts()
                 loadLastMessages()

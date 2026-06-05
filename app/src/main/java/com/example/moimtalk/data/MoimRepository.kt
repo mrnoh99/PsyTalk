@@ -113,6 +113,14 @@ object MoimRepository {
         supabase.from("rooms").delete { filter { eq("id", roomId) } }
     }
 
+    /** 내가 가입한 방 id 목록 (홈 목록에서 superadmin/admin 도 가입 방만 표시) */
+    suspend fun myRoomIds(): List<String> {
+        val uid = currentUserId() ?: return emptyList()
+        return supabase.from("room_members").select(Columns.list("room_id", "user_id")) {
+            filter { eq("user_id", uid) }
+        }.decodeList<RoomMemberInsert>().map { it.roomId }
+    }
+
     /** 방 참여 회원의 user_id 목록 (같은 방 참여자·생성자·관리자 조회 — RLS) */
     suspend fun roomMemberIds(roomId: String): List<String> =
         supabase.from("room_members").select(Columns.list("room_id", "user_id")) {

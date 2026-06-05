@@ -548,7 +548,8 @@ fun RoomListScreen(
     // 주간 학술활동(default_view=week)은 목록에서 빼고 별도 바로 표시. 나머지는 전체방(첫번째)+모임방 평면 목록.
     val weekRoom = vm.rooms.firstOrNull { it.category != "custom" && it.defaultView == "week" }
     // 고정(핀) 우선 + 나머지는 최근 메시지순
-    val flatRooms = vm.rooms.filter { it.id != weekRoom?.id }
+    // 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입한 것만 (관리자 콘솔은 전체 vm.rooms 사용)
+    val flatRooms = vm.rooms.filter { it.id != weekRoom?.id && (it.category != "custom" || vm.myRoomIds.contains(it.id)) }
     val pinnedRooms = vm.roomPins.mapNotNull { id -> flatRooms.find { it.id == id } }
     val pinnedIds = pinnedRooms.map { it.id }.toSet()
     val listRooms = pinnedRooms + flatRooms.filter { it.id !in pinnedIds }

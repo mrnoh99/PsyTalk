@@ -128,6 +128,14 @@ enum MoimRepository {
         try await supabase.from("rooms").delete().eq("id", value: roomId).execute()
     }
 
+    /// 내가 가입한 방 id 목록 (홈 목록에서 superadmin/admin 도 가입 방만 표시)
+    static func myRoomIds() async throws -> [String] {
+        guard let uid = currentUserId() else { return [] }
+        let rows: [RoomMemberRow] = try await supabase.from("room_members")
+            .select("room_id,user_id").eq("user_id", value: uid).execute().value
+        return rows.map { $0.roomId }
+    }
+
     /// 방 참여 회원 user_id 목록 (같은 방 참여자·생성자·관리자 — RLS)
     static func roomMemberIds(roomId: String) async throws -> [String] {
         let rows: [RoomMemberRow] = try await supabase.from("room_members")

@@ -23,6 +23,8 @@ final class MoimViewModel: ObservableObject {
     @Published var lastMsgByRoom: [String: LastMsg] = [:]
     // 개인 고정 방 순서 (room id, 최대 5)
     @Published var roomPins: [String] = []
+    // 내가 가입한 방 id (홈 목록에서 superadmin/admin 도 가입 방만 표시; 관리자 콘솔은 전체 rooms)
+    @Published var myRoomIds: Set<String> = []
     @Published var error: String?
     @Published var notice: String?
     @Published var loading = false
@@ -171,6 +173,7 @@ final class MoimViewModel: ObservableObject {
             do {
                 myProfile = try await MoimRepository.myProfile()
                 rooms = try await MoimRepository.rooms()
+                if let ids = try? await MoimRepository.myRoomIds() { myRoomIds = Set(ids) }
                 loadRoomMemberCounts()
                 loadUnreadCounts()
                 loadLastMessages()

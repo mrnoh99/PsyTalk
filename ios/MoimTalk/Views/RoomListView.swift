@@ -85,7 +85,8 @@ struct RoomListView: View {
     }
     // 고정(핀) 우선 + 나머지는 최근 메시지순
     private var listRooms: [Room] {
-        let flat = vm.rooms.filter { $0.id != weekRoom?.id }
+        // 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입한 것만 (관리자 콘솔은 전체 vm.rooms 사용)
+        let flat = vm.rooms.filter { $0.id != weekRoom?.id && ($0.category != "custom" || vm.myRoomIds.contains($0.id)) }
         let pinned = vm.roomPins.compactMap { id in flat.first { $0.id == id } }
         let pinnedIds = Set(pinned.map { $0.id })
         let rest = flat.filter { !pinnedIds.contains($0.id) }.sorted {
@@ -139,7 +140,7 @@ struct RoomListView: View {
             Divider().background(Moim.line)
         }
         .sheet(isPresented: $showPinSettings) {
-            PinSettingsView(vm: vm, rooms: vm.rooms.filter { $0.id != weekRoom?.id })
+            PinSettingsView(vm: vm, rooms: vm.rooms.filter { $0.id != weekRoom?.id && ($0.category != "custom" || vm.myRoomIds.contains($0.id)) })
         }
         .background(Moim.paper)
     }

@@ -79,7 +79,7 @@ GRANT SELECT, INSERT ON public.message_cross_posts TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.calendar_events TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.room_files TO authenticated;
 
--- 멤버: 본인이 속한 방만 조회
+-- 회원: 본인이 속한 방만 조회
 DROP POLICY IF EXISTS "room_members_select" ON public.room_members;
 CREATE POLICY "room_members_select"
   ON public.room_members FOR SELECT TO authenticated
@@ -88,7 +88,7 @@ CREATE POLICY "room_members_select"
     WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin')
   ));
 
--- superadmin/admin만 멤버·작성자 관리 (앱에서 service_role 또는 추후 세분화)
+-- superadmin/admin만 회원·작성자 관리 (앱에서 service_role 또는 추후 세분화)
 DROP POLICY IF EXISTS "room_members_admin" ON public.room_members;
 CREATE POLICY "room_members_admin"
   ON public.room_members FOR ALL TO authenticated

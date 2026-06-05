@@ -1,11 +1,11 @@
 -- =============================================================================
 -- leave_account.sql — 방 나가기(본인) + 회원 탈퇴(본인)
---   · room_members: 본인 멤버십 삭제 허용(방 나가기) — 기존 owner/admin 삭제도 유지
+--   · room_members: 본인 회원 자격 삭제 허용(방 나가기) — 기존 owner/admin 삭제도 유지
 --   · moim_delete_my_account(): 본인 데이터 정리 후 계정 삭제(전체관리자는 불가)
 -- 실행 순서: ... room_manage.sql 이후 (moim_is_room_owner/moim_is_admin 필요)
 -- =============================================================================
 
--- 1) 방 나가기: 본인은 자기 멤버십을 삭제할 수 있음 (+ 방 생성자·관리자도 삭제 가능)
+-- 1) 방 나가기: 본인은 자기 회원 자격을 삭제할 수 있음 (+ 방 생성자·관리자도 삭제 가능)
 DROP POLICY IF EXISTS "room_members_delete_owner_admin" ON public.room_members;
 DROP POLICY IF EXISTS "room_members_delete_self_owner_admin" ON public.room_members;
 CREATE POLICY "room_members_delete_self_owner_admin"

@@ -61,7 +61,7 @@ enum MoimRepository {
         try await supabase.from("profiles").update(["approved": approved]).eq("id", value: userId).execute()
     }
 
-    /// 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 멤버) 등록
+    /// 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 회원) 등록
     @discardableResult
     static func createRoom(name: String, memberIds: [String]) async throws -> String {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
@@ -80,12 +80,12 @@ enum MoimRepository {
         try await supabase.from("rooms").update(["name": name]).eq("id", value: roomId).execute()
     }
 
-    /// 모임방 삭제 (생성자 또는 관리자 — RLS). 멤버·메시지·일정·자료는 CASCADE 삭제.
+    /// 모임방 삭제 (생성자 또는 관리자 — RLS). 회원·메시지·일정·자료는 CASCADE 삭제.
     static func deleteRoom(roomId: String) async throws {
         try await supabase.from("rooms").delete().eq("id", value: roomId).execute()
     }
 
-    /// 방 참여 멤버 user_id 목록 (같은 방 참여자·생성자·관리자 — RLS)
+    /// 방 참여 회원 user_id 목록 (같은 방 참여자·생성자·관리자 — RLS)
     static func roomMemberIds(roomId: String) async throws -> [String] {
         let rows: [RoomMemberRow] = try await supabase.from("room_members")
             .select("room_id,user_id").eq("room_id", value: roomId).execute().value
@@ -103,13 +103,13 @@ enum MoimRepository {
         return counts
     }
 
-    /// 멤버 내보내기 (생성자 또는 관리자 — RLS)
+    /// 회원 내보내기 (생성자 또는 관리자 — RLS)
     static func removeRoomMember(roomId: String, userId: String) async throws {
         try await supabase.from("room_members").delete()
             .eq("room_id", value: roomId).eq("user_id", value: userId).execute()
     }
 
-    /// 방 나가기: 본인 멤버십 삭제 (생성자가 아닌 모임방, RLS 로 본인만 허용)
+    /// 방 나가기: 본인 회원 자격 삭제 (생성자가 아닌 모임방, RLS 로 본인만 허용)
     static func leaveRoom(roomId: String) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
         try await supabase.from("room_members").delete()
@@ -121,7 +121,7 @@ enum MoimRepository {
         try await supabase.rpc("moim_delete_my_account").execute()
     }
 
-    /// 구성원 초대 (방에 멤버 추가 — 방 생성자/관리자, RLS). 이미 참여 중이면 무시.
+    /// 구성원 초대 (방에 회원 추가 — 방 생성자/관리자, RLS). 이미 참여 중이면 무시.
     static func addRoomMembers(roomId: String, userIds: [String]) async throws {
         guard !userIds.isEmpty else { return }
         let rows = userIds.map { RoomMemberInsert(roomId: roomId, userId: $0) }

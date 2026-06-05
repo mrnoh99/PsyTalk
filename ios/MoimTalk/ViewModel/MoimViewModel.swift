@@ -411,7 +411,7 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
-    /// 현재 방 멤버 id 목록
+    /// 현재 방 회원 id 목록
     @Published var roomMemberIds: [String] = []
     @Published var roomMembersLoaded = false
     @Published var roomMemberCounts: [String: Int] = [:]
@@ -431,7 +431,7 @@ final class MoimViewModel: ObservableObject {
                 roomMemberIds = try await MoimRepository.roomMemberIds(roomId: roomId)
             } catch {
                 roomMemberIds = []
-                self.error = "멤버 목록: \(error.localizedDescription)"
+                self.error = "회원 목록: \(error.localizedDescription)"
             }
             roomMembersLoaded = true
         }
@@ -442,18 +442,18 @@ final class MoimViewModel: ObservableObject {
         loadRoomMemberCounts()
     }
 
-    /// 멤버 내보내기 (생성자/관리자)
+    /// 회원 내보내기 (생성자/관리자)
     func removeRoomMember(roomId: String, userId: String) {
         Task {
             do {
                 try await MoimRepository.removeRoomMember(roomId: roomId, userId: userId)
                 roomMemberIds = (try? await MoimRepository.roomMemberIds(roomId: roomId)) ?? []
                 loadRoomMemberCounts()
-            } catch { self.error = "멤버 내보내기: \(error.localizedDescription)" }
+            } catch { self.error = "회원 내보내기: \(error.localizedDescription)" }
         }
     }
 
-    /// 구성원 초대 (방에 멤버 추가 — 관리자 콘솔)
+    /// 구성원 초대 (방에 회원 추가 — 관리자 콘솔)
     func inviteRoomMember(roomId: String, userId: String) {
         Task {
             do {
@@ -560,7 +560,7 @@ final class MoimViewModel: ObservableObject {
     }
 
     var otherProfiles: [Profile] {
-        // 본인 제외 + 승인된 멤버만 (대기 중인 가입자는 방에 추가 불가)
+        // 본인 제외 + 승인된 회원만 (대기 중인 가입자는 방에 추가 불가)
         profilesById.values
             .filter { $0.id != MoimRepository.currentUserId() && ($0.approved ?? true) }
             .sorted { $0.name < $1.name }

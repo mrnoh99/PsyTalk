@@ -1,7 +1,7 @@
 # 아주 정신 iOS (SwiftUI)
 
 Android 앱(`/app`)과 **동일한 형식·논리**의 iOS 버전입니다.
-**같은 Supabase 백엔드**(Auth/Postgres/Storage)와 **같은 도메인 규칙**(멤버 8직군·기본 12방·
+**같은 Supabase 백엔드**(Auth/Postgres/Storage)와 **같은 도메인 규칙**(회원 8직군·기본 12방·
 권한·캘린더/자료실)을 공유합니다. 스펙은 루트 [`CLAUDE.md`](../CLAUDE.md)·[`docs/`](../docs)·
 [`prototype/`](../prototype) 참고.
 

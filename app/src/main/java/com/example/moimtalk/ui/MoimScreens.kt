@@ -277,7 +277,7 @@ fun ApprovalScreen(vm: MoimViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("가입 승인 / 멤버", fontWeight = FontWeight.Bold) },
+                title = { Text("가입 승인 / 회원", fontWeight = FontWeight.Bold) },
                 navigationIcon = { TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
             )
@@ -303,7 +303,7 @@ fun ApprovalScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
             }
             if (members.isEmpty()) {
-                item { Text("멤버 정보가 없습니다.", fontSize = 13.sp, color = MoimSub) }
+                item { Text("회원 정보가 없습니다.", fontSize = 13.sp, color = MoimSub) }
             } else if (byType) {
                 members.groupBy { it.memberType }.forEach { (type, list) ->
                     item {
@@ -430,7 +430,7 @@ private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
 private fun roleLabel(role: String): String = when (role) {
     "superadmin" -> "전체관리자"
     "admin" -> "관리자"
-    else -> "멤버"
+    else -> "회원"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1409,7 +1409,7 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
     }
 }
 
-// 모임방 설정 — 멤버 내보내기 + 모임방 삭제 (생성자/관리자만)
+// 모임방 설정 — 회원 내보내기 + 모임방 삭제 (생성자/관리자만)
 @Composable
 fun RoomSettingsDialog(
     vm: MoimViewModel,
@@ -1437,11 +1437,11 @@ fun RoomSettingsDialog(
         )
     }
 
-    // 멤버 내보내기 확인
+    // 회원 내보내기 확인
     kickTarget?.let { uid ->
         AlertDialog(
             onDismissRequest = { kickTarget = null },
-            title = { Text("멤버 내보내기") },
+            title = { Text("회원 내보내기") },
             text = { Text("‘${vm.nameOf(uid)}’ 님을 이 모임방에서 내보낼까요?") },
             confirmButton = {
                 TextButton(onClick = {
@@ -1460,10 +1460,10 @@ fun RoomSettingsDialog(
             Column(modifier = Modifier
                 .heightIn(max = 380.dp)
                 .verticalScroll(rememberScrollState())) {
-                Text("참여 멤버 (${memberIds.size}명)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+                Text("참여 회원 (${memberIds.size}명)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
                 Spacer(Modifier.height(8.dp))
                 if (!vm.roomMembersLoaded) {
-                    Text("멤버 정보를 불러오는 중…", fontSize = 13.sp, color = MoimSub)
+                    Text("회원 정보를 불러오는 중…", fontSize = 13.sp, color = MoimSub)
                 } else if (memberIds.isEmpty()) {
                     Text("참여 구성원이 없습니다. 아래에서 초대하세요.", fontSize = 13.sp, color = MoimSub)
                 }
@@ -1496,7 +1496,7 @@ fun RoomSettingsDialog(
                     }
                 }
 
-                // 구성원 초대 — 아직 참여하지 않은 승인 멤버
+                // 구성원 초대 — 아직 참여하지 않은 승인 회원
                 val candidates = vm.otherProfiles().filter { it.id !in memberIds }
                 Spacer(Modifier.height(14.dp))
                 HorizontalDivider(color = MoimLine)
@@ -1504,7 +1504,7 @@ fun RoomSettingsDialog(
                 Text("구성원 초대", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
                 Spacer(Modifier.height(8.dp))
                 if (candidates.isEmpty()) {
-                    Text("초대할 수 있는 멤버가 없습니다.", fontSize = 13.sp, color = MoimSub)
+                    Text("초대할 수 있는 회원가 없습니다.", fontSize = 13.sp, color = MoimSub)
                 }
                 candidates.forEach { p ->
                     Row(
@@ -1537,7 +1537,7 @@ fun RoomSettingsDialog(
     )
 }
 
-// 모임방 만들기 (카톡처럼 누구나) — 이름 + 참여 멤버 선택
+// 모임방 만들기 (카톡처럼 누구나) — 이름 + 참여 회원 선택
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
@@ -1572,13 +1572,13 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 shape = RoundedCornerShape(11.dp)
             )
             Spacer(Modifier.height(14.dp))
-            Text("참여 멤버 선택", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Text("참여 회원 선택", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
             Spacer(Modifier.height(8.dp))
             LazyColumn(modifier = Modifier.weight(1f)) {
                 if (people.isEmpty()) {
                     item {
                         Text(
-                            "표시할 멤버가 없습니다.",
+                            "표시할 회원가 없습니다.",
                             fontSize = 13.sp, color = MoimSub,
                             modifier = Modifier.padding(8.dp)
                         )

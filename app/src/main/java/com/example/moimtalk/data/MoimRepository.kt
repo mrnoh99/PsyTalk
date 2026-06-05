@@ -63,7 +63,7 @@ object MoimRepository {
             order("sort_order", Order.ASCENDING)
         }.decodeList()
 
-    /** 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 멤버) 등록 */
+    /** 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 회원) 등록 */
     suspend fun createRoom(name: String, memberIds: List<String>): String {
         val uid = currentUserId() ?: error("Not logged in")
         val roomId = java.util.UUID.randomUUID().toString()
@@ -83,12 +83,12 @@ object MoimRepository {
         }
     }
 
-    /** 모임방 삭제 (생성자 또는 관리자, RLS 로 강제). 멤버·메시지·일정·자료는 CASCADE 삭제. */
+    /** 모임방 삭제 (생성자 또는 관리자, RLS 로 강제). 회원·메시지·일정·자료는 CASCADE 삭제. */
     suspend fun deleteRoom(roomId: String) {
         supabase.from("rooms").delete { filter { eq("id", roomId) } }
     }
 
-    /** 방 참여 멤버의 user_id 목록 (같은 방 참여자·생성자·관리자 조회 — RLS) */
+    /** 방 참여 회원의 user_id 목록 (같은 방 참여자·생성자·관리자 조회 — RLS) */
     suspend fun roomMemberIds(roomId: String): List<String> =
         supabase.from("room_members").select(Columns.list("room_id", "user_id")) {
             filter { eq("room_id", roomId) }
@@ -101,14 +101,14 @@ object MoimRepository {
             .groupBy { it.roomId }
             .mapValues { it.value.size }
 
-    /** 멤버 내보내기 (생성자 또는 관리자, RLS 로 강제) */
+    /** 회원 내보내기 (생성자 또는 관리자, RLS 로 강제) */
     suspend fun removeRoomMember(roomId: String, userId: String) {
         supabase.from("room_members").delete {
             filter { eq("room_id", roomId); eq("user_id", userId) }
         }
     }
 
-    /** 방 나가기: 본인 멤버십 삭제 (생성자가 아닌 모임방, RLS 로 본인만 허용) */
+    /** 방 나가기: 본인 회원 자격 삭제 (생성자가 아닌 모임방, RLS 로 본인만 허용) */
     suspend fun leaveRoom(roomId: String) {
         val uid = currentUserId() ?: return
         supabase.from("room_members").delete {
@@ -121,7 +121,7 @@ object MoimRepository {
         supabase.postgrest.rpc("moim_delete_my_account")
     }
 
-    /** 구성원 초대 (방에 멤버 추가). 이미 참여 중이면 무시. */
+    /** 구성원 초대 (방에 회원 추가). 이미 참여 중이면 무시. */
     suspend fun addRoomMembers(roomId: String, userIds: List<String>) {
         if (userIds.isEmpty()) return
         val rows = userIds.map { RoomMemberInsert(roomId = roomId, userId = it) }
@@ -196,7 +196,7 @@ object MoimRepository {
         )
     }
 
-    // ── 멤버 이름 표시용 (작성자·업로더) ──
+    // ── 회원 이름 표시용 (작성자·업로더) ──
     suspend fun allProfiles(): List<Profile> =
         supabase.from("profiles").select().decodeList()
 

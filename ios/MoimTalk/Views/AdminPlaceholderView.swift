@@ -83,9 +83,9 @@ struct AdminPlaceholderView: View {
     @ViewBuilder
     private var manageContent: some View {
         VStack(alignment: .leading, spacing: 13) {
-            card(title: "👥 멤버 (직군·역할) · \(members.count)명") {
+            card(title: "👥 회원 (직군·역할) · \(members.count)명") {
                 if members.isEmpty {
-                    Text("멤버 정보가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
+                    Text("회원 정보가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
                 } else {
                     ForEach(members) { p in memberRow(p) }
                 }
@@ -109,7 +109,7 @@ struct AdminPlaceholderView: View {
 
     private func memberRow(_ p: Profile) -> some View {
         let role: (Color, String) = p.role == "superadmin" ? (Moim.admin, "전체관리자")
-            : p.role == "admin" ? (Color(hex: 0xB5651D), "관리자") : (Moim.line, "멤버")
+            : p.role == "admin" ? (Color(hex: 0xB5651D), "관리자") : (Moim.line, "회원")
         let pending = p.approved == false
         return HStack(spacing: 10) {
             Text(String(p.name.prefix(3)))
@@ -137,7 +137,7 @@ struct AdminPlaceholderView: View {
             Spacer()
             Menu {
                 Button("관리자") { vm.setRole(p.id, to: "admin") }
-                Button("멤버") { vm.setRole(p.id, to: "user") }
+                Button("회원") { vm.setRole(p.id, to: "user") }
             } label: {
                 HStack(spacing: 3) {
                     Text(role.1).font(.system(size: 10, weight: .bold))
@@ -179,7 +179,7 @@ struct AdminPlaceholderView: View {
     }
 }
 
-// 방 선택 후 — 참여 멤버·초대 가능 멤버를 체크 목록으로 편집
+// 방 선택 후 — 참여 회원·초대 가능 회원를 체크 목록으로 편집
 struct AdminRoomManageView: View {
     @ObservedObject var vm: MoimViewModel
     let room: Room
@@ -189,7 +189,7 @@ struct AdminRoomManageView: View {
 
     private var memberIds: Set<String> { Set(vm.roomMemberIds) }
 
-    /// 승인된 멤버 전체 (전체관리자 제외) — 참여 여부는 체크로 표시
+    /// 승인된 회원 전체 (전체관리자 제외) — 참여 여부는 체크로 표시
     private var selectableProfiles: [Profile] {
         vm.profilesById.values
             .filter { $0.role != "superadmin" && ($0.approved ?? true) }
@@ -245,10 +245,10 @@ struct AdminRoomManageView: View {
                     .padding(.bottom, 10)
 
                 if !vm.roomMembersLoaded {
-                    Text("멤버 목록 불러오는 중…").font(.system(size: 13)).foregroundColor(Moim.sub)
+                    Text("회원 목록 불러오는 중…").font(.system(size: 13)).foregroundColor(Moim.sub)
                         .padding(.vertical, 12)
                 } else if selectableProfiles.isEmpty {
-                    Text("표시할 멤버가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
+                    Text("표시할 회원가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
                         .padding(.vertical, 12)
                 } else {
                     ForEach(selectableProfiles) { p in
@@ -352,7 +352,7 @@ struct RoomMemberPicker: View {
         NavigationView {
             List {
                 if candidates.isEmpty {
-                    Text(mode == .invite ? "초대할 수 있는 멤버가 없습니다." : "구성원이 없습니다.")
+                    Text(mode == .invite ? "초대할 수 있는 회원가 없습니다." : "구성원이 없습니다.")
                         .font(.system(size: 13)).foregroundColor(Moim.sub)
                 }
                 ForEach(candidates) { p in

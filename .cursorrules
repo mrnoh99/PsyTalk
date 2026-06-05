@@ -12,8 +12,8 @@
 - 백엔드·도메인 규칙·SQL(`supabase/`)·스펙(`docs/`)·프로토타입(`prototype/`)은 **한 벌을 공유**.
 
 ## 도메인 규칙 (변경 시 신중히)
-- 멤버 8직군: 교실·의국·심리실·연구실·PA·간호사·SW·보조원
-- 역할: superadmin(1명)·admin·user / 공지 작성 정책: restricted(관리자+지정작성자) · members(멤버 누구나)
+- 회원 8직군: 교실·의국·심리실·연구실·PA·간호사·SW·보조원
+- 역할: superadmin(1명)·admin·user / 공지 작성 정책: restricted(관리자+지정작성자) · members(회원 누구나)
 - 기본 방 12개(sort_order 1~12, 상단 고정) + 모임방(custom). 2번 "주간 학술활동"은 default_view=week.
 - 캘린더: 금일/주간/월간, 일정 필드(시간·장소·링크·참석범위·설명·키워드·첨부+설명), 수정=작성자+관리자
 - 자료실: 캘린더 첨부 + 직접 업로드 집계, 날짜/키워드 정렬, Supabase Storage `room-files`

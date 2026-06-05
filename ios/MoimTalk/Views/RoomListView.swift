@@ -93,7 +93,7 @@ struct RoomListView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 VStack(alignment: .leading, spacing: 1) {
                     Text("관리자 콘솔").font(.system(size: 14, weight: .bold)).foregroundColor(.white)
-                    Text(pending > 0 ? "멤버/방 · 가입 승인 대기 \(pending)명" : "멤버/방 · 가입 승인")
+                    Text(pending > 0 ? "회원/방 · 가입 승인 대기 \(pending)명" : "회원/방 · 가입 승인")
                         .font(.system(size: 11)).foregroundColor(Color(hex: 0xBDB4AB))
                 }
                 Spacer()

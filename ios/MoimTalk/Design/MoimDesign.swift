@@ -72,7 +72,7 @@ func roleLabel(_ role: String) -> String {
     switch role {
     case "superadmin": return "전체관리자"
     case "admin": return "관리자"
-    default: return "멤버"
+    default: return "회원"
     }
 }
 

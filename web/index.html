@@ -234,9 +234,9 @@
   </div></div>
 
   <div class="modal" id="cmodal"><div class="sheet">
-    <h2>새 모임방 만들기</h2><p>이름을 정하고 참여할 멤버를 선택하세요.</p>
+    <h2>새 모임방 만들기</h2><p>이름을 정하고 참여할 회원를 선택하세요.</p>
     <input class="field" id="newRoomName" placeholder="예: 우울증 연구모임">
-    <span class="lbl">멤버 선택</span><div id="cpickList"></div>
+    <span class="lbl">회원 선택</span><div id="cpickList"></div>
     <button class="primary" onclick="createRoom()">방 만들기</button>
     <button class="ghost" onclick="closeModal('cmodal')">취소</button>
   </div></div>
@@ -244,7 +244,7 @@
   <!-- ROOM SETTINGS MODAL -->
   <div class="modal" id="smodal"><div class="sheet">
     <h2>모임방 설정</h2><p>구성원을 초대·제거하거나 모임방을 삭제할 수 있습니다.</p>
-    <span class="lbl">참여 멤버 (제거)</span><div id="smList"></div>
+    <span class="lbl">참여 회원 (제거)</span><div id="smList"></div>
     <span class="lbl">구성원 초대</span><div id="smInvite"></div>
     <button class="primary" id="smDeleteBtn" style="background:var(--admin)" onclick="deleteRoom()">이 모임방 삭제</button>
     <button class="ghost" onclick="closeModal('smodal')">닫기</button>
@@ -588,7 +588,7 @@ async function openRoomSettings(){
 }
 async function loadRoomMembersUI(){
   const {data,error}=await sb.from('room_members').select('user_id').eq('room_id',active.id);
-  if(error){document.getElementById('smList').innerHTML=`<p style="color:var(--admin);font-size:13px">멤버 목록 불러오기 실패: ${esc(error.message)}</p>`;return;}
+  if(error){document.getElementById('smList').innerHTML=`<p style="color:var(--admin);font-size:13px">회원 목록 불러오기 실패: ${esc(error.message)}</p>`;return;}
   smMemberIds=(data||[]).map(r=>r.user_id);
   renderRoomMembers();renderInviteList();
 }
@@ -604,17 +604,17 @@ function renderRoomMembers(){
 }
 function renderInviteList(){
   const el=document.getElementById('smInvite');
-  // 본인 제외 + 승인된 멤버 + 아직 참여 안 한 사람
+  // 본인 제외 + 승인된 회원 + 아직 참여 안 한 사람
   const cands=Object.values(profilesById)
     .filter(p=>p.id!==me.id&&p.approved!==false&&!smMemberIds.includes(p.id))
     .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-  if(!cands.length){el.innerHTML='<p style="color:var(--sub);font-size:13px">초대할 수 있는 멤버가 없습니다.</p>';return;}
+  if(!cands.length){el.innerHTML='<p style="color:var(--sub);font-size:13px">초대할 수 있는 회원가 없습니다.</p>';return;}
   el.innerHTML=cands.map(p=>`<div class="evkept"><span>${esc(p.name||'?')} · ${esc(p.member_type||'')}</span>`
     +`<span class="evkeptx" style="color:var(--work);font-size:13px" onclick="inviteMember('${p.id}')">초대</span></div>`).join('');
 }
 async function kickMember(uid){
   const p=profilesById[uid]||{};
-  if(!confirm(`'${p.name||'이 멤버'}' 님을 이 모임방에서 제거할까요?`))return;
+  if(!confirm(`'${p.name||'이 회원'}' 님을 이 모임방에서 제거할까요?`))return;
   const {error}=await sb.from('room_members').delete().eq('room_id',active.id).eq('user_id',uid);
   if(error){alert('구성원 제거 실패: '+error.message);return;}
   await loadRoomMembersUI();
@@ -1016,13 +1016,13 @@ async function wardSave(){
 /* ====== 모임방 만들기 ====== */
 function openCreate(){
   cpick=new Set();document.getElementById('newRoomName').value='';
-  // 본인 제외 + 승인된 멤버만 (대기 중인 가입자는 방에 추가 불가)
+  // 본인 제외 + 승인된 회원만 (대기 중인 가입자는 방에 추가 불가)
   const others=Object.values(profilesById).filter(p=>p.id!==me.id&&p.approved!==false).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   document.getElementById('cpickList').innerHTML=others.length?others.map(p=>`
     <div class="pick" data-id="${p.id}" onclick="toggleC('${p.id}')">
       <div class="av" style="background:${tcolor(p.member_type)}">${ini(p.name)}</div>
       <span class="pn">${esc(p.name)}</span><span class="chk" style="visibility:hidden">✓</span></div>`).join('')
-    :'<p style="color:var(--sub);font-size:13px">표시할 멤버가 없습니다.</p>';
+    :'<p style="color:var(--sub);font-size:13px">표시할 회원가 없습니다.</p>';
   document.getElementById('cmodal').classList.add('on');
 }
 function toggleC(id){cpick.has(id)?cpick.delete(id):cpick.add(id);

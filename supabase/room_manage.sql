@@ -1,5 +1,5 @@
 -- =============================================================================
--- room_manage.sql — 모임방 관리: 삭제 · 멤버 내보내기 · 동일 이름 금지
+-- room_manage.sql — 모임방 관리: 삭제 · 회원 내보내기 · 동일 이름 금지
 -- 실행 순서: ... room_create.sql → admin_roles.sql → (이 파일) room_manage.sql
 -- =============================================================================
 
@@ -43,7 +43,7 @@ DROP FUNCTION IF EXISTS public.moim_is_room_member(uuid);
 
 -- 3) 방 삭제: 생성자(본인이 만든 방) 또는 전체관리자(superadmin)만.
 --    일반 관리자(admin)는 방을 삭제할 수 없음 (방 삭제 = 콘솔의 superadmin / 본인 방의 생성자).
---    CASCADE 로 멤버·메시지·일정·자료 함께 삭제.
+--    CASCADE 로 회원·메시지·일정·자료 함께 삭제.
 GRANT DELETE ON TABLE public.rooms TO authenticated;
 DROP POLICY IF EXISTS "rooms_delete_owner_admin" ON public.rooms;
 CREATE POLICY "rooms_delete_owner_admin"
@@ -53,8 +53,8 @@ CREATE POLICY "rooms_delete_owner_admin"
     OR public.moim_is_superadmin()
   );
 
--- 4) 멤버 목록 조회: 본인 / 방 생성자(자기 방) / 관리자
---    (방 생성자가 멤버를 내보내려면 멤버 목록을 볼 수 있어야 함)
+-- 4) 회원 목록 조회: 본인 / 방 생성자(자기 방) / 관리자
+--    (방 생성자가 회원를 내보내려면 회원 목록을 볼 수 있어야 함)
 DROP POLICY IF EXISTS "room_members_select" ON public.room_members;
 DROP POLICY IF EXISTS "room_members_admin" ON public.room_members;
 CREATE POLICY "room_members_select"
@@ -66,7 +66,7 @@ CREATE POLICY "room_members_select"
     OR public.moim_is_admin()
   );
 
--- 5) 멤버 내보내기(삭제): 방 생성자 또는 관리자
+-- 5) 회원 내보내기(삭제): 방 생성자 또는 관리자
 DROP POLICY IF EXISTS "room_members_delete_owner_admin" ON public.room_members;
 CREATE POLICY "room_members_delete_owner_admin"
   ON public.room_members FOR DELETE TO authenticated

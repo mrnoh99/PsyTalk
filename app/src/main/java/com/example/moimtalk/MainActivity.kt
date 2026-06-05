@@ -71,7 +71,7 @@ class MoimViewModel : ViewModel() {
     var error by mutableStateOf<String?>(null)
     var notice by mutableStateOf<String?>(null)
     var loading by mutableStateOf(false)
-    // 모임방 설정(멤버 관리)에서 보여줄 현재 방 멤버 id 목록
+    // 모임방 설정(회원 관리)에서 보여줄 현재 방 회원 id 목록
     var roomMemberIds by mutableStateOf<List<String>>(emptyList())
     var roomMembersLoaded by mutableStateOf(false)
     var roomMemberCounts by mutableStateOf<Map<String, Int>>(emptyMap())
@@ -524,7 +524,7 @@ class MoimViewModel : ViewModel() {
         }
     }
 
-    /** room_members 변경 시 멤버 목록·인원만 갱신 (방 목록은 Realtime 에서 loadRooms 로 처리) */
+    /** room_members 변경 시 회원 목록·인원만 갱신 (방 목록은 Realtime 에서 loadRooms 로 처리) */
     private fun onRoomMembersChangedOnly() {
         memberListRoomId?.let { loadRoomMembers(it) }
         loadRoomMemberCounts()
@@ -540,7 +540,7 @@ class MoimViewModel : ViewModel() {
         }
     }
 
-    /** 현재 방의 멤버 목록을 불러와 roomMemberIds 에 저장 */
+    /** 현재 방의 회원 목록을 불러와 roomMemberIds 에 저장 */
     fun loadRoomMembers(roomId: String) {
         memberListRoomId = roomId
         roomMembersLoaded = false
@@ -549,25 +549,25 @@ class MoimViewModel : ViewModel() {
                 roomMemberIds = MoimRepository.roomMemberIds(roomId)
             } catch (e: Exception) {
                 roomMemberIds = emptyList()
-                error = friendlySupabaseError(e, "멤버 목록")
+                error = friendlySupabaseError(e, "회원 목록")
             }
             roomMembersLoaded = true
         }
     }
 
-    /** 멤버 내보내기 (생성자/관리자). 성공 시 멤버 목록 갱신. */
+    /** 회원 내보내기 (생성자/관리자). 성공 시 회원 목록 갱신. */
     fun removeRoomMember(roomId: String, userId: String) {
         viewModelScope.launch {
             try {
                 MoimRepository.removeRoomMember(roomId, userId)
                 roomMemberIds = MoimRepository.roomMemberIds(roomId)
             } catch (e: Exception) {
-                error = friendlySupabaseError(e, "멤버 내보내기")
+                error = friendlySupabaseError(e, "회원 내보내기")
             }
         }
     }
 
-    /** 구성원 초대 (방에 멤버 추가). 성공 시 멤버 목록 갱신. */
+    /** 구성원 초대 (방에 회원 추가). 성공 시 회원 목록 갱신. */
     fun inviteRoomMember(roomId: String, userId: String) {
         viewModelScope.launch {
             try {
@@ -595,7 +595,7 @@ class MoimViewModel : ViewModel() {
 
     fun nameOf(userId: String): String = profilesById[userId]?.name ?: "?"
 
-    // 본인 제외 + 승인된 멤버만 (대기 중인 가입자는 방에 추가 불가)
+    // 본인 제외 + 승인된 회원만 (대기 중인 가입자는 방에 추가 불가)
     fun otherProfiles(): List<Profile> =
         profilesById.values
             .filter { it.id != MoimRepository.currentUserId() && it.approved != false }

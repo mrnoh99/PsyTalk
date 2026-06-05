@@ -66,7 +66,7 @@ struct RoomMemberInsert: Encodable {
     }
 }
 
-// 방 멤버 행 읽기용 (멤버 내보내기 목록)
+// 방 회원 행 읽기용 (회원 내보내기 목록)
 struct RoomMemberRow: Decodable {
     let roomId: String
     let userId: String

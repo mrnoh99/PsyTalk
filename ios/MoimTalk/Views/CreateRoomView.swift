@@ -1,6 +1,6 @@
 import SwiftUI
 
-// 모임방 만들기 (카톡처럼 누구나) — 이름 + 참여 멤버 선택
+// 모임방 만들기 (카톡처럼 누구나) — 이름 + 참여 회원 선택
 struct CreateRoomView: View {
     @ObservedObject var vm: MoimViewModel
     let onBack: () -> Void
@@ -24,13 +24,13 @@ struct CreateRoomView: View {
                     .textFieldStyle(.roundedBorder)
                     .padding(.bottom, 14)
 
-                Text("참여 멤버 선택").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
+                Text("참여 회원 선택").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
                     .padding(.bottom, 8)
 
                 ScrollView {
                     let people = vm.otherProfiles
                     if people.isEmpty {
-                        Text("표시할 멤버가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub).padding(8)
+                        Text("표시할 회원가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub).padding(8)
                     } else {
                         ForEach(people) { p in
                             let on = selected.contains(p.id)

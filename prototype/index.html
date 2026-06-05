@@ -197,7 +197,7 @@
     <div class="list" id="roomList"></div>
     <div class="adminbar" onclick="openAdmin()">
       <div class="dot">🛡️</div>
-      <div style="flex:1"><b>관리자 콘솔</b><small>전체관리자 전용 · 멤버/방/권한</small></div>
+      <div style="flex:1"><b>관리자 콘솔</b><small>전체관리자 전용 · 회원/방/권한</small></div>
       <span style="color:#bdb4ab">›</span></div>
   </section>
 
@@ -228,7 +228,7 @@
   <section class="screen" id="admin">
     <div class="hdr"><button class="back" onclick="closeAdmin()">‹</button><h1>관리자 콘솔</h1></div>
     <div class="abody">
-      <div class="card"><h3>👥 멤버 풀 (8개 직군)<button onclick="alert('초대코드: PSY-2026')">＋ 초대</button></h3>
+      <div class="card"><h3>👥 회원 풀 (8개 직군)<button onclick="alert('초대코드: PSY-2026')">＋ 초대</button></h3>
         <div id="poolList"></div></div>
       <div class="card"><h3>🏠 기본 방 12개 + 모임방<button onclick="openCreate()">＋ 방 만들기</button></h3>
         <div id="roomAdminList"></div></div>
@@ -245,15 +245,15 @@
 
   <!-- CREATE ROOM MODAL -->
   <div class="modal" id="cmodal"><div class="sheet">
-    <h2>새 모임방 만들기</h2><p>이름을 정하고 참석할 멤버를 선택하세요.</p>
+    <h2>새 모임방 만들기</h2><p>이름을 정하고 참석할 회원를 선택하세요.</p>
     <input class="field" id="newRoomName" placeholder="예: 우울증 연구모임">
-    <span class="lbl">멤버 선택</span><div id="cpickList"></div>
+    <span class="lbl">회원 선택</span><div id="cpickList"></div>
     <button class="primary" onclick="createRoom()">방 생성하기</button>
   </div></div>
 
   <!-- WRITER MODAL -->
   <div class="modal" id="wmodal"><div class="sheet">
-    <h2>작성자 지정</h2><p>이 공지 방에 글·일정을 올릴 수 있는 멤버를 선택하세요. (관리자는 항상 가능)</p>
+    <h2>작성자 지정</h2><p>이 공지 방에 글·일정을 올릴 수 있는 회원를 선택하세요. (관리자는 항상 가능)</p>
     <div id="wpickList"></div>
     <button class="primary" onclick="saveWriters()">저장</button>
   </div></div>
@@ -329,7 +329,7 @@ const rooms=[
 let active=null,currentUser='u0',xpostSel=new Set(),calMode='month';
 const isAdmin=()=>['superadmin','admin'].includes((pool.find(p=>p.id===currentUser)||{}).role);
 const isSuper=()=>(pool.find(p=>p.id===currentUser)||{}).role==='superadmin';
-// 작성 정책: restricted=관리자+지정작성자 / members=방 멤버 누구나
+// 작성 정책: restricted=관리자+지정작성자 / members=방 회원 누구나
 function canPost(r){
   if(r.post==='restricted')return isAdmin()||(r.writers||[]).includes(currentUser);
   return isAdmin()||r.members.includes(currentUser);
@@ -490,7 +490,7 @@ function renderCal(){
           ${e.link?'🔗 '+e.link+'<br>':''}
           ${(e.kw||[]).map(k=>`#${k}`).join(' ')}</div>
         ${e.att?`<span class="evatt">📎 ${e.att} — ${e.attDesc||''}</span>`:''}
-        ${canEdit(e.id)?`<span class="evedit" onclick="alert('${active.post==='restricted'?'수정 권한: 작성자 + 관리자':'수정 권한: 방 멤버 누구나'}')">✏️ 수정</span>`:''}
+        ${canEdit(e.id)?`<span class="evedit" onclick="alert('${active.post==='restricted'?'수정 권한: 작성자 + 관리자':'수정 권한: 방 회원 누구나'}')">✏️ 수정</span>`:''}
       </div></div>`;
   const noEv=`<p style="color:var(--sub);font-size:13px">등록된 일정이 없습니다.</p>`;
 
@@ -545,7 +545,7 @@ function createEvent(){
 /* ===== ADMIN ===== */
 function openAdmin(){
   document.getElementById('poolList').innerHTML=pool.map(p=>{
-    const r=p.role==='superadmin'?['super','전체관리자']:p.role==='admin'?['admin','관리자']:['user','멤버'];
+    const r=p.role==='superadmin'?['super','전체관리자']:p.role==='admin'?['admin','관리자']:['user','회원'];
     return `<div class="arow"><div class="av" style="background:${TYPE_COLOR[p.type]}">${ini(p.name)}</div>
       <div class="info"><b>${p.name}</b><small><span class="typetag">${p.type}</span></small></div>
       <span class="tag ${r[0]}">${r[1]}</span></div>`}).join('');
@@ -554,7 +554,7 @@ function openAdmin(){
     const wbtn=r.post==='restricted'
       ?`<button class="tag user" style="border:none;cursor:pointer" onclick="event.stopPropagation();openWriters('${r.id}')">✍️ 작성자 ${(r.writers||[]).length}+관리자</button>`
       :r.post==='members'&&r.cat==='notice'
-        ?`<span class="tag user">멤버 누구나</span>`
+        ?`<span class="tag user">회원 누구나</span>`
         :`<span class="tag user">${r.members.length}명</span>`;
     return `<div class="arow"><div class="av" style="background:${cat.c};border-radius:11px">${r.kind==='default'?r.order:'#'}</div>
       <div class="info"><b>${r.name}</b><small>${r.members.map(id=>userById(id).name).join(', ')}</small></div>

@@ -1,6 +1,6 @@
 import SwiftUI
 
-// 모임방 설정 — 멤버 내보내기 + 모임방 삭제 (생성자/관리자만)
+// 모임방 설정 — 회원 내보내기 + 모임방 삭제 (생성자/관리자만)
 struct RoomSettingsView: View {
     @ObservedObject var vm: MoimViewModel
     let room: Room
@@ -27,9 +27,9 @@ struct RoomSettingsView: View {
                     }
                 }
 
-                Section(header: Text("참여 멤버 (\(vm.roomMemberIds.count)명)")) {
+                Section(header: Text("참여 회원 (\(vm.roomMemberIds.count)명)")) {
                     if !vm.roomMembersLoaded {
-                        Text("멤버 정보를 불러오는 중…").font(.system(size: 13)).foregroundColor(Moim.sub)
+                        Text("회원 정보를 불러오는 중…").font(.system(size: 13)).foregroundColor(Moim.sub)
                     } else if vm.roomMemberIds.isEmpty {
                         Text("참여 구성원이 없습니다. 위에서 초대하세요.").font(.system(size: 13)).foregroundColor(Moim.sub)
                     }
@@ -71,7 +71,7 @@ struct RoomSettingsView: View {
                 Button("삭제", role: .destructive) { vm.deleteRoom(room) { onDeleted() } }
                 Button("취소", role: .cancel) {}
             }
-            // 멤버 내보내기 확인
+            // 회원 내보내기 확인
             .confirmationDialog("‘\(kickTarget.map { vm.name(of: $0) } ?? "")’ 님을 내보낼까요?",
                                 isPresented: Binding(get: { kickTarget != nil },
                                                      set: { if !$0 { kickTarget = nil } }),

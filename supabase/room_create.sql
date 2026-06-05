@@ -42,7 +42,7 @@ CREATE POLICY "rooms_update_owner_admin"
                WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin'))
   );
 
--- 방 멤버 추가: 생성자·관리자만 (상세 정책은 room_manage.sql 의 room_members_insert_owner_admin)
+-- 방 회원 추가: 생성자·관리자만 (상세 정책은 room_manage.sql 의 room_members_insert_owner_admin)
 -- room_manage.sql 미실행 환경용 폴백 — 생성자 또는 관리자
 DROP POLICY IF EXISTS "room_members_insert_self" ON public.room_members;
 DROP POLICY IF EXISTS "room_members_insert_owner_admin" ON public.room_members;

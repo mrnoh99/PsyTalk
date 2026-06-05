@@ -3,7 +3,7 @@
 --   #1 안읽은 메시지가 있는 방 표시(방별 안읽은 수)
 --   #2 메시지별 '안읽은 사람 수' (방원 중 보낸이 제외; superadmin 은 방원일 때만 포함)
 --   · room_reads(room_id, user_id, last_read_at): 사용자가 방을 본 마지막 시각
---   · 모임방 멤버 = room_members / 기본방 멤버 = 승인된 전원
+--   · 모임방 회원 = room_members / 기본방 회원 = 승인된 전원
 -- 실행: Supabase SQL Editor (install.sql·room_manage.sql 이후 1회)
 -- =============================================================================
 
@@ -27,7 +27,7 @@ DROP POLICY IF EXISTS "room_reads_update_own" ON public.room_reads;
 CREATE POLICY "room_reads_update_own" ON public.room_reads
   FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
--- 방 멤버 집합: 모임방(custom)=room_members, 기본방=승인된 전원
+-- 방 회원 집합: 모임방(custom)=room_members, 기본방=승인된 전원
 CREATE OR REPLACE FUNCTION public.moim_room_member_ids(p_room uuid)
 RETURNS TABLE(user_id uuid)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$

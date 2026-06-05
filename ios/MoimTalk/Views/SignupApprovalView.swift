@@ -1,6 +1,6 @@
 import SwiftUI
 
-// 가입 승인 / 멤버 — Android ApprovalScreen 과 동일
+// 가입 승인 / 회원 — Android ApprovalScreen 과 동일
 // · 전체관리자(superadmin) 제외
 // · 미승인 → ‘승인’, 승인됨 → ‘퇴출’
 // · 기본 가나다순(이름) → 상태가 바뀌어도 줄 위치 유지 / 직군별 보기 토글
@@ -46,7 +46,7 @@ struct SignupApprovalView: View {
                 .padding(.bottom, 12)
 
             if members.isEmpty {
-                Text("멤버 정보가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
+                Text("회원 정보가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
             } else if byType {
                 ForEach(groups, id: \.0) { g in
                     Text("\(g.0) · \(g.1.count)")

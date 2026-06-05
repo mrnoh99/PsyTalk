@@ -14,25 +14,25 @@
 
 ## 핵심 도메인 규칙 (변경 시 신중히)
 
-### 멤버 직군 (`member_type`, 13종)
+### 회원 직군 (`member_type`, 13종)
 교실 · 의국 · 심리실 · 연구실 · PA · 간호사 · SW · 보조원 · 생명사랑 · 비서 · 의국동문 · 심리실 동문 · 기타
 > member_type 이 ENUM 이면 값 추가는 `supabase/add_member_types.sql` 실행.
 
 ### 역할·권한 (`role`)
-- **superadmin** (전체관리자, 1명 = **jsnoh@ajou.ac.kr 고정**): 모든 방·멤버·권한 관리, 과 전체공지·캘린더 작성, 방 참석자 지정.
+- **superadmin** (전체관리자, 1명 = **jsnoh@ajou.ac.kr 고정**): 모든 방·회원·권한 관리, 과 전체공지·캘린더 작성, 방 참석자 지정.
   DB 트리거(`protect_superadmin.sql`)로 **퇴출(미승인)·강등·삭제 불가**, UI 목록에서도 제외.
 - **admin** (관리자): superadmin이 지정, 공지·캘린더 작성 가능
-- **user** (멤버): 소속 방에서 정책에 따라 읽기/쓰기
+- **user** (회원): 소속 방에서 정책에 따라 읽기/쓰기
 
 ### 공지 방 작성 정책 (`post_policy`)
 - `restricted`: superadmin + admin + **방별 지정 작성자(writers)**만 작성 (예: 과 전체공지)
-- `members`: 방 참석 멤버 누구나 작성
+- `members`: 방 참석 회원 누구나 작성
 
 ### 기본 방 2개 (`sort_order` 1~2) — 항상 상단 고정
 1 과 전체공지(notice·restricted) · 2 주간 학술활동(notice·members·**default_view=week**)
 - 시드: `supabase/seed_rooms.sql`
-- 그 아래 **모임 방**(`category=custom`): **사용자가 카톡처럼 직접 생성**(이름+참여멤버 선택).
-  생성자=`created_by`, 참석자=`room_members`. 모임방은 멤버·생성자·관리자에게만 보임(RLS).
+- 그 아래 **모임 방**(`category=custom`): **사용자가 카톡처럼 직접 생성**(이름+참여회원 선택).
+  생성자=`created_by`, 참석자=`room_members`. 모임방은 회원·생성자·관리자에게만 보임(RLS).
   권한·가시성: `supabase/room_create.sql`
 
 ### 캘린더 (방별)
@@ -84,7 +84,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 6. `install.sql` — GRANT·RLS
 7. `room_create.sql` — 모임방 사용자 생성 권한·가시성
 8. `admin_roles.sql` — 앱에서 역할 지정(전체관리자만) 권한
-9. `room_manage.sql` — 모임방 삭제·멤버 내보내기 RLS + **동일 이름 모임방 금지**(유니크 인덱스)
+9. `room_manage.sql` — 모임방 삭제·회원 내보내기 RLS + **동일 이름 모임방 금지**(유니크 인덱스)
 10. `realtime_setup.sql` — Realtime publication — 앱 **거의 실시간 동기화**에 필요
 11. `signup_unapproved.sql` — **새 가입자는 불승인(approved=false)으로 시작** 강제(트리거) + superadmin 유지
 12. `protect_superadmin.sql` — **전체관리자(jsnoh@ajou.ac.kr) 고정·보호**: superadmin+승인으로 보정 후
@@ -107,7 +107,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
     `moim_delete_my_account()`(본인 데이터 정리 후 계정 삭제, 전체관리자 불가).
     방화면 **나가기**(본인이 만들지 않은 모임방) · ⚙️ 설정의 **회원 탈퇴**(+ Android/iOS 로그아웃)에 사용.
 
-> (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
+> (선택) `seed_dummy_members.sql` — 테스트용 더미 회원 8명(직군별). 운영 전 정리.
 
 > `schema_extension.sql`이 `profiles` 조회를 "본인만→인증 사용자 전체"로 바꿉니다(작성자 이름 표시용).
 > 캘린더/자료실 작성은 현재 `owner=본인`만 검사하며, `room_members` 연동 시 강화 예정.
@@ -127,7 +127,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 - **탭: 방 관리 + 가입 승인**
 - **가입 승인 화면**(iOS 콘솔 탭 + Android `ApprovalScreen`): 미승인 → **승인**, 승인됨 → **퇴출**(=승인 취소).
   **전체관리자(superadmin)는 목록에서 제외**. 기본 **가나다순**(상태가 바뀌어도 줄 위치 유지) + **직군별 보기** 토글.
-- 멤버: **역할 지정**(관리자/멤버 **둘만** — 전체관리자는 콘솔에서 지정 불가, 목록에도 미표시) + **이름 편집** 앱에서 직접(SQL 없이).
+- 회원: **역할 지정**(관리자/회원 **둘만** — 전체관리자는 콘솔에서 지정 불가, 목록에도 미표시) + **이름 편집** 앱에서 직접(SQL 없이).
   변경 권한은 `admin_roles.sql`(전체관리자만, SECURITY DEFINER `moim_is_superadmin()` + profiles UPDATE 정책).
 - 방 관리: 방을 누르면 **구성원 초대 / 구성원 제거(confirm) / 방 삭제(confirm)**.
   방 삭제는 **superadmin만**, **기본 방(전체공지·학술활동)은 삭제 불가**.

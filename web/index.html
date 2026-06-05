@@ -42,6 +42,10 @@
   .room-mid{flex:1;min-width:0}.room-top{display:flex;align-items:center;gap:6px}
   .catdot{font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;color:#fff}
   .room-name{font-weight:700;font-size:15px}.room-msg{font-size:12.5px;color:var(--sub);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .room-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
+  .room-time{font-size:11px;color:var(--sub);white-space:nowrap}
+  .mtime{font-size:10px;color:var(--sub);align-self:flex-end;white-space:nowrap;margin:0 3px;flex-shrink:0}
+  .datediv{text-align:center;margin:14px 0 6px}.datediv span{font-size:11px;color:#fff;background:rgba(0,0,0,.2);padding:3px 12px;border-radius:20px}
   .adminbar{display:flex;align-items:center;gap:10px;padding:12px 18px;background:var(--accent);color:#fff;cursor:pointer;flex-shrink:0}
   .adminbar .dot{width:32px;height:32px;border-radius:10px;background:var(--admin);display:flex;align-items:center;justify-content:center}
   .adminbar small{color:#bdb4ab;display:block;font-size:11px}
@@ -270,7 +274,20 @@ const BUCKET = "room-files";
 
 /* ====== 상태 ====== */
 let me=null, rooms=[], profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
-let unreadByRoom={}, unreadByMsg={};  // #1 방별 안읽은 수, #2 메시지별 안읽은 사람 수
+let unreadByRoom={}, unreadByMsg={}, lastMsgByRoom={};  // #1 안읽은 수, #2 메시지별 안읽은 수, 방별 마지막 메시지
+async function loadLastMessages(){
+  const {data}=await sb.rpc('moim_room_last_messages');
+  lastMsgByRoom={};(data||[]).forEach(r=>lastMsgByRoom[r.room_id]=r);
+  if(!document.getElementById('listScreen').classList.contains('hidden'))renderRoomList();
+}
+function msgPreview(m){ if(!m)return ''; return m.type==='image'?'사진':m.type==='file'?('📎 '+(m.attachment_name||'파일')):(m.content||''); }
+function fmtListTime(ts){ if(!ts)return ''; const d=new Date(ts),n=new Date();
+  return d.toDateString()===n.toDateString()
+    ? d.toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})
+    : `${d.getMonth()+1}/${d.getDate()}`; }
+function fmtMsgTime(ts){ return ts?new Date(ts).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):''; }
+function fmtDateDivider(ts){ const d=new Date(ts),w=['일','월','화','수','목','금','토'][d.getDay()];
+  return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${w}요일`; }
 async function loadUnreadCounts(){
   const {data}=await sb.rpc('moim_unread_counts');
   unreadByRoom={};(data||[]).forEach(r=>unreadByRoom[r.room_id]=Number(r.cnt));
@@ -292,7 +309,7 @@ let realtimeGlobal=null, realtimeRoom=null;
 
 function debounce(fn,ms=400){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
 const debouncedLoadRooms=debounce(()=>loadRooms(),400);
-const debouncedLoadUnread=debounce(()=>loadUnreadCounts(),600);
+const debouncedLoadUnread=debounce(()=>{loadUnreadCounts();loadLastMessages();},600);
 const debouncedRoomMembers=debounce(()=>{if(document.getElementById('smodal').classList.contains('on'))loadRoomMembersUI();},400);
 const debouncedRefreshRoom=debounce(async()=>{
   if(!active)return;
@@ -407,7 +424,7 @@ async function loadApp(){
 }
 async function loadRooms(){
   const {data}=await sb.from('rooms').select('*').order('sort_order',{ascending:true});
-  rooms=data||[];renderRoomList();loadUnreadCounts();
+  rooms=data||[];renderRoomList();loadUnreadCounts();loadLastMessages();
 }
 
 /* ====== 방 목록 ====== */
@@ -418,11 +435,15 @@ function renderRoomList(){
   const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week');
   const listRooms=rooms.filter(r=>r!==week); // 전체방(첫번째) + 모임방, sort_order 순
   const ubadge=id=>{const u=unreadByRoom[id]||0;return u>0?`<span class="unread">${u>99?'99+':u}</span>`:'';};
-  const item=r=>{const c=CAT[r.category]||CAT.custom;return `<div class="room" onclick="openRoom('${r.id}')">
+  const item=r=>{const c=CAT[r.category]||CAT.custom;const lm=lastMsgByRoom[r.id];
+    const prev=lm?esc(msgPreview(lm)):(r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'');
+    const time=lm?fmtListTime(lm.created_at):'';
+    return `<div class="room" onclick="openRoom('${r.id}')">
     <div class="av" style="background:${c.c};font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word">${esc(r.name)}</div>
     <div class="room-mid"><div class="room-top"><span class="catdot" style="background:${c.c}">${c.l}</span>
     <span class="room-name">${esc(r.name)}</span></div>
-    <div class="room-msg">${r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'멤버 누구나'}</div></div>${ubadge(r.id)}</div>`;};
+    <div class="room-msg">${prev}</div></div>
+    <div class="room-right"><div class="room-time">${time}</div>${ubadge(r.id)}</div></div>`;};
   let h=`<div class="banner" onclick="openWard()"><span style="font-size:20px">🛏</span>
     <div style="flex:1"><b>잔여 병실 현황</b><small>남 · 여 잔여 병상 보기</small></div><span>›</span></div>`;
   if(week)h+=`<div class="wkbar" onclick="openRoom('${week.id}')"><span style="font-size:20px">📅</span>
@@ -457,7 +478,7 @@ async function openRoom(id){
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
   layoutChat();
 }
-async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);show('listScreen');loadUnreadCounts();}
+async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);show('listScreen');loadUnreadCounts();loadLastMessages();}
 async function renameRoom(){
   if(!active)return;
   const name=prompt('방 이름 변경', active.name);
@@ -567,10 +588,18 @@ function scrollMsgsToBottom(){
 }
 function renderMsgs(){
   const el=document.getElementById('msgs');
-  el.innerHTML=msgs.length?msgs.map(m=>{const mine=m.sender_id===me.id,who=profilesById[m.sender_id]||{};
-    return `<div class="mrow ${mine?'me':'you'}">${!mine?`<div class="mav" style="background:${tcolor(who.member_type)}">${ini(who.name)}</div>`:''}
-    <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleHtml(m)}</div>${(unreadByMsg[m.id]||0)>0?`<span class="munread">${unreadByMsg[m.id]}</span>`:''}${mine?`<span class="mdel" onclick="delMsg('${m.id}')" title="삭제">🗑</span>`:''}</div>`;}).join('')
-    :`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`;
+  if(!msgs.length){ el.innerHTML=`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`; scrollMsgsToBottom(); resolveAttachments(); return; }
+  let html='', lastDate='';
+  msgs.forEach(m=>{
+    const dk=new Date(m.created_at).toDateString();
+    if(dk!==lastDate){ html+=`<div class="datediv"><span>${fmtDateDivider(m.created_at)}</span></div>`; lastDate=dk; }
+    const mine=m.sender_id===me.id, who=profilesById[m.sender_id]||{};
+    const un=(unreadByMsg[m.id]||0)>0?`<span class="munread">${unreadByMsg[m.id]}</span>`:'';
+    const del=mine?`<span class="mdel" onclick="delMsg('${m.id}')" title="삭제">🗑</span>`:'';
+    html+=`<div class="mrow ${mine?'me':'you'}">${!mine?`<div class="mav" style="background:${tcolor(who.member_type)}">${ini(who.name)}</div>`:''}
+    <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleHtml(m)}</div><span class="mtime">${fmtMsgTime(m.created_at)}</span>${un}${del}</div>`;
+  });
+  el.innerHTML=html;
   scrollMsgsToBottom();
   resolveAttachments();
 }

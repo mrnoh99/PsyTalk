@@ -137,6 +137,19 @@ enum MoimRepository {
         try await supabase.from("messages").delete().eq("id", value: id).execute()
     }
 
+    // ── 읽음 추적 ──
+    static func markRead(roomId: String) async throws {
+        try await supabase.rpc("moim_mark_read", params: ["p_room": roomId]).execute()
+    }
+    static func unreadCounts() async throws -> [String: Int] {
+        let rows: [UnreadRoomRow] = try await supabase.rpc("moim_unread_counts").execute().value
+        return Dictionary(rows.map { ($0.roomId, $0.cnt) }, uniquingKeysWith: { a, _ in a })
+    }
+    static func messageUnreadCounts(roomId: String) async throws -> [String: Int] {
+        let rows: [UnreadMsgRow] = try await supabase.rpc("moim_message_unread_counts", params: ["p_room": roomId]).execute().value
+        return Dictionary(rows.map { ($0.messageId, $0.unread) }, uniquingKeysWith: { a, _ in a })
+    }
+
     static func sendMessage(roomId: String, text: String) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
         let payload = MessageInsert(roomId: roomId, senderId: uid, content: text)

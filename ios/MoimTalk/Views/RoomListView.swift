@@ -25,13 +25,13 @@ struct RoomListView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     WardStatusBanner(onTap: onWard)
-                    if let wr = weekRoom { WeekRoomBar(room: wr, onOpen: onOpen) }
+                    if let wr = weekRoom { WeekRoomBar(room: wr, unread: vm.unreadByRoom[wr.id] ?? 0, onOpen: onOpen) }
                     createButton
                     if listRooms.isEmpty {
                         EmptyBox(emoji: "🔒", title: "아직 방이 없어요",
                                  subtitle: "전체관리자가 방에 배정하면\n여기에 표시됩니다.")
                     } else {
-                        ForEach(listRooms) { RoomRow(room: $0, onOpen: onOpen) }
+                        ForEach(listRooms) { RoomRow(room: $0, unread: vm.unreadByRoom[$0.id] ?? 0, onOpen: onOpen) }
                     }
                 }
             }
@@ -121,6 +121,7 @@ struct WardStatusBanner: View {
 // 주간 학술활동 고정 바 (잔여 병실 현황 아래, 파란색)
 struct WeekRoomBar: View {
     let room: Room
+    var unread: Int = 0
     let onOpen: (Room) -> Void
     var body: some View {
         Button(action: { onOpen(room) }) {
@@ -131,6 +132,7 @@ struct WeekRoomBar: View {
                     Text("주간 학술활동 · 일정 보기").font(.system(size: 11.5)).foregroundColor(Color(hex: 0xDDE6F3))
                 }
                 Spacer()
+                if unread > 0 { UnreadBadge(count: unread) }
                 Text("›").font(.system(size: 20)).foregroundColor(.white)
             }
             .padding(.horizontal, 16).padding(.vertical, 14)
@@ -177,8 +179,19 @@ struct SectionHead: View {
     }
 }
 
+struct UnreadBadge: View {
+    let count: Int
+    var body: some View {
+        Text(count > 99 ? "99+" : "\(count)")
+            .font(.system(size: 11, weight: .heavy)).foregroundColor(.white)
+            .padding(.horizontal, 6).frame(minWidth: 19, minHeight: 19)
+            .background(Moim.admin).clipShape(Capsule())
+    }
+}
+
 struct RoomRow: View {
     let room: Room
+    var unread: Int = 0
     let onOpen: (Room) -> Void
     var body: some View {
         Button { onOpen(room) } label: {
@@ -203,6 +216,7 @@ struct RoomRow: View {
                         .font(.system(size: 12.5)).foregroundColor(Moim.sub).lineLimit(1)
                 }
                 Spacer()
+                if unread > 0 { UnreadBadge(count: unread) }
                 Text("›").foregroundColor(Moim.sub).font(.system(size: 20))
             }
             .padding(.horizontal, 18).padding(.vertical, 12)

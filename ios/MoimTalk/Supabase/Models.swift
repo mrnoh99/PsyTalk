@@ -96,6 +96,18 @@ struct Message: Codable, Identifiable, Hashable {
     }
 }
 
+// 읽음 추적 RPC 결과
+struct UnreadRoomRow: Decodable {
+    let roomId: String
+    let cnt: Int
+    enum CodingKeys: String, CodingKey { case cnt; case roomId = "room_id" }
+}
+struct UnreadMsgRow: Decodable {
+    let messageId: String
+    let unread: Int
+    enum CodingKeys: String, CodingKey { case unread; case messageId = "message_id" }
+}
+
 struct MessageInsert: Encodable {
     let roomId: String
     let senderId: String

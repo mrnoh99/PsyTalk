@@ -35,8 +35,8 @@ internal fun friendlySupabaseError(e: Exception, context: String): String {
             "$context 실패: 이메일 또는 비밀번호를 확인하세요."
 
         msg.contains("Email not confirmed", ignoreCase = true) ->
-            "$context 실패: 이메일 인증이 필요합니다.\n" +
-                "Supabase → Authentication → Users 에서 Confirm 하세요."
+            "$context 실패: 아직 가입이 확인되지 않았습니다.\n" +
+                "전체관리자의 가입 확인 후 로그인할 수 있습니다."
 
         msg.contains("PGRST116", ignoreCase = true) ||
             msg.contains("0 rows", ignoreCase = true) ||

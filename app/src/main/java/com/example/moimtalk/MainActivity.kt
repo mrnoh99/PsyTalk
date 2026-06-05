@@ -94,7 +94,7 @@ class MoimViewModel : ViewModel() {
                     loggedIn = true
                     bindRealtime()
                 } else {
-                    notice = "가입 완료! 이메일 인증 후 로그인하세요."
+                    notice = "가입이 접수되었습니다. 전체관리자 승인 후 로그인하여 이용할 수 있습니다."
                 }
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "회원가입")

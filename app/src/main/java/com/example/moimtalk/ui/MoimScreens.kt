@@ -264,7 +264,7 @@ fun ApprovalScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 .padding(16.dp)
         ) {
             item {
-                Text("미승인자가 위에 표시됩니다. 승인하면 앱을 이용할 수 있습니다.", fontSize = 12.sp, color = MoimSub)
+                Text("미승인자가 위에 표시됩니다. ‘가입 확인’을 누르면 앱을 이용할 수 있습니다.", fontSize = 12.sp, color = MoimSub)
                 Spacer(Modifier.height(12.dp))
             }
             if (members.isEmpty()) {
@@ -278,6 +278,37 @@ fun ApprovalScreen(vm: MoimViewModel, onBack: () -> Unit) {
 
 @Composable
 private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
+    // 가입 확인/취소는 한 번 선택 후 confirm 단계를 거친다
+    var confirmApprove by remember { mutableStateOf(false) }
+    var confirmRevoke by remember { mutableStateOf(false) }
+
+    if (confirmApprove) {
+        AlertDialog(
+            onDismissRequest = { confirmApprove = false },
+            title = { Text("가입 확인") },
+            text = { Text("‘${p.name}’ 님의 가입을 확인할까요?\n확인하면 앱을 바로 이용할 수 있습니다.") },
+            confirmButton = {
+                TextButton(onClick = { confirmApprove = false; vm.approveUser(p.id, true) }) {
+                    Text("가입 확인", color = catColor("work"), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmApprove = false }) { Text("취소") } }
+        )
+    }
+    if (confirmRevoke) {
+        AlertDialog(
+            onDismissRequest = { confirmRevoke = false },
+            title = { Text("가입 취소") },
+            text = { Text("‘${p.name}’ 님의 가입을 취소할까요?\n다시 승인 대기 상태가 되어 앱을 이용할 수 없습니다.") },
+            confirmButton = {
+                TextButton(onClick = { confirmRevoke = false; vm.approveUser(p.id, false) }) {
+                    Text("가입 취소", color = MoimAdmin, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmRevoke = false }) { Text("취소") } }
+        )
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -302,19 +333,19 @@ private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
         }
         if (!p.approved) {
             Text(
-                "승인", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                "가입 확인", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .clickable { vm.approveUser(p.id, true) }
+                    .clickable { confirmApprove = true }
                     .background(catColor("work"))
                     .padding(horizontal = 14.dp, vertical = 7.dp)
             )
         } else {
             Text(
-                "✓ 승인취소", color = MoimSub, fontSize = 11.5.sp, fontWeight = FontWeight.Bold,
+                "가입 취소", color = MoimSub, fontSize = 11.5.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .clickable { vm.approveUser(p.id, false) }
+                    .clickable { confirmRevoke = true }
                     .background(MoimBg)
                     .padding(horizontal = 12.dp, vertical = 7.dp)
             )

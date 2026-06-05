@@ -11,10 +11,11 @@ struct Profile: Codable, Identifiable, Hashable {
     let memberType: String
     let role: String              // superadmin | admin | user
     var approved: Bool?           // 관리자 가입 승인 (nil=마이그레이션 전이면 승인으로 간주)
+    var phone: String?            // 전화번호
     var avatarUrl: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, role, approved
+        case id, name, role, approved, phone
         case memberType = "member_type"
         case avatarUrl = "avatar_url"
     }

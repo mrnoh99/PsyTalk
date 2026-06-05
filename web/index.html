@@ -139,6 +139,8 @@
   .swatches{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
   .swatch{width:30px;height:30px;border-radius:8px;cursor:pointer;border:3px solid transparent;box-sizing:border-box}
   .swatch.sel{border-color:var(--ink)}
+  .sortbtn{border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:14px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer}
+  .sortbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .pinrow.dragging{opacity:.45}
   @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
   #roomScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1)}
@@ -209,7 +211,7 @@
   <!-- ROOM LIST -->
   <section id="listScreen" class="hidden app-screen">
     <div class="hdr"><h1>아주 정신</h1><span class="badge" id="badge"></span>
-      <span class="spacer"></span><button class="lk" id="adminEntryBtn" style="display:none;color:var(--admin);font-weight:700" onclick="openAdmin()"></button><button class="lk" onclick="openPinSettings()" title="방 순서 설정">⚙️</button><button class="lk" onclick="doLogout()">로그아웃</button></div>
+      <span class="spacer"></span><button class="lk" id="adminEntryBtn" style="display:none;color:var(--admin);font-weight:700" onclick="openAdmin()"></button><button class="lk" onclick="openSettings()" title="설정">⚙️</button><button class="lk" onclick="doLogout()">로그아웃</button></div>
     <div class="list" id="roomList"></div>
   </section>
 
@@ -259,16 +261,15 @@
     <div class="pane on" id="adminBody" style="flex:1;overflow-y:auto;padding:12px"></div>
   </section>
 
-  <!-- CREATE ROOM MODAL -->
-  <!-- 방 순서(핀) 설정 -->
-  <div class="modal" id="pinmodal"><div class="sheet">
-    <div style="text-align:right;margin-bottom:4px"><button class="lk" style="color:var(--admin);font-weight:700" onclick="deleteAccount()">회원 탈퇴</button></div>
-    <h2>방 순서 설정</h2><p>고정할 방을 드래그(☰)해 순서를 정하세요. 최대 5개. 나머지는 새 메시지 순으로 표시됩니다.</p>
-    <div id="pinBody"></div>
-    <button class="primary" onclick="savePins()">저장</button>
-    <button class="ghost" onclick="closeModal('pinmodal')">취소</button>
-  </div></div>
+  <!-- SETTINGS (설정): 내 정보 / 방 순서 / 회원 검색 -->
+  <section id="settingsScreen" class="hidden app-screen">
+    <div class="hdr"><button class="back" onclick="show('listScreen')">‹</button>
+      <b style="font-size:16px">설정</b><span class="spacer"></span></div>
+    <div class="tabs" id="setTabs"></div>
+    <div class="pane on" id="setBody" style="flex:1;overflow-y:auto;padding:14px"></div>
+  </section>
 
+  <!-- CREATE ROOM MODAL -->
   <div class="modal" id="cmodal"><div class="sheet">
     <h2>새 모임방 만들기</h2><p>이름·방표식을 정하고 참여할 회원을 선택하세요.</p>
     <input class="field" id="newRoomName" placeholder="예: 우울증 연구모임">
@@ -379,20 +380,148 @@ async function loadRoomPins(){
 }
 // 주간 학술활동(바)을 제외한 방 목록
 // 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입(room_members)한 것만. (관리자 콘솔은 전체 rooms 사용)
-function flatRoomList(){ const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week'); return rooms.filter(r=>r!==week&&(r.category!=='custom'||myRoomIds.has(r.id))); }
-// ── 방 순서(핀) 설정 ──
-function openPinSettings(){ pinDraft=[...roomPins]; renderPinSettings(); document.getElementById('pinmodal').classList.add('on'); }
+function flatRoomList(){ const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week'); return rooms.filter(r=>r!==week&&((r.category==='custom'||r.category==='direct')?myRoomIds.has(r.id):true)); }
+/* ====== 설정 화면: 내 정보 / 방 순서 / 회원 검색 ====== */
+let setTab='me';
+function openSettings(){ setTab='me'; show('settingsScreen'); renderSetTabs(); renderSet(); }
+function renderSetTabs(){ const tabs=[['me','내 정보'],['order','방 순서'],['search','회원 검색']];
+  document.getElementById('setTabs').innerHTML=tabs.map(([k,l])=>`<div class="tab ${setTab===k?'on':''}" onclick="setGo('${k}')">${l}</div>`).join(''); }
+function setGo(k){ setTab=k; renderSetTabs(); renderSet(); }
+function renderSet(){
+  if(setTab==='order') return renderOrderTab();
+  if(setTab==='search') return renderMemberSearch();
+  return renderMyInfo();
+}
+
+// ── 내 정보 변경 (이름·이메일 읽기전용 / 자기소개·비밀번호·아바타 변경) ──
+let meColor=null, meAvatarFile=null, meAvatarPreview=null, meAvatarUrl=null, meClearAvatar=false;
+function renderMyInfo(){
+  meColor=me.color||tcolor(me.member_type); meAvatarFile=null; meAvatarPreview=null; meAvatarUrl=me.avatar_url||null; meClearAvatar=false;
+  const sup=(me.email||'').toLowerCase()===SUPERADMIN_EMAIL;
+  document.getElementById('setBody').innerHTML=`
+    <div style="display:flex;flex-direction:column;align-items:center;gap:9px;margin-bottom:6px">
+      <div id="meAvPrev" class="av" style="width:84px;height:84px;border-radius:26px;font-size:24px"></div>
+      <div style="display:flex;gap:8px">
+        <button class="lk" style="background:var(--bg);padding:7px 12px;border-radius:10px" onclick="document.getElementById('meAvInput').click()">사진 선택</button>
+        <button class="lk" id="meAvClear" style="color:var(--admin);display:none" onclick="clearMyAvatar()">사진 제거</button>
+      </div>
+      <input type="file" id="meAvInput" accept="image/*" style="display:none" onchange="onMyAvatarPicked(this)">
+      <div class="swatches" id="meColors" style="justify-content:center"></div>
+    </div>
+    <span class="lbl">이름 (변경 불가)</span><input class="field" value="${esc(me.name||'')}" disabled style="opacity:.65">
+    <span class="lbl">이메일 (변경 불가)</span><input class="field" value="${esc(me.email||'')}" disabled style="opacity:.65">
+    <span class="lbl">직군</span><input class="field" value="${esc(me.member_type||'')}" disabled style="opacity:.65">
+    <span class="lbl">자기소개</span><textarea id="meIntro" class="field" placeholder="자기소개를 입력하세요">${esc(me.intro||'')}</textarea>
+    <button class="primary" style="margin-top:12px" onclick="saveMyInfo()">내 정보 저장</button>
+    <div style="height:1px;background:var(--line);margin:20px 0"></div>
+    <span class="lbl">비밀번호 변경</span>
+    ${sup?`<p style="color:var(--sub);font-size:12.5px">전체관리자 계정의 비밀번호는 변경할 수 없습니다.</p>`:`
+    <input id="mePw" class="field" type="password" placeholder="새 비밀번호 (6자 이상)" style="margin-bottom:10px">
+    <input id="mePw2" class="field" type="password" placeholder="새 비밀번호 확인">
+    <div id="mePwMsg" style="font-size:12.5px;margin:8px 0"></div>
+    <button class="ghost" onclick="changeMyPassword()">비밀번호 변경</button>`}
+    <div style="height:1px;background:var(--line);margin:20px 0"></div>
+    <div style="text-align:center"><button class="lk" style="color:var(--admin);font-weight:700" onclick="deleteAccount()">회원 탈퇴</button></div>`;
+  renderSwatches('meColors',meColor,'pickMyColor'); renderMyAvatarPreview();
+}
+function renderMyAvatarPreview(){
+  const el=document.getElementById('meAvPrev'); if(!el)return;
+  const url=meAvatarPreview||(meClearAvatar?null:meAvatarUrl);
+  if(url){el.style.backgroundImage=`url('${url}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.style.background='';el.textContent='';}
+  else{el.style.backgroundImage='';el.style.background=meColor;el.textContent=ini(me.name);}
+  const clr=document.getElementById('meAvClear'); if(clr)clr.style.display=(meAvatarPreview||(!meClearAvatar&&meAvatarUrl))?'':'none';
+}
+function pickMyColor(c){meColor=c;renderSwatches('meColors',meColor,'pickMyColor');renderMyAvatarPreview();}
+function onMyAvatarPicked(input){const f=input.files&&input.files[0];if(!f)return;meAvatarFile=f;meAvatarPreview=URL.createObjectURL(f);meClearAvatar=false;renderMyAvatarPreview();input.value='';}
+function clearMyAvatar(){meAvatarFile=null;meAvatarPreview=null;meAvatarUrl=null;meClearAvatar=true;renderMyAvatarPreview();}
+async function saveMyInfo(){
+  const intro=document.getElementById('meIntro').value.trim();
+  let avatarUrl=meClearAvatar?null:meAvatarUrl;
+  if(meAvatarFile){try{avatarUrl=await uploadProfileAvatar(meAvatarFile);}catch(e){alert('사진 업로드 실패: '+e.message);return;}}
+  const {error}=await sb.rpc('moim_update_my_profile',{p_intro:intro||null,p_avatar_url:avatarUrl,p_color:meColor});
+  if(error){alert('저장 실패: '+error.message);return;}
+  me.intro=intro; me.avatar_url=avatarUrl; me.color=meColor;
+  if(profilesById[me.id]){Object.assign(profilesById[me.id],{intro,avatar_url:avatarUrl,color:meColor});}
+  renderRoomList(); alert('내 정보가 저장되었습니다.'); renderMyInfo();
+}
+async function changeMyPassword(){
+  const msg=document.getElementById('mePwMsg'); if(!msg)return; msg.textContent='';
+  if((me.email||'').toLowerCase()===SUPERADMIN_EMAIL){msg.style.color='var(--admin)';msg.textContent='전체관리자 계정의 비밀번호는 변경할 수 없습니다.';return;}
+  const a=document.getElementById('mePw').value,b=document.getElementById('mePw2').value;
+  if(a.length<6){msg.style.color='var(--admin)';msg.textContent='비밀번호는 6자 이상이어야 합니다.';return;}
+  if(a!==b){msg.style.color='var(--admin)';msg.textContent='비밀번호가 일치하지 않습니다.';return;}
+  const {error}=await sb.auth.updateUser({password:a});
+  if(error){msg.style.color='var(--admin)';msg.textContent='변경 실패: '+error.message;return;}
+  msg.style.color='var(--work)';msg.textContent='비밀번호가 변경되었습니다.';
+  document.getElementById('mePw').value='';document.getElementById('mePw2').value='';
+}
+
+// ── 회원 검색 (전체 명단 · 이름/직종 정렬 · 검색 · 메시지) ──
+const MTYPE_ORDER=['교실','의국','심리실','연구실','PA','간호사','SW','보조원','생명사랑','비서','의국동문','심리실 동문','기타'];
+const byName=(a,b)=>(a.name||'').localeCompare(b.name||'','ko');
+let memSearchQ='', memSearchSort='name';
+function onMemSearch(v){ memSearchQ=v; renderMemberSearchList(); }
+function memSearchSortGo(s){ memSearchSort=s; renderMemberSearch(); }
+function renderMemberSearch(){
+  document.getElementById('setBody').innerHTML=`
+    <input id="memSearchInput" class="field" placeholder="🔍 이름으로 검색" value="${esc(memSearchQ)}" oninput="onMemSearch(this.value)" style="margin-bottom:10px">
+    <div style="display:flex;gap:7px;margin-bottom:12px">
+      <button class="sortbtn ${memSearchSort==='name'?'on':''}" onclick="memSearchSortGo('name')">이름순</button>
+      <button class="sortbtn ${memSearchSort==='type'?'on':''}" onclick="memSearchSortGo('type')">직종별</button></div>
+    <div id="memSearchList"></div>`;
+  const inp=document.getElementById('memSearchInput'); if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}
+  renderMemberSearchList();
+}
+function memberSearchRow(p){
+  const st=personAvatarStyle(p);
+  return `<div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:11px;margin-bottom:8px">
+    <div class="av" style="width:42px;height:42px;border-radius:13px;font-size:13px;${st}">${p.avatar_url?'':ini(p.name)}</div>
+    <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(p.name||'?')}</div>
+      <div style="color:var(--sub);font-size:11.5px">${esc(p.member_type||'')}</div>
+      ${p.intro?`<div style="color:var(--sub);font-size:11.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.intro)}</div>`:''}</div>
+    <button onclick="startDirect('${p.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:14px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">메시지</button></div>`;
+}
+function renderMemberSearchList(){
+  const q=memSearchQ.trim().toLowerCase();
+  let list=Object.values(profilesById).filter(p=>p.id!==me.id&&p.role!=='superadmin'&&p.approved===true&&!p.withdrawn);
+  if(q)list=list.filter(p=>(p.name||'').toLowerCase().includes(q));
+  const el=document.getElementById('memSearchList'); if(!el)return;
+  if(!list.length){el.innerHTML=`<p style="color:var(--sub);font-size:13px;padding:10px 2px">${q?'검색 결과가 없습니다.':'표시할 회원이 없습니다.'}</p>`;return;}
+  if(memSearchSort==='type'){
+    const groups={}; list.forEach(p=>{const t=p.member_type||'기타';(groups[t]=groups[t]||[]).push(p);});
+    const order=MTYPE_ORDER.filter(t=>groups[t]).concat(Object.keys(groups).filter(t=>!MTYPE_ORDER.includes(t)));
+    el.innerHTML=order.map(t=>`<div class="lbl" style="margin-top:8px">${esc(t)} · ${groups[t].length}명</div>`+groups[t].sort(byName).map(memberSearchRow).join('')).join('');
+  } else {
+    el.innerHTML=list.sort(byName).map(memberSearchRow).join('');
+  }
+}
+async function startDirect(otherId){
+  const {data:rid,error}=await sb.rpc('moim_open_direct',{p_other:otherId});
+  if(error){alert('대화 열기 실패: '+error.message);return;}
+  await loadRooms();
+  openRoom(rid);
+}
+
+// ── 방 순서(핀) 설정 (설정 화면의 '방 순서' 탭) ──
+function renderOrderTab(){
+  document.getElementById('setBody').innerHTML=`
+    <p style="color:var(--sub);font-size:12.5px;margin-bottom:12px">고정할 방을 드래그(☰)해 순서를 정하세요. 최대 5개. 나머지는 새 메시지 순으로 표시됩니다.</p>
+    <div id="pinBody"></div>
+    <button class="primary" style="margin-top:14px" onclick="savePins()">순서 저장</button>
+    <div id="pinSaved" style="color:var(--work);font-size:12.5px;text-align:center;margin-top:8px"></div>`;
+  pinDraft=[...roomPins]; renderPinSettings();
+}
 function renderPinSettings(){
   const flat=flatRoomList(), byId=id=>flat.find(r=>r.id===id);
   let h=`<span class="lbl">고정된 방 (${pinDraft.length}/5)</span>`;
   h+= pinDraft.length ? pinDraft.map((id,i)=>{const r=byId(id); if(!r)return ''; return `<div class="pinrow" draggable="true" ondragstart="pinDragStart(event,${i})" ondragover="pinDragOver(event)" ondrop="pinDrop(event,${i})" ondragend="pinDragFrom=-1">
       <span class="draghandle">☰</span>
-      <span style="flex:1">${i+1}. ${esc(r.name)}</span>
+      <span style="flex:1">${i+1}. ${esc(roomDisplayName(r))}</span>
       <span class="pinbtn" style="color:var(--admin)" onclick="pinRemove('${id}')">✕</span></div>`;}).join('')
     : `<div style="color:var(--sub);font-size:13px;padding:4px 2px 8px">고정된 방 없음</div>`;
   const rest=flat.filter(r=>!pinDraft.includes(r.id));
   h+=`<span class="lbl" style="margin-top:10px;display:block">방 목록</span>`;
-  h+= rest.length ? rest.map(r=>`<div class="pinrow"><span style="flex:1">${esc(r.name)}</span>
+  h+= rest.length ? rest.map(r=>`<div class="pinrow"><span style="flex:1">${esc(roomDisplayName(r))}</span>
       <span class="pinbtn" ${pinDraft.length>=5?'style="opacity:.35;pointer-events:none"':''} onclick="pinAdd('${r.id}')">📌 고정</span></div>`).join('')
     : `<div style="color:var(--sub);font-size:13px;padding:4px 2px">없음</div>`;
   document.getElementById('pinBody').innerHTML=h;
@@ -407,7 +536,8 @@ function pinDrop(e,i){e.preventDefault(); if(pinDragFrom<0||pinDragFrom===i){pin
 async function savePins(){
   const {error}=await sb.rpc('moim_set_room_pins',{p_rooms:pinDraft});
   if(error){alert('저장 실패: '+error.message);return;}
-  roomPins=[...pinDraft]; closeModal('pinmodal'); renderRoomList();
+  roomPins=[...pinDraft]; renderRoomList();
+  const s=document.getElementById('pinSaved'); if(s){s.textContent='순서가 저장되었습니다.'; setTimeout(()=>{if(s)s.textContent='';},2000);}
 }
 // 핀 우선 + 나머지는 최근 메시지순
 function orderedRooms(){
@@ -512,6 +642,23 @@ function roomAvatarStyle(r){
     ? `background-image:url('${esc(r.icon_url)}');background-size:cover;background-position:center`
     : `background:${roomColorOf(r)};font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word`;
 }
+// 사람(프로필) 아바타 스타일: 사진 > 색상 > 직군색
+function personAvatarStyle(p){
+  return p&&p.avatar_url
+    ? `background-image:url('${esc(p.avatar_url)}');background-size:cover;background-position:center`
+    : `background:${(p&&p.color)||tcolor(p&&p.member_type)}`;
+}
+// 1:1 DM: dm_key('a_b')에서 상대 user id·프로필·표시이름 계산
+function dmOtherId(r){ if(!r||!r.dm_key)return null; const ids=r.dm_key.split('_'); return ids[0]===me.id?ids[1]:ids[0]; }
+function dmOther(r){ const id=dmOtherId(r); return id?profilesById[id]:null; }
+function roomDisplayName(r){ return r&&r.category==='direct'?((dmOther(r)||{}).name||'(알 수 없음)'):(r?r.name:''); }
+async function uploadProfileAvatar(file){
+  const ext=((file.name||'png').split('.').pop()||'png').replace(/[^a-z0-9]/gi,'')||'png';
+  const path=`profiles/${me.id}/avatar_${Date.now()}.${ext}`;
+  const {error}=await sb.storage.from('room-files').upload(path,file,{upsert:true});
+  if(error)throw error;
+  return sb.storage.from('room-files').getPublicUrl(path).data.publicUrl;
+}
 function renderSwatches(containerId, selected, onpick){
   document.getElementById(containerId).innerHTML=ROOM_COLORS.map(c=>
     `<span class="swatch${c===(selected||'').toLowerCase()?' sel':''}" style="background:${c}" onclick="${onpick}('${c}')"></span>`).join('');
@@ -532,7 +679,7 @@ const isAdmin=()=>me&&(me.role==='superadmin'||me.role==='admin');
 const canEditWard=()=>!!me&&(isAdmin()||['교실','의국','간호사'].includes(me.member_type));
 // 일정 삭제: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 const canDeleteEvent=ev=>!!me&&((ev&&ev.owner_id===me.id)||isAdmin()||['교실','의국','비서','심리실'].includes(me.member_type));
-function show(id){['login','pending','reset','listScreen','roomScreen','wardScreen','adminScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
+function show(id){['login','pending','reset','listScreen','roomScreen','wardScreen','adminScreen','settingsScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
 
 /* ====== 공용 확인/알림 대화상자 (브라우저 기본 confirm/alert 대체 → "대화상자 숨기기" 안 뜸) ====== */
 let _uiResolve=null;
@@ -692,6 +839,7 @@ async function loadApp(){
   if(!user){show('login');return;}
   const {data:prof}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
   me=prof||{id:user.id,name:user.email,member_type:'',role:'user',approved:false};
+  me.email=user.email;
   // 기본값 불승인: approved 가 명시적으로 true 가 아니면(미설정·null·false) 승인 대기
   if(me.approved!==true){
     document.getElementById('pendingWho').textContent=(me.name||'')+(me.member_type?' · '+me.member_type:'');
@@ -720,13 +868,17 @@ function renderRoomList(){
   const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week');
   const listRooms=orderedRooms(); // 고정(핀) 우선 + 나머지는 최근 메시지순
   const ubadge=id=>{const u=unreadByRoom[id]||0;return u>0?`<span class="unread">${u>99?'99+':u}</span>`:'';};
-  const item=r=>{const c=CAT[r.category]||CAT.custom;const lm=lastMsgByRoom[r.id];
-    const prev=lm?esc(msgPreview(lm)):(r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'');
+  const item=r=>{const isDM=r.category==='direct';const other=isDM?dmOther(r):null;
+    const c=isDM?{l:'1:1',c:'#7a8a99'}:(CAT[r.category]||CAT.custom);const lm=lastMsgByRoom[r.id];
+    const prev=lm?esc(msgPreview(lm)):(isDM?(other?esc(other.member_type||''):''):(r.post_policy==='restricted'?'공지 · 관리자/지정작성자':''));
     const time=lm?fmtListTime(lm.created_at):'';
+    const avStyle=isDM?personAvatarStyle(other):roomAvatarStyle(r);
+    const avText=isDM?((other&&other.avatar_url)?'':ini(other&&other.name)):(r.icon_url?'':esc(r.name));
+    const nm=isDM?((other||{}).name||'(알 수 없음)'):r.name;
     return `<div class="room" onclick="openRoom('${r.id}')">
-    <div class="av" style="${roomAvatarStyle(r)}">${r.icon_url?'':esc(r.name)}</div>
+    <div class="av" style="${avStyle}">${avText}</div>
     <div class="room-mid"><div class="room-top"><span class="catdot" style="background:${c.c}">${c.l}</span>
-    <span class="room-name">${esc(r.name)}</span></div>
+    <span class="room-name">${esc(nm)}</span></div>
     <div class="room-msg">${prev}</div></div>
     <div class="room-right"><div class="room-time">${time}</div>${ubadge(r.id)}</div></div>`;};
   // 관리자 진입: 헤더(설정 옆) 버튼 — admin='가입승인' / superadmin='관리자모드'
@@ -761,13 +913,17 @@ function renderAdmin(){
     adminTab==='members'?renderMembers() : adminTab==='rooms'?renderRoomsAdmin() : renderApproval();
 }
 function adminAvatar(p){
-  return `<div class="av" style="width:38px;height:38px;border-radius:11px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${esc((p.name||'?').slice(0,3))}</div>`;
+  const st=p.avatar_url
+    ? `background-image:url('${esc(p.avatar_url)}');background-size:cover;background-position:center`
+    : `background:${p.color||'var(--accent)'}`;
+  return `<div class="av" style="width:40px;height:40px;border-radius:12px;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;${st}">${p.avatar_url?'':esc((p.name||'?').slice(0,3))}</div>`;
 }
 function adminRow(p,right,sub){
   return `<div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:12px;margin-bottom:9px">
     ${adminAvatar(p)}
     <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(p.name||'?')}</div>
-    <div style="color:var(--sub);font-size:11.5px">${esc(sub||p.member_type||'')}</div></div>${right||''}</div>`;
+    <div style="color:var(--sub);font-size:11.5px">${esc(sub||p.member_type||'')}</div>
+    ${p.intro?`<div style="color:var(--sub);font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.intro)}</div>`:''}</div>${right||''}</div>`;
 }
 function renderApproval(){
   const pend=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&!p.withdrawn&&p.approved!==true)
@@ -778,15 +934,27 @@ function renderApproval(){
     `<button onclick="approveUser('${p.id}')" style="background:var(--work);color:#fff;border:none;border-radius:14px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">승인</button>`,
     `${p.member_type||''} · 대기`)).join('');
 }
+let memAdminSort='name';
+function memAdminSortGo(s){ memAdminSort=s; renderAdmin(); }
+function memberMgmtRow(p){const isAd=p.role==='admin';
+  const roleBtn=`<button onclick="setRole('${p.id}','${isAd?'user':'admin'}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;${isAd?'background:var(--accent);color:#fff':'background:var(--bg);color:var(--accent)'}">${isAd?'관리자 ✓':'관리자 지정'}</button>`;
+  const deact=`<button onclick="adminDeactivate('${p.id}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(192,69,47,.12);color:var(--admin);margin-left:6px">계정 비활성화</button>`;
+  return adminRow(p, roleBtn+deact, `${p.member_type||''} · ${isAd?'관리자':'회원'}`);
+}
 function renderMembers(){
-  const mem=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&!p.withdrawn&&p.approved===true)
-    .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const mem=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&!p.withdrawn&&p.approved===true);
   let h=`<p style="color:var(--sub);font-size:12px;margin-bottom:10px">관리자 지위 지정 / 계정 비활성화. (전체관리자 제외)</p>`;
-  h+= mem.length ? mem.map(p=>{const isAd=p.role==='admin';
-    const roleBtn=`<button onclick="setRole('${p.id}','${isAd?'user':'admin'}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;${isAd?'background:var(--accent);color:#fff':'background:var(--bg);color:var(--accent)'}">${isAd?'관리자 ✓':'관리자 지정'}</button>`;
-    const deact=`<button onclick="adminDeactivate('${p.id}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(192,69,47,.12);color:var(--admin);margin-left:6px">계정 비활성화</button>`;
-    return adminRow(p, roleBtn+deact, `${p.member_type||''} · ${isAd?'관리자':'회원'}`);
-  }).join('') : `<p style="color:var(--sub);font-size:13px">승인된 회원이 없습니다.</p>`;
+  h+=`<div style="display:flex;gap:7px;margin-bottom:12px">
+    <button class="sortbtn ${memAdminSort==='name'?'on':''}" onclick="memAdminSortGo('name')">이름순</button>
+    <button class="sortbtn ${memAdminSort==='type'?'on':''}" onclick="memAdminSortGo('type')">직종별</button></div>`;
+  if(!mem.length){ h+=`<p style="color:var(--sub);font-size:13px">승인된 회원이 없습니다.</p>`; }
+  else if(memAdminSort==='type'){
+    const groups={}; mem.forEach(p=>{const t=p.member_type||'기타';(groups[t]=groups[t]||[]).push(p);});
+    const order=MTYPE_ORDER.filter(t=>groups[t]).concat(Object.keys(groups).filter(t=>!MTYPE_ORDER.includes(t)));
+    h+=order.map(t=>`<div class="lbl" style="margin-top:8px">${esc(t)} · ${groups[t].length}명</div>`+groups[t].sort(byName).map(memberMgmtRow).join('')).join('');
+  } else {
+    h+=mem.sort(byName).map(memberMgmtRow).join('');
+  }
   // 비활성(탈퇴) 회원 — 복구
   const wd=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&p.withdrawn)
     .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
@@ -799,9 +967,10 @@ function renderMembers(){
   return h;
 }
 function renderRoomsAdmin(){
-  if(!rooms.length) return `<p style="color:var(--sub);font-size:13px">방이 없습니다.</p>`;
+  const adminRooms=rooms.filter(r=>r.category!=='direct'); // DM 은 관리 목록에서 제외
+  if(!adminRooms.length) return `<p style="color:var(--sub);font-size:13px">방이 없습니다.</p>`;
   let h=`<p style="color:var(--sub);font-size:12px;margin-bottom:10px">방을 눌러 구성원을 편집하거나 삭제하세요.</p>`;
-  return h+rooms.map(r=>{const c=CAT[r.category]||CAT.custom;
+  return h+adminRooms.map(r=>{const c=CAT[r.category]||CAT.custom;
     return `<div onclick="adminManageRoom('${r.id}')" style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer">
       <div class="av" style="width:40px;height:40px;border-radius:12px;color:#fff;display:flex;align-items:center;justify-content:center;${roomAvatarStyle(r)}">${r.icon_url?'':esc(r.name)}</div>
       <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(r.name)}</div>
@@ -841,20 +1010,21 @@ const canRename=r=>isAdmin()||(!!r.created_by&&r.created_by===me.id);
 const canManage=r=>isAdmin()||(r.category==='custom'&&(!!r.created_by&&r.created_by===me.id));
 async function openRoom(id){
   active=rooms.find(r=>r.id===id);
-  document.getElementById('roomTitle').textContent=active.name;
-  document.getElementById('renameBtn').style.display=canRename(active)?'':'none';
-  document.getElementById('settingsBtn').style.display=canManage(active)?'':'none';
-  // 본인이 만들지 않은 모임방: 나가기
-  document.getElementById('leaveBtn').style.display=(active.category==='custom'&&!canManage(active))?'':'none';
+  const isDM=active.category==='direct';
+  document.getElementById('roomTitle').textContent=roomDisplayName(active);
+  document.getElementById('renameBtn').style.display=(!isDM&&canRename(active))?'':'none';
+  document.getElementById('settingsBtn').style.display=(!isDM&&canManage(active))?'':'none';
+  // 본인이 만들지 않은 모임방: 나가기 (DM 은 표시 안 함)
+  document.getElementById('leaveBtn').style.display=(!isDM&&active.category==='custom'&&!canManage(active))?'':'none';
   calMode=active.default_view==='week'?'week':'month';
   selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
-  // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
-  const isDefault=active.category!=='custom';
+  // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)·DM(direct)은 채팅만.
+  const isDefault=active.category!=='custom'&&!isDM;
   document.querySelector('.tab[data-t="files"]').style.display=isDefault?'':'none';
   document.querySelector('.tab[data-t="cal"]').style.display=isDefault?'':'none';
-  // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시
+  // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시. DM 은 상대 이름.
   const creatorName=active.created_by?(profilesById[active.created_by]||{}).name:null;
-  document.getElementById('chatTab').textContent=(active.category==='custom'&&creatorName)?('개설자: '+creatorName):'💬 채팅';
+  document.getElementById('chatTab').textContent=isDM?('💬 '+roomDisplayName(active)):((active.category==='custom'&&creatorName)?('개설자: '+creatorName):'💬 채팅');
   show('roomScreen');
   const rs=document.getElementById('roomScreen');         // 오른쪽→왼쪽 펼침 효과
   rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');

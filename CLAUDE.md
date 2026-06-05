@@ -120,6 +120,12 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 25. `protect_superadmin_password.sql` — **전체관리자 비밀번호 변경 금지**: auth.users BEFORE UPDATE 트리거로
     superadmin(jsnoh@ajou.ac.kr)의 비밀번호(encrypted_password) 변경 시도를 차단(재설정·updateUser 모두).
     웹 로그인 화면의 '비밀번호 재설정'도 superadmin 이메일은 거부(클라이언트 1차 + 트리거 서버측 방어).
+26. `profile_edit.sql` — **내정보 변경**: `profiles.avatar_url`·`color` 컬럼 + `moim_update_my_profile(intro,avatar_url,color)`
+    (본인 안전 컬럼만 갱신). 설정 ⚙️ → **내 정보** 탭의 자기소개·아바타(사진/색) 저장에 사용. 이름·이메일은 읽기전용,
+    비밀번호는 `auth.updateUser`(superadmin 차단).
+27. `direct_messages.sql` — **1:1 다이렉트 채팅(카톡 DM식)**: `rooms.dm_key`(쌍 유일) + `category='direct'` +
+    방 가시성 재정의(DM 은 당사자만) + `moim_open_direct(uuid)`(없으면 생성·양쪽 멤버십 보정 후 방 id 반환).
+    설정 ⚙️ → **회원 검색**의 '메시지'에서 사용. 표시 이름·아바타는 dm_key 로 상대 프로필 계산.
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 회원 8명(직군별). 운영 전 정리.
 

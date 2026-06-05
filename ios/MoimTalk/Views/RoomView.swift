@@ -12,10 +12,6 @@ struct RoomView: View {
     @State private var showRename = false
     @State private var renameText = ""
     @State private var showSettings = false
-    // 카톡식 + 첨부
-    @State private var pickPhoto = false
-    @State private var pickFile = false
-    @State private var photoItem: PhotosPickerItem?
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
@@ -111,6 +107,9 @@ struct ChatView: View {
     @ObservedObject var vm: MoimViewModel
     let canPost: Bool
     @Binding var input: String
+    @State private var pickPhoto = false
+    @State private var pickFile = false
+    @State private var photoItem: PhotosPickerItem?
 
     var body: some View {
         ScrollViewReader { proxy in

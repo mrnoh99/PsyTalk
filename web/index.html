@@ -32,6 +32,11 @@
   .list{flex:1;overflow-y:auto;padding-bottom:10px}
   .banner{display:flex;align-items:center;gap:12px;margin:10px 14px;padding:14px 16px;border-radius:14px;background:var(--orange);color:#fff;cursor:pointer}
   .banner b{font-size:16px}.banner small{display:block;font-size:11.5px;color:#ffe9d6}
+  /* 주간 학술활동 고정 바 (잔여 병실 현황 아래, 다른 색) */
+  .wkbar{display:flex;align-items:center;gap:12px;margin:0 14px 10px;padding:14px 16px;border-radius:14px;background:#4a6fa5;color:#fff;cursor:pointer}
+  .wkbar b{font-size:16px}.wkbar small{display:block;font-size:11.5px;color:#dde6f3}
+  .mkrow{padding:2px 14px 10px;text-align:right}
+  .mkbtn{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--accent);cursor:pointer}
   .sechead{font-size:11px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;
     padding:16px 18px 8px;display:flex;justify-content:space-between;align-items:center}
   .sechead button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer}
@@ -164,8 +169,6 @@
   <section id="listScreen" class="hidden app-screen">
     <div class="hdr"><h1>아주 정신</h1><span class="badge" id="badge"></span>
       <span class="spacer"></span><button class="lk" onclick="doLogout()">로그아웃</button></div>
-    <div class="viewbar"><span style="font-size:11px;color:var(--sub);font-weight:700">👁</span>
-      <span class="vchip" id="meChip"></span></div>
     <div class="list" id="roomList"></div>
   </section>
 
@@ -388,8 +391,9 @@ async function loadRooms(){
 function renderRoomList(){
   document.getElementById('badge').textContent=
     me.role==='superadmin'?'전체관리자':me.role==='admin'?'관리자':(me.name+' · '+(me.member_type||''));
-  document.getElementById('meChip').innerHTML=`<span class="vd" style="background:${tcolor(me.member_type)}">${(me.member_type||'?')[0]}</span>${esc(me.name)}`;
-  const def=rooms.filter(r=>r.category!=='custom'),cus=rooms.filter(r=>r.category==='custom');
+  // 주간 학술활동 방(default_view=week)은 목록에서 빼고 별도 바로 고정
+  const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week');
+  const listRooms=rooms.filter(r=>r!==week); // 전체방(첫번째) + 모임방, sort_order 순
   const item=r=>{const c=CAT[r.category]||CAT.custom;return `<div class="room" onclick="openRoom('${r.id}')">
     <div class="av" style="background:${c.c};font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word">${esc(r.name)}</div>
     <div class="room-mid"><div class="room-top"><span class="catdot" style="background:${c.c}">${c.l}</span>
@@ -397,9 +401,10 @@ function renderRoomList(){
     <div class="room-msg">${r.post_policy==='restricted'?'공지 · 관리자/지정작성자':'멤버 누구나'}</div></div></div>`;};
   let h=`<div class="banner" onclick="openWard()"><span style="font-size:20px">🛏</span>
     <div style="flex:1"><b>잔여 병실 현황</b><small>남 · 여 잔여 병상 보기</small></div><span>›</span></div>`;
-  if(def.length){h+=`<div class="sechead">📌 기본 방</div>`+def.map(item).join('');}
-  h+=`<div class="sechead">👥 모임 방<button onclick="event.stopPropagation();openCreate()">＋ 만들기</button></div>`;
-  h+=cus.length?cus.map(item).join(''):`<div style="padding:14px 18px;color:var(--sub);font-size:13px">아직 모임방이 없습니다. ＋만들기로 추가하세요.</div>`;
+  if(week)h+=`<div class="wkbar" onclick="openRoom('${week.id}')"><span style="font-size:20px">📅</span>
+    <div style="flex:1"><b>${esc(week.name)}</b><small>주간 학술활동 · 일정 보기</small></div><span>›</span></div>`;
+  h+=`<div class="mkrow"><button class="mkbtn" onclick="openCreate()">＋ 모임방 만들기</button></div>`;
+  h+=listRooms.length?listRooms.map(item).join(''):`<div style="padding:14px 18px;color:var(--sub);font-size:13px">방이 없습니다.</div>`;
   document.getElementById('roomList').innerHTML=h;
 }
 

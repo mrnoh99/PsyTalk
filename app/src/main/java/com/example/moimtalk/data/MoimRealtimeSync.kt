@@ -128,7 +128,7 @@ object MoimRealtimeSync {
             runCatching { supabase.realtime.connect() }
             val ch = supabase.channel("moim-room-$roomId")
             val flows = listOf("messages", "calendar_events", "room_files").map { table ->
-                ch.postgresChangeFlow<PostgresAction>(schema = "public") {
+                table to ch.postgresChangeFlow<PostgresAction>(schema = "public") {
                     this.table = table
                     filter("room_id", FilterOperator.EQ, roomId)
                 }
@@ -136,9 +136,15 @@ object MoimRealtimeSync {
             ch.subscribe(blockUntilSubscribed = true)
             roomChannel = ch
             roomJobs.clear()
-            flows.forEach { flow ->
+            val (table, flow) = flows[0]
+            if (table == "messages") {
                 roomJobs.add(
-                    flow.onEach { scheduleRoom(scope, roomId, listener) }.launchIn(this),
+                    flow.onEach { listener(roomId) }.launchIn(this),
+                )
+            }
+            flows.drop(1).forEach { (_, f) ->
+                roomJobs.add(
+                    f.onEach { scheduleRoom(scope, roomId, listener) }.launchIn(this),
                 )
             }
             watchRoomChannelStatus(scope, ch, roomId)

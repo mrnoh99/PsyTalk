@@ -990,8 +990,10 @@ fun MessageBubble(
             }
             val uriHandler = LocalUriHandler.current
             val path = m.attachmentUrl
-            // path → 서명 URL (방 구성원만 발급됨). 아직 미해석이면 null.
-            val resolved = path?.let { attachUrl(it) }
+            // 공개 URL(http)은 즉시 표시, 과거 path 는 서명 URL 캐시 사용
+            val resolved = path?.let { p ->
+                attachUrl(p) ?: if (p.startsWith("http")) p else null
+            }
             when {
                 m.type == "image" && path != null -> AsyncImage(
                     model = resolved,

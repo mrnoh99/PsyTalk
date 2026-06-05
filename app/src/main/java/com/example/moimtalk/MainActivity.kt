@@ -108,12 +108,13 @@ class MoimViewModel : ViewModel() {
         roomPollJob = null
     }
 
-    /** Realtime 보조 — 열린 방 메시지·일정·자료 5초 폴링 (WS 누락 방지) */
+    /** Realtime 보조 — 열린 방 메시지·일정·자료 3초 폴링 (WS 누락 방지) */
     private fun startMessagePolling() {
         messagePollJob?.cancel()
         messagePollJob = viewModelScope.launch {
+            activeRoom?.let { refreshActiveRoom(it) }
             while (isActive) {
-                delay(5_000)
+                delay(3_000)
                 activeRoom?.let { refreshActiveRoom(it) }
             }
         }
@@ -127,7 +128,17 @@ class MoimViewModel : ViewModel() {
     /** 앱이 다시 보일 때(웹 등 다른 클라이언트 변경 반영) */
     fun refreshOnForeground() {
         if (!loggedIn) return
-        loadRooms()
+        viewModelScope.launch {
+            try {
+                MoimRepository.ensureAuthReady()
+                if (MoimRepository.currentUserId() == null) return@launch
+                refetchRoomsQuiet()
+                reloadProfiles()
+                activeRoom?.let { refreshActiveRoom(it) }
+            } catch (_: Exception) {
+                // 사진·파일 선택기 복귀 등 일시적 네트워크/세션 지연 — 조용히 무시
+            }
+        }
         ensureRealtime()
     }
 
@@ -149,6 +160,7 @@ class MoimViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 messages = MoimRepository.messages(roomId)
+                resolveAttachments()
             } catch (_: Exception) {
             }
             loadRoomData(roomId)
@@ -225,6 +237,8 @@ class MoimViewModel : ViewModel() {
     fun loadRooms() {
         viewModelScope.launch {
             try {
+                MoimRepository.ensureAuthReady()
+                if (MoimRepository.currentUserId() == null) return@launch
                 myProfile = MoimRepository.myProfile()
                 rooms = MoimRepository.rooms()
                 loadRoomMemberCounts()
@@ -624,6 +638,14 @@ fun App(vm: MoimViewModel = viewModel()) {
             vm.startRoomListPolling()
         } else {
             vm.stopRoomListPolling()
+        }
+    }
+
+    // cold start: 저장된 세션을 불러온 뒤 자동 로그인
+    LaunchedEffect(Unit) {
+        MoimRepository.ensureAuthReady()
+        if (!vm.loggedIn && MoimRepository.currentUserId() != null) {
+            vm.loggedIn = true
         }
     }
 

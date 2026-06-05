@@ -12,9 +12,12 @@ internal fun friendlySupabaseError(e: Exception, context: String): String {
 
     return when {
         msg.contains("INTERNET permission", ignoreCase = true) ||
-            msg.contains("missing INTERNET", ignoreCase = true) ->
-            "$context 실패: 앱에 인터넷 권한이 없습니다.\n" +
-                "AndroidManifest.xml 에 INTERNET 권한을 추가한 뒤 앱을 다시 설치하세요."
+            msg.contains("missing INTERNET", ignoreCase = true) ||
+            (msg.contains("Permission denied", ignoreCase = true) &&
+                msg.contains("INTERNET", ignoreCase = true)) ->
+            "$context 실패: 네트워크 연결을 확인하세요.\n" +
+                "Wi‑Fi/데이터가 켜져 있는지 확인한 뒤 다시 시도하세요.\n" +
+                "상세: $msg"
 
         msg.contains("42501") ||
             msg.contains("new row violates row-level security", ignoreCase = true) ||

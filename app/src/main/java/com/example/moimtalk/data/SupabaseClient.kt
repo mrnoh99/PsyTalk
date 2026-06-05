@@ -19,7 +19,10 @@ val supabase = createSupabaseClient(
     supabaseUrl = SUPABASE_URL,
     supabaseKey = SUPABASE_KEY
 ) {
-    install(Auth)
+    install(Auth) {
+        // 사진·파일 선택기 등 외부 앱 전환 시 세션을 Initializing 으로 리셋하지 않음
+        enableLifecycleCallbacks = false
+    }
     install(Postgrest)
     install(Realtime)
     install(Storage)

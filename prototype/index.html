@@ -216,7 +216,7 @@
       <div class="inputbar" id="inputbar">
         <button class="xbtn" id="xbtn" onclick="openXpost()">📤 방선택</button>
         <div class="inwrap"><input id="msgInput" placeholder="메시지 입력" autocomplete="off"
-          onkeydown="if(event.key==='Enter')sendMsg()"></div>
+          onkeydown="onMsgKeydown(event)"></div>
         <button class="send" onclick="sendMsg()">➤</button></div>
       <div class="readonly" id="readonlyBar">🔒 공지 전용 방 · 관리자와 지정 작성자만 글을 쓸 수 있어요</div>
     </div>
@@ -431,6 +431,12 @@ function toggleX(id){xpostSel.has(id)?xpostSel.delete(id):xpostSel.add(id);
 function confirmXpost(){document.getElementById('xmodal').classList.remove('on');
   document.getElementById('xbtn').classList.toggle('act',xpostSel.size>0);
   document.getElementById('xbtn').textContent=xpostSel.size?`📤 +${xpostSel.size}방`:'📤 방선택';}
+function onMsgKeydown(e){
+  if(e.key!=='Enter')return;
+  if(e.isComposing||e.keyCode===229)return;
+  e.preventDefault();
+  sendMsg();
+}
 function sendMsg(){
   const i=document.getElementById('msgInput'),t=i.value.trim();if(!t)return;
   const n=new Date(),time='오후 '+((n.getHours()%12)||12)+':'+String(n.getMinutes()).padStart(2,'0');

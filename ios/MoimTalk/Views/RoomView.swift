@@ -129,7 +129,9 @@ struct ChatView: View {
                         ForEach(vm.messages) { m in
                             MessageBubble(
                                 message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
-                                attachUrl: m.attachmentUrl.flatMap { vm.attachmentUrls[$0] },
+                                attachUrl: m.attachmentUrl.flatMap { url in
+                                    vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
+                                },
                                 onDelete: { deleteTarget = m }
                             )
                             .id(m.id)

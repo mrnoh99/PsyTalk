@@ -15,7 +15,9 @@ final class MoimRealtimeSync {
     private var roomListDebounce: Task<Void, Never>?
     private var profilesDebounce: Task<Void, Never>?
     private var roomDebounce: Task<Void, Never>?
+    private var roomStatusTask: Task<Void, Never>?
     private var statusTask: Task<Void, Never>?
+    private var activeRoomId: String?
     private var onRooms: (() async -> Void)?
     private var onRoomMembers: (() async -> Void)?
     private var onProfiles: (() async -> Void)?
@@ -53,9 +55,15 @@ final class MoimRealtimeSync {
 
         // 구독 직후 1회 동기화
         await scheduleRoomListRefresh(immediate: true)
+
+        // bindRealtime() 재호출 시 열린 방 Realtime 재구독 (Android ensureRealtime 과 동일)
+        if let id = activeRoomId {
+            await setActiveRoom(id)
+        }
     }
 
     func setActiveRoom(_ roomId: String?) async {
+        activeRoomId = roomId
         await stopRoomChannel()
         guard let roomId, let onRoomData else { return }
 
@@ -66,8 +74,22 @@ final class MoimRealtimeSync {
         let fileStream = channel.postgresChange(AnyAction.self, schema: "public", table: "room_files", filter: filter)
         try? await channel.subscribeWithError()
         roomChannel = channel
-        for stream in [msgStream, calStream, fileStream] {
-            roomTasks.append(listen(stream) { await self.scheduleRoom(roomId, onRoomData) })
+        // messages: 즉시 갱신 (debounce 없음 — 다른 기기·웹 사진/메시지 누락 방지)
+        roomTasks.append(listen(msgStream) { await onRoomData(roomId) })
+        roomTasks.append(listen(calStream) { await self.scheduleRoom(roomId, onRoomData) })
+        roomTasks.append(listen(fileStream) { await self.scheduleRoom(roomId, onRoomData) })
+        watchRoomChannelStatus(channel, roomId: roomId)
+    }
+
+    private func watchRoomChannelStatus(_ channel: RealtimeChannelV2, roomId: String) {
+        roomStatusTask?.cancel()
+        roomStatusTask = Task {
+            for await status in channel.statusChange {
+                if status == .subscribed { continue }
+                try? await Task.sleep(nanoseconds: reconnectNs)
+                guard !Task.isCancelled, activeRoomId == roomId else { return }
+                await setActiveRoom(roomId)
+            }
         }
     }
 
@@ -106,6 +128,8 @@ final class MoimRealtimeSync {
     }
 
     private func stopRoomChannel() async {
+        roomStatusTask?.cancel()
+        roomStatusTask = nil
         roomTasks.forEach { $0.cancel() }
         roomTasks.removeAll()
         roomDebounce?.cancel()

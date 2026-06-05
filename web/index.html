@@ -188,7 +188,7 @@
       <div class="inputbar" id="inputbar">
         <div class="attpreview hidden" id="attachPreview"></div>
         <button class="plus" id="plusBtn" onclick="toggleAttachMenu(event)">＋</button>
-        <input id="msgInput" placeholder="메시지 입력" onkeydown="if(event.key==='Enter')sendMsg()" onfocus="scrollMsgsToBottom()">
+        <input id="msgInput" placeholder="메시지 입력" onkeydown="onMsgKeydown(event)" onfocus="scrollMsgsToBottom()">
         <button class="send" onclick="sendMsg()">➤</button>
         <input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="onAttachPicked(this,'image')">
         <input type="file" id="chatFileInput" style="display:none" onchange="onAttachPicked(this,'file')">
@@ -555,6 +555,13 @@ if(window.visualViewport){
   window.visualViewport.addEventListener('resize',()=>{layoutChat();if(document.activeElement===document.getElementById('msgInput'))scrollMsgsToBottom();});
 }
 // 보내기(➤): 첨부가 대기 중이면 첨부를 보내고, 텍스트가 있으면 텍스트도 보낸다
+/** 한글 IME 조합 중 Enter 는 전송하지 않음 (마지막 글자만 먼저 나가는 버그 방지) */
+function onMsgKeydown(e){
+  if(e.key!=='Enter')return;
+  if(e.isComposing||e.keyCode===229)return;
+  e.preventDefault();
+  sendMsg();
+}
 async function sendMsg(){
   if(pendingAttach){const ok=await sendPendingAttach();if(!ok)return;}
   const i=document.getElementById('msgInput'),t=i.value.trim();

@@ -42,6 +42,7 @@ final class MoimViewModel: ObservableObject {
     }
 
     private var activeRoom: String?
+    private var messagePollTask: Task<Void, Never>?
     init() {
         if MoimRepository.currentUserId() != nil {
             bindRealtime()
@@ -50,22 +51,27 @@ final class MoimViewModel: ObservableObject {
 
     /// Realtime 구독 (이미 연결 중이면 재구독)
     private func bindRealtime() {
-        Task {
-            await MoimRealtimeSync.shared.start(
-                onRooms: { await self.loadRoomsFromRealtime() },
-                onRoomMembers: { await self.onRoomMembersChangedOnly() },
-                onProfiles: { await self.loadProfilesFromRealtime() },
-                onWard: { await self.loadWardStatusFromRealtime() },
-                onRoomData: { await self.refreshActiveRoom($0) }
-            )
-        }
+        Task { await rebindRealtime() }
+    }
+
+    private func rebindRealtime() async {
+        await MoimRealtimeSync.shared.start(
+            onRooms: { await self.loadRoomsFromRealtime() },
+            onRoomMembers: { await self.onRoomMembersChangedOnly() },
+            onProfiles: { await self.loadProfilesFromRealtime() },
+            onWard: { await self.loadWardStatusFromRealtime() },
+            onRoomData: { await self.refreshActiveRoom($0) }
+        )
     }
 
     /// 앱 복귀·다른 클라이언트 변경 반영
     func refreshOnForeground() {
         guard loggedIn else { return }
         loadRooms()
-        bindRealtime()
+        Task {
+            await rebindRealtime()
+            if let rid = activeRoom { await refreshActiveRoom(rid) }
+        }
     }
 
     private func loadRoomsFromRealtime() async {
@@ -96,6 +102,27 @@ final class MoimViewModel: ObservableObject {
         guard activeRoom == roomId else { return }
         do { messages = try await MoimRepository.messages(roomId: roomId) } catch { }
         await loadRoomData(roomId)
+        resolveAttachments()
+    }
+
+    /// Realtime 보조 — 열린 방 메시지·일정·자료 3초 폴링 (WS 누락 방지, Android 와 동일)
+    private func startMessagePolling() {
+        messagePollTask?.cancel()
+        messagePollTask = Task {
+            if let rid = activeRoom {
+                await refreshActiveRoom(rid)
+            }
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                guard !Task.isCancelled, let rid = activeRoom else { return }
+                await refreshActiveRoom(rid)
+            }
+        }
+    }
+
+    private func stopMessagePolling() {
+        messagePollTask?.cancel()
+        messagePollTask = nil
     }
 
     func login(email: String, password: String) {
@@ -117,6 +144,7 @@ final class MoimViewModel: ObservableObject {
     }
 
     func logout() {
+        stopMessagePolling()
         Task {
             await MoimRealtimeSync.shared.stop()
             try? await MoimRepository.signOut()
@@ -148,6 +176,8 @@ final class MoimViewModel: ObservableObject {
             do { messages = try await MoimRepository.messages(roomId: room.id) }
             catch { self.error = "메시지 불러오기: \(error.localizedDescription)" }
             await loadRoomData(room.id)
+            resolveAttachments()
+            startMessagePolling()
         }
     }
 
@@ -159,6 +189,7 @@ final class MoimViewModel: ObservableObject {
     }
 
     func closeRoom() {
+        stopMessagePolling()
         activeRoom = nil
         Task { await MoimRealtimeSync.shared.setActiveRoom(nil) }
         messages = []; events = []; files = []

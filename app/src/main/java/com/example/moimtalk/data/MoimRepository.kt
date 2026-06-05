@@ -18,6 +18,11 @@ object MoimRepository {
     fun currentUserId(): String? =
         supabase.auth.currentSessionOrNull()?.user?.id
 
+    /** Android: 파일 선택 등으로 백그라운드 복귀 시 세션 재로딩 완료까지 대기 */
+    suspend fun ensureAuthReady() {
+        supabase.auth.awaitInitialization()
+    }
+
     suspend fun signIn(email: String, password: String) {
         supabase.auth.signInWith(Email) {
             this.email = email

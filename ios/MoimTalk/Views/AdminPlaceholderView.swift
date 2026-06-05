@@ -1,30 +1,39 @@
 import SwiftUI
 
 enum AdminConsoleTab: String, CaseIterable {
-    case manage = "방 관리"
     case approval = "가입 승인"
+    case members = "회원 관리"
+    case rooms = "방 관리"
 }
 
 // 관리자 콘솔 (전체관리자) — iPad/Mac·iPhone 공통
 struct AdminPlaceholderView: View {
     @ObservedObject var vm: MoimViewModel
     let onBack: () -> Void
-    var initialTab: AdminConsoleTab = .manage
+    var initialTab: AdminConsoleTab = .approval
 
-    @State private var tab: AdminConsoleTab = .manage
+    @State private var tab: AdminConsoleTab = .approval
     @State private var showRename = false
     @State private var renameText = ""
     @State private var renameTargetId = ""
     @State private var selectedRoom: Room?
+    @State private var deactivateTarget: Profile?
 
+    // 전체관리자=3탭 전부 / 관리자=가입 승인만
+    private var allowedTabs: [AdminConsoleTab] {
+        vm.isSuperAdmin ? AdminConsoleTab.allCases : [.approval]
+    }
+
+    // 회원 관리 명단: 승인됨 + 미탈퇴 (전체관리자 제외)
     private var members: [Profile] {
         vm.profilesById.values
-            .filter { $0.role != "superadmin" }
+            .filter { $0.role != "superadmin" && $0.withdrawn != true && ($0.approved == true) }
             .sorted { $0.name < $1.name }
     }
 
+    // 가입 승인 대기: 미승인 + 미탈퇴 (전체관리자 제외)
     private var pendingCount: Int {
-        vm.profilesById.values.filter { $0.approved == false }.count
+        vm.profilesById.values.filter { $0.role != "superadmin" && $0.withdrawn != true && $0.approved == false }.count
     }
 
     var body: some View {
@@ -37,30 +46,34 @@ struct AdminPlaceholderView: View {
             .padding(.horizontal, 16).padding(.vertical, 12)
             .background(Moim.accent)
 
-            Picker("탭", selection: $tab) {
-                ForEach(AdminConsoleTab.allCases, id: \.self) { t in
-                    if t == .approval && pendingCount > 0 {
-                        Text("\(t.rawValue) (\(pendingCount))").tag(t)
-                    } else {
-                        Text(t.rawValue).tag(t)
+            if allowedTabs.count > 1 {
+                Picker("탭", selection: $tab) {
+                    ForEach(allowedTabs, id: \.self) { t in
+                        if t == .approval && pendingCount > 0 {
+                            Text("\(t.rawValue) (\(pendingCount))").tag(t)
+                        } else {
+                            Text(t.rawValue).tag(t)
+                        }
                     }
                 }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16).padding(.vertical, 10)
+                .background(Moim.paper)
             }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, 16).padding(.vertical, 10)
-            .background(Moim.paper)
 
             ScrollView {
                 Group {
                     switch tab {
-                    case .manage:
+                    case .approval:
+                        SignupApprovalView(vm: vm)
+                    case .members:
+                        membersContent
+                    case .rooms:
                         if let room = selectedRoom {
                             AdminRoomManageView(vm: vm, room: room) { selectedRoom = nil }
                         } else {
-                            manageContent
+                            roomsContent
                         }
-                    case .approval:
-                        SignupApprovalView(vm: vm)
                     }
                 }
                 .padding(16)
@@ -78,18 +91,35 @@ struct AdminPlaceholderView: View {
         } message: {
             Text("새 이름을 입력하세요.")
         }
+        .confirmationDialog(
+            "‘\(deactivateTarget?.name ?? "")’ 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.\n(작성한 글·올린 자료는 그대로 남습니다.)",
+            isPresented: Binding(get: { deactivateTarget != nil }, set: { if !$0 { deactivateTarget = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("계정 비활성화", role: .destructive) {
+                if let p = deactivateTarget { vm.adminDeactivate(p.id) }
+                deactivateTarget = nil
+            }
+            Button("취소", role: .cancel) { deactivateTarget = nil }
+        }
     }
 
     @ViewBuilder
-    private var manageContent: some View {
+    private var membersContent: some View {
         VStack(alignment: .leading, spacing: 13) {
-            card(title: "👥 회원 (직군·역할) · \(members.count)명") {
+            card(title: "👥 회원 관리 · \(members.count)명 · 관리자 지위 지정 / 계정 비활성화") {
                 if members.isEmpty {
-                    Text("회원 정보가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
+                    Text("승인된 회원이 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
                 } else {
                     ForEach(members) { p in memberRow(p) }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var roomsContent: some View {
+        VStack(alignment: .leading, spacing: 13) {
             card(title: "🏠 방 관리 · \(vm.rooms.count)개 · 방을 눌러 구성원 편집") {
                 ForEach(vm.rooms) { r in roomRow(r) }
             }
@@ -148,6 +178,12 @@ struct AdminPlaceholderView: View {
                 .padding(.horizontal, 7).padding(.vertical, 3)
                 .background(role.0).clipShape(Capsule())
             }
+            Button { deactivateTarget = p } label: {
+                Text("계정 비활성화").font(.system(size: 10, weight: .bold)).foregroundColor(Moim.admin)
+                    .padding(.horizontal, 7).padding(.vertical, 3)
+                    .overlay(Capsule().stroke(Moim.admin, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
         }
         .padding(.vertical, 8)
         .overlay(Divider().background(Moim.line.opacity(0.5)), alignment: .bottom)
@@ -172,8 +208,7 @@ struct AdminPlaceholderView: View {
                 Spacer()
                 Text("›").font(.system(size: 18, weight: .bold)).foregroundColor(Moim.sub)
             }
-            .padding(.vertical, 8)
-            .overlay(Divider().background(Moim.line.opacity(0.5)), alignment: .bottom)
+            .padding(.vertical, 10)
         }
         .buttonStyle(.plain)
     }

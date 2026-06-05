@@ -223,6 +223,14 @@
     <div class="wardbody" id="wardBody" style="flex:1;overflow-y:auto"></div>
   </section>
 
+  <!-- ADMIN CONSOLE (관리자: 가입승인 / 회원관리 / 방관리) -->
+  <section id="adminScreen" class="hidden app-screen">
+    <div class="hdr"><button class="back" onclick="show('listScreen')">‹</button>
+      <h1 style="font-size:16px">관리자 콘솔</h1><span class="spacer"></span></div>
+    <div class="tabs" id="adminTabs"></div>
+    <div class="pane on" id="adminBody" style="flex:1;overflow-y:auto;padding:12px"></div>
+  </section>
+
   <!-- CREATE ROOM MODAL -->
   <!-- 방 순서(핀) 설정 -->
   <div class="modal" id="pinmodal"><div class="sheet">
@@ -429,7 +437,7 @@ const isAdmin=()=>me&&(me.role==='superadmin'||me.role==='admin');
 const canEditWard=()=>!!me&&(isAdmin()||['교실','의국','간호사'].includes(me.member_type));
 // 일정 삭제: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 const canDeleteEvent=ev=>!!me&&((ev&&ev.owner_id===me.id)||isAdmin()||['교실','의국','비서','심리실'].includes(me.member_type));
-function show(id){['login','pending','listScreen','roomScreen','wardScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
+function show(id){['login','pending','listScreen','roomScreen','wardScreen','adminScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
 
 /* ====== 로그인 / 회원가입 ====== */
 let signupMode=false, suType='의국';
@@ -480,7 +488,7 @@ async function leaveRoom(){
 }
 // 회원 탈퇴 (본인 데이터·계정 삭제)
 async function deleteAccount(){
-  if(!confirm('정말 탈퇴할까요?\n계정과 내 데이터(보낸 메시지·올린 자료 등)가 삭제되며 되돌릴 수 없습니다.'))return;
+  if(!confirm('정말 탈퇴할까요?\n계정이 비활성화되어 다시 로그인할 수 없으며 모든 방에서 나가집니다.\n(작성한 글·올린 자료는 기록을 위해 그대로 남습니다.)'))return;
   const {error}=await sb.rpc('moim_delete_my_account');
   if(error){alert('탈퇴 실패: '+error.message);return;}
   stopRealtime();await sb.auth.signOut();location.reload();
@@ -526,11 +534,89 @@ function renderRoomList(){
     <div class="room-right"><div class="room-time">${time}</div>${ubadge(r.id)}</div></div>`;};
   let h=`<div class="banner" onclick="openWard()"><span style="font-size:20px">🛏</span>
     <div style="flex:1"><b>잔여 병실 현황</b><small>남 · 여 잔여 병상 보기</small></div><span>›</span></div>`;
+  if(isAdmin()){const pend=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&!p.withdrawn&&p.approved!==true).length;
+    h+=`<div class="adminbar" style="border-radius:14px;margin:0 14px 10px" onclick="openAdmin()"><div class="dot">🛡</div>
+      <div style="flex:1"><b>관리자 콘솔</b><small>${pend>0?'가입 승인 대기 '+pend+'명':'가입 승인 · 회원/방 관리'}</small></div><span>›</span></div>`;}
   if(week)h+=`<div class="wkbar" onclick="openRoom('${week.id}')"><span style="font-size:20px">📅</span>
     <div style="flex:1"><b>${esc(week.name)}</b><small>주간 학술활동 · 일정 보기</small></div>${ubadge(week.id)}<span>›</span></div>`;
   h+=`<div class="mkrow"><button class="mkbtn" onclick="openCreate()">＋ 모임방 만들기</button></div>`;
   h+=listRooms.length?listRooms.map(item).join(''):`<div style="padding:14px 18px;color:var(--sub);font-size:13px">방이 없습니다.</div>`;
   document.getElementById('roomList').innerHTML=h;
+}
+
+/* ====== 관리자 콘솔 (가입승인 / 회원관리 / 방관리) ====== */
+async function reloadProfiles(){
+  const {data}=await sb.from('profiles').select('*');
+  profilesById={};(data||[]).forEach(p=>profilesById[p.id]=p);
+}
+let adminTab='approval';
+function openAdmin(){ if(!isAdmin())return; adminTab='approval'; show('adminScreen'); renderAdminTabs(); renderAdmin(); }
+function renderAdminTabs(){
+  const sup=me.role==='superadmin';
+  const tabs=sup?[['approval','가입 승인'],['members','회원 관리'],['rooms','방 관리']]:[['approval','가입 승인']];
+  document.getElementById('adminTabs').innerHTML=tabs.map(([k,l])=>`<div class="tab ${adminTab===k?'on':''}" onclick="adminGo('${k}')">${l}</div>`).join('');
+}
+function adminGo(k){ adminTab=k; renderAdminTabs(); renderAdmin(); }
+function renderAdmin(){
+  document.getElementById('adminBody').innerHTML =
+    adminTab==='members'?renderMembers() : adminTab==='rooms'?renderRoomsAdmin() : renderApproval();
+}
+function adminAvatar(p){
+  return `<div class="av" style="width:38px;height:38px;border-radius:11px;background:var(--accent);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${esc((p.name||'?').slice(0,3))}</div>`;
+}
+function adminRow(p,right,sub){
+  return `<div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:12px;margin-bottom:9px">
+    ${adminAvatar(p)}
+    <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(p.name||'?')}</div>
+    <div style="color:var(--sub);font-size:11.5px">${esc(sub||p.member_type||'')}</div></div>${right||''}</div>`;
+}
+function renderApproval(){
+  const pend=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&!p.withdrawn&&p.approved!==true)
+    .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  let h=`<p style="color:var(--sub);font-size:12px;margin-bottom:10px">신규 가입자를 ‘승인’하면 바로 이용할 수 있고, 회원 관리 명단으로 이동합니다. (전체관리자 제외)</p>`;
+  if(!pend.length) return h+`<p style="color:var(--sub);font-size:13px">승인 대기 중인 신규 가입자가 없습니다.</p>`;
+  return h+pend.map(p=>adminRow(p,
+    `<button onclick="approveUser('${p.id}')" style="background:var(--work);color:#fff;border:none;border-radius:14px;padding:7px 16px;font-size:12px;font-weight:700;cursor:pointer">승인</button>`,
+    `${p.member_type||''} · 대기`)).join('');
+}
+function renderMembers(){
+  const mem=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&!p.withdrawn&&p.approved===true)
+    .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  let h=`<p style="color:var(--sub);font-size:12px;margin-bottom:10px">관리자 지위 지정 / 계정 비활성화. (전체관리자 제외)</p>`;
+  if(!mem.length) return h+`<p style="color:var(--sub);font-size:13px">승인된 회원이 없습니다.</p>`;
+  return h+mem.map(p=>{const isAd=p.role==='admin';
+    const roleBtn=`<button onclick="setRole('${p.id}','${isAd?'user':'admin'}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;${isAd?'background:var(--accent);color:#fff':'background:var(--bg);color:var(--accent)'}">${isAd?'관리자 ✓':'관리자 지정'}</button>`;
+    const deact=`<button onclick="adminDeactivate('${p.id}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(192,69,47,.12);color:var(--admin);margin-left:6px">계정 비활성화</button>`;
+    return adminRow(p, roleBtn+deact, `${p.member_type||''} · ${isAd?'관리자':'회원'}`);
+  }).join('');
+}
+function renderRoomsAdmin(){
+  if(!rooms.length) return `<p style="color:var(--sub);font-size:13px">방이 없습니다.</p>`;
+  let h=`<p style="color:var(--sub);font-size:12px;margin-bottom:10px">방을 눌러 구성원을 편집하거나 삭제하세요.</p>`;
+  return h+rooms.map(r=>{const c=CAT[r.category]||CAT.custom;
+    return `<div onclick="adminManageRoom('${r.id}')" style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer">
+      <div class="av" style="width:40px;height:40px;border-radius:12px;background:${c.c};color:#fff;font-size:9px;line-height:1.05;text-align:center;padding:2px;display:flex;align-items:center;justify-content:center;word-break:break-word">${esc(r.name)}</div>
+      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(r.name)}</div>
+      <div style="color:var(--sub);font-size:11.5px">${c.l} · ${esc(r.post_policy)}</div></div><span style="color:var(--sub)">›</span></div>`;
+  }).join('');
+}
+function adminManageRoom(id){ active=rooms.find(r=>r.id===id); if(active) openRoomSettings(); }
+async function approveUser(id){
+  const {error}=await sb.rpc('moim_approve_user',{p_user:id});
+  if(error){alert('가입 승인 실패: '+error.message);return;}
+  await reloadProfiles(); renderAdmin();
+}
+async function setRole(id,role){
+  const {error}=await sb.from('profiles').update({role}).eq('id',id);
+  if(error){alert('역할 변경 실패: '+error.message);return;}
+  await reloadProfiles(); renderAdmin();
+}
+async function adminDeactivate(id){
+  const p=profilesById[id]||{};
+  if(!confirm(`'${p.name||'이 회원'}' 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.\n(작성한 글·올린 자료는 그대로 남습니다.)`))return;
+  const {error}=await sb.rpc('moim_admin_withdraw',{p_user:id});
+  if(error){alert('계정 비활성화 실패: '+error.message);return;}
+  await reloadProfiles(); renderAdmin();
 }
 
 /* ====== 방 열기 ====== */
@@ -606,7 +692,7 @@ function renderInviteList(){
   const el=document.getElementById('smInvite');
   // 본인 제외 + 승인된 회원 + 아직 참여 안 한 사람
   const cands=Object.values(profilesById)
-    .filter(p=>p.id!==me.id&&p.approved!==false&&!smMemberIds.includes(p.id))
+    .filter(p=>p.id!==me.id&&p.approved!==false&&!p.withdrawn&&!smMemberIds.includes(p.id))
     .sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   if(!cands.length){el.innerHTML='<p style="color:var(--sub);font-size:13px">초대할 수 있는 회원가 없습니다.</p>';return;}
   el.innerHTML=cands.map(p=>`<div class="evkept"><span>${esc(p.name||'?')} · ${esc(p.member_type||'')}</span>`
@@ -1017,7 +1103,7 @@ async function wardSave(){
 function openCreate(){
   cpick=new Set();document.getElementById('newRoomName').value='';
   // 본인 제외 + 승인된 회원만 (대기 중인 가입자는 방에 추가 불가)
-  const others=Object.values(profilesById).filter(p=>p.id!==me.id&&p.approved!==false).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const others=Object.values(profilesById).filter(p=>p.id!==me.id&&p.approved!==false&&!p.withdrawn).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
   document.getElementById('cpickList').innerHTML=others.length?others.map(p=>`
     <div class="pick" data-id="${p.id}" onclick="toggleC('${p.id}')">
       <div class="av" style="background:${tcolor(p.member_type)}">${ini(p.name)}</div>

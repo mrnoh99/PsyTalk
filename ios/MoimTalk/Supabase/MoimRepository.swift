@@ -61,6 +61,16 @@ enum MoimRepository {
         try await supabase.from("profiles").update(["approved": approved]).eq("id", value: userId).execute()
     }
 
+    /// 가입 승인 (관리자·전체관리자 — RPC). 신규 가입자 approved=true
+    static func approveUser(userId: String) async throws {
+        try await supabase.rpc("moim_approve_user", params: ["p_user": userId]).execute()
+    }
+
+    /// 회원 계정 비활성화 (전체관리자 — RPC). 글·자료는 보존, 로그인·활동 차단
+    static func adminWithdraw(userId: String) async throws {
+        try await supabase.rpc("moim_admin_withdraw", params: ["p_user": userId]).execute()
+    }
+
     /// 모임방 생성 (카톡식): 방 추가 + 참석자(생성자 + 선택 회원) 등록
     @discardableResult
     static func createRoom(name: String, memberIds: [String]) async throws -> String {

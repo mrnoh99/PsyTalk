@@ -9,7 +9,7 @@ struct RoomListView: View {
     @State private var showPinSettings = false
 
     private var pendingApprovalCount: Int {
-        vm.profilesById.values.filter { $0.approved == false }.count
+        vm.profilesById.values.filter { $0.role != "superadmin" && $0.withdrawn != true && $0.approved == false }.count
     }
 
     // 주간 학술활동(default_view=week)은 목록에서 빼고 별도 바로 표시. 나머지는 전체방(첫번째)+모임방 평면 목록.
@@ -46,7 +46,7 @@ struct RoomListView: View {
                     }
                 }
             }
-            if let p = vm.myProfile, isSuperAdmin(p.role) { adminBar(pending: pendingApprovalCount) }
+            if let p = vm.myProfile, isAdminRole(p.role) { adminBar(pending: pendingApprovalCount) }
         }
         .background(Moim.paper.ignoresSafeArea())
     }
@@ -319,7 +319,7 @@ struct PinSettingsView: View {
                 Button("취소", role: .cancel) {}
                 Button("탈퇴", role: .destructive) { dismiss(); vm.deleteAccount() }
             } message: {
-                Text("정말 탈퇴할까요?\n계정과 내 데이터(보낸 메시지·올린 자료 등)가 삭제되며 되돌릴 수 없습니다.")
+                Text("정말 탈퇴할까요?\n계정이 비활성화되어 다시 로그인할 수 없으며 모든 방에서 나가집니다.\n(작성한 글·올린 자료는 기록을 위해 그대로 남습니다.)")
             }
         }
     }

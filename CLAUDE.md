@@ -104,8 +104,11 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 19. `room_pins.sql` — **방 순서 개인 고정**: `room_pins`(user·room·position) + `moim_set_room_pins(uuid[])`.
     방목록 헤더 ⚙️로 최대 5개 고정·**드래그 정렬**, 나머지는 최근 메시지순.
 20. `leave_account.sql` — **방 나가기 + 회원 탈퇴**: `room_members` DELETE 정책에 본인 추가(방 나가기) +
-    `moim_delete_my_account()`(본인 데이터 정리 후 계정 삭제, 전체관리자 불가).
-    방화면 **나가기**(본인이 만들지 않은 모임방) · ⚙️ 설정의 **회원 탈퇴**(+ Android/iOS 로그아웃)에 사용.
+    `moim_delete_my_account()`. 방화면 **나가기**(본인이 만들지 않은 모임방) · ⚙️ 설정의 **회원 탈퇴**에 사용.
+21. `admin_console.sql` — **관리자 콘솔 개편 + '탈퇴=비활성(글·자료 보존)'**:
+    `profiles.withdrawn` 컬럼 + `moim_approve_user`(관리자/전체관리자 승인) +
+    `moim_delete_my_account`/`moim_admin_withdraw`(비활성: 방·고정만 정리, **메시지·자료·일정·이름은 보존**,
+    `auth.users.banned_until` 로 로그인 차단). **leave_account.sql 의 하드삭제를 비활성으로 덮어씀 → 반드시 실행.**
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 회원 8명(직군별). 운영 전 정리.
 
@@ -121,18 +124,21 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 - **리소스 파일명:** `res/drawable` 등은 **소문자·숫자·언더스코어만** (예: `aumc_psy_logo.png`)
 - **현황 표:** 새 기능 추가/구현 시 `docs/아주정신_요구사항.md`의 구현 현황과 `prototype/PARITY.md`를 함께 갱신
 
-## 관리자 콘솔 (관리 프로그램)
-- **iOS(iPad/Mac) 앱에만** 포함. 접근 = **전체관리자(superadmin)만**. `ios/.../AdminPlaceholderView.swift`
-  (iPad 앱이 Apple Silicon Mac에서 실행됨. `project.yml` device family `1,2`)
-- **탭: 방 관리 + 가입 승인**
-- **가입 승인 화면**(iOS 콘솔 탭 + Android `ApprovalScreen`): 미승인 → **승인**, 승인됨 → **퇴출**(=승인 취소).
-  **전체관리자(superadmin)는 목록에서 제외**. 기본 **가나다순**(상태가 바뀌어도 줄 위치 유지) + **직군별 보기** 토글.
-- 회원: **역할 지정**(관리자/회원 **둘만** — 전체관리자는 콘솔에서 지정 불가, 목록에도 미표시) + **이름 편집** 앱에서 직접(SQL 없이).
-  변경 권한은 `admin_roles.sql`(전체관리자만, SECURITY DEFINER `moim_is_superadmin()` + profiles UPDATE 정책).
-- 방 관리: 방을 누르면 **구성원 초대 / 구성원 제거(confirm) / 방 삭제(confirm)**.
-  방 삭제는 **superadmin만**, **기본 방(전체공지·학술활동)은 삭제 불가**.
-- **Android·웹·iOS 폰**: 관리자 콘솔 없음. 단, **각 모임방 ⚙️ 설정**에서 방 생성자(비관리자 포함)가
-  **구성원 초대·제거 + 자신이 만든 방 삭제** 가능. 방 삭제 권한 = 생성자 또는 superadmin (`room_manage.sql`).
+## 관리자 콘솔 (관리 프로그램) — **세 플랫폼 공통, 3분할**
+- 접근: **관리자(admin)·전체관리자(superadmin)**. 방목록의 **🛡 관리자 콘솔** 배너로 진입.
+  - **admin** → **가입 승인 탭만** 보임.
+  - **superadmin** → **가입 승인 · 회원 관리 · 방 관리** 3탭 전부.
+  - 코드: iOS `AdminPlaceholderView`/`SignupApprovalView` · Android `AdminConsoleScreen`(MoimScreens.kt) · 웹 `#adminScreen`.
+- **가입 승인**: **신규 가입자(미승인·미탈퇴)만** 표시. **승인** 버튼 → `moim_approve_user`(관리자도 가능).
+  승인되면 목록에서 빠지고 **회원 관리** 명단으로 이동. 기본 **가나다순** + **직군별 보기** 토글.
+- **회원 관리**(superadmin 전용): **승인된 회원**(미탈퇴) 목록. **관리자 지위 지정/해제**(admin↔user,
+  `profiles` UPDATE = `admin_roles.sql` 전체관리자 전용 정책) + **계정 비활성화**(`moim_admin_withdraw`).
+  iOS는 이름 편집도 가능.
+- **방 관리**(superadmin 전용): 방을 누르면 **구성원 초대 / 제거(confirm) / 방 삭제(confirm)**.
+  방 삭제는 **superadmin만**, **기본 방(전체공지·학술활동)은 삭제 불가**. (방 행 사이 구분선 없음)
+- **계정 비활성화(탈퇴) = 소프트 삭제**: `moim_*` (admin_console.sql) 가 방·고정만 정리하고
+  **메시지·자료·일정·작성자 이름은 보존**, `auth.users.banned_until` 로 로그인 차단. 본인 ⚙️ '회원 탈퇴'도 동일.
+- **각 모임방 ⚙️ 설정**(콘솔과 별개): 방 생성자(비관리자 포함)가 **구성원 초대·제거 + 자신이 만든 방 삭제** 가능 (`room_manage.sql`).
 
 ## 아직 앱에 없는 것 (우선순위 참고)
 멀티 방 게시 · `room_writers`(방 작성자 지정) 연동

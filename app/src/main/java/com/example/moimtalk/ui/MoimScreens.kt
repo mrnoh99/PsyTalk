@@ -243,9 +243,9 @@ private fun ApprovalBanner(pending: Int, onClick: () -> Unit) {
         Text("🛡", fontSize = 18.sp)
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text("가입 승인", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
+            Text("관리자 콘솔", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
             Text(
-                if (pending > 0) "승인 대기 ${pending}명" else "대기 없음",
+                if (pending > 0) "가입 승인 대기 ${pending}명" else "가입 승인 · 회원/방 관리",
                 color = Color(0xFFBDB4AB), fontSize = 11.5.sp
             )
         }
@@ -262,63 +262,121 @@ private fun ApprovalBanner(pending: Int, onClick: () -> Unit) {
     }
 }
 
+// 관리자 콘솔 — 가입승인 / 회원관리 / 방관리. 관리자는 '가입 승인'만, 전체관리자는 전부.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ApprovalScreen(vm: MoimViewModel, onBack: () -> Unit) {
-    var byType by remember { mutableStateOf(false) }  // false=가나다순(기본), true=직군별
+fun AdminConsoleScreen(vm: MoimViewModel, onBack: () -> Unit) {
+    val isSuper = vm.myProfile?.role == "superadmin"
+    val tabs = if (isSuper) listOf("가입 승인", "회원 관리", "방 관리") else listOf("가입 승인")
+    var tab by remember { mutableStateOf(0) }
     val collator = remember { java.text.Collator.getInstance(java.util.Locale.KOREAN) }
-    // 전체관리자(superadmin) 제외 + 기본 가나다순 정렬 → 상태(승인/퇴출)가 바뀌어도 줄 위치 유지
-    val base = vm.profilesById.values.filter { it.role != "superadmin" }
-    val cmp: Comparator<Profile> = if (byType) Comparator { a, b ->
-        val t = collator.compare(a.memberType, b.memberType)
-        if (t != 0) t else collator.compare(a.name, b.name)
-    } else Comparator { a, b -> collator.compare(a.name, b.name) }
-    val members = base.sortedWith(cmp)
+    LaunchedEffect(Unit) { vm.loadRoomMemberCounts() }
+
+    // 방 관리: 방 선택 시 구성원 편집/삭제 다이얼로그
+    var manageRoom by remember { mutableStateOf<Room?>(null) }
+    manageRoom?.let { r ->
+        RoomSettingsDialog(vm = vm, room = r, onDismiss = { manageRoom = null }, onDeleted = { manageRoom = null })
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("가입 승인 / 회원", fontWeight = FontWeight.Bold) },
+                title = { Text("관리자 콘솔", fontWeight = FontWeight.Bold) },
                 navigationIcon = { TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) } },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
             )
         },
         containerColor = MoimPaper
     ) { pad ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(pad)
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            item {
-                Row(modifier = Modifier.padding(bottom = 10.dp)) {
-                    SortChip("가나다순", !byType) { byType = false }
-                    Spacer(Modifier.width(8.dp))
-                    SortChip("직군별", byType) { byType = true }
-                }
-                Text(
-                    "미승인 → ‘승인’, 승인됨 → ‘퇴출’. 줄 순서는 가나다순으로 유지됩니다. (전체관리자 제외)",
-                    fontSize = 12.sp, color = MoimSub
-                )
-                Spacer(Modifier.height(12.dp))
-            }
-            if (members.isEmpty()) {
-                item { Text("회원 정보가 없습니다.", fontSize = 13.sp, color = MoimSub) }
-            } else if (byType) {
-                members.groupBy { it.memberType }.forEach { (type, list) ->
-                    item {
-                        Text(
-                            "$type · ${list.size}", fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                            color = typeColor(type),
-                            modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)
-                        )
+        Column(modifier = Modifier.padding(pad).fillMaxSize()) {
+            if (tabs.size > 1) {
+                Row(modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp)) {
+                    tabs.forEachIndexed { i, t ->
+                        SortChip(t, tab == i) { tab = i }
+                        if (i < tabs.lastIndex) Spacer(Modifier.width(8.dp))
                     }
-                    items(list, key = { it.id }) { p -> ApprovalRow(p, vm) }
                 }
-            } else {
-                items(members, key = { it.id }) { p -> ApprovalRow(p, vm) }
+            }
+            when (tabs[tab]) {
+                "가입 승인" -> ApprovalTab(vm, collator)
+                "회원 관리" -> MemberManageTab(vm, collator)
+                else -> RoomManageTab(vm) { r -> vm.loadRoomMembers(r.id); manageRoom = r }
             }
         }
+    }
+}
+
+@Composable
+private fun ApprovalTab(vm: MoimViewModel, collator: java.text.Collator) {
+    var byType by remember { mutableStateOf(false) }
+    // 신규 가입자(미승인 + 미탈퇴, 전체관리자 제외)
+    val base = vm.profilesById.values.filter { it.role != "superadmin" && !it.withdrawn && !it.approved }
+    val cmp: Comparator<Profile> = if (byType) Comparator { a, b ->
+        val t = collator.compare(a.memberType, b.memberType); if (t != 0) t else collator.compare(a.name, b.name)
+    } else Comparator { a, b -> collator.compare(a.name, b.name) }
+    val members = base.sortedWith(cmp)
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        item {
+            Row(modifier = Modifier.padding(bottom = 10.dp)) {
+                SortChip("가나다순", !byType) { byType = false }
+                Spacer(Modifier.width(8.dp))
+                SortChip("직군별", byType) { byType = true }
+            }
+            Text("신규 가입자를 ‘승인’하면 바로 앱을 이용할 수 있고, 회원 관리 명단으로 이동합니다. (전체관리자 제외)", fontSize = 12.sp, color = MoimSub)
+            Spacer(Modifier.height(12.dp))
+        }
+        if (members.isEmpty()) {
+            item { Text("승인 대기 중인 신규 가입자가 없습니다.", fontSize = 13.sp, color = MoimSub) }
+        } else if (byType) {
+            members.groupBy { it.memberType }.forEach { (type, list) ->
+                item { Text("$type · ${list.size}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = typeColor(type), modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)) }
+                items(list, key = { it.id }) { p -> ApprovalRow(p, vm) }
+            }
+        } else {
+            items(members, key = { it.id }) { p -> ApprovalRow(p, vm) }
+        }
+    }
+}
+
+@Composable
+private fun MemberManageTab(vm: MoimViewModel, collator: java.text.Collator) {
+    var byType by remember { mutableStateOf(false) }
+    // 승인된 회원(미탈퇴, 전체관리자 제외)
+    val base = vm.profilesById.values.filter { it.role != "superadmin" && !it.withdrawn && it.approved }
+    val cmp: Comparator<Profile> = if (byType) Comparator { a, b ->
+        val t = collator.compare(a.memberType, b.memberType); if (t != 0) t else collator.compare(a.name, b.name)
+    } else Comparator { a, b -> collator.compare(a.name, b.name) }
+    val members = base.sortedWith(cmp)
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        item {
+            Row(modifier = Modifier.padding(bottom = 10.dp)) {
+                SortChip("가나다순", !byType) { byType = false }
+                Spacer(Modifier.width(8.dp))
+                SortChip("직군별", byType) { byType = true }
+            }
+            Text("관리자 지위 지정 / 계정 비활성화. (전체관리자 제외)", fontSize = 12.sp, color = MoimSub)
+            Spacer(Modifier.height(12.dp))
+        }
+        if (members.isEmpty()) {
+            item { Text("승인된 회원이 없습니다.", fontSize = 13.sp, color = MoimSub) }
+        } else if (byType) {
+            members.groupBy { it.memberType }.forEach { (type, list) ->
+                item { Text("$type · ${list.size}", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = typeColor(type), modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)) }
+                items(list, key = { it.id }) { p -> MemberManageRow(p, vm) }
+            }
+        } else {
+            items(members, key = { it.id }) { p -> MemberManageRow(p, vm) }
+        }
+    }
+}
+
+@Composable
+private fun RoomManageTab(vm: MoimViewModel, onManage: (Room) -> Unit) {
+    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        item {
+            Text("🏠 방 관리 · ${vm.rooms.size}개 · 방을 눌러 구성원 편집", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MoimSub, modifier = Modifier.padding(bottom = 10.dp))
+        }
+        items(vm.rooms, key = { it.id }) { r -> RoomManageRow(r, vm.roomMemberCounts[r.id] ?: 0, onManage) }
     }
 }
 
@@ -339,37 +397,20 @@ private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
-    // 가입 확인/취소는 한 번 선택 후 confirm 단계를 거친다
     var confirmApprove by remember { mutableStateOf(false) }
-    var confirmRevoke by remember { mutableStateOf(false) }
-
     if (confirmApprove) {
         AlertDialog(
             onDismissRequest = { confirmApprove = false },
             title = { Text("가입 승인") },
             text = { Text("‘${p.name}’ 님의 가입을 승인할까요?\n승인하면 앱을 바로 이용할 수 있습니다.") },
             confirmButton = {
-                TextButton(onClick = { confirmApprove = false; vm.approveUser(p.id, true) }) {
+                TextButton(onClick = { confirmApprove = false; vm.approveUser(p.id) }) {
                     Text("승인", color = catColor("work"), fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = { TextButton(onClick = { confirmApprove = false }) { Text("취소") } }
         )
     }
-    if (confirmRevoke) {
-        AlertDialog(
-            onDismissRequest = { confirmRevoke = false },
-            title = { Text("퇴출") },
-            text = { Text("‘${p.name}’ 님을 퇴출할까요?\n다시 승인 대기 상태가 되어 앱을 이용할 수 없습니다.") },
-            confirmButton = {
-                TextButton(onClick = { confirmRevoke = false; vm.approveUser(p.id, false) }) {
-                    Text("퇴출", color = MoimAdmin, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = { TextButton(onClick = { confirmRevoke = false }) { Text("취소") } }
-        )
-    }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -380,9 +421,7 @@ private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier
-                .size(38.dp)
-                .background(typeColor(p.memberType), RoundedCornerShape(11.dp)),
+            modifier = Modifier.size(38.dp).background(typeColor(p.memberType), RoundedCornerShape(11.dp)),
             contentAlignment = Alignment.Center
         ) {
             Text(p.name.take(3), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -392,38 +431,104 @@ private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
                 Spacer(Modifier.width(6.dp))
-                // 상태 분류: 대기 / 승인됨 (줄은 안 움직이고 칩으로 구분)
-                val stColor = if (p.approved) catColor("work") else MoimAdmin
                 Text(
-                    if (p.approved) "승인됨" else "대기",
-                    color = stColor, fontSize = 9.5.sp, fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(stColor.copy(alpha = 0.12f))
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                    "대기", color = MoimAdmin, fontSize = 9.5.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clip(RoundedCornerShape(20.dp)).background(MoimAdmin.copy(alpha = 0.12f)).padding(horizontal = 6.dp, vertical = 2.dp)
                 )
             }
             Text("${p.memberType} · ${roleLabel(p.role)}", fontSize = 11.5.sp, color = MoimSub)
         }
-        if (!p.approved) {
-            Text(
-                "승인", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable { confirmApprove = true }
-                    .background(catColor("work"))
-                    .padding(horizontal = 16.dp, vertical = 7.dp)
-            )
-        } else {
-            Text(
-                "퇴출", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .clickable { confirmRevoke = true }
-                    .background(MoimAdmin)
-                    .padding(horizontal = 16.dp, vertical = 7.dp)
-            )
+        Text(
+            "승인", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { confirmApprove = true }.background(catColor("work")).padding(horizontal = 16.dp, vertical = 7.dp)
+        )
+    }
+}
+
+// 회원 관리 행 — 관리자 지위 토글 + 계정 비활성화 (전체관리자 전용 화면)
+@Composable
+private fun MemberManageRow(p: Profile, vm: MoimViewModel) {
+    var confirmDeact by remember { mutableStateOf(false) }
+    if (confirmDeact) {
+        AlertDialog(
+            onDismissRequest = { confirmDeact = false },
+            title = { Text("계정 비활성화") },
+            text = { Text("‘${p.name}’ 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.\n(작성한 글·올린 자료는 그대로 남습니다.)") },
+            confirmButton = {
+                TextButton(onClick = { confirmDeact = false; vm.adminDeactivate(p.id) }) {
+                    Text("계정 비활성화", color = MoimAdmin, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = { TextButton(onClick = { confirmDeact = false }) { Text("취소") } }
+        )
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 9.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MoimWhite, RoundedCornerShape(12.dp))
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(38.dp).background(typeColor(p.memberType), RoundedCornerShape(11.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(p.name.take(3), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         }
+        Spacer(Modifier.width(11.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+            Text("${p.memberType} · ${roleLabel(p.role)}", fontSize = 11.5.sp, color = MoimSub)
+        }
+        val isAdmin = p.role == "admin"
+        Text(
+            if (isAdmin) "관리자 ✓" else "관리자 지정",
+            color = if (isAdmin) Color.White else MoimAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .clickable { vm.setRole(p.id, if (isAdmin) "user" else "admin") }
+                .background(if (isAdmin) MoimAccent else MoimBg)
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+        )
+        Spacer(Modifier.width(6.dp))
+        Text(
+            "계정 비활성화", color = MoimAdmin, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .clickable { confirmDeact = true }
+                .background(MoimAdmin.copy(alpha = 0.12f))
+                .padding(horizontal = 10.dp, vertical = 6.dp)
+        )
+    }
+}
+
+// 방 관리 행 — 가운데 구분 바 없이 카드형. 누르면 구성원 편집/삭제
+@Composable
+private fun RoomManageRow(r: Room, count: Int, onManage: (Room) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 9.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MoimWhite, RoundedCornerShape(12.dp))
+            .clickable { onManage(r) }
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier.size(40.dp).background(catColor(r.category), RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(r.name, color = Color.White, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(2.dp))
+        }
+        Spacer(Modifier.width(11.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(r.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+            Text("${catLabel(r.category)} · ${r.postPolicy}" + if (count > 0) " · ${count}명" else "", fontSize = 11.5.sp, color = MoimSub)
+        }
+        Text("›", fontSize = 18.sp, color = MoimSub)
     }
 }
 
@@ -500,7 +605,7 @@ fun RoomListScreen(
             item { WardStatusBanner(onWard) }
             weekRoom?.let { wr -> item { WeekRoomBar(wr, vm.unreadByRoom[wr.id] ?: 0, onOpen) } }
             if (profile != null && isAdminRole(profile.role)) {
-                item { ApprovalBanner(vm.profilesById.values.count { !it.approved }, onApprovals) }
+                item { ApprovalBanner(vm.profilesById.values.count { it.role != "superadmin" && !it.withdrawn && !it.approved }, onApprovals) }
             }
             item { CreateRoomButton(onCreateRoom) }
             if (listRooms.isEmpty()) {
@@ -1217,7 +1322,7 @@ private fun PinSettingsDialog(
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("회원 탈퇴") },
-            text = { Text("정말 탈퇴할까요?\n계정과 내 데이터(보낸 메시지·올린 자료 등)가 삭제되며 되돌릴 수 없습니다.") },
+            text = { Text("정말 탈퇴할까요?\n계정이 비활성화되어 다시 로그인할 수 없으며 모든 방에서 나가집니다.\n(작성한 글·올린 자료는 기록을 위해 그대로 남습니다.)") },
             confirmButton = { TextButton(onClick = { showDelete = false; vm.deleteAccount() }) { Text("탈퇴", color = MoimAdmin) } },
             dismissButton = { TextButton(onClick = { showDelete = false }) { Text("취소") } }
         )

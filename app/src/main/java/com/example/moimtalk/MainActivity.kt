@@ -38,7 +38,7 @@ import com.example.moimtalk.ui.CreateRoomScreen
 import com.example.moimtalk.ui.LoginScreen
 import com.example.moimtalk.ui.RoomListScreen
 import com.example.moimtalk.ui.RoomScreen
-import com.example.moimtalk.ui.ApprovalScreen
+import com.example.moimtalk.ui.AdminConsoleScreen
 import com.example.moimtalk.ui.isAdminRole
 import com.example.moimtalk.ui.PendingApprovalScreen
 import com.example.moimtalk.ui.WardStatusScreen
@@ -455,13 +455,38 @@ class MoimViewModel : ViewModel() {
         }
     }
 
-    fun approveUser(userId: String, approved: Boolean) {
+    /** 가입 승인 (관리자·전체관리자 — RPC) */
+    fun approveUser(userId: String) {
         viewModelScope.launch {
             try {
-                MoimRepository.setApproved(userId, approved)
+                MoimRepository.approveUser(userId)
                 profilesById = MoimRepository.allProfiles().associateBy { it.id }
             } catch (e: Exception) {
-                error = friendlySupabaseError(e, "승인 변경")
+                error = friendlySupabaseError(e, "가입 승인")
+            }
+        }
+    }
+
+    /** 역할 지정 (전체관리자만 — RLS). role: user | admin */
+    fun setRole(userId: String, role: String) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.updateRole(userId, role)
+                profilesById = MoimRepository.allProfiles().associateBy { it.id }
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "역할 변경")
+            }
+        }
+    }
+
+    /** 회원 계정 비활성화 (전체관리자 — RPC). 글·자료 보존 */
+    fun adminDeactivate(userId: String) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.adminWithdraw(userId)
+                profilesById = MoimRepository.allProfiles().associateBy { it.id }
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "계정 비활성화")
             }
         }
     }
@@ -790,7 +815,7 @@ fun App(vm: MoimViewModel = viewModel()) {
         showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
         showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
         showApprovals && vm.myProfile?.let { isAdminRole(it.role) } == true ->
-            ApprovalScreen(vm = vm, onBack = { showApprovals = false })
+            AdminConsoleScreen(vm = vm, onBack = { showApprovals = false })
         openedRoom == null -> RoomListScreen(
             vm = vm,
             onOpen = { room ->

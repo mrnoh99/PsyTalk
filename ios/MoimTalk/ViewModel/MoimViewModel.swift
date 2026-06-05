@@ -546,6 +546,28 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    /// 가입 승인 (관리자·전체관리자 — RPC)
+    func approveUser(_ userId: String) {
+        Task {
+            do {
+                try await MoimRepository.approveUser(userId: userId)
+                let list = try await MoimRepository.allProfiles()
+                profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+            } catch { self.error = "가입 승인: \(error.localizedDescription)" }
+        }
+    }
+
+    /// 회원 계정 비활성화 (전체관리자 — RPC). 글·자료는 보존
+    func adminDeactivate(_ userId: String) {
+        Task {
+            do {
+                try await MoimRepository.adminWithdraw(userId: userId)
+                let list = try await MoimRepository.allProfiles()
+                profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+            } catch { self.error = "계정 비활성화: \(error.localizedDescription)" }
+        }
+    }
+
     func setName(_ userId: String, to name: String) {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }

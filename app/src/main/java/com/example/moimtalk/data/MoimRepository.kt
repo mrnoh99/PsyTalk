@@ -205,6 +205,21 @@ object MoimRepository {
         supabase.from("profiles").update({ set("approved", approved) }) { filter { eq("id", userId) } }
     }
 
+    /** 가입 승인 (관리자·전체관리자 — RPC). 신규 가입자 approved=true */
+    suspend fun approveUser(userId: String) {
+        supabase.postgrest.rpc("moim_approve_user", buildJsonObject { put("p_user", userId) })
+    }
+
+    /** 역할 지정 (전체관리자만 — RLS). role: user | admin */
+    suspend fun updateRole(userId: String, role: String) {
+        supabase.from("profiles").update({ set("role", role) }) { filter { eq("id", userId) } }
+    }
+
+    /** 회원 계정 비활성화 (전체관리자 — RPC). 글·자료 보존, 로그인·활동 차단 */
+    suspend fun adminWithdraw(userId: String) {
+        supabase.postgrest.rpc("moim_admin_withdraw", buildJsonObject { put("p_user", userId) })
+    }
+
     // ── 캘린더 ──
     suspend fun events(roomId: String): List<CalendarEvent> =
         supabase.from("calendar_events").select {

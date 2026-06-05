@@ -39,6 +39,7 @@ data class Profile(
     @SerialName("member_type") val memberType: String,
     val role: String,                 // superadmin | admin | user
     val approved: Boolean = false,    // 관리자 가입 승인 (기본값 불승인: 값이 없으면 승인 대기)
+    val withdrawn: Boolean = false,   // 탈퇴(비활성): 글·자료는 남기되 활동·로그인 불가
     val phone: String? = null,        // 전화번호
     @SerialName("avatar_url") val avatarUrl: String? = null,
     @SerialName("created_at") val createdAt: String? = null,

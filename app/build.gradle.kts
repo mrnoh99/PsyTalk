@@ -70,4 +70,7 @@ dependencies {
 
     // --- 직렬화 ---
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
+    // --- 이미지 로딩 (채팅 사진 첨부 표시) ---
+    implementation("io.coil-kt:coil-compose:2.7.0")
 }

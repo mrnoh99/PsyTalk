@@ -122,6 +122,18 @@ object MoimRepository {
         )
     }
 
+    /** 카톡식 첨부 전송: Storage 업로드 후 첨부 메시지 삽입 (type = image | file) */
+    suspend fun sendAttachment(roomId: String, fileName: String, bytes: ByteArray, type: String) {
+        val uid = currentUserId() ?: error("Not logged in")
+        val url = uploadToStorage(roomId, fileName, bytes)
+        supabase.from("messages").insert(
+            MessageInsert(
+                roomId = roomId, senderId = uid, content = null, type = type,
+                attachmentUrl = url, attachmentName = fileName,
+            )
+        )
+    }
+
     // ── 멤버 이름 표시용 (작성자·업로더) ──
     suspend fun allProfiles(): List<Profile> =
         supabase.from("profiles").select().decodeList()

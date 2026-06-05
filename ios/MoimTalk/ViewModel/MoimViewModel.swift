@@ -172,6 +172,17 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    /// 카톡식 첨부 전송 (type = image | file)
+    func sendAttachment(fileName: String, data: Data, type: String) {
+        guard let rid = activeRoom else { return }
+        Task {
+            do {
+                try await MoimRepository.sendAttachment(roomId: rid, fileName: fileName, data: data, type: type)
+                messages = try await MoimRepository.messages(roomId: rid)
+            } catch { self.error = "첨부 전송: \(error.localizedDescription)" }
+        }
+    }
+
     func createEvent(
         title: String, startAt: String, place: String?, link: String?,
         scope: String?, description: String?, presenter: String?, keywords: [String],

@@ -62,9 +62,17 @@
   .col{display:flex;flex-direction:column;gap:3px;min-width:0}.name{font-size:12px;color:#6b635c;font-weight:600;margin-left:3px}
   .bubble{padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.42;word-break:break-word;max-width:260px}
   .mrow.you .bubble{background:var(--you)}.mrow.me .bubble{background:var(--me)}
-  .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line)}
-  .inputbar input{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
+  .bimg{max-width:200px;max-height:240px;border-radius:14px;cursor:pointer;display:block;object-fit:cover}
+  .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
+  .bfile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line);position:relative}
+  .inputbar input[type=text],.inputbar #msgInput{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
   .send{background:var(--me);border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer}
+  .plus{background:none;border:1px solid var(--line);color:var(--sub);width:34px;height:34px;border-radius:50%;font-size:21px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
+  .attachmenu{position:absolute;bottom:52px;left:12px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:30}
+  .attachmenu.on{display:flex}
+  .ami{padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;border-radius:10px;white-space:nowrap}
+  .ami:active,.ami:hover{background:var(--bg)}
   .readonly{padding:14px;background:#f3ede3;border-top:1px solid var(--line);text-align:center;font-size:12.5px;color:var(--sub);font-weight:600}
   .files,.cal,.wardbody{padding:13px}
   .sortrow,.calmode{display:flex;gap:8px;margin-bottom:12px}
@@ -172,8 +180,15 @@
     <div class="pane on" id="pane-chat">
       <div class="msgs" id="msgs"></div>
       <div class="inputbar" id="inputbar">
+        <button class="plus" id="plusBtn" onclick="toggleAttachMenu(event)">＋</button>
         <input id="msgInput" placeholder="메시지 입력" onkeydown="if(event.key==='Enter')sendMsg()" onfocus="scrollMsgsToBottom()">
-        <button class="send" onclick="sendMsg()">➤</button></div>
+        <button class="send" onclick="sendMsg()">➤</button>
+        <input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="onAttachPicked(this,'image')">
+        <input type="file" id="chatFileInput" style="display:none" onchange="onAttachPicked(this,'file')">
+        <div class="attachmenu" id="attachMenu">
+          <div class="ami" onclick="pickAttach('image')">📷 사진</div>
+          <div class="ami" onclick="pickAttach('file')">📎 파일</div>
+        </div></div>
       <div class="readonly hidden" id="readonlyBar">🔒 공지 전용 방 · 관리자/지정 작성자만 작성</div>
     </div>
     <div class="pane" id="pane-files"><div class="files" id="fileList"></div></div>
@@ -517,7 +532,7 @@ function renderMsgs(){
   const el=document.getElementById('msgs');
   el.innerHTML=msgs.length?msgs.map(m=>{const mine=m.sender_id===me.id,who=profilesById[m.sender_id]||{};
     return `<div class="mrow ${mine?'me':'you'}">${!mine?`<div class="mav" style="background:${tcolor(who.member_type)}">${ini(who.name)}</div>`:''}
-    <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}<div class="bubble">${esc(m.content)}</div></div></div>`;}).join('')
+    <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleHtml(m)}</div></div>`;}).join('')
     :`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`;
   scrollMsgsToBottom();
 }
@@ -527,6 +542,27 @@ if(window.visualViewport){
 }
 async function sendMsg(){const i=document.getElementById('msgInput'),t=i.value.trim();if(!t)return;
   i.value='';const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:t});
+  if(error){alert('전송 실패: '+error.message);return;}await loadMsgs();}
+
+/* ====== 카톡식 + 첨부(사진/파일) ====== */
+function bubbleHtml(m){
+  if(m.type==='image'&&m.attachment_url)
+    return `<img class="bimg" src="${encodeURI(m.attachment_url)}" onclick="window.open('${encodeURI(m.attachment_url)}','_blank')" alt="사진">`;
+  if(m.type==='file'&&m.attachment_url)
+    return `<a class="bfile" href="${encodeURI(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a>`;
+  return `<div class="bubble">${esc(m.content||'')}</div>`;
+}
+function toggleAttachMenu(e){if(e)e.stopPropagation();document.getElementById('attachMenu').classList.toggle('on');}
+function pickAttach(kind){document.getElementById('attachMenu').classList.remove('on');document.getElementById(kind==='image'?'chatImgInput':'chatFileInput').click();}
+document.addEventListener('click',e=>{const m=document.getElementById('attachMenu');if(m&&m.classList.contains('on')&&!e.target.closest('#attachMenu')&&e.target.id!=='plusBtn')m.classList.remove('on');});
+async function onAttachPicked(inp,kind){
+  const f=inp.files&&inp.files[0];inp.value='';if(!f||!active)return;
+  if(kind==='image'&&f.type&&!/^image\//.test(f.type)){alert('사진 파일을 선택하세요.');return;}
+  const path=active.id+'/'+Date.now()+'_'+f.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+  const {error:upErr}=await sb.storage.from(BUCKET).upload(path,f,{upsert:true});
+  if(upErr){alert('업로드 실패: '+upErr.message);return;}
+  const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:null,type:kind,attachment_url:url,attachment_name:f.name});
   if(error){alert('전송 실패: '+error.message);return;}await loadMsgs();}
 
 /* ====== 자료실 ====== */

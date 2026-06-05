@@ -81,13 +81,17 @@ struct Message: Codable, Identifiable, Hashable {
     let roomId: String
     let senderId: String
     var content: String?
-    var type: String = "text"
+    var type: String = "text"                 // text | image | file
+    var attachmentUrl: String?
+    var attachmentName: String?
     let createdAt: String
 
     enum CodingKeys: String, CodingKey {
         case id, content, type
         case roomId = "room_id"
         case senderId = "sender_id"
+        case attachmentUrl = "attachment_url"
+        case attachmentName = "attachment_name"
         case createdAt = "created_at"
     }
 }
@@ -95,13 +99,17 @@ struct Message: Codable, Identifiable, Hashable {
 struct MessageInsert: Encodable {
     let roomId: String
     let senderId: String
-    let content: String
-    var type: String = "text"
+    var content: String?
+    var type: String = "text"                 // text | image | file
+    var attachmentUrl: String?
+    var attachmentName: String?
 
     enum CodingKeys: String, CodingKey {
         case content, type
         case roomId = "room_id"
         case senderId = "sender_id"
+        case attachmentUrl = "attachment_url"
+        case attachmentName = "attachment_name"
     }
 }
 

@@ -137,6 +137,17 @@ enum MoimRepository {
         try await supabase.from("messages").insert(payload).execute()
     }
 
+    /// 카톡식 첨부 전송: Storage 업로드 후 첨부 메시지 삽입 (type = image | file)
+    static func sendAttachment(roomId: String, fileName: String, data: Data, type: String) async throws {
+        guard let uid = currentUserId() else { throw AppError.notLoggedIn }
+        let url = try await uploadToStorage(roomId: roomId, fileName: fileName, data: data)
+        let payload = MessageInsert(
+            roomId: roomId, senderId: uid, content: nil, type: type,
+            attachmentUrl: url, attachmentName: fileName
+        )
+        try await supabase.from("messages").insert(payload).execute()
+    }
+
     // ── 캘린더 ──
     static func events(roomId: String) async throws -> [CalendarEvent] {
         try await supabase.from("calendar_events")

@@ -105,7 +105,7 @@ private fun openUrl(context: Context, url: String) {
 }
 
 /** content:// URI 에서 표시 이름과 바이트를 읽는다 (작은 문서 파일 기준). */
-private fun readUri(context: Context, uri: Uri): Pair<String, ByteArray>? {
+internal fun readUri(context: Context, uri: Uri): Pair<String, ByteArray>? {
     var name = "file"
     runCatching {
         context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->

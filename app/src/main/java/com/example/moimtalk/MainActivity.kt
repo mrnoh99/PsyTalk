@@ -543,6 +543,20 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    /** 카톡식 첨부 전송 (type = image | file) */
+    fun sendAttachment(fileName: String, bytes: ByteArray, type: String) {
+        val rid = activeRoom
+        if (rid == null) return
+        viewModelScope.launch {
+            try {
+                MoimRepository.sendAttachment(rid, fileName, bytes, type)
+                messages = MoimRepository.messages(rid)
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "첨부 전송")
+            }
+        }
+    }
+
     fun isMine(m: Message): Boolean {
         return m.senderId == MoimRepository.currentUserId()
     }

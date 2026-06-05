@@ -81,7 +81,9 @@ data class Message(
     @SerialName("room_id") val roomId: String,
     @SerialName("sender_id") val senderId: String,
     val content: String? = null,
-    val type: String = "text",
+    val type: String = "text",                          // text | image | file
+    @SerialName("attachment_url") val attachmentUrl: String? = null,
+    @SerialName("attachment_name") val attachmentName: String? = null,
     @SerialName("created_at") val createdAt: String,
 )
 
@@ -90,8 +92,10 @@ data class Message(
 data class MessageInsert(
     @SerialName("room_id") val roomId: String,
     @SerialName("sender_id") val senderId: String,
-    val content: String,
-    val type: String = "text",
+    val content: String? = null,
+    val type: String = "text",                          // text | image | file
+    @SerialName("attachment_url") val attachmentUrl: String? = null,
+    @SerialName("attachment_name") val attachmentName: String? = null,
 )
 
 @Serializable

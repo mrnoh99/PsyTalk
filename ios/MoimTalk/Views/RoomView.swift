@@ -1,4 +1,6 @@
 import SwiftUI
+import PhotosUI
+import UniformTypeIdentifiers
 
 struct RoomView: View {
     @ObservedObject var vm: MoimViewModel
@@ -10,6 +12,10 @@ struct RoomView: View {
     @State private var showRename = false
     @State private var renameText = ""
     @State private var showSettings = false
+    // 카톡식 + 첨부
+    @State private var pickPhoto = false
+    @State private var pickFile = false
+    @State private var photoItem: PhotosPickerItem?
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
@@ -138,6 +144,13 @@ struct ChatView: View {
     @ViewBuilder private var chatInputBar: some View {
         if canPost {
             HStack(spacing: 8) {
+                Menu {
+                    Button { pickPhoto = true } label: { Label("사진", systemImage: "photo") }
+                    Button { pickFile = true } label: { Label("파일", systemImage: "paperclip") }
+                } label: {
+                    Text("＋").font(.system(size: 20)).foregroundColor(Moim.sub)
+                        .frame(width: 33, height: 33).background(Moim.white).clipShape(Circle())
+                }
                 TextField("메시지 입력", text: $input)
                     .textFieldStyle(.roundedBorder)
                 Button {
@@ -150,6 +163,25 @@ struct ChatView: View {
             }
             .padding(.horizontal, 12).padding(.vertical, 9)
             .background(Moim.paper)
+            .photosPicker(isPresented: $pickPhoto, selection: $photoItem, matching: .images)
+            .onChange(of: photoItem) { newItem in
+                guard let newItem else { return }
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self) {
+                        vm.sendAttachment(fileName: "photo_\(Int(Date().timeIntervalSince1970)).jpg", data: data, type: "image")
+                    }
+                    photoItem = nil
+                }
+            }
+            .fileImporter(isPresented: $pickFile, allowedContentTypes: [.item], allowsMultipleSelection: false) { result in
+                if case .success(let urls) = result, let url = urls.first {
+                    let access = url.startAccessingSecurityScopedResource()
+                    defer { if access { url.stopAccessingSecurityScopedResource() } }
+                    if let data = try? Data(contentsOf: url) {
+                        vm.sendAttachment(fileName: url.lastPathComponent, data: data, type: "file")
+                    }
+                }
+            }
         } else {
             Text("🔒 공지 전용 방 · 관리자와 지정 작성자만 글을 쓸 수 있어요")
                 .font(.system(size: 12.5, weight: .semibold)).foregroundColor(Moim.sub)
@@ -190,11 +222,38 @@ struct MessageBubble: View {
                 if !mine {
                     Text(senderName).font(.system(size: 12, weight: .semibold)).foregroundColor(Color(hex: 0x6B635C))
                 }
-                Text(message.content ?? "")
-                    .font(.system(size: 14.5)).foregroundColor(Moim.ink)
-                    .padding(.horizontal, 12).padding(.vertical, 9)
-                    .background(mine ? Moim.yellow : Moim.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                if message.type == "image", let s = message.attachmentUrl, let u = URL(string: s) {
+                    Link(destination: u) {
+                        AsyncImage(url: u) { phase in
+                            if let img = phase.image {
+                                img.resizable().scaledToFit()
+                            } else if phase.error != nil {
+                                Color.gray.opacity(0.15)
+                            } else {
+                                ProgressView().frame(width: 120, height: 120)
+                            }
+                        }
+                        .frame(maxWidth: 200, maxHeight: 240)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                } else if message.type == "file", let s = message.attachmentUrl, let u = URL(string: s) {
+                    Link(destination: u) {
+                        HStack(spacing: 7) {
+                            Text("📎").font(.system(size: 15))
+                            Text(message.attachmentName ?? "파일")
+                                .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink)
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 12).padding(.vertical, 11)
+                        .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 16))
+                    }
+                } else {
+                    Text(message.content ?? "")
+                        .font(.system(size: 14.5)).foregroundColor(Moim.ink)
+                        .padding(.horizontal, 12).padding(.vertical, 9)
+                        .background(mine ? Moim.yellow : Moim.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+                }
             }
             if !mine { Spacer(minLength: 40) }
         }

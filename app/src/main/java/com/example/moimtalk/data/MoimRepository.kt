@@ -3,10 +3,13 @@ package com.example.moimtalk.data
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 import kotlin.time.Duration.Companion.hours
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -121,6 +124,22 @@ object MoimRepository {
     suspend fun deleteMessage(id: String) {
         supabase.from("messages").delete { filter { eq("id", id) } }
     }
+
+    // ── 읽음 추적 ──
+    /** 이 방을 본 것으로 표시(현재 사용자 last_read_at = now) */
+    suspend fun markRead(roomId: String) {
+        supabase.postgrest.rpc("moim_mark_read", buildJsonObject { put("p_room", roomId) })
+    }
+
+    /** 방별 안읽은 메시지 수 (현재 사용자) */
+    suspend fun unreadCounts(): Map<String, Int> =
+        supabase.postgrest.rpc("moim_unread_counts")
+            .decodeList<UnreadRoomRow>().associate { it.roomId to it.cnt.toInt() }
+
+    /** 방의 메시지별 안읽은 사람 수 */
+    suspend fun messageUnreadCounts(roomId: String): Map<String, Int> =
+        supabase.postgrest.rpc("moim_message_unread_counts", buildJsonObject { put("p_room", roomId) })
+            .decodeList<UnreadMsgRow>().associate { it.messageId to it.unread }
 
     suspend fun sendMessage(roomId: String, text: String) {
         val uid = currentUserId() ?: error("Not logged in")

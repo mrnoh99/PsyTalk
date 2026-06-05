@@ -87,6 +87,13 @@ data class Message(
     @SerialName("created_at") val createdAt: String,
 )
 
+// 읽음 추적 RPC 결과
+@Serializable
+data class UnreadRoomRow(@SerialName("room_id") val roomId: String, val cnt: Long)
+
+@Serializable
+data class UnreadMsgRow(@SerialName("message_id") val messageId: String, val unread: Int)
+
 // 메시지 삽입용 DTO (id/created_at 은 DB가 생성)
 @Serializable
 data class MessageInsert(

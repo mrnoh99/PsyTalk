@@ -45,7 +45,7 @@
 		6E42E0AEF7749647ADDFE498 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		73F51B10F9F1008922342445 /* MoimViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimViewModel.swift; sourceTree = "<group>"; };
 		7587B7A6C7F09B42D62B36D1 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
-		77AF8F071B3C5AC6410D6389 /* MoimTalk.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MoimTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		77AF8F071B3C5AC6410D6389 /* MoimTalk.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MoimTalk.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7D706D1572849E3BC1AE1BAA /* RoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomView.swift; sourceTree = "<group>"; };
 		7F01F129DE6E64DBFE58423E /* WardStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WardStatusView.swift; sourceTree = "<group>"; };
 		7F7D32747C8263739AB9EC87 /* RoomListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomListView.swift; sourceTree = "<group>"; };
@@ -175,8 +175,6 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
-				TargetAttributes = {
-				};
 			};
 			buildConfigurationList = A528334DE0E6C5952B9200D3 /* Build configuration list for PBXProject "MoimTalk" */;
 			developmentRegion = en;
@@ -304,6 +302,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9AWEB9NYHH;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "아주 정신";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -390,6 +389,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 9AWEB9NYHH;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "아주 정신";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

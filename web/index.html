@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
 <title>아주 정신 — 정신건강의학과 (Web)</title>
 <!-- Supabase JS v2 (UMD, 파일 직접 열기 가능) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -13,6 +13,7 @@
     --notice:#b5651d;--group:#4a6fa5;--work:#3d8361;--research:#6d597a;--orange:#ea7317;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden}
   body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
     background:var(--bg);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center}
   .phone{width:100%;max-width:460px;height:100vh;max-height:940px;background:var(--paper);
@@ -46,9 +47,17 @@
   .tabs{display:flex;background:var(--paper);border-bottom:1px solid var(--line);flex-shrink:0}
   .tab{flex:1;text-align:center;padding:12px 0;font-size:13px;font-weight:700;color:var(--sub);cursor:pointer;border-bottom:2.5px solid transparent}
   .tab.on{color:var(--ink);border-bottom-color:var(--me)}
-  .pane{flex:1;overflow-y:auto;display:none;flex-direction:column}.pane.on{display:flex}
-  .msgs{flex:1;padding:14px 12px;display:flex;flex-direction:column;gap:3px;background:var(--bg)}
-  .mrow{display:flex;gap:8px;max-width:86%;margin-top:9px}.mrow.me{align-self:flex-end;flex-direction:row-reverse}
+  .app-screen{flex:1 1 0;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+  .pane{flex:1 1 0;min-height:0;display:none;flex-direction:column;overflow:hidden}
+  .pane.on{display:flex}
+  #pane-files,#pane-cal{overflow-y:auto;-webkit-overflow-scrolling:touch}
+  /* 채팅: grid로 msgs 높이 고정(Chrome flex 스크롤 버그 회피) */
+  #pane-chat.pane.on{display:grid;grid-template-rows:minmax(0,1fr) auto;overflow:hidden}
+  .msgs{grid-row:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px 12px;background:var(--bg)}
+  .inputbar,.readonly{grid-row:2;flex-shrink:0}
+  .mrow{display:flex;gap:8px;max-width:86%;margin-top:9px}
+  .mrow.me{margin-left:auto;flex-direction:row-reverse}
+  .mrow.you{margin-right:auto}
   .mrow .mav{width:36px;height:36px;border-radius:13px;font-size:13px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0}
   .col{display:flex;flex-direction:column;gap:3px;min-width:0}.name{font-size:12px;color:#6b635c;font-weight:600;margin-left:3px}
   .bubble{padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.42;word-break:break-word;max-width:260px}
@@ -142,7 +151,7 @@
   </section>
 
   <!-- ROOM LIST -->
-  <section id="listScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
+  <section id="listScreen" class="hidden app-screen">
     <div class="hdr"><h1>아주 정신</h1><span class="badge" id="badge"></span>
       <span class="spacer"></span><button class="lk" onclick="doLogout()">로그아웃</button></div>
     <div class="viewbar"><span style="font-size:11px;color:var(--sub);font-weight:700">👁</span>
@@ -151,7 +160,7 @@
   </section>
 
   <!-- ROOM -->
-  <section id="roomScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
+  <section id="roomScreen" class="hidden app-screen">
     <div class="hdr"><button class="back" onclick="closeRoom()">‹</button>
       <h1 id="roomTitle" style="font-size:16px"></h1><span class="spacer"></span>
       <button id="renameBtn" class="back" style="display:none;font-size:17px" onclick="renameRoom()">✏️</button>
@@ -160,10 +169,10 @@
       <div class="tab on" data-t="chat" onclick="tab('chat')">💬 채팅</div>
       <div class="tab" data-t="files" onclick="tab('files')">📁 자료실</div>
       <div class="tab" data-t="cal" onclick="tab('cal')">📅 캘린더</div></div>
-    <div class="pane on" id="pane-chat" style="flex:1">
+    <div class="pane on" id="pane-chat">
       <div class="msgs" id="msgs"></div>
       <div class="inputbar" id="inputbar">
-        <input id="msgInput" placeholder="메시지 입력" onkeydown="if(event.key==='Enter')sendMsg()">
+        <input id="msgInput" placeholder="메시지 입력" onkeydown="if(event.key==='Enter')sendMsg()" onfocus="scrollMsgsToBottom()">
         <button class="send" onclick="sendMsg()">➤</button></div>
       <div class="readonly hidden" id="readonlyBar">🔒 공지 전용 방 · 관리자/지정 작성자만 작성</div>
     </div>
@@ -172,7 +181,7 @@
   </section>
 
   <!-- WARD -->
-  <section id="wardScreen" class="hidden" style="flex:1;display:flex;flex-direction:column">
+  <section id="wardScreen" class="hidden app-screen">
     <div class="hdr"><button class="back" onclick="show('listScreen')">‹</button>
       <h1 style="font-size:16px">잔여 병실 현황</h1><span class="spacer"></span>
       <button class="lk" id="wardEditBtn" onclick="wardEdit()">편집</button></div>
@@ -210,7 +219,8 @@
     <span class="lbl">설명</span><textarea class="field" id="evDesc" placeholder="안건 / 준비사항"></textarea>
     <span class="lbl" id="evAttLbl">첨부 자료 (여러 개 가능)</span>
     <div id="evExisting"></div>
-    <input class="field" id="evFile" type="file" multiple>
+    <div id="evPending"></div>
+    <input class="field" id="evFile" type="file" multiple onchange="onEvFileChange()">
     <button class="primary" onclick="saveEvent()" id="evSaveBtn">일정 등록</button>
     <button class="ghost" onclick="closeModal('emodal')">취소</button>
   </div></div>
@@ -236,6 +246,7 @@ const BUCKET = "room-files";
 /* ====== 상태 ====== */
 let me=null, rooms=[], profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
 let evKept=[]; // 일정 수정 시 유지할 기존 첨부 [{n,u}]
+let evPending=[]; // 새로 고른 파일 (등록·수정 전) [{file,n}]
 let calMode="month", fileSort="date", monthAnchor=new Date();
 let selDate=new Date(); selDate.setHours(0,0,0,0); // 선택한 날짜(기본 오늘)
 let cpick=new Set(), editEventId=null, pendingFile=null;
@@ -243,6 +254,7 @@ let realtimeGlobal=null, realtimeRoom=null;
 
 function debounce(fn,ms=400){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
 const debouncedLoadRooms=debounce(()=>loadRooms(),400);
+const debouncedRoomMembers=debounce(()=>{if(document.getElementById('smodal').classList.contains('on'))loadRoomMembersUI();},400);
 const debouncedRefreshRoom=debounce(async()=>{
   if(!active)return;
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
@@ -257,21 +269,26 @@ const debouncedLoadWard=debounce(()=>{
 
 function startRealtime(){
   stopRealtime();
-  realtimeGlobal=sb.channel('moim-global')
+  realtimeGlobal=sb.channel('moim-global');
+  realtimeGlobal
     .on('postgres_changes',{event:'*',schema:'public',table:'rooms'},debouncedLoadRooms)
-    .on('postgres_changes',{event:'*',schema:'public',table:'room_members'},debouncedLoadRooms)
+    .on('postgres_changes',{event:'*',schema:'public',table:'room_members'},()=>{debouncedLoadRooms();debouncedRoomMembers();})
     .on('postgres_changes',{event:'*',schema:'public',table:'ward_status'},debouncedLoadWard)
-    .subscribe();
+    .subscribe((status)=>{if(status==='CHANNEL_ERROR')console.warn('realtime global',status);});
 }
-function setRoomRealtime(roomId){
-  if(realtimeRoom){sb.removeChannel(realtimeRoom);realtimeRoom=null;}
+async function setRoomRealtime(roomId){
+  if(realtimeRoom){
+    await sb.removeChannel(realtimeRoom);
+    realtimeRoom=null;
+  }
   if(!roomId)return;
   const filter=`room_id=eq.${roomId}`;
-  realtimeRoom=sb.channel('moim-room-'+roomId)
+  realtimeRoom=sb.channel('moim-room-'+roomId);
+  realtimeRoom
     .on('postgres_changes',{event:'*',schema:'public',table:'messages',filter},debouncedRefreshRoom)
     .on('postgres_changes',{event:'*',schema:'public',table:'calendar_events',filter},debouncedRefreshRoom)
     .on('postgres_changes',{event:'*',schema:'public',table:'room_files',filter},debouncedRefreshRoom)
-    .subscribe();
+    .subscribe((status)=>{if(status==='CHANNEL_ERROR')console.warn('realtime room',status);});
 }
 function stopRealtime(){
   if(realtimeGlobal){sb.removeChannel(realtimeGlobal);realtimeGlobal=null;}
@@ -285,7 +302,7 @@ const tcolor=t=>TYPE_COLOR[t]||'#888';
 const nameOf=id=>(profilesById[id]||{}).name||'?';
 const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const isAdmin=()=>me&&(me.role==='superadmin'||me.role==='admin');
-function show(id){['login','pending','listScreen','roomScreen','wardScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));}
+function show(id){['login','pending','listScreen','roomScreen','wardScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
 
 /* ====== 로그인 / 회원가입 ====== */
 let signupMode=false, suType='의국';
@@ -372,7 +389,7 @@ function renderRoomList(){
 const canPost=r=>isAdmin()||r.post_policy!=='restricted';
 // 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
 const canRename=r=>isAdmin()||(!!r.created_by&&r.created_by===me.id);
-const canManage=r=>r.category==='custom'&&(isAdmin()||(!!r.created_by&&r.created_by===me.id));
+const canManage=r=>isAdmin()||(r.category==='custom'&&(!!r.created_by&&r.created_by===me.id));
 async function openRoom(id){
   active=rooms.find(r=>r.id===id);
   document.getElementById('roomTitle').textContent=active.name;
@@ -381,14 +398,15 @@ async function openRoom(id){
   calMode=active.default_view==='week'?'week':'month';
   selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
   show('roomScreen');
-  setRoomRealtime(id);
+  await setRoomRealtime(id);
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
   tab(active.default_view==='week'?'cal':'chat');
   const allow=canPost(active);
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
+  layoutChat();
 }
-function closeRoom(){active=null;setRoomRealtime(null);show('listScreen');}
+async function closeRoom(){active=null;await setRoomRealtime(null);show('listScreen');}
 async function renameRoom(){
   if(!active)return;
   const name=prompt('방 이름 변경', active.name);
@@ -413,13 +431,14 @@ async function openRoomSettings(){
   await loadRoomMembersUI();
 }
 async function loadRoomMembersUI(){
-  const {data}=await sb.from('room_members').select('user_id').eq('room_id',active.id);
+  const {data,error}=await sb.from('room_members').select('user_id').eq('room_id',active.id);
+  if(error){document.getElementById('smList').innerHTML=`<p style="color:var(--admin);font-size:13px">멤버 목록 불러오기 실패: ${esc(error.message)}</p>`;return;}
   smMemberIds=(data||[]).map(r=>r.user_id);
   renderRoomMembers();renderInviteList();
 }
 function renderRoomMembers(){
   const el=document.getElementById('smList');
-  if(!smMemberIds.length){el.innerHTML='<p style="color:var(--sub);font-size:13px">구성원이 없습니다.</p>';return;}
+  if(!smMemberIds.length){el.innerHTML='<p style="color:var(--sub);font-size:13px">참여 구성원이 없습니다. 아래에서 초대하세요.</p>';return;}
   el.innerHTML=smMemberIds.map(uid=>{
     const p=profilesById[uid]||{}; const isCreator=uid===active.created_by; const isMe=uid===me.id;
     const tag=isCreator?' (방장)':(isMe?' (나)':'');
@@ -445,8 +464,12 @@ async function kickMember(uid){
   await loadRoomMembersUI();
 }
 async function inviteMember(uid){
-  const {error}=await sb.from('room_members').upsert({room_id:active.id,user_id:uid});
-  if(error){alert('구성원 초대 실패: '+error.message);return;}
+  const {error}=await sb.from('room_members').insert({room_id:active.id,user_id:uid});
+  if(error){
+    if(error.code==='23505'||(error.message||'').includes('duplicate key')){await loadRoomMembersUI();return;}
+    alert('구성원 초대 실패: '+error.message+'\n(방 생성자·관리자만 초대 가능. room_manage.sql 실행 여부 확인)');
+    return;
+  }
   await loadRoomMembersUI();
 }
 async function deleteRoom(){
@@ -458,17 +481,49 @@ async function deleteRoom(){
 }
 function tab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t));
   document.querySelectorAll('#roomScreen .pane').forEach(e=>e.classList.toggle('on',e.id==='pane-'+t));
+  if(t==='chat'){layoutChat();renderMsgs();}
   if(t==='files')renderFiles();if(t==='cal')renderCal();}
 
 /* ====== 채팅 ====== */
 async function loadMsgs(){const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:true});msgs=data||[];renderMsgs();}
+/** 채팅 msgs 높이 — pane.clientHeight 대신 화면 기준(내용만큼 pane이 늘어나 스크롤 안 되는 Chrome 버그 회피) */
+function layoutChat(){
+  const screen=document.getElementById('roomScreen');
+  const pane=document.getElementById('pane-chat');
+  const el=document.getElementById('msgs');
+  if(!screen||!pane||!el||screen.classList.contains('hidden')||!pane.classList.contains('on'))return;
+  const bar=document.getElementById('inputbar');
+  const ro=document.getElementById('readonlyBar');
+  const foot=bar&&!bar.classList.contains('hidden')?bar:(ro&&!ro.classList.contains('hidden')?ro:null);
+  const footH=foot?foot.offsetHeight:0;
+  const phone=document.querySelector('.phone');
+  const bottom=(phone||screen).getBoundingClientRect().bottom;
+  const tabs=screen.querySelector('.tabs');
+  const top=tabs?tabs.getBoundingClientRect().bottom:el.getBoundingClientRect().top;
+  const h=Math.max(120,bottom-top-footH);
+  el.style.height=h+'px';
+  el.style.maxHeight=h+'px';
+  el.style.overflowY='auto';
+  if(el.scrollHeight>el.clientHeight+2)el.style.overflowY='scroll';
+}
+function scrollMsgsToBottom(){
+  layoutChat();
+  const el=document.getElementById('msgs');
+  if(!el)return;
+  const go=()=>{el.scrollTop=el.scrollHeight;};
+  requestAnimationFrame(()=>requestAnimationFrame(go));
+}
 function renderMsgs(){
   const el=document.getElementById('msgs');
   el.innerHTML=msgs.length?msgs.map(m=>{const mine=m.sender_id===me.id,who=profilesById[m.sender_id]||{};
     return `<div class="mrow ${mine?'me':'you'}">${!mine?`<div class="mav" style="background:${tcolor(who.member_type)}">${ini(who.name)}</div>`:''}
     <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}<div class="bubble">${esc(m.content)}</div></div></div>`;}).join('')
     :`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`;
-  el.scrollTop=el.scrollHeight;
+  scrollMsgsToBottom();
+}
+window.addEventListener('resize',layoutChat);
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',()=>{layoutChat();if(document.activeElement===document.getElementById('msgInput'))scrollMsgsToBottom();});
 }
 async function sendMsg(){const i=document.getElementById('msgInput'),t=i.value.trim();if(!t)return;
   i.value='';const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:t});
@@ -532,7 +587,10 @@ const sameDay=(a,b)=>a&&b&&a.toDateString()===b.toDateString();
 const fmtTime=iso=>{const d=new Date(iso);return (d.getMonth()+1)+'/'+d.getDate()+' '+d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});};
 function canEdit(e){return e.owner_id===me.id||isAdmin();}
 function evAtts(e){
-  if(e.attachment_urls&&e.attachment_urls.length) return e.attachment_urls.map((u,i)=>({n:(e.attachment_names||[])[i]||'첨부파일',u}));
+  if(Array.isArray(e.attachment_urls)){
+    if(!e.attachment_urls.length) return [];
+    return e.attachment_urls.map((u,i)=>({n:(e.attachment_names||[])[i]||'첨부파일',u}));
+  }
   if(e.attachment_url) return [{n:e.attachment_name||'첨부파일',u:e.attachment_url}];
   return [];
 }
@@ -610,7 +668,8 @@ function openEvent(id){
   g('evDesc',e?e.description||'':'');
   document.getElementById('evFile').value='';
   evKept = e ? evAtts(e).slice() : [];
-  renderEvExisting();
+  evPending = [];
+  renderEvExisting(); renderEvPending();
   document.getElementById('emodal').classList.add('on');
 }
 function renderEvExisting(){
@@ -621,6 +680,20 @@ function renderEvExisting(){
     evKept.map((a,i)=>`<div class="evkept"><span>📎 ${esc(a.n)}</span><span class="evkeptx" onclick="removeEvAtt(${i})">✕</span></div>`).join('');
 }
 function removeEvAtt(i){ evKept.splice(i,1); renderEvExisting(); }
+function onEvFileChange(){
+  const input=document.getElementById('evFile');
+  evPending=[...input.files].map(f=>({file:f,n:f.name}));
+  input.value='';
+  renderEvPending();
+}
+function renderEvPending(){
+  const box=document.getElementById('evPending');
+  if(!box)return;
+  if(!evPending.length){box.innerHTML='';return;}
+  box.innerHTML='<div style="font-size:11px;color:var(--sub);margin:4px 0 6px">추가할 파일 (✕로 삭제)</div>'+
+    evPending.map((a,i)=>`<div class="evkept"><span>🆕 ${esc(a.n)}</span><span class="evkeptx" onclick="removeEvPending(${i})">✕</span></div>`).join('');
+}
+function removeEvPending(i){ evPending.splice(i,1); renderEvPending(); }
 async function uploadFiles(files){
   const urls=[],names=[];
   for(const file of files){
@@ -636,19 +709,24 @@ async function saveEvent(){
   if(!g('evTitle')){alert('제목을 입력하세요');return;}
   const startAt=new Date(g('evDate')+'T'+(g('evTime')||'09:00')+':00').toISOString();
   const presenter=g('evPresenter')||null;
-  const files=document.getElementById('evFile').files;
-  let up; try{ up=await uploadFiles(files); }catch(e){ alert('첨부 업로드 실패: '+e.message); return; }
+  let up={urls:[],names:[]};
+  if(evPending.length){
+    try{ up=await uploadFiles(evPending.map(p=>p.file)); }catch(e){ alert('첨부 업로드 실패: '+e.message); return; }
+  }
   if(editEventId){
     const urls=evKept.map(a=>a.u).concat(up.urls);
     const names=evKept.map(a=>a.n).concat(up.names);
     const upd={title:g('evTitle'),start_at:startAt,place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,
-      scope:g('evScope')||null,description:g('evDesc')||null,attachment_urls:urls,attachment_names:names};
+      scope:g('evScope')||null,description:g('evDesc')||null,
+      attachment_url:null,attachment_name:null,attachment_desc:null,
+      attachment_urls:urls,attachment_names:names};
     const {error}=await sb.from('calendar_events').update(upd).eq('id',editEventId);
     if(error){alert('수정 실패: '+error.message);return;}
   }else{
     const {error}=await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAt,
       place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
-      owner_id:me.id,attachment_urls:up.urls,attachment_names:up.names});
+      owner_id:me.id,attachment_url:null,attachment_name:null,
+      attachment_urls:up.urls,attachment_names:up.names});
     if(error){alert('등록 실패: '+error.message);return;}
   }
   closeModal('emodal');await loadEvents();await loadFiles();renderCal();

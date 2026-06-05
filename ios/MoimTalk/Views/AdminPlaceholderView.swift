@@ -15,13 +15,9 @@ struct AdminPlaceholderView: View {
     @State private var showRename = false
     @State private var renameText = ""
     @State private var renameTargetId = ""
-    // 방 관리: 구성원 초대 / 제거 / 삭제
-    @State private var inviteRoom: Room?
-    @State private var removeRoom: Room?
-    @State private var deleteRoom: Room?
+    @State private var selectedRoom: Room?
 
     private var members: [Profile] {
-        // 전체관리자(superadmin)는 역할 변경 대상에서 제외. 기본 가나다순(이름).
         vm.profilesById.values
             .filter { $0.role != "superadmin" }
             .sorted { $0.name < $1.name }
@@ -57,34 +53,30 @@ struct AdminPlaceholderView: View {
             ScrollView {
                 Group {
                     switch tab {
-                    case .manage: manageContent
-                    case .approval: SignupApprovalView(vm: vm)
+                    case .manage:
+                        if let room = selectedRoom {
+                            AdminRoomManageView(vm: vm, room: room) { selectedRoom = nil }
+                        } else {
+                            manageContent
+                        }
+                    case .approval:
+                        SignupApprovalView(vm: vm)
                     }
                 }
                 .padding(16)
             }
         }
         .background(Moim.paper.ignoresSafeArea())
-        .onAppear { tab = initialTab }
+        .onAppear {
+            tab = initialTab
+            vm.loadRoomMemberCounts()
+        }
         .alert("이름 변경", isPresented: $showRename) {
             TextField("이름", text: $renameText)
             Button("저장") { vm.setName(renameTargetId, to: renameText) }
             Button("취소", role: .cancel) {}
         } message: {
             Text("새 이름을 입력하세요.")
-        }
-        .sheet(item: $inviteRoom) { r in
-            RoomMemberPicker(vm: vm, room: r, mode: .invite) { inviteRoom = nil }
-        }
-        .sheet(item: $removeRoom) { r in
-            RoomMemberPicker(vm: vm, room: r, mode: .remove) { removeRoom = nil }
-        }
-        // 방 삭제 confirm (superadmin·모임방만)
-        .confirmationDialog("‘\(deleteRoom?.name ?? "")’ 방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.",
-                            isPresented: Binding(get: { deleteRoom != nil }, set: { if !$0 { deleteRoom = nil } }),
-                            titleVisibility: .visible) {
-            Button("방 삭제", role: .destructive) { if let r = deleteRoom { vm.deleteRoom(r) {} }; deleteRoom = nil }
-            Button("취소", role: .cancel) { deleteRoom = nil }
         }
     }
 
@@ -98,7 +90,7 @@ struct AdminPlaceholderView: View {
                     ForEach(members) { p in memberRow(p) }
                 }
             }
-            card(title: "🏠 방 관리 · \(vm.rooms.count)개 · 방을 눌러 초대·제거·삭제") {
+            card(title: "🏠 방 관리 · \(vm.rooms.count)개 · 방을 눌러 구성원 편집") {
                 ForEach(vm.rooms) { r in roomRow(r) }
             }
         }
@@ -144,7 +136,6 @@ struct AdminPlaceholderView: View {
             }
             Spacer()
             Menu {
-                // 지정 가능한 역할은 관리자·멤버 둘만 (전체관리자는 콘솔에서 지정 불가)
                 Button("관리자") { vm.setRole(p.id, to: "admin") }
                 Button("멤버") { vm.setRole(p.id, to: "user") }
             } label: {
@@ -163,14 +154,7 @@ struct AdminPlaceholderView: View {
     }
 
     private func roomRow(_ r: Room) -> some View {
-        let isDefault = r.category != "custom"   // 기본 방(전체공지·학술활동)은 삭제 불가
-        return Menu {
-            Button { inviteRoom = r } label: { Label("구성원 초대", systemImage: "person.badge.plus") }
-            Button { removeRoom = r } label: { Label("구성원 제거", systemImage: "person.badge.minus") }
-            if vm.isSuperAdmin && !isDefault {
-                Button(role: .destructive) { deleteRoom = r } label: { Label("방 삭제", systemImage: "trash") }
-            }
-        } label: {
+        Button { selectedRoom = r } label: {
             HStack(spacing: 10) {
                 Text(r.name)
                     .font(.system(size: 8.5, weight: .bold)).foregroundColor(.white)
@@ -182,18 +166,162 @@ struct AdminPlaceholderView: View {
                     .background(catColor(r.category)).clipShape(RoundedRectangle(cornerRadius: 11))
                 VStack(alignment: .leading, spacing: 1) {
                     Text(r.name).font(.system(size: 13.5, weight: .bold)).foregroundColor(Moim.ink)
-                    Text("\(catLabel(r.category)) · \(r.postPolicy)").font(.system(size: 11.5)).foregroundColor(Moim.sub)
+                    Text("\(catLabel(r.category)) · \(r.postPolicy) · \(vm.roomMemberCounts[r.id, default: 0])명")
+                        .font(.system(size: 11.5)).foregroundColor(Moim.sub)
                 }
                 Spacer()
-                Text("⋯").font(.system(size: 18, weight: .bold)).foregroundColor(Moim.sub)
+                Text("›").font(.system(size: 18, weight: .bold)).foregroundColor(Moim.sub)
             }
             .padding(.vertical, 8)
             .overlay(Divider().background(Moim.line.opacity(0.5)), alignment: .bottom)
         }
+        .buttonStyle(.plain)
     }
 }
 
-// 방 구성원 초대/제거 선택 시트 (관리자 콘솔 + 일반 방 설정 공용)
+// 방 선택 후 — 참여 멤버·초대 가능 멤버를 체크 목록으로 편집
+struct AdminRoomManageView: View {
+    @ObservedObject var vm: MoimViewModel
+    let room: Room
+    let onBack: () -> Void
+
+    @State private var confirmDelete = false
+
+    private var memberIds: Set<String> { Set(vm.roomMemberIds) }
+
+    /// 승인된 멤버 전체 (전체관리자 제외) — 참여 여부는 체크로 표시
+    private var selectableProfiles: [Profile] {
+        vm.profilesById.values
+            .filter { $0.role != "superadmin" && ($0.approved ?? true) }
+            .sorted { $0.name < $1.name }
+    }
+
+    private var canDelete: Bool {
+        vm.isSuperAdmin && room.category == "custom"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Button(action: onBack) {
+                HStack(spacing: 4) {
+                    Text("‹").font(.system(size: 20, weight: .bold))
+                    Text("방 목록").font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundColor(Moim.accent)
+            }
+
+            HStack(spacing: 12) {
+                Text(room.name)
+                    .font(.system(size: 8.5, weight: .bold)).foregroundColor(.white)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.6)
+                    .padding(4)
+                    .frame(width: 44, height: 44)
+                    .background(catColor(room.category)).clipShape(RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(room.name).font(.system(size: 17, weight: .bold)).foregroundColor(Moim.ink)
+                    Text("\(catLabel(room.category)) · \(memberIds.count)명 참여")
+                        .font(.system(size: 12)).foregroundColor(Moim.sub)
+                }
+            }
+
+            if canDelete {
+                Button(role: .destructive) { confirmDelete = true } label: {
+                    Text("이 방 삭제")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Moim.admin)
+                        .clipShape(RoundedRectangle(cornerRadius: 11))
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text("구성원 · 체크=참여 · 해제=제거 · 미체크 탭=초대")
+                    .font(.system(size: 11.5, weight: .heavy))
+                    .foregroundColor(Moim.sub)
+                    .padding(.bottom, 10)
+
+                if !vm.roomMembersLoaded {
+                    Text("멤버 목록 불러오는 중…").font(.system(size: 13)).foregroundColor(Moim.sub)
+                        .padding(.vertical, 12)
+                } else if selectableProfiles.isEmpty {
+                    Text("표시할 멤버가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
+                        .padding(.vertical, 12)
+                } else {
+                    ForEach(selectableProfiles) { p in
+                        memberCheckRow(p)
+                    }
+                }
+            }
+            .padding(15)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Moim.white)
+            .clipShape(RoundedRectangle(cornerRadius: 15))
+        }
+        .onAppear { vm.loadRoomMembers(room.id) }
+        .confirmationDialog(
+            "‘\(room.name)’ 방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.",
+            isPresented: $confirmDelete,
+            titleVisibility: .visible
+        ) {
+            Button("방 삭제", role: .destructive) {
+                vm.deleteRoom(room) { onBack() }
+            }
+            Button("취소", role: .cancel) {}
+        }
+    }
+
+    private func memberCheckRow(_ p: Profile) -> some View {
+        let isMember = memberIds.contains(p.id)
+        let isCreator = p.id == room.createdBy
+        let tag = isCreator ? " (방장)" : ""
+
+        return Button {
+            toggleMember(p, isMember: isMember, isCreator: isCreator)
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: isMember ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22))
+                    .foregroundColor(isMember ? catColor("work") : Moim.line)
+                Text(String(p.name.prefix(3)))
+                    .font(.system(size: 12, weight: .bold)).foregroundColor(.white)
+                    .frame(width: 34, height: 34)
+                    .background(typeColor(p.memberType)).clipShape(RoundedRectangle(cornerRadius: 10))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(p.name + tag)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(Moim.ink)
+                    Text(p.memberType)
+                        .font(.system(size: 11))
+                        .foregroundColor(Moim.sub)
+                }
+                Spacer()
+                Text(isMember ? "참여" : "초대 가능")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(isMember ? catColor("work") : Moim.sub)
+            }
+            .padding(.vertical, 8)
+            .overlay(Divider().background(Moim.line.opacity(0.5)), alignment: .bottom)
+        }
+        .buttonStyle(.plain)
+        .disabled(isCreator)
+        .opacity(isCreator ? 0.65 : 1)
+    }
+
+    private func toggleMember(_ p: Profile, isMember: Bool, isCreator: Bool) {
+        guard !isCreator else { return }
+        if isMember {
+            vm.removeRoomMember(roomId: room.id, userId: p.id)
+        } else {
+            vm.inviteRoomMember(roomId: room.id, userId: p.id)
+        }
+    }
+}
+
+// 방 구성원 초대/제거 선택 시트 (일반 모임방 설정용 — 관리자 콘솔과 별도)
 struct RoomMemberPicker: View {
     @ObservedObject var vm: MoimViewModel
     let room: Room
@@ -208,7 +336,11 @@ struct RoomMemberPicker: View {
         switch mode {
         case .invite:
             return vm.profilesById.values
-                .filter { ($0.approved ?? true) && !memberIds.contains($0.id) }
+                .filter {
+                    $0.id != MoimRepository.currentUserId()
+                        && ($0.approved ?? true)
+                        && !memberIds.contains($0.id)
+                }
                 .sorted { $0.name < $1.name }
         case .remove:
             return vm.roomMemberIds.compactMap { vm.profilesById[$0] }
@@ -248,7 +380,6 @@ struct RoomMemberPicker: View {
             .navigationTitle(mode == .invite ? "구성원 초대" : "구성원 제거")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("닫기") { onClose() } } }
-            // 구성원 제거 confirm
             .confirmationDialog("‘\(confirmRemove?.name ?? "")’ 님을 이 방에서 제거할까요?",
                                 isPresented: Binding(get: { confirmRemove != nil }, set: { if !$0 { confirmRemove = nil } }),
                                 titleVisibility: .visible) {

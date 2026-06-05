@@ -7,7 +7,11 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
@@ -43,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -448,6 +454,7 @@ fun RoomListScreen(
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                     Spacer(Modifier.weight(1f))
+                    TextButton(onClick = { vm.loadRooms() }) { Text("↻", fontSize = 17.sp) }
                     TextButton(onClick = { vm.logout() }) { Text("로그아웃", fontSize = 12.sp) }
                 }
                 HorizontalDivider(color = MoimLine)
@@ -736,6 +743,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .imePadding()
                             .background(MoimPaper)
                             .padding(horizontal = 12.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -768,6 +777,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .navigationBarsPadding()
+                            .imePadding()
                             .background(Color(0xFFF3EDE3))
                             .padding(14.dp),
                         contentAlignment = Alignment.Center
@@ -814,11 +825,23 @@ private fun ChatPane(
     isMine: (Message) -> Boolean,
     nameOf: (String) -> String
 ) {
+    val listState = rememberLazyListState()
+    val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
+    val lastIndex = if (messages.isEmpty()) 1 else messages.size
+
+    LaunchedEffect(messages.size, imeBottom) {
+        if (lastIndex >= 0) {
+            listState.animateScrollToItem(lastIndex)
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        contentPadding = PaddingValues(bottom = 8.dp),
     ) {
         item {
             Box(
@@ -1073,8 +1096,10 @@ fun RoomSettingsDialog(
                 .verticalScroll(rememberScrollState())) {
                 Text("참여 멤버 (${memberIds.size}명)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
                 Spacer(Modifier.height(8.dp))
-                if (memberIds.isEmpty()) {
+                if (!vm.roomMembersLoaded) {
                     Text("멤버 정보를 불러오는 중…", fontSize = 13.sp, color = MoimSub)
+                } else if (memberIds.isEmpty()) {
+                    Text("참여 구성원이 없습니다. 아래에서 초대하세요.", fontSize = 13.sp, color = MoimSub)
                 }
                 memberIds.forEach { uid ->
                     val isCreator = uid == room.createdBy

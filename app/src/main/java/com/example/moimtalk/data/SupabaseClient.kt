@@ -110,10 +110,24 @@ data class CalendarEvent(
     @SerialName("attachment_url") val attachmentUrl: String? = null,
     @SerialName("attachment_name") val attachmentName: String? = null,
     @SerialName("attachment_desc") val attachmentDesc: String? = null,
-    @SerialName("attachment_urls") val attachmentUrls: List<String> = emptyList(),
-    @SerialName("attachment_names") val attachmentNames: List<String> = emptyList(),
+    /** NULL = 레거시 단일 컬럼만 사용. 빈 배열 = 첨부 없음(삭제 반영). */
+    @SerialName("attachment_urls") val attachmentUrls: List<String>? = null,
+    @SerialName("attachment_names") val attachmentNames: List<String>? = null,
     @SerialName("created_at") val createdAt: String? = null,
 )
+
+/** 일정 첨부 목록 — attachment_urls 가 NULL 이 아니면 빈 배열 포함 배열만 사용 */
+fun CalendarEvent.attachmentPairs(): List<Pair<String, String>> {
+    if (attachmentUrls != null) {
+        val urls = attachmentUrls!!
+        val names = attachmentNames ?: emptyList()
+        return urls.mapIndexed { i, u -> (names.getOrElse(i) { "첨부파일" }) to u }
+    }
+    if (!attachmentUrl.isNullOrBlank()) {
+        return listOf((attachmentName ?: "첨부파일") to attachmentUrl!!)
+    }
+    return emptyList()
+}
 
 // 일정 삽입용 DTO (id/created_at/updated_at 은 DB가 생성)
 @Serializable

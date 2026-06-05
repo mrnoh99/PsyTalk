@@ -40,34 +40,46 @@ final class MoimViewModel: ObservableObject {
     }
 
     private var activeRoom: String?
-    private var realtimeStarted = false
-
     init() {
         if MoimRepository.currentUserId() != nil {
             bindRealtime()
         }
     }
 
+    /// Realtime 구독 (이미 연결 중이면 재구독)
     private func bindRealtime() {
-        guard !realtimeStarted else { return }
-        realtimeStarted = true
         Task {
             await MoimRealtimeSync.shared.start(
                 onRooms: { await self.loadRoomsFromRealtime() },
+                onRoomMembers: { await self.onRoomMembersChangedOnly() },
+                onProfiles: { await self.loadProfilesFromRealtime() },
                 onWard: { await self.loadWardStatusFromRealtime() },
                 onRoomData: { await self.refreshActiveRoom($0) }
             )
         }
     }
 
+    /// 앱 복귀·다른 클라이언트 변경 반영
+    func refreshOnForeground() {
+        guard loggedIn else { return }
+        loadRooms()
+        bindRealtime()
+    }
+
     private func loadRoomsFromRealtime() async {
         do {
             myProfile = try await MoimRepository.myProfile()
             rooms = try await MoimRepository.rooms()
-            if let list = try? await MoimRepository.allProfiles() {
-                profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
-            }
         } catch { /* 조용히 재시도 — 다음 이벤트에서 갱신 */ }
+    }
+
+    /// 가입 신청·승인 상태 등 profiles 변경 시 (관리자 가입 승인 목록·배지 갱신)
+    private func loadProfilesFromRealtime() async {
+        guard let list = try? await MoimRepository.allProfiles() else { return }
+        profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+        if let uid = MoimRepository.currentUserId(), let me = profilesById[uid] {
+            myProfile = me
+        }
     }
 
     private func loadWardStatusFromRealtime() async {
@@ -105,7 +117,6 @@ final class MoimViewModel: ObservableObject {
     func logout() {
         Task {
             await MoimRealtimeSync.shared.stop()
-            realtimeStarted = false
             try? await MoimRepository.signOut()
             loggedIn = false
             rooms = []; myProfile = nil
@@ -117,6 +128,7 @@ final class MoimViewModel: ObservableObject {
             do {
                 myProfile = try await MoimRepository.myProfile()
                 rooms = try await MoimRepository.rooms()
+                loadRoomMemberCounts()
                 if let list = try? await MoimRepository.allProfiles() {
                     profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                 }
@@ -270,10 +282,33 @@ final class MoimViewModel: ObservableObject {
 
     /// 현재 방 멤버 id 목록
     @Published var roomMemberIds: [String] = []
-    func loadRoomMembers(_ roomId: String) {
+    @Published var roomMembersLoaded = false
+    @Published var roomMemberCounts: [String: Int] = [:]
+    private var memberListRoomId: String?
+
+    func loadRoomMemberCounts() {
         Task {
-            roomMemberIds = (try? await MoimRepository.roomMemberIds(roomId: roomId)) ?? []
+            roomMemberCounts = (try? await MoimRepository.roomMemberCounts()) ?? [:]
         }
+    }
+
+    func loadRoomMembers(_ roomId: String) {
+        memberListRoomId = roomId
+        roomMembersLoaded = false
+        Task {
+            do {
+                roomMemberIds = try await MoimRepository.roomMemberIds(roomId: roomId)
+            } catch {
+                roomMemberIds = []
+                self.error = "멤버 목록: \(error.localizedDescription)"
+            }
+            roomMembersLoaded = true
+        }
+    }
+
+    private func onRoomMembersChangedOnly() async {
+        if let rid = memberListRoomId { loadRoomMembers(rid) }
+        loadRoomMemberCounts()
     }
 
     /// 멤버 내보내기 (생성자/관리자)
@@ -282,6 +317,7 @@ final class MoimViewModel: ObservableObject {
             do {
                 try await MoimRepository.removeRoomMember(roomId: roomId, userId: userId)
                 roomMemberIds = (try? await MoimRepository.roomMemberIds(roomId: roomId)) ?? []
+                loadRoomMemberCounts()
             } catch { self.error = "멤버 내보내기: \(error.localizedDescription)" }
         }
     }
@@ -292,6 +328,7 @@ final class MoimViewModel: ObservableObject {
             do {
                 try await MoimRepository.addRoomMembers(roomId: roomId, userIds: [userId])
                 roomMemberIds = (try? await MoimRepository.roomMemberIds(roomId: roomId)) ?? []
+                loadRoomMemberCounts()
             } catch { self.error = "구성원 초대: \(error.localizedDescription)" }
         }
     }
@@ -299,16 +336,19 @@ final class MoimViewModel: ObservableObject {
     /// 전체관리자 여부 (관리자 콘솔의 방 삭제 권한)
     var isSuperAdmin: Bool { myProfile?.role == "superadmin" }
 
-    /// 모임방 관리 권한 (custom 방에 한해 생성자 또는 관리자)
+    /// 모임방 관리 권한: 관리자는 모든 방, 그 외는 custom 방 생성자
     func canManageRoom(_ room: Room) -> Bool {
-        guard room.category == "custom" else { return false }
         if let r = myProfile?.role, r == "superadmin" || r == "admin" { return true }
+        guard room.category == "custom" else { return false }
         return room.createdBy != nil && room.createdBy == MoimRepository.currentUserId()
     }
 
     /// 같은 이름 모임방 등 친화적 오류 메시지
     private func friendlyError(_ error: Error) -> String {
         let m = error.localizedDescription
+        if m.contains("42P17") || m.lowercased().contains("infinite recursion") {
+            return "room_members 보안 정책 오류입니다. Supabase에서 room_manage.sql 을 다시 실행하세요."
+        }
         if m.contains("23505") || m.lowercased().contains("duplicate key") || m.contains("rooms_custom_name_unique") {
             return "같은 이름의 모임방이 이미 있습니다. 다른 이름을 사용하세요."
         }

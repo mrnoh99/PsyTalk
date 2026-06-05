@@ -3,6 +3,7 @@ package com.example.moimtalk.data
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
 import io.github.jan.supabase.postgrest.from
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.json.buildJsonObject
@@ -77,11 +78,18 @@ object MoimRepository {
         supabase.from("rooms").delete { filter { eq("id", roomId) } }
     }
 
-    /** 방 참여 멤버의 user_id 목록 (생성자/관리자만 전체 조회 — RLS) */
+    /** 방 참여 멤버의 user_id 목록 (같은 방 참여자·생성자·관리자 조회 — RLS) */
     suspend fun roomMemberIds(roomId: String): List<String> =
-        supabase.from("room_members").select {
+        supabase.from("room_members").select(Columns.list("room_id", "user_id")) {
             filter { eq("room_id", roomId) }
         }.decodeList<RoomMemberInsert>().map { it.userId }
+
+    /** 방별 참여 인원 (관리자 콘솔·목록용) */
+    suspend fun roomMemberCounts(): Map<String, Int> =
+        supabase.from("room_members").select(Columns.list("room_id", "user_id"))
+            .decodeList<RoomMemberInsert>()
+            .groupBy { it.roomId }
+            .mapValues { it.value.size }
 
     /** 멤버 내보내기 (생성자 또는 관리자, RLS 로 강제) */
     suspend fun removeRoomMember(roomId: String, userId: String) {
@@ -90,11 +98,15 @@ object MoimRepository {
         }
     }
 
-    /** 구성원 초대 (방에 멤버 추가). 중복은 무시(upsert). */
+    /** 구성원 초대 (방에 멤버 추가). 이미 참여 중이면 무시. */
     suspend fun addRoomMembers(roomId: String, userIds: List<String>) {
         if (userIds.isEmpty()) return
         val rows = userIds.map { RoomMemberInsert(roomId = roomId, userId = it) }
-        supabase.from("room_members").upsert(rows)
+        try {
+            supabase.from("room_members").insert(rows)
+        } catch (e: Exception) {
+            if (!isDuplicateKeyError(e)) throw e
+        }
     }
 
     suspend fun messages(roomId: String): List<Message> =
@@ -158,6 +170,9 @@ object MoimRepository {
                 presenter = presenter?.takeIf { it.isNotBlank() },
                 keywords = keywords,
                 ownerId = uid,
+                attachmentUrl = null,
+                attachmentName = null,
+                attachmentDesc = null,
                 attachmentUrls = urls,
                 attachmentNames = names,
             )
@@ -196,6 +211,9 @@ object MoimRepository {
             set("description", description)
             set("presenter", presenter)
             set("keywords", keywords)
+            set<String?>("attachment_url", null)
+            set<String?>("attachment_name", null)
+            set<String?>("attachment_desc", null)
             set("attachment_urls", urls)
             set("attachment_names", names)
         }) { filter { eq("id", eventId) } }

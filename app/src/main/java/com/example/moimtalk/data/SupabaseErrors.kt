@@ -1,5 +1,10 @@
 package com.example.moimtalk.data
 
+internal fun isDuplicateKeyError(e: Exception): Boolean {
+    val msg = listOfNotNull(e.message, e.cause?.message).joinToString(" ")
+    return msg.contains("23505") || msg.contains("duplicate key", ignoreCase = true)
+}
+
 internal fun friendlySupabaseError(e: Exception, context: String): String {
     val msg = listOfNotNull(e.message, e.cause?.message)
         .joinToString(" | ")
@@ -12,16 +17,29 @@ internal fun friendlySupabaseError(e: Exception, context: String): String {
                 "AndroidManifest.xml 에 INTERNET 권한을 추가한 뒤 앱을 다시 설치하세요."
 
         msg.contains("42501") ||
+            msg.contains("new row violates row-level security", ignoreCase = true) ||
             (msg.contains("permission denied", ignoreCase = true) &&
                 msg.contains("table", ignoreCase = true)) ->
-            "$context 실패: DB 접근 권한이 없습니다.\n" +
-                "Supabase → SQL Editor에서 supabase/install.sql 을 실행하세요.\n" +
-                "(회원가입 문제는 fix_signup.sql 먼저)\n" +
-                "상세: $msg"
+            if (context.contains("구성원")) {
+                "$context 실패: 방 생성자 또는 관리자만 초대할 수 있습니다.\n" +
+                    "Supabase SQL Editor에서 supabase/room_manage.sql 을 실행했는지 확인하세요.\n" +
+                    "상세: $msg"
+            } else {
+                "$context 실패: DB 접근 권한이 없습니다.\n" +
+                    "Supabase → SQL Editor에서 supabase/install.sql 을 실행하세요.\n" +
+                    "(회원가입 문제는 fix_signup.sql 먼저)\n" +
+                    "상세: $msg"
+            }
 
         msg.contains("relation", ignoreCase = true) &&
             msg.contains("does not exist", ignoreCase = true) ->
             "$context 실패: 테이블이 없습니다. Supabase에 profiles, rooms, messages 테이블을 만드세요.\n" +
+                "상세: $msg"
+
+        msg.contains("42P17") ||
+            msg.contains("infinite recursion", ignoreCase = true) ->
+            "$context 실패: room_members 보안 정책 오류입니다.\n" +
+                "Supabase SQL Editor에서 supabase/room_manage.sql 을 다시 실행하세요.\n" +
                 "상세: $msg"
 
         msg.contains("23505") ||

@@ -15,7 +15,7 @@ CREATE POLICY "rooms_insert_custom"
   ON public.rooms FOR INSERT TO authenticated
   WITH CHECK (category = 'custom' AND created_by = auth.uid());
 
--- 방 조회: 기본 방은 모두 / 모임방은 멤버·생성자·관리자만 (카톡식 비공개)
+-- 방 조회: room_manage.sql 의 moim_my_room_ids() 로 최종 정의 (여기서는 재귀 없는 초기 버전)
 DROP POLICY IF EXISTS "rooms_select_authenticated" ON public.rooms;
 DROP POLICY IF EXISTS "rooms_select_visible" ON public.rooms;
 CREATE POLICY "rooms_select_visible"
@@ -23,8 +23,6 @@ CREATE POLICY "rooms_select_visible"
   USING (
     category <> 'custom'
     OR created_by = auth.uid()
-    OR EXISTS (SELECT 1 FROM public.room_members rm
-               WHERE rm.room_id = rooms.id AND rm.user_id = auth.uid())
     OR EXISTS (SELECT 1 FROM public.profiles p
                WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin'))
   );
@@ -44,10 +42,17 @@ CREATE POLICY "rooms_update_owner_admin"
                WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin'))
   );
 
--- 방 멤버 추가: 인증 사용자(생성자가 참석자 지정) 허용 (admin 전용 정책에 더해 OR)
+-- 방 멤버 추가: 생성자·관리자만 (상세 정책은 room_manage.sql 의 room_members_insert_owner_admin)
+-- room_manage.sql 미실행 환경용 폴백 — 생성자 또는 관리자
 DROP POLICY IF EXISTS "room_members_insert_self" ON public.room_members;
-CREATE POLICY "room_members_insert_self"
+DROP POLICY IF EXISTS "room_members_insert_owner_admin" ON public.room_members;
+CREATE POLICY "room_members_insert_owner_admin"
   ON public.room_members FOR INSERT TO authenticated
-  WITH CHECK (true);
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM public.rooms r
+            WHERE r.id = room_id AND r.created_by = auth.uid() AND r.category = 'custom')
+    OR EXISTS (SELECT 1 FROM public.profiles p
+               WHERE p.id = auth.uid() AND p.role IN ('superadmin', 'admin'))
+  );
 
 NOTIFY pgrst, 'reload schema';

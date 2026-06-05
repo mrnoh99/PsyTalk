@@ -84,11 +84,22 @@ enum MoimRepository {
         try await supabase.from("rooms").delete().eq("id", value: roomId).execute()
     }
 
-    /// 방 참여 멤버 user_id 목록 (생성자/관리자만 전체 조회 — RLS)
+    /// 방 참여 멤버 user_id 목록 (같은 방 참여자·생성자·관리자 — RLS)
     static func roomMemberIds(roomId: String) async throws -> [String] {
         let rows: [RoomMemberRow] = try await supabase.from("room_members")
-            .select("user_id").eq("room_id", value: roomId).execute().value
+            .select("room_id,user_id").eq("room_id", value: roomId).execute().value
         return rows.map { $0.userId }
+    }
+
+    /// 방별 참여 인원 (관리자 콘솔용)
+    static func roomMemberCounts() async throws -> [String: Int] {
+        let rows: [RoomMemberRow] = try await supabase.from("room_members")
+            .select("room_id,user_id").execute().value
+        var counts: [String: Int] = [:]
+        for row in rows {
+            counts[row.roomId, default: 0] += 1
+        }
+        return counts
     }
 
     /// 멤버 내보내기 (생성자 또는 관리자 — RLS)
@@ -97,11 +108,20 @@ enum MoimRepository {
             .eq("room_id", value: roomId).eq("user_id", value: userId).execute()
     }
 
-    /// 구성원 초대 (방에 멤버 추가 — 관리자/생성자, RLS). 중복은 무시(upsert).
+    /// 구성원 초대 (방에 멤버 추가 — 방 생성자/관리자, RLS). 이미 참여 중이면 무시.
     static func addRoomMembers(roomId: String, userIds: [String]) async throws {
         guard !userIds.isEmpty else { return }
         let rows = userIds.map { RoomMemberInsert(roomId: roomId, userId: $0) }
-        try await supabase.from("room_members").upsert(rows).execute()
+        do {
+            try await supabase.from("room_members").insert(rows).execute()
+        } catch {
+            if !isDuplicateKeyError(error) { throw error }
+        }
+    }
+
+    private static func isDuplicateKeyError(_ error: Error) -> Bool {
+        let m = error.localizedDescription.lowercased()
+        return m.contains("23505") || m.contains("duplicate key")
     }
 
     // ── 채팅 ──
@@ -169,6 +189,9 @@ enum MoimRepository {
             "description": description.map { AnyJSON.string($0) } ?? .null,
             "presenter": presenter.map { AnyJSON.string($0) } ?? .null,
             "keywords": .array(keywords.map { AnyJSON.string($0) }),
+            "attachment_url": .null,
+            "attachment_name": .null,
+            "attachment_desc": .null,
             "attachment_urls": .array(urls.map { AnyJSON.string($0) }),
             "attachment_names": .array(names.map { AnyJSON.string($0) }),
         ]

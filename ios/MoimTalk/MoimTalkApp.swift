@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct MoimTalkApp: App {
@@ -54,6 +55,15 @@ struct RootView: View {
         .onAppear { if vm.loggedIn { vm.loadRooms() } }
         .onChange(of: vm.loggedIn) { newValue in
             if newValue { vm.loadRooms() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            if vm.loggedIn { vm.refreshOnForeground() }
+        }
+        .onChange(of: vm.rooms) { _ in
+            if let r = openedRoom, !vm.rooms.contains(where: { $0.id == r.id }) {
+                vm.closeRoom()
+                openedRoom = nil
+            }
         }
     }
 }

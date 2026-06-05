@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.example.moimtalk.MoimViewModel
 import com.example.moimtalk.data.CalendarEvent
+import com.example.moimtalk.data.attachmentPairs
 import com.example.moimtalk.data.Room
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -151,10 +152,7 @@ fun FilesPane(vm: MoimViewModel, canUpload: Boolean, modifier: Modifier = Modifi
             dayLabel(it.createdAt), false, it.createdAt.orEmpty(), fileId = it.id, uploadedBy = it.uploadedBy)
     }
     val fromCal = vm.events.flatMap { e ->
-        val pairs = if (e.attachmentNames.isNotEmpty()) e.attachmentNames.zip(e.attachmentUrls)
-            else if (!e.attachmentUrl.isNullOrBlank()) listOf((e.attachmentName ?: "첨부파일") to e.attachmentUrl!!)
-            else emptyList()
-        pairs.map { (n, url) ->
+        e.attachmentPairs().map { (n, url) ->
             FileEntry(n, url, e.title, emptyList(), vm.nameOf(e.ownerId), dayLabel(e.startAt), true, e.startAt)
         }
     }
@@ -594,9 +592,7 @@ private fun EventCard(e: CalendarEvent, vm: MoimViewModel, onEdit: (CalendarEven
             e.description?.takeIf { it.isNotBlank() }?.let {
                 Text(it, fontSize = 11.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
             }
-            val atts = if (e.attachmentNames.isNotEmpty()) e.attachmentNames.zip(e.attachmentUrls)
-                else if (!e.attachmentUrl.isNullOrBlank()) listOf((e.attachmentName ?: "첨부파일") to e.attachmentUrl!!)
-                else emptyList()
+            val atts = e.attachmentPairs()
             atts.forEach { (n, url) ->
                 Text("📎 $n", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = catColor("work"),
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
@@ -671,19 +667,11 @@ private fun EventDialog(
     var scope by remember { mutableStateOf(initial?.scope ?: "") }
     var desc by remember { mutableStateOf(initial?.description ?: "") }
     var presenter by remember { mutableStateOf(initial?.presenter ?: "") }
-    // 기존 첨부(이름 to URL). 배열 우선, 없으면 옛 단일 컬럼 호환
     val initialExisting = remember(initial) {
-        when {
-            initial == null -> emptyList()
-            initial.attachmentNames.isNotEmpty() ->
-                initial.attachmentNames.zip(initial.attachmentUrls)
-            !initial.attachmentUrl.isNullOrBlank() ->
-                listOf((initial.attachmentName ?: "첨부파일") to initial.attachmentUrl!!)
-            else -> emptyList()
-        }
+        initial?.attachmentPairs() ?: emptyList()
     }
-    var existing by remember { mutableStateOf(initialExisting) }
-    var picked by remember { mutableStateOf(listOf<Pair<String, ByteArray>>()) }
+    var existing by remember(initial) { mutableStateOf(initialExisting) }
+    var picked by remember(initial) { mutableStateOf(listOf<Pair<String, ByteArray>>()) }
     var err by remember { mutableStateOf<String?>(null) }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
@@ -722,18 +710,18 @@ private fun EventDialog(
         ) {
             Text("📎 파일 추가", color = MoimSub, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
-        existing.forEach { item ->
+        existing.forEachIndexed { idx, item ->
             Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("📎 ${item.first}", fontSize = 12.5.sp, color = MoimInk, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("제거", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
-                    modifier = Modifier.clickable { existing = existing - item })
+                    modifier = Modifier.clickable { existing = existing.filterIndexed { i, _ -> i != idx } })
             }
         }
-        picked.forEach { item ->
+        picked.forEachIndexed { idx, item ->
             Row(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text("🆕 ${item.first}", fontSize = 12.5.sp, color = catColor("work"), modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text("제거", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
-                    modifier = Modifier.clickable { picked = picked - item })
+                    modifier = Modifier.clickable { picked = picked.filterIndexed { i, _ -> i != idx } })
             }
         }
 

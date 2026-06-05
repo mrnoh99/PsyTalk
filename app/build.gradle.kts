@@ -65,8 +65,8 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:realtime-kt")
     implementation("io.github.jan-tennert.supabase:storage-kt")
 
-    // --- Ktor (네트워크 엔진) ---
-    implementation("io.ktor:ktor-client-android:3.0.3")
+    // --- Ktor (Realtime WebSocket — Android 엔진은 WS 미지원, OkHttp 사용) ---
+    implementation("io.ktor:ktor-client-okhttp:3.0.3")
 
     // --- 직렬화 ---
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")

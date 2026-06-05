@@ -28,12 +28,10 @@ struct RoomView: View {
             Divider().background(Moim.line)
 
             switch tab {
-            case "chat": ChatView(vm: vm)
+            case "chat": ChatView(vm: vm, canPost: canPost, input: $input)
             case "files": FilesView(vm: vm, canUpload: canPost)
             default: CalendarView(vm: vm, room: room, canPost: canPost)
             }
-
-            if tab == "chat" { inputBar }
         }
         .background(Moim.paper.ignoresSafeArea())
     }
@@ -94,8 +92,50 @@ struct RoomView: View {
         }
         .background(Moim.paper)
     }
+}
 
-    @ViewBuilder private var inputBar: some View {
+struct ChatView: View {
+    @ObservedObject var vm: MoimViewModel
+    let canPost: Bool
+    @Binding var input: String
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 6) {
+                    Text("2026년 6월 3일 화요일")
+                        .font(.system(size: 11)).foregroundColor(.white)
+                        .padding(.horizontal, 12).padding(.vertical, 4)
+                        .background(Color.black.opacity(0.18)).clipShape(Capsule())
+                        .padding(.vertical, 8)
+                    if vm.messages.isEmpty {
+                        Text("대화를 시작해보세요").font(.system(size: 14)).foregroundColor(Moim.sub).padding(32)
+                    } else {
+                        ForEach(vm.messages) { m in
+                            MessageBubble(message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId))
+                                .id(m.id)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12).padding(.vertical, 14)
+            }
+            .background(Moim.bg)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                chatInputBar
+            }
+            .onChange(of: vm.messages.count) { _ in
+                scrollToBottom(proxy, animated: true)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                scrollToBottom(proxy, animated: true)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { _ in
+                scrollToBottom(proxy, animated: false)
+            }
+        }
+    }
+
+    @ViewBuilder private var chatInputBar: some View {
         if canPost {
             HStack(spacing: 8) {
                 TextField("메시지 입력", text: $input)
@@ -118,30 +158,17 @@ struct RoomView: View {
                 .background(Color(hex: 0xF3EDE3))
         }
     }
-}
 
-struct ChatView: View {
-    @ObservedObject var vm: MoimViewModel
-
-    var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 6) {
-                Text("2026년 6월 3일 화요일")
-                    .font(.system(size: 11)).foregroundColor(.white)
-                    .padding(.horizontal, 12).padding(.vertical, 4)
-                    .background(Color.black.opacity(0.18)).clipShape(Capsule())
-                    .padding(.vertical, 8)
-                if vm.messages.isEmpty {
-                    Text("대화를 시작해보세요").font(.system(size: 14)).foregroundColor(Moim.sub).padding(32)
-                } else {
-                    ForEach(vm.messages) { m in
-                        MessageBubble(message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId))
-                    }
-                }
-            }
-            .padding(.horizontal, 12).padding(.vertical, 14)
+    private func scrollToBottom(_ proxy: ScrollViewProxy, animated: Bool) {
+        guard let last = vm.messages.last else { return }
+        let scroll = {
+            proxy.scrollTo(last.id, anchor: .bottom)
         }
-        .background(Moim.bg)
+        if animated {
+            withAnimation(.easeOut(duration: 0.2), scroll)
+        } else {
+            scroll()
+        }
     }
 }
 

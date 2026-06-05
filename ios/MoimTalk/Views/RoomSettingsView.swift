@@ -28,8 +28,10 @@ struct RoomSettingsView: View {
                 }
 
                 Section(header: Text("참여 멤버 (\(vm.roomMemberIds.count)명)")) {
-                    if vm.roomMemberIds.isEmpty {
+                    if !vm.roomMembersLoaded {
                         Text("멤버 정보를 불러오는 중…").font(.system(size: 13)).foregroundColor(Moim.sub)
+                    } else if vm.roomMemberIds.isEmpty {
+                        Text("참여 구성원이 없습니다. 위에서 초대하세요.").font(.system(size: 13)).foregroundColor(Moim.sub)
                     }
                     ForEach(vm.roomMemberIds, id: \.self) { uid in
                         let isCreator = uid == room.createdBy

@@ -68,8 +68,12 @@ struct RoomMemberInsert: Encodable {
 
 // 방 멤버 행 읽기용 (멤버 내보내기 목록)
 struct RoomMemberRow: Decodable {
+    let roomId: String
     let userId: String
-    enum CodingKeys: String, CodingKey { case userId = "user_id" }
+    enum CodingKeys: String, CodingKey {
+        case roomId = "room_id"
+        case userId = "user_id"
+    }
 }
 
 struct Message: Codable, Identifiable, Hashable {
@@ -121,9 +125,10 @@ struct CalendarEvent: Codable, Identifiable, Hashable {
 
     var kw: [String] { keywords ?? [] }
 
-    /// 표시용 첨부 목록 (이름 to URL) — 배열 우선, 없으면 옛 단일 컬럼
+    /// 표시용 첨부 목록 — attachment_urls 가 NULL 이 아니면 빈 배열 포함 배열만 사용 (삭제 반영)
     var attachmentList: [(name: String, url: String)] {
-        if let urls = attachmentUrls, !urls.isEmpty {
+        if attachmentUrls != nil {
+            let urls = attachmentUrls ?? []
             let names = attachmentNames ?? []
             return urls.enumerated().map { (idx, u) in (idx < names.count ? names[idx] : "첨부파일", u) }
         }

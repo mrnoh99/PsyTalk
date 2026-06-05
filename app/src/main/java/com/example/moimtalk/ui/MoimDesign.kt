@@ -66,10 +66,12 @@ fun canRenameRoom(profile: Profile?, room: Room): Boolean {
     return room.createdBy != null && room.createdBy == MoimRepository.currentUserId()
 }
 
-/** 모임방 관리(구성원 초대·제거) 권한: 모임방(custom)에 한해 생성자 또는 관리자 */
+/** 모임방 관리(구성원 초대·제거) 권한: 관리자는 모든 방, 그 외는 custom 방 생성자 */
 fun canManageRoom(profile: Profile?, room: Room): Boolean {
+    if (profile == null) return false
+    if (isAdminRole(profile.role)) return true
     if (room.category != "custom") return false
-    return canRenameRoom(profile, room)
+    return room.createdBy != null && room.createdBy == MoimRepository.currentUserId()
 }
 
 /** 방 삭제 권한: 모임방(custom)에 한해 생성자(본인이 만든 방) 또는 전체관리자(superadmin) */

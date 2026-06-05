@@ -139,6 +139,11 @@ object MoimRepository {
         supabase.postgrest.rpc("moim_unread_counts")
             .decodeList<UnreadRoomRow>().associate { it.roomId to it.cnt.toInt() }
 
+    /** 방별 마지막 메시지 (방 목록 미리보기) */
+    suspend fun roomLastMessages(): Map<String, LastMsg> =
+        supabase.postgrest.rpc("moim_room_last_messages")
+            .decodeList<LastMsg>().associateBy { it.roomId }
+
     /** 방의 메시지별 안읽은 사람 수 */
     suspend fun messageUnreadCounts(roomId: String): Map<String, Int> =
         supabase.postgrest.rpc("moim_message_unread_counts", buildJsonObject { put("p_room", roomId) })

@@ -114,6 +114,18 @@ struct ChatView: View {
     @State private var pendingAttach: (name: String, data: Data, type: String)?
     @State private var deleteTarget: Message?
 
+    // 메시지 + 날짜 구분선 (날짜 바뀌면 divider 삽입)
+    private var chatItems: [ChatRowItem] {
+        var out: [ChatRowItem] = []
+        var lastDay = ""
+        for m in vm.messages {
+            let d = dayKey(m.createdAt)
+            if d != lastDay { out.append(.divider(id: d, label: fmtDateDivider(m.createdAt))); lastDay = d }
+            out.append(.message(m))
+        }
+        return out
+    }
+
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
@@ -121,16 +133,21 @@ struct ChatView: View {
                     if vm.messages.isEmpty {
                         Text("대화를 시작해보세요").font(.system(size: 14)).foregroundColor(Moim.sub).padding(32)
                     } else {
-                        ForEach(vm.messages) { m in
-                            MessageBubble(
-                                message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
-                                attachUrl: m.attachmentUrl.flatMap { url in
-                                    vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
-                                },
-                                onDelete: { deleteTarget = m },
-                                unread: vm.unreadByMsg[m.id] ?? 0
-                            )
-                            .id(m.id)
+                        ForEach(chatItems) { item in
+                            switch item {
+                            case .divider(_, let label):
+                                DateDividerView(text: label)
+                            case .message(let m):
+                                MessageBubble(
+                                    message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
+                                    attachUrl: m.attachmentUrl.flatMap { url in
+                                        vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
+                                    },
+                                    onDelete: { deleteTarget = m },
+                                    unread: vm.unreadByMsg[m.id] ?? 0
+                                )
+                                .id(m.id)
+                            }
                         }
                     }
                 }
@@ -240,6 +257,32 @@ struct ChatView: View {
     }
 }
 
+enum ChatRowItem: Identifiable {
+    case divider(id: String, label: String)
+    case message(Message)
+    var id: String {
+        switch self {
+        case .divider(let id, _): return "div_\(id)"
+        case .message(let m): return m.id
+        }
+    }
+}
+
+// 채팅 가운데 날짜 구분선
+struct DateDividerView: View {
+    let text: String
+    var body: some View {
+        HStack {
+            Spacer()
+            Text(text).font(.system(size: 11)).foregroundColor(.white)
+                .padding(.horizontal, 12).padding(.vertical, 4)
+                .background(Color.black.opacity(0.2)).clipShape(Capsule())
+            Spacer()
+        }
+        .padding(.vertical, 8)
+    }
+}
+
 struct MessageBubble: View {
     let message: Message
     let mine: Bool
@@ -252,6 +295,9 @@ struct MessageBubble: View {
         Text(unread > 99 ? "99+" : "\(unread)")
             .font(.system(size: 11, weight: .bold)).foregroundColor(Color(hex: 0xE0922F))
     }
+    private var timeText: some View {
+        Text(fmtMsgTime(message.createdAt)).font(.system(size: 10)).foregroundColor(Moim.sub)
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 8) {
@@ -263,6 +309,7 @@ struct MessageBubble: View {
                 .buttonStyle(.plain)
             }
             if mine && unread > 0 { unreadText }
+            if mine { timeText }
             if !mine {
                 Text(String(senderName.prefix(3)))
                     .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
@@ -320,6 +367,7 @@ struct MessageBubble: View {
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
             }
+            if !mine { timeText }
             if !mine && unread > 0 { unreadText }
             if !mine { Spacer(minLength: 40) }
         }

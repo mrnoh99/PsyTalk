@@ -31,7 +31,7 @@ struct RoomListView: View {
                         EmptyBox(emoji: "🔒", title: "아직 방이 없어요",
                                  subtitle: "전체관리자가 방에 배정하면\n여기에 표시됩니다.")
                     } else {
-                        ForEach(listRooms) { RoomRow(room: $0, unread: vm.unreadByRoom[$0.id] ?? 0, onOpen: onOpen) }
+                        ForEach(listRooms) { RoomRow(room: $0, unread: vm.unreadByRoom[$0.id] ?? 0, lastMsg: vm.lastMsgByRoom[$0.id], onOpen: onOpen) }
                     }
                 }
             }
@@ -192,6 +192,7 @@ struct UnreadBadge: View {
 struct RoomRow: View {
     let room: Room
     var unread: Int = 0
+    var lastMsg: LastMsg? = nil
     let onOpen: (Room) -> Void
     var body: some View {
         Button { onOpen(room) } label: {
@@ -212,12 +213,17 @@ struct RoomRow: View {
                             .background(catColor(room.category)).clipShape(RoundedRectangle(cornerRadius: 5))
                         Text(room.name).font(.system(size: 15, weight: .bold)).foregroundColor(Moim.ink)
                     }
-                    Text(room.postPolicy == "restricted" ? "공지 · 관리자/지정작성자" : "멤버 누구나")
+                    Text(msgPreview(lastMsg).isEmpty
+                         ? (room.postPolicy == "restricted" ? "공지 · 관리자/지정작성자" : "")
+                         : msgPreview(lastMsg))
                         .font(.system(size: 12.5)).foregroundColor(Moim.sub).lineLimit(1)
                 }
                 Spacer()
-                if unread > 0 { UnreadBadge(count: unread) }
-                Text("›").foregroundColor(Moim.sub).font(.system(size: 20))
+                VStack(alignment: .trailing, spacing: 5) {
+                    let t = fmtListTime(lastMsg?.createdAt)
+                    if !t.isEmpty { Text(t).font(.system(size: 11)).foregroundColor(Moim.sub) }
+                    if unread > 0 { UnreadBadge(count: unread) }
+                }
             }
             .padding(.horizontal, 18).padding(.vertical, 12)
         }

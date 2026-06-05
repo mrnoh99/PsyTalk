@@ -98,6 +98,50 @@ func canDeleteEvent(_ profile: Profile?, _ event: CalendarEvent) -> Bool {
     return isAdminRole(p.role) || ["교실", "의국", "비서", "심리실"].contains(p.memberType)
 }
 
+// ── 시간/날짜/미리보기 표시 헬퍼 ──
+private let kstTZ = TimeZone(identifier: "Asia/Seoul")!
+private func parseISO(_ s: String?) -> Date? {
+    guard let s = s else { return nil }
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    if let d = f.date(from: s) { return d }
+    f.formatOptions = [.withInternetDateTime]
+    return f.date(from: s)
+}
+private func kstFormatter(_ pattern: String) -> DateFormatter {
+    let f = DateFormatter(); f.timeZone = kstTZ; f.locale = Locale(identifier: "ko_KR"); f.dateFormat = pattern; return f
+}
+/// 메시지 시간 HH:mm
+func fmtMsgTime(_ createdAt: String?) -> String {
+    guard let d = parseISO(createdAt) else { return "" }
+    return kstFormatter("HH:mm").string(from: d)
+}
+/// 방 목록 시간: 오늘=HH:mm, 이전=M/d
+func fmtListTime(_ createdAt: String?) -> String {
+    guard let d = parseISO(createdAt) else { return "" }
+    var cal = Calendar(identifier: .gregorian); cal.timeZone = kstTZ
+    return kstFormatter(cal.isDateInToday(d) ? "HH:mm" : "M/d").string(from: d)
+}
+/// 날짜 구분선 라벨
+func fmtDateDivider(_ createdAt: String?) -> String {
+    guard let d = parseISO(createdAt) else { return "" }
+    return kstFormatter("yyyy년 M월 d일 EEEE").string(from: d)
+}
+/// 같은 날 판별용 키
+func dayKey(_ createdAt: String?) -> String {
+    guard let d = parseISO(createdAt) else { return "" }
+    return kstFormatter("yyyy-MM-dd").string(from: d)
+}
+/// 마지막 메시지 미리보기
+func msgPreview(_ lm: LastMsg?) -> String {
+    guard let lm = lm else { return "" }
+    switch lm.type {
+    case "image": return "사진"
+    case "file": return "📎 \(lm.attachmentName ?? "파일")"
+    default: return lm.content ?? ""
+    }
+}
+
 /// 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
 func canRenameRoom(_ profile: Profile?, _ room: Room) -> Bool {
     guard let p = profile else { return false }

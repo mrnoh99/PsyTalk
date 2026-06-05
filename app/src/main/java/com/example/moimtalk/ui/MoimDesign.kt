@@ -2,6 +2,7 @@ package com.example.moimtalk.ui
 
 import androidx.compose.ui.graphics.Color
 import com.example.moimtalk.data.CalendarEvent
+import com.example.moimtalk.data.LastMsg
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
@@ -94,6 +95,46 @@ fun canDeleteEvent(profile: Profile?, event: CalendarEvent): Boolean {
     if (profile == null) return false
     if (event.ownerId == MoimRepository.currentUserId()) return true
     return isAdminRole(profile.role) || profile.memberType in listOf("교실", "의국", "비서", "심리실")
+}
+
+// ── 시간/날짜/미리보기 표시 헬퍼 ──
+private val KST_ZONE = java.time.ZoneId.of("Asia/Seoul")
+private fun zdt(createdAt: String?) =
+    java.time.OffsetDateTime.parse(createdAt).atZoneSameInstant(KST_ZONE)
+
+/** 메시지 시간 HH:mm */
+fun fmtMsgTime(createdAt: String?): String = runCatching {
+    zdt(createdAt).format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+}.getOrDefault("")
+
+/** 방 목록 시간: 오늘=HH:mm, 이전=M/d */
+fun fmtListTime(createdAt: String?): String = runCatching {
+    val z = zdt(createdAt)
+    if (z.toLocalDate() == java.time.LocalDate.now(KST_ZONE))
+        z.format(java.time.format.DateTimeFormatter.ofPattern("HH:mm"))
+    else "${z.monthValue}/${z.dayOfMonth}"
+}.getOrDefault("")
+
+/** 날짜 구분선 라벨 */
+fun fmtDateDivider(createdAt: String?): String = runCatching {
+    val z = zdt(createdAt)
+    val w = listOf("일", "월", "화", "수", "목", "금", "토")[z.dayOfWeek.value % 7]
+    "${z.year}년 ${z.monthValue}월 ${z.dayOfMonth}일 ${w}요일"
+}.getOrDefault("")
+
+/** 같은 날 판별용 키 */
+fun dayKey(createdAt: String?): String = runCatching {
+    zdt(createdAt).toLocalDate().toString()
+}.getOrDefault("")
+
+/** 마지막 메시지 미리보기 */
+fun msgPreview(lm: LastMsg?): String {
+    if (lm == null) return ""
+    return when (lm.type) {
+        "image" -> "사진"
+        "file" -> "📎 ${lm.attachmentName ?: "파일"}"
+        else -> lm.content.orEmpty()
+    }
 }
 
 fun viewBadgeText(profile: Profile?): String {

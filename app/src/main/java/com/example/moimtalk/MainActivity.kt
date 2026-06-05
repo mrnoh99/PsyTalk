@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.example.moimtalk.data.CalendarEvent
+import com.example.moimtalk.data.LastMsg
 import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRealtimeSync
 import com.example.moimtalk.data.MoimRepository
@@ -59,6 +60,8 @@ class MoimViewModel : ViewModel() {
     // 읽음 표시: #1 방별 안읽은 수, #2 메시지별 안읽은 사람 수
     var unreadByRoom by mutableStateOf<Map<String, Int>>(emptyMap())
     var unreadByMsg by mutableStateOf<Map<String, Int>>(emptyMap())
+    // 방별 마지막 메시지 (방 목록 미리보기)
+    var lastMsgByRoom by mutableStateOf<Map<String, LastMsg>>(emptyMap())
     var error by mutableStateOf<String?>(null)
     var notice by mutableStateOf<String?>(null)
     var loading by mutableStateOf(false)
@@ -92,6 +95,7 @@ class MoimViewModel : ViewModel() {
             rooms = MoimRepository.rooms()
             loadRoomMemberCounts()
             unreadByRoom = MoimRepository.unreadCounts()
+            lastMsgByRoom = MoimRepository.roomLastMessages()
         } catch (_: Exception) {
         }
     }
@@ -251,6 +255,7 @@ class MoimViewModel : ViewModel() {
                 rooms = MoimRepository.rooms()
                 loadRoomMemberCounts()
                 loadUnreadCounts()
+                loadLastMessages()
                 try {
                     profilesById = MoimRepository.allProfiles().associateBy { it.id }
                 } catch (_: Exception) {
@@ -585,6 +590,13 @@ class MoimViewModel : ViewModel() {
     fun loadUnreadCounts() {
         viewModelScope.launch {
             try { unreadByRoom = MoimRepository.unreadCounts() } catch (_: Exception) {}
+        }
+    }
+
+    /** 방별 마지막 메시지 갱신 (방 목록) */
+    fun loadLastMessages() {
+        viewModelScope.launch {
+            try { lastMsgByRoom = MoimRepository.roomLastMessages() } catch (_: Exception) {}
         }
     }
 

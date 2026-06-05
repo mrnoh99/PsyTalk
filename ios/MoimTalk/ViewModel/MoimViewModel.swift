@@ -19,6 +19,8 @@ final class MoimViewModel: ObservableObject {
     // 읽음 표시: #1 방별 안읽은 수, #2 메시지별 안읽은 사람 수
     @Published var unreadByRoom: [String: Int] = [:]
     @Published var unreadByMsg: [String: Int] = [:]
+    // 방별 마지막 메시지 (방 목록 미리보기)
+    @Published var lastMsgByRoom: [String: LastMsg] = [:]
     @Published var error: String?
     @Published var notice: String?
     @Published var loading = false
@@ -83,6 +85,7 @@ final class MoimViewModel: ObservableObject {
             myProfile = try await MoimRepository.myProfile()
             rooms = try await MoimRepository.rooms()
             unreadByRoom = (try? await MoimRepository.unreadCounts()) ?? unreadByRoom
+            lastMsgByRoom = (try? await MoimRepository.roomLastMessages()) ?? lastMsgByRoom
         } catch { /* 조용히 재시도 — 다음 이벤트에서 갱신 */ }
     }
 
@@ -168,6 +171,7 @@ final class MoimViewModel: ObservableObject {
                 rooms = try await MoimRepository.rooms()
                 loadRoomMemberCounts()
                 loadUnreadCounts()
+                loadLastMessages()
                 if let list = try? await MoimRepository.allProfiles() {
                     profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                 }
@@ -218,6 +222,11 @@ final class MoimViewModel: ObservableObject {
     /// 방별 안읽은 수 갱신 (방 목록)
     func loadUnreadCounts() {
         Task { do { unreadByRoom = try await MoimRepository.unreadCounts() } catch {} }
+    }
+
+    /// 방별 마지막 메시지 갱신 (방 목록)
+    func loadLastMessages() {
+        Task { do { lastMsgByRoom = try await MoimRepository.roomLastMessages() } catch {} }
     }
 
     /// 현재 방 읽음 처리 + 안읽은 수 갱신

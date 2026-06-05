@@ -90,6 +90,16 @@ data class Message(
     @SerialName("created_at") val createdAt: String,
 )
 
+// 방별 마지막 메시지 (방 목록 미리보기)
+@Serializable
+data class LastMsg(
+    @SerialName("room_id") val roomId: String,
+    val content: String? = null,
+    val type: String = "text",
+    @SerialName("attachment_name") val attachmentName: String? = null,
+    @SerialName("created_at") val createdAt: String? = null,
+)
+
 // 읽음 추적 RPC 결과
 @Serializable
 data class UnreadRoomRow(@SerialName("room_id") val roomId: String, val cnt: Long)

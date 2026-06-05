@@ -96,6 +96,21 @@ struct Message: Codable, Identifiable, Hashable {
     }
 }
 
+// 방별 마지막 메시지 (방 목록 미리보기)
+struct LastMsg: Decodable {
+    let roomId: String
+    var content: String?
+    var type: String = "text"
+    var attachmentName: String?
+    var createdAt: String?
+    enum CodingKeys: String, CodingKey {
+        case content, type
+        case roomId = "room_id"
+        case attachmentName = "attachment_name"
+        case createdAt = "created_at"
+    }
+}
+
 // 읽음 추적 RPC 결과
 struct UnreadRoomRow: Decodable {
     let roomId: String

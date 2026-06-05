@@ -68,6 +68,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.moimtalk.MoimViewModel
 import com.example.moimtalk.R
+import com.example.moimtalk.data.LastMsg
 import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
@@ -484,7 +485,7 @@ fun RoomListScreen(
             if (listRooms.isEmpty()) {
                 item { EmptyBox("🔒", "아직 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
             } else {
-                items(listRooms) { room -> RoomRow(room, vm.unreadByRoom[room.id] ?: 0, onOpen) }
+                items(listRooms) { room -> RoomRow(room, vm.unreadByRoom[room.id] ?: 0, vm.lastMsgByRoom[room.id], onOpen) }
             }
             vm.error?.let { err ->
                 item {
@@ -552,7 +553,7 @@ private fun SectionHead(title: String, action: String? = null, onAction: (() -> 
 }
 
 @Composable
-fun RoomRow(room: Room, unread: Int = 0, onOpen: (Room) -> Unit) {
+fun RoomRow(room: Room, unread: Int = 0, lastMsg: LastMsg? = null, onOpen: (Room) -> Unit) {
     val c = catColor(room.category)
     Row(
         modifier = Modifier
@@ -593,18 +594,17 @@ fun RoomRow(room: Room, unread: Int = 0, onOpen: (Room) -> Unit) {
                 )
                 Text(room.name, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MoimInk)
             }
-            val desc = if (room.postPolicy == "restricted") {
-                "공지 · 관리자/지정작성자"
-            } else {
-                "멤버 누구나"
+            val desc = msgPreview(lastMsg).ifBlank {
+                if (room.postPolicy == "restricted") "공지 · 관리자/지정작성자" else ""
             }
             Text(desc, fontSize = 12.5.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
-        if (unread > 0) {
-            UnreadBadge(unread)
-            Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(6.dp))
+        Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+            val t = fmtListTime(lastMsg?.createdAt)
+            if (t.isNotEmpty()) Text(t, fontSize = 11.sp, color = MoimSub)
+            if (unread > 0) UnreadBadge(unread)
         }
-        Text("›", color = MoimSub, fontSize = 20.sp)
     }
     HorizontalDivider(color = MoimLine.copy(alpha = 0.4f))
 }
@@ -933,10 +933,35 @@ private fun ChatPane(
                 )
             }
         } else {
-            items(messages) { m ->
-                MessageBubble(m, isMine(m), nameOf(m.senderId), attachUrl, onDelete = { deleteTarget = m }, unread = unreadOf(m))
+            // 날짜가 바뀌면 가운데 날짜 구분선 삽입
+            var lastDay = ""
+            messages.forEach { m ->
+                val day = dayKey(m.createdAt)
+                if (day != lastDay) {
+                    item { DateDivider(fmtDateDivider(m.createdAt)) }
+                    lastDay = day
+                }
+                item(key = m.id) {
+                    MessageBubble(m, isMine(m), nameOf(m.senderId), attachUrl, onDelete = { deleteTarget = m }, unread = unreadOf(m))
+                }
             }
         }
+    }
+}
+
+// 채팅 가운데 날짜 구분선
+@Composable
+private fun DateDivider(text: String) {
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text, fontSize = 11.sp, color = Color.White,
+            modifier = Modifier
+                .background(Color(0x33000000), RoundedCornerShape(20.dp))
+                .padding(horizontal = 12.dp, vertical = 4.dp)
+        )
     }
 }
 
@@ -978,6 +1003,10 @@ fun MessageBubble(
                 color = Color(0xFFE0922F), fontSize = 11.sp, fontWeight = FontWeight.Bold,
                 modifier = Modifier.align(Alignment.Bottom).padding(horizontal = 4.dp)
             )
+        }
+        if (mine) {
+            Text(fmtMsgTime(m.createdAt), fontSize = 10.sp, color = MoimSub,
+                modifier = Modifier.align(Alignment.Bottom).padding(horizontal = 3.dp))
         }
         val bg = if (mine) MoimYellow else MoimWhite
         val shape = if (mine) {
@@ -1037,6 +1066,10 @@ fun MessageBubble(
                     Text(m.content.orEmpty(), color = MoimInk, fontSize = 14.5.sp, lineHeight = 20.sp)
                 }
             }
+        }
+        if (!mine) {
+            Text(fmtMsgTime(m.createdAt), fontSize = 10.sp, color = MoimSub,
+                modifier = Modifier.align(Alignment.Bottom).padding(horizontal = 3.dp))
         }
         if (!mine && unread > 0) {
             Text(

@@ -99,6 +99,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
     `moim_mark_read`/`moim_room_member_ids`). 안읽은 방 배지 + 메시지별 안읽은 사람 수에 **필수**.
 17. `ward_calendar_perms.sql` — **ward 편집 / 일정 삭제 권한 제한**: ward 편집=관리자 또는 직군(교실·의국·간호사),
     일정 삭제=작성자/관리자/직군(교실·의국·비서·심리실). `moim_my_member_type()` 헬퍼. (일정 작성은 누구나)
+18. `room_last_messages.sql` — **방 목록 마지막 메시지**: `moim_room_last_messages()`(방별 최근 1건).
+    방이름 아래 미리보기 + 우측 시간(오늘=HH:mm/이전=M/d)에 사용.
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
 

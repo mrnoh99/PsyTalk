@@ -149,6 +149,10 @@ enum MoimRepository {
         let rows: [UnreadMsgRow] = try await supabase.rpc("moim_message_unread_counts", params: ["p_room": roomId]).execute().value
         return Dictionary(rows.map { ($0.messageId, $0.unread) }, uniquingKeysWith: { a, _ in a })
     }
+    static func roomLastMessages() async throws -> [String: LastMsg] {
+        let rows: [LastMsg] = try await supabase.rpc("moim_room_last_messages").execute().value
+        return Dictionary(rows.map { ($0.roomId, $0) }, uniquingKeysWith: { a, _ in a })
+    }
 
     static func sendMessage(roomId: String, text: String) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }

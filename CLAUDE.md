@@ -97,6 +97,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
     스토리지+DB 삭제 + 스토리지 90% 초과 시 오래된 것부터. (대시보드에서 `pg_cron` 확장 먼저 활성화)
 16. `read_tracking.sql` — **읽음 표시**: `room_reads` 테이블 + RPC(`moim_unread_counts`/`moim_message_unread_counts`/
     `moim_mark_read`/`moim_room_member_ids`). 안읽은 방 배지 + 메시지별 안읽은 사람 수에 **필수**.
+17. `ward_calendar_perms.sql` — **ward 편집 / 일정 삭제 권한 제한**: ward 편집=관리자 또는 직군(교실·의국·간호사),
+    일정 삭제=작성자/관리자/직군(교실·의국·비서·심리실). `moim_my_member_type()` 헬퍼. (일정 작성은 누구나)
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 멤버 8명(직군별). 운영 전 정리.
 

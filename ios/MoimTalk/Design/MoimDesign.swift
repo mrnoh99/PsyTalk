@@ -85,6 +85,19 @@ func canPostInRoom(_ profile: Profile?, _ room: Room) -> Bool {
     return room.postPolicy != "restricted"
 }
 
+// ward 편집 권한: 관리자 또는 직군 교실·의국·간호사("병동")
+func canEditWard(_ profile: Profile?) -> Bool {
+    guard let p = profile else { return false }
+    return isAdminRole(p.role) || ["교실", "의국", "간호사"].contains(p.memberType)
+}
+
+// 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
+func canDeleteEvent(_ profile: Profile?, _ event: CalendarEvent) -> Bool {
+    guard let p = profile else { return false }
+    if event.ownerId == MoimRepository.currentUserId() { return true }
+    return isAdminRole(p.role) || ["교실", "의국", "비서", "심리실"].contains(p.memberType)
+}
+
 /// 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
 func canRenameRoom(_ profile: Profile?, _ room: Room) -> Bool {
     guard let p = profile else { return false }

@@ -286,6 +286,16 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    func deleteEvent(_ id: String) {
+        guard let rid = activeRoom else { return }
+        Task {
+            do {
+                try await MoimRepository.deleteEvent(id: id)
+                events = try await MoimRepository.events(roomId: rid)
+            } catch { self.error = "일정 삭제: \(error.localizedDescription)" }
+        }
+    }
+
     func updateEvent(
         eventId: String, title: String, startAt: String, place: String?, link: String?,
         scope: String?, description: String?, presenter: String?, keywords: [String],

@@ -1,6 +1,7 @@
 package com.example.moimtalk.ui
 
 import androidx.compose.ui.graphics.Color
+import com.example.moimtalk.data.CalendarEvent
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
@@ -80,6 +81,19 @@ fun canDeleteRoom(profile: Profile?, room: Room): Boolean {
     if (profile == null || room.category != "custom") return false
     if (isSuperAdmin(profile.role)) return true
     return room.createdBy != null && room.createdBy == MoimRepository.currentUserId()
+}
+
+/** ward 편집 권한: 관리자 또는 직군 교실·의국·간호사("병동") */
+fun canEditWard(profile: Profile?): Boolean {
+    if (profile == null) return false
+    return isAdminRole(profile.role) || profile.memberType in listOf("교실", "의국", "간호사")
+}
+
+/** 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실 */
+fun canDeleteEvent(profile: Profile?, event: CalendarEvent): Boolean {
+    if (profile == null) return false
+    if (event.ownerId == MoimRepository.currentUserId()) return true
+    return isAdminRole(profile.role) || profile.memberType in listOf("교실", "의국", "비서", "심리실")
 }
 
 fun viewBadgeText(profile: Profile?): String {

@@ -21,6 +21,7 @@ struct EventEditView: View {
     let initial: CalendarEvent?
     let allowAttachment: Bool
     var defaultDate: Date = CalDate.today()   // 새 일정의 기본 날짜(선택한 날짜)
+    var onDelete: (() -> Void)? = nil
     let onSubmit: (EventFormData) -> Void
 
     @Environment(\.dismiss) private var dismiss
@@ -74,6 +75,11 @@ struct EventEditView: View {
                 }
                 if let err = err {
                     Section { Text(err).foregroundColor(Moim.admin).font(.system(size: 12)) }
+                }
+                if onDelete != nil {
+                    Section {
+                        Button("일정 삭제", role: .destructive) { onDelete?(); dismiss() }
+                    }
                 }
             }
             .navigationTitle(title)

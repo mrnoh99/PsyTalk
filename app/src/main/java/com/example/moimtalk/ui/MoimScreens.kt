@@ -1145,7 +1145,7 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
                     TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
                 },
                 actions = {
-                    if (!editing) {
+                    if (!editing && canEditWard(vm.myProfile)) {
                         TextButton(onClick = { draft = vm.wardStatus; editing = true }) {
                             Text("편집", fontWeight = FontWeight.Bold)
                         }

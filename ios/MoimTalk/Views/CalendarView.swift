@@ -51,7 +51,8 @@ struct CalendarView: View {
             }
         }
         .sheet(item: $editing) { ev in
-            EventEditView(title: "일정 수정", initial: ev, allowAttachment: true) { form in
+            EventEditView(title: "일정 수정", initial: ev, allowAttachment: true,
+                          onDelete: canDeleteEvent(vm.myProfile, ev) ? { vm.deleteEvent(ev.id) } : nil) { form in
                 vm.updateEvent(eventId: ev.id, title: form.title, startAt: form.startAt, place: form.place,
                                link: form.link, scope: form.scope, description: form.description,
                                presenter: form.presenter, keywords: form.keywords,

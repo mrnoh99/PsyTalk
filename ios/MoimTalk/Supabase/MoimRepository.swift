@@ -197,6 +197,11 @@ enum MoimRepository {
         try await supabase.from("calendar_events").insert(payload).execute()
     }
 
+    /// 일정 삭제 (작성자/관리자/교실·의국·비서·심리실 — RLS 로 강제)
+    static func deleteEvent(id: String) async throws {
+        try await supabase.from("calendar_events").delete().eq("id", value: id).execute()
+    }
+
     static func updateEvent(
         eventId: String, roomId: String, title: String, startAt: String,
         place: String?, link: String?, scope: String?, description: String?,

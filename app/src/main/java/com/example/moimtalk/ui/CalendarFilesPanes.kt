@@ -395,7 +395,8 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
                     ev.id, form.title, form.startAt, form.place, form.link, form.scope, form.description,
                     form.presenter, form.keywords, form.keptUrls, form.keptNames, form.newAttachments,
                 ) { editing = null }
-            }
+            },
+            onDelete = if (canDeleteEvent(vm.myProfile, ev)) ({ vm.deleteEvent(ev.id); editing = null }) else null
         )
     }
 }
@@ -695,6 +696,7 @@ private fun EventDialog(
     allowAttachment: Boolean,
     onDismiss: () -> Unit,
     onSubmit: (EventForm) -> Unit,
+    onDelete: (() -> Unit)? = null,
 ) {
     val context = LocalContext.current
     val initZdt = initial?.let { parseZdt(it.startAt) }
@@ -793,6 +795,18 @@ private fun EventDialog(
                     newAttachments = picked,
                 )
             )
+        }
+        if (onDelete != null) {
+            Spacer(Modifier.height(8.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onDelete() }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("일정 삭제", color = MoimAdmin, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            }
         }
     }
 }

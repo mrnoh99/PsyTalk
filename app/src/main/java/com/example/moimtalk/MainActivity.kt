@@ -329,6 +329,18 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    fun deleteEvent(eventId: String) {
+        val rid = activeRoom ?: return
+        viewModelScope.launch {
+            try {
+                MoimRepository.deleteEvent(eventId)
+                events = MoimRepository.events(rid)
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "일정 삭제")
+            }
+        }
+    }
+
     fun updateEvent(
         eventId: String,
         title: String,

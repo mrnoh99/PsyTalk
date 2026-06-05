@@ -23,7 +23,7 @@ struct WardStatusView: View {
                 Button(action: onBack) { Text("‹").font(.system(size: 25)) }
                 Text("잔여 병실 현황").font(.system(size: 18, weight: .bold))
                 Spacer()
-                if !editing {
+                if !editing && canEditWard(vm.myProfile) {
                     Button("편집") { draft = vm.wardStatus; editing = true }.font(.system(size: 15, weight: .bold))
                 }
             }

@@ -220,6 +220,11 @@ object MoimRepository {
         )
     }
 
+    /** 일정 삭제 (작성자/관리자/교실·의국·비서·심리실 — RLS 로 강제) */
+    suspend fun deleteEvent(eventId: String) {
+        supabase.from("calendar_events").delete { filter { eq("id", eventId) } }
+    }
+
     /** 일정 수정 (작성자 본인 + 관리자, RLS 로 강제). 첨부는 변경하지 않는다. */
     suspend fun updateEvent(
         eventId: String,

@@ -5,6 +5,13 @@ internal fun isDuplicateKeyError(e: Exception): Boolean {
     return msg.contains("23505") || msg.contains("duplicate key", ignoreCase = true)
 }
 
+internal fun isJwtExpiredError(e: Exception): Boolean {
+    val msg = listOfNotNull(e.message, e.cause?.message).joinToString(" ")
+    return msg.contains("JWT expired", ignoreCase = true) ||
+        msg.contains("Invalid JWT", ignoreCase = true) ||
+        msg.contains("invalid claim", ignoreCase = true)
+}
+
 internal fun friendlySupabaseError(e: Exception, context: String): String {
     val msg = listOfNotNull(e.message, e.cause?.message)
         .joinToString(" | ")
@@ -58,6 +65,11 @@ internal fun friendlySupabaseError(e: Exception, context: String): String {
         msg.contains("Email not confirmed", ignoreCase = true) ->
             "$context 실패: 아직 가입이 확인되지 않았습니다.\n" +
                 "전체관리자의 가입 확인 후 로그인할 수 있습니다."
+
+        msg.contains("JWT expired", ignoreCase = true) ||
+            msg.contains("Invalid JWT", ignoreCase = true) ||
+            msg.contains("invalid claim", ignoreCase = true) ->
+            "$context 실패: 로그인이 만료되었습니다. 다시 로그인해 주세요."
 
         msg.contains("PGRST116", ignoreCase = true) ||
             msg.contains("0 rows", ignoreCase = true) ||

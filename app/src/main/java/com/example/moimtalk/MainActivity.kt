@@ -155,6 +155,7 @@ class MoimViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 MoimRepository.ensureAuthReady()
+                MoimRepository.ensureFreshSession()
                 if (MoimRepository.currentUserId() == null) return@launch
                 refetchRoomsQuiet()
                 reloadProfiles()
@@ -829,12 +830,12 @@ class MoimViewModel : ViewModel() {
     }
 
     /** 카톡식 첨부 전송 (type = image | file) */
-    fun sendAttachment(fileName: String, bytes: ByteArray, type: String) {
+    fun sendAttachment(fileName: String, bytes: ByteArray, type: String, caption: String? = null) {
         val rid = activeRoom
         if (rid == null) return
         viewModelScope.launch {
             try {
-                MoimRepository.sendAttachment(rid, fileName, bytes, type)
+                MoimRepository.sendAttachment(rid, fileName, bytes, type, caption)
                 messages = MoimRepository.messages(rid)
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "첨부 전송")

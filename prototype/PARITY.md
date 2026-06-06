@@ -13,7 +13,7 @@
 | 채팅 | ✅ | ✅ `ChatPane` | ✅ | Supabase `messages` + **Realtime** (수 초 이내 동기화) |
 | 방 목록·이름 변경·모임방 추가/삭제 (다른 기기) | ➖ | ✅ Realtime `rooms`/`room_members` | ✅ | Android·iOS·Web 공통 (`realtime_setup.sql`) |
 | **멀티 방 게시 (📤 방선택)** | ✅ | ❌ | ❌ | 앱 미구현 (`message_cross_posts` 스키마만 존재) |
-| 공지방 읽기 전용 (`restricted`) | ✅ | ✅ `canPostInRoom` | ✅ | 앱은 관리자만 작성 (지정 작성자 미연동) |
+| 공지방 읽기 전용 (`restricted`) | ✅ | ✅ `canPostInRoom` | ✅ | 앱은 관리자만 작성 |
 | 캘린더 — 금일/주간/월간 | ✅ | ✅ `CalendarPane` | ✅ | |
 | 캘린더 — 일정 추가/수정, 시간·장소·링크·참석범위·설명·키워드·첨부 | ✅ | ✅ `calendar_events` | ✅ | |
 | 캘린더 — 수정 권한(작성자+관리자) | ✅ | ✅ RLS + `canEditEvent` | ✅ | |
@@ -31,7 +31,7 @@
 | 계정 비활성화/탈퇴 = 소프트(글·자료 보존) | ➖ | ✅ | ✅ | 방·고정만 정리, 메시지·자료·이름 보존, `banned_until` 로그인 차단 |
 | 방 만들기 (모임방 생성) | ✅ (관리자) | ✅ 누구나 (카톡식) | ✅ | 앱은 이름+회원선택, room_members 등록, RLS 비공개 |
 | 방 이름 수정 (생성 후) | ➖ | ✅ 방 헤더 ✏️ (생성자/관리자) | ✅ | iOS·Android·Web 공통, RLS `rooms_update_owner_admin` |
-| 관리자 콘솔 — 작성자 지정 (writers) | ✅ | ❌ | ❌ | `room_writers` 스키마만 존재 |
+| 관리자 콘솔 — 공지 작성자 (writers) | ✅ | ❌ | ❌ | `room_writers` 스키마만 존재 |
 | 방 참석 회원 지정 (`room_members`) | ✅ (목 데이터) | ❌ | ❌ | 스키마만 존재, 앱 미연동 |
 | 샘플 데이터 (10명·일정 5개·파일) | ✅ JS 목 데이터 | ➖ DB 실데이터 | ✅ | 목업 샘플은 데모 전용. 앱은 시드(방 12개)만, 일정/파일은 사용자 입력 |
 | 방 순서 고정 — 드래그 정렬 | ➖ | ✅ ⚙️ 설정(드래그 ☰) | ✅ | 최대 5개 핀, `room_pins`/`moim_set_room_pins`. 웹=HTML5 DnD, Android=longpress drag, iOS=List `.onMove` |

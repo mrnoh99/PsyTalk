@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
+import UIKit
 
 struct RoomView: View {
     @ObservedObject var vm: MoimViewModel
@@ -12,7 +13,6 @@ struct RoomView: View {
     @State private var showRename = false
     @State private var renameText = ""
     @State private var editColor = ROOM_COLORS[1]
-    @State private var editPhotoItem: PhotosPickerItem?
     @State private var editIconData: Data?
     @State private var editIconCleared = false
     @State private var showSettings = false
@@ -21,8 +21,11 @@ struct RoomView: View {
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
-        // default_view='week' 방은 열자마자 캘린더(주간) 탭으로 (기본 방만; 모임방은 채팅)
-        _tab = State(initialValue: (room.category != "custom" && room.defaultView == "week") ? "cal" : "chat")
+        let startTab: String = {
+            if isNoticeTopRoom(room, vm.rooms) { return "chat" }
+            return opensWeekCalendar(room) ? "cal" : "chat"
+        }()
+        _tab = State(initialValue: startTab)
     }
 
     // 이름 변경이 반영되도록 최신 방 정보를 vm.rooms 에서 조회
@@ -33,40 +36,55 @@ struct RoomView: View {
     var body: some View {
         VStack(spacing: 0) {
             topBar
-            tabBar
+            if !tabItems.isEmpty {
+                tabBar
+            }
             Divider().background(Moim.line)
 
             switch tab {
-            case "chat": ChatView(vm: vm, canPost: canPost, input: $input)
+            case "chat": ChatView(vm: vm, canPost: canPost, input: $input,
+                                  noticeLayout: isNoticeTopRoom(liveRoom, vm.rooms))
             case "files": FilesView(vm: vm, canUpload: canPost)
-            default: CalendarView(vm: vm, room: room, canPost: canPost)
+            default: CalendarView(vm: vm, room: liveRoom, canPost: canPost)
+                .id(liveRoom.id)
             }
         }
         .background(Moim.paper.ignoresSafeArea())
-        // 상단 바에 개설자·참여자 이름을 나열하기 위해 방 구성원 로드 (DM 제외)
-        .task(id: liveRoom.id) { if !isDM { vm.loadRoomMembers(liveRoom.id) } }
+        .task(id: liveRoom.id) {
+            tab = isNoticeTopRoom(liveRoom, vm.rooms) ? "chat"
+                : (opensWeekCalendar(liveRoom) ? "cal" : "chat")
+            if !isDM { vm.loadRoomMembers(liveRoom.id) }
+        }
     }
 
     private var topBar: some View {
-        HStack {
+        HStack(alignment: .center, spacing: 10) {
             Button(action: onBack) { Text("‹").font(.system(size: 25)) }
             VStack(alignment: .leading, spacing: 2) {
-                Text(vm.roomDisplayName(liveRoom)).font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
-                Text(isDM ? "1:1 대화" : catLabel(liveRoom.category)).font(.system(size: 12)).foregroundColor(Moim.sub)
+                Text(vm.roomDisplayName(liveRoom))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(Moim.ink)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 // 개설자·참여자 이름 나열 (작은 글씨, 넘치면 ... — DM 제외)
                 if !isDM, vm.memberListRoomId == liveRoom.id {
                     let line = roomMemberNames(liveRoom, memberIds: vm.roomMemberIds, profiles: vm.profilesById).joined(separator: ", ")
                     if !line.isEmpty {
-                        Text(line).font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1).truncationMode(.tail)
+                        Text(line)
+                            .font(.system(size: 11))
+                            .foregroundColor(Moim.sub)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                     }
                 }
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(1)
             if !isDM, canRenameRoom(vm.myProfile, liveRoom) {
                 Button("이름변경") {
                     renameText = liveRoom.name
                     editColor = liveRoom.color ?? ROOM_COLORS[1]
-                    editPhotoItem = nil; editIconData = nil; editIconCleared = false
+                    editIconData = nil; editIconCleared = false
                     showRename = true
                 }
                 .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
@@ -84,23 +102,24 @@ struct RoomView: View {
                 Button("나가기") { showLeave = true }
                     .font(.system(size: 13)).foregroundColor(Moim.admin)
             }
-            // 방 삭제 (모임방 생성자·전체관리자) — 우상단
-            if !isDM, vm.canDeleteRoom(liveRoom) {
+            // 1:1 대화: 목록에서 삭제 — 우상단
+            if isDM {
                 Button("방삭제") { showDeleteRoom = true }
                     .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.admin)
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.horizontal, 18).padding(.vertical, 13)
         .background(Moim.paper)
         .sheet(isPresented: $showRename) {
             NavigationView {
                 VStack(alignment: .leading, spacing: 16) {
                     TextField("방 이름", text: $renameText).textFieldStyle(.roundedBorder)
                     RoomAppearanceEditor(
-                        name: renameText, color: $editColor, photoItem: $editPhotoItem,
-                        previewData: editIconData,
+                        name: renameText, color: $editColor,
+                        previewData: $editIconData,
                         existingIconUrl: editIconCleared ? nil : liveRoom.iconUrl,
-                        onClear: { editPhotoItem = nil; editIconData = nil; editIconCleared = true }
+                        onClear: { editIconData = nil; editIconCleared = true },
+                        onPhotoConfirmed: { editIconCleared = false }
                     )
                     Spacer()
                 }
@@ -116,9 +135,6 @@ struct RoomView: View {
                         }
                     }
                 }
-                .onChange(of: editPhotoItem) { _ in
-                    Task { if let item = editPhotoItem, let data = try? await item.loadTransferable(type: Data.self) { editIconData = data; editIconCleared = false } }
-                }
             }
         }
         .alert("방 나가기", isPresented: $showLeave) {
@@ -127,11 +143,11 @@ struct RoomView: View {
         } message: {
             Text("'\(liveRoom.name)' 방에서 나갈까요?")
         }
-        .alert("방 삭제", isPresented: $showDeleteRoom) {
+        .alert("대화 삭제", isPresented: $showDeleteRoom) {
             Button("취소", role: .cancel) {}
-            Button("삭제", role: .destructive) { vm.deleteRoom(liveRoom) { onBack() } }
+            Button("삭제", role: .destructive) { vm.leaveRoom(liveRoom) { onBack() } }
         } message: {
-            Text("'\(liveRoom.name)' 방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.")
+            Text("이 대화를 목록에서 삭제할까요?\n상대는 그대로이며, 다시 메시지하면 이전 대화가 복구됩니다.")
         }
         .sheet(isPresented: $showSettings) {
             RoomSettingsView(vm: vm, room: liveRoom,
@@ -140,13 +156,11 @@ struct RoomView: View {
         }
     }
 
-    // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
+    // 자료실·캘린더·채팅 탭 — 주간 학술활동 등 기본 방만. 과 전체공지·모임방·1:1은 채팅만.
     private var tabItems: [(String, String)] {
-        // DM: 채팅만, 라벨 '💬 <상대 이름>'
-        if isDM { return [("chat", "💬 \(vm.roomDisplayName(liveRoom))")] }
-        return room.category != "custom"
-            ? [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
-            : [("chat", "💬 채팅")]
+        if isDM || room.category == "custom" { return [] }
+        if isNoticeTopRoom(liveRoom, vm.rooms) { return [] }
+        return [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
     }
 
     private var tabBar: some View {
@@ -172,6 +186,7 @@ struct ChatView: View {
     @ObservedObject var vm: MoimViewModel
     let canPost: Bool
     @Binding var input: String
+    var noticeLayout: Bool = false
     @State private var pickPhoto = false
     @State private var pickFile = false
     @State private var photoItem: PhotosPickerItem?
@@ -179,9 +194,13 @@ struct ChatView: View {
     @State private var pendingAttach: (name: String, data: Data, type: String)?
     @State private var deleteTarget: Message?
 
-    // 메시지 + 날짜 구분선 (날짜 바뀌면 divider 삽입)
+    // 메시지 + 날짜 구분선 (날짜 바뀌면 divider 삽입) — 전체공지는 카드마다 일시 표시
     private var chatItems: [ChatRowItem] {
         var out: [ChatRowItem] = []
+        if noticeLayout {
+            for m in mergeNoticeMessages(vm.messages) { out.append(.message(m)) }
+            return out
+        }
         var lastDay = ""
         for m in vm.messages {
             let d = dayKey(m.createdAt)
@@ -203,16 +222,28 @@ struct ChatView: View {
                             case .divider(_, let label):
                                 DateDividerView(text: label)
                             case .message(let m):
-                                MessageBubble(
-                                    message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
-                                    attachUrl: m.attachmentUrl.flatMap { url in
-                                        vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
-                                    },
-                                    onDelete: { deleteTarget = m },
-                                    unread: vm.unreadByMsg[m.id] ?? 0,
-                                    sender: vm.profilesById[m.senderId]
-                                )
-                                .id(m.id)
+                                if noticeLayout {
+                                    NoticePostCard(
+                                        message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
+                                        attachUrl: m.attachmentUrl.flatMap { url in
+                                            vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
+                                        },
+                                        onDelete: { deleteTarget = m },
+                                        sender: vm.profilesById[m.senderId]
+                                    )
+                                    .id(m.id)
+                                } else {
+                                    MessageBubble(
+                                        message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
+                                        attachUrl: m.attachmentUrl.flatMap { url in
+                                            vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
+                                        },
+                                        onDelete: { deleteTarget = m },
+                                        unread: vm.unreadByMsg[m.id] ?? 0,
+                                        sender: vm.profilesById[m.senderId]
+                                    )
+                                    .id(m.id)
+                                }
                             }
                         }
                     }
@@ -257,7 +288,7 @@ struct ChatView: View {
                     }
                     .padding(.horizontal, 12).padding(.top, 8)
                 }
-                HStack(spacing: 8) {
+                HStack(alignment: noticeLayout ? .bottom : .center, spacing: 8) {
                     Menu {
                         Button { pickPhoto = true } label: { Label("사진", systemImage: "photo") }
                         Button { pickFile = true } label: { Label("파일", systemImage: "paperclip") }
@@ -265,15 +296,24 @@ struct ChatView: View {
                         Text("＋").font(.system(size: 20)).foregroundColor(Moim.sub)
                             .frame(width: 33, height: 33).background(Moim.white).clipShape(Circle())
                     }
-                    TextField("메시지 입력", text: $input)
-                        .textFieldStyle(.roundedBorder)
+                    if noticeLayout {
+                        TextField("공지 내용 입력 (줄바꿈 가능)", text: $input, axis: .vertical)
+                            .lineLimit(3...8)
+                            .textFieldStyle(.roundedBorder)
+                    } else {
+                        TextField("메시지 입력", text: $input)
+                            .textFieldStyle(.roundedBorder)
+                    }
                     Button {
-                        if let p = pendingAttach {
-                            vm.sendAttachment(fileName: p.name, data: p.data, type: p.type)
-                            pendingAttach = nil
-                        }
                         let t = input.trimmingCharacters(in: .whitespaces)
-                        if !t.isEmpty { vm.send(t); input = "" }
+                        if let p = pendingAttach {
+                            vm.sendAttachment(fileName: p.name, data: p.data, type: p.type, caption: t.isEmpty ? nil : t)
+                            pendingAttach = nil
+                            input = ""
+                        } else if !t.isEmpty {
+                            vm.send(t)
+                            input = ""
+                        }
                     } label: {
                         Text("➤").font(.system(size: 14))
                             .frame(width: 33, height: 33).background(Moim.yellow).clipShape(Circle())
@@ -302,7 +342,7 @@ struct ChatView: View {
                 }
             }
         } else {
-            Text("🔒 공지 전용 방 · 관리자와 지정 작성자만 글을 쓸 수 있어요")
+            Text("🔒 공지 전용 방 · 관리자만 글을 쓸 수 있어요")
                 .font(.system(size: 12.5, weight: .semibold)).foregroundColor(Moim.sub)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity).padding(14)
@@ -443,5 +483,148 @@ struct MessageBubble: View {
             if !mine && unread > 0 { unreadText }
             if !mine { Spacer(minLength: 40) }
         }
+    }
+}
+
+struct NoticePostCard: View {
+    let message: Message
+    let mine: Bool
+    let senderName: String
+    var attachUrl: String? = nil
+    var onDelete: () -> Void = {}
+    var sender: Profile? = nil
+
+    private var authorLine: String {
+        let mt = sender?.memberType ?? ""
+        return mt.isEmpty ? senderName : "\(senderName) · \(mt)"
+    }
+
+    private var caption: String? {
+        message.content?.trimmingCharacters(in: .whitespacesAndNewlines).flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    var body: some View {
+        HStack {
+            Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 0) {
+                RoundedRectangle(cornerRadius: 2).fill(Color(hex: 0xB5651D)).frame(height: 3)
+                Text(fmtPublishTime(message.createdAt))
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(Moim.ink)
+                    .lineSpacing(4)
+                    .padding(.top, 14)
+                Text(authorLine)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Moim.sub)
+                    .padding(.top, 6)
+                Divider().background(Moim.line).padding(.vertical, 14)
+                noticeBody
+                if mine {
+                    Button(action: onDelete) {
+                        Text("🗑 삭제").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.admin)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.top, 10)
+                }
+            }
+            .padding(.horizontal, 20).padding(.vertical, 18)
+            .frame(maxWidth: 400)
+            .background(Moim.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Moim.line, lineWidth: 1))
+            .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 6)
+    }
+
+    @ViewBuilder private var noticeBody: some View {
+        if let cap = caption {
+            Text(cap)
+                .font(.system(size: 15))
+                .foregroundColor(Moim.ink)
+                .lineSpacing(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        if message.type == "image", message.attachmentUrl != nil {
+            if caption != nil { Spacer().frame(height: 12) }
+            noticeImageBlock
+        } else if message.type == "file", message.attachmentUrl != nil {
+            if caption != nil { Spacer().frame(height: 12) }
+            noticeFileBlock
+        } else if caption == nil {
+            Text(message.content ?? "")
+                .font(.system(size: 15))
+                .foregroundColor(Moim.ink)
+                .lineSpacing(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder private var noticeImageBlock: some View {
+        let u = attachUrl.flatMap { URL(string: $0) }
+        Group {
+            if let u {
+                AsyncImage(url: u) { phase in
+                    if let img = phase.image { img.resizable().scaledToFit() }
+                    else if phase.error != nil { Color.gray.opacity(0.15) }
+                    else { ProgressView() }
+                }
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .contentShape(RoundedRectangle(cornerRadius: 12))
+                .onTapGesture {
+                    noticeDownloadAttachment(from: u.absoluteString, fileName: message.attachmentName ?? "photo.jpg")
+                }
+            } else {
+                ProgressView().frame(maxWidth: .infinity).padding(.vertical, 24)
+            }
+        }
+        Text("탭하여 다운로드")
+            .font(.system(size: 11))
+            .foregroundColor(Moim.sub)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 6)
+    }
+
+    @ViewBuilder private var noticeFileBlock: some View {
+        let chip = HStack(spacing: 8) {
+            Text("📎").font(.system(size: 16))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(message.attachmentName ?? "파일")
+                    .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink).lineLimit(2)
+                Text("탭하여 다운로드").font(.system(size: 11)).foregroundColor(Moim.sub)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12).padding(.vertical, 10)
+        .background(Moim.paper)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Moim.line, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        if let u = attachUrl.flatMap({ URL(string: $0) }) {
+            chip.onTapGesture { noticeDownloadAttachment(from: u.absoluteString, fileName: message.attachmentName ?? "file") }
+        } else { chip }
+    }
+}
+
+private func noticeDownloadAttachment(from urlString: String, fileName: String) {
+    guard let url = URL(string: urlString) else { return }
+    Task {
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let dest = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+            try data.write(to: dest)
+            await MainActor.run {
+                guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first,
+                      let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
+                let vc = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+                if let pop = vc.popoverPresentationController {
+                    pop.sourceView = root.view
+                    pop.sourceRect = CGRect(x: root.view.bounds.midX, y: root.view.bounds.midY, width: 0, height: 0)
+                }
+                root.present(vc, animated: true)
+            }
+        } catch {}
     }
 }

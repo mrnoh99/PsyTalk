@@ -87,7 +87,11 @@
   .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
   .bfile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line);position:relative}
+  .inputbar.notice-compose{align-items:flex-end;padding:10px 12px 12px}
   .inputbar input[type=text],.inputbar #msgInput{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
+  .inputbar #msgInputNotice{display:none;flex:1;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;line-height:1.55;outline:none;font-family:inherit;resize:vertical;min-height:88px;max-height:200px}
+  .inputbar.notice-compose #msgInput{display:none}
+  .inputbar.notice-compose #msgInputNotice{display:block}
   .send{background:var(--accent);border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer}
   .plus{background:none;border:1px solid var(--line);color:var(--sub);width:34px;height:34px;border-radius:50%;font-size:21px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
   .attachmenu{position:absolute;bottom:52px;left:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:30}
@@ -97,7 +101,7 @@
   .attpreview{position:absolute;left:0;right:0;bottom:100%;background:var(--paper);border-top:1px solid var(--line);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
   .attpreview.hidden{display:none}
   .readonly{padding:14px;background:#f3ede3;border-top:1px solid var(--line);text-align:center;font-size:12.5px;color:var(--sub);font-weight:600}
-  .files,.cal,.wardbody{padding:13px}
+  .files,.cal{padding:13px}
   .sortrow,.calmode{display:flex;gap:8px;margin-bottom:12px}
   .sb,.cm{flex:1;text-align:center;padding:8px;border-radius:10px;font-size:12.5px;font-weight:700;background:var(--surface);border:1px solid var(--line);color:var(--sub);cursor:pointer}
   .sb.on{background:var(--accent);color:#fff;border-color:var(--accent)}.cm.on{background:var(--me);color:var(--ink);border-color:var(--me)}
@@ -119,14 +123,54 @@
   .evmeta{font-size:11.5px;color:var(--sub);margin-top:3px;line-height:1.5}
   .evatt{display:inline-flex;gap:4px;font-size:11px;font-weight:700;color:var(--work);background:#e7f0eb;padding:3px 8px;border-radius:8px;margin-top:6px}
   .evedit{font-size:11px;color:var(--group);font-weight:700;margin-top:6px;display:inline-block;cursor:pointer}
+  .ev-compact{cursor:pointer}
+  .ev-compact .evpreview{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45;font-size:12.5px;color:var(--ink);white-space:pre-line}
+  .ev-detail-body .ev{margin-bottom:0;border:none;padding:0}
+  .ev-detail-body{background:var(--bg);padding:4px 0 8px;margin:0 -4px}
+  .evdoc{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  .evdoc-accent{height:3px;border-radius:2px;margin-bottom:16px}
+  .evdoc-title{font-size:20px;font-weight:800;line-height:1.35;color:var(--ink);margin:0 0 14px}
+  .evdoc-hr{border:none;border-top:1px solid var(--line);margin:14px 0}
+  .evdoc-meta{margin:0}
+  .evdoc-row{display:flex;gap:10px;padding:5px 0;font-size:13.5px;line-height:1.45}
+  .evdoc-row dt{width:52px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--sub);margin:0}
+  .evdoc-row dd{flex:1;margin:0;color:var(--ink)}
+  .evdoc-sec{font-size:11px;font-weight:800;color:var(--sub);margin:0 0 8px}
+  .evdoc-body{font-size:14px;line-height:1.65;color:var(--ink);white-space:pre-wrap;margin:0}
+  .evdoc-att{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600}
+  .evdoc-att:hover{background:#f3efe9}
+  .evdoc-link{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:10px 14px;background:#eef2f8;color:var(--group);border-radius:10px;font-size:13px;font-weight:700;text-decoration:none}
+  .ev-detail-edit{width:100%;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;background:var(--accent);color:#fff;cursor:pointer;margin-top:12px}
   .evkept{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;background:#f3efe9;border-radius:8px;padding:6px 10px;margin-bottom:5px}
   .evkeptx{color:#c0392b;font-weight:800;cursor:pointer;padding:0 4px}
   .wday{display:flex;gap:10px;padding:9px 6px;border-bottom:1px solid rgba(220,213,204,.5)}
   .wday.wtoday{background:var(--hl);border-radius:11px}.wdate{width:42px;text-align:center;flex-shrink:0}
   .wdate b{display:block;font-size:15px;font-weight:800}.wdate span{font-size:10.5px;color:var(--sub)}
   .wevents{flex:1;min-width:0}.noev{font-size:12px;color:#c4bcb2;padding:7px 2px}
-  .wardmemo{white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;font-size:15px;line-height:1.7;min-height:120px}
-  .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical}
+  .wardbody{padding:13px;background:var(--bg)}
+  .warddoc{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  .warddoc-accent{height:3px;border-radius:2px;background:#ea7317;margin-bottom:16px}
+  .warddoc-lbl{font-size:11px;font-weight:800;color:var(--sub);margin:0 0 4px}
+  .warddoc-time{font-size:20px;font-weight:800;line-height:1.35;color:var(--ink);margin:0 0 14px}
+  .warddoc-hr{border:none;border-top:1px solid var(--line);margin:0 0 14px}
+  .warddoc-body{white-space:pre-wrap;font-size:15px;line-height:1.7;color:var(--ink);margin:0}
+  .warddoc-empty{text-align:center;padding:24px 8px;color:var(--sub)}
+  .warddoc-empty .eb{font-size:36px;margin-bottom:8px}
+  .warddoc-empty b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
+  .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical;background:var(--surface)}
+  /* 과 전체공지 — 가운데 정렬 게시 카드 */
+  .notice-post{width:94%;max-width:400px;margin:12px auto 18px}
+  .notice-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  .notice-accent{height:3px;border-radius:2px;background:var(--notice);margin-bottom:14px}
+  .notice-time{font-size:20px;font-weight:800;line-height:1.35;color:var(--ink);margin:0}
+  .notice-author{font-size:13px;font-weight:600;color:var(--sub);margin:6px 0 0}
+  .notice-hr{border:none;border-top:1px solid var(--line);margin:14px 0}
+  .notice-body{white-space:pre-wrap;font-size:15px;line-height:1.65;color:var(--ink);word-break:break-word}
+  .notice-media{margin-top:12px}
+  .notice-card .bimg{max-width:100%;border-radius:12px;display:block;margin:0 auto;cursor:pointer}
+  .notice-card .bfile{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600;cursor:pointer}
+  .notice-dl-hint{font-size:11px;color:var(--sub);text-align:center;margin-top:6px}
+  .notice-del{display:block;margin-top:10px;text-align:right;font-size:12px;color:var(--admin);cursor:pointer;font-weight:700}
   .card{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:15px;margin-bottom:13px}
   .card h3{font-size:11.5px;color:var(--sub);font-weight:800;text-transform:uppercase;margin-bottom:11px}
   .arow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(220,213,204,.5)}
@@ -134,7 +178,10 @@
   .arow .info small{display:block;color:var(--sub);font-size:11.5px}
   .tag{font-size:10px;font-weight:700;padding:3px 7px;border-radius:20px}
   .tag.super{background:var(--admin);color:#fff}.tag.admin{background:var(--notice);color:#fff}.tag.user{background:var(--line);color:var(--accent)}
+  /* 일정 편집 모달은 상세·다른 모달 위에 */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30;padding:14px}
+  #emodal{z-index:45}
+  #evDetailModal{z-index:40}
   /* 공용 확인/알림 대화상자는 다른 모달(일정 상세 등) 위에 항상 표시 */
   #uiDialog{z-index:60}
   .modal.on{display:flex}
@@ -247,8 +294,8 @@
       <button id="settingsBtn" class="back" style="display:none;font-size:17px" onclick="openRoomSettings()">⚙️</button>
       <button id="leaveBtn" class="lk" style="display:none" onclick="leaveRoom()">나가기</button>
       <button id="deleteBtn" class="lk" style="display:none;color:var(--admin);font-weight:700" onclick="deleteRoom()">방삭제</button></div>
-    <div class="tabs">
-      <div class="tab on" data-t="chat" id="chatTab" onclick="tab('chat')">💬 채팅</div>
+    <div class="tabs" id="roomTabs">
+      <div class="tab on" data-t="chat" onclick="tab('chat')">💬 채팅</div>
       <div class="tab" data-t="files" onclick="tab('files')">📁 자료실</div>
       <div class="tab" data-t="cal" onclick="tab('cal')">📅 캘린더</div></div>
     <div class="pane on" id="pane-chat">
@@ -257,6 +304,7 @@
         <div class="attpreview hidden" id="attachPreview"></div>
         <button class="plus" id="plusBtn" onclick="toggleAttachMenu(event)">＋</button>
         <input id="msgInput" placeholder="메시지 입력" onkeydown="onMsgKeydown(event)" onfocus="scrollMsgsToBottom()">
+        <textarea id="msgInputNotice" placeholder="공지 내용 입력 (줄바꿈 가능)" onfocus="scrollMsgsToBottom()"></textarea>
         <button class="send" onclick="sendMsg()">➤</button>
         <input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="onAttachPicked(this,'image')">
         <input type="file" id="chatFileInput" style="display:none" onchange="onAttachPicked(this,'file')">
@@ -264,7 +312,7 @@
           <div class="ami" onclick="pickAttach('image')">📷 사진</div>
           <div class="ami" onclick="pickAttach('file')">📎 파일</div>
         </div></div>
-      <div class="readonly hidden" id="readonlyBar">🔒 공지 전용 방 · 관리자/지정 작성자만 작성</div>
+      <div class="readonly hidden" id="readonlyBar">🔒 공지 전용 방 · 관리자만 작성</div>
     </div>
     <div class="pane" id="pane-files"><div class="files" id="fileList"></div></div>
     <div class="pane" id="pane-cal"><div class="cal" id="calBody"></div></div>
@@ -344,6 +392,14 @@
     <button class="ghost" id="uiDialogCancel" onclick="uiDialogResolve(false)">취소</button>
   </div></div>
 
+  <!-- EVENT DETAIL (주간 학술활동 — 4줄 미리보기 후 전체 보기) -->
+  <div class="modal" id="evDetailModal"><div class="sheet" style="max-height:90vh;display:flex;flex-direction:column">
+    <h2>일정 상세</h2>
+    <div id="evDetailBody" class="ev-detail-body" style="flex:1;overflow-y:auto;min-height:0"></div>
+    <div id="evDetailEdit"></div>
+    <button class="ghost" onclick="closeModal('evDetailModal')">닫기</button>
+  </div></div>
+
   <!-- EVENT MODAL -->
   <div class="modal" id="emodal"><div class="sheet">
     <h2 id="evModalTitle">일정 추가</h2><p>참석범위·첨부자료까지 등록할 수 있습니다.</p>
@@ -359,12 +415,12 @@
     <div id="evExisting"></div>
     <div id="evPending"></div>
     <input class="field" id="evFile" type="file" multiple onchange="onEvFileChange()">
-    <button class="primary" onclick="saveEvent()" id="evSaveBtn">일정 등록</button>
-    <button class="ghost" id="evDeleteBtn" style="display:none;color:var(--admin)" onclick="deleteEvent()">일정 삭제</button>
-    <button class="ghost" onclick="closeModal('emodal')">취소</button>
+    <button type="button" class="primary" onclick="saveEvent()" id="evSaveBtn">일정 등록</button>
+    <button type="button" class="ghost" id="evDeleteBtn" style="display:none;color:var(--admin)" onclick="deleteEvent()">일정 삭제</button>
+    <button type="button" class="ghost" onclick="closeModal('emodal')">취소</button>
   </div></div>
 
-  <!-- 프로필 사진 조절 (내 정보 — Android AvatarAdjustDialog 미러링) -->
+  <!-- 사진 조절 (내 정보·방표식 — Android AvatarAdjustDialog 미러링) -->
   <div class="modal" id="avAdjustModal" style="z-index:50;background:rgba(0,0,0,.9)">
     <div class="sheet" style="max-width:420px;background:var(--ink);color:#fff">
       <h2 style="color:#fff">사진 조절</h2>
@@ -406,7 +462,9 @@ if(!window.supabase||!window.supabase.createClient){
     '네트워크·방화벽 설정을 확인하거나 페이지를 새로고침하세요.</p></div>';
   throw new Error('Supabase library failed to load');
 }
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+});
 /* ====== 화면 테마 (다크 기본 / 라이트 전환) — localStorage 저장 ====== */
 function applyTheme(){ document.documentElement.classList.toggle('light', localStorage.getItem('moim_theme')==='light'); }
 function toggleTheme(){ const light=!document.documentElement.classList.contains('light'); localStorage.setItem('moim_theme', light?'light':'dark'); document.documentElement.classList.toggle('light',light); if(typeof setTab!=='undefined'&&setTab==='me')renderSet(); }
@@ -416,7 +474,49 @@ const SUPERADMIN_EMAIL = "jsnoh@ajou.ac.kr";
 // 비밀번호 재설정 링크로 진입했는지 (해시는 supabase 가 비우기 전에 동기적으로 확인)
 let recovering = location.hash.includes('type=recovery');
 sb.auth.onAuthStateChange((event)=>{ if(event==='PASSWORD_RECOVERY'){ recovering=true; show('reset'); } });
+function isJwtExpired(err){
+  const m=(err&&err.message)||String(err||'');
+  return /jwt expired|invalid jwt|invalid claim/i.test(m);
+}
+async function ensureFreshSession(){
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session) return false;
+    const exp=session.expires_at;
+    if(typeof exp==='number'&&exp*1000-Date.now()<60000){
+      const {error}=await sb.auth.refreshSession();
+      if(error) return false;
+    }
+    return true;
+  }catch(_){return false;}
+}
+async function authFailAndLogin(){
+  closeModal('emodal'); closeModal('evDetailModal');
+  await sb.auth.signOut().catch(()=>{});
+  me=null; show('login');
+  alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
+}
+async function withFreshSession(fn){
+  if(!await ensureFreshSession()){await authFailAndLogin();return{error:{message:'로그인이 만료되었습니다.'}};}
+  let r=await fn();
+  if(r?.error&&isJwtExpired(r.error)){
+    const {error:re}=await sb.auth.refreshSession();
+    if(re){await authFailAndLogin();return r;}
+    r=await fn();
+  }
+  return r;
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&me) ensureFreshSession().catch(()=>{});
+});
 const BUCKET = "room-files";
+/** Storage object key — ASCII only (한글 파일명은 DB attachment_name/file_name 에만 저장) */
+function storageObjectKey(roomId,fileName){
+  const m=(fileName||'').match(/\.([A-Za-z0-9]{1,16})$/i);
+  const ext=(m?m[1]:'bin').toLowerCase();
+  const token=Math.random().toString(36).slice(2,10);
+  return roomId+'/'+Date.now()+'_'+token+'.'+ext;
+}
 
 /* ====== 상태 ====== */
 let me=null, rooms=[], myRoomIds=new Set(), profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
@@ -458,7 +558,7 @@ function renderSet(){
 // ── 내 정보 변경 (이름·이메일·전화번호 읽기전용 / 직군·자기소개·아바타 변경) ──
 const MEMBER_TYPES=['교실','의국','심리실','연구실','PA','간호사','SW','보조원','생명사랑','비서','의국동문','심리실 동문','기타'];
 let meColor=null, meMtypeSel=null, meAvatarFile=null, meAvatarPreview=null, meAvatarUrl=null, meClearAvatar=false;
-let avAdjustImg=null, avAdjustScale=1, avAdjustOx=0, avAdjustOy=0, avAdjustCropPx=0, avAdjustDragging=false, avAdjustLast=null, avAdjustPinchDist=null;
+let avAdjustImg=null, avAdjustScale=1, avAdjustOx=0, avAdjustOy=0, avAdjustCropPx=0, avAdjustDragging=false, avAdjustLast=null, avAdjustPinchDist=null, avAdjustOnConfirm=null;
 function renderMyInfo(){
   meColor=me.color||tcolor(me.member_type); meAvatarFile=null; meAvatarPreview=null; meAvatarUrl=me.avatar_url||null; meClearAvatar=false;
   const sup=(me.email||'').toLowerCase()===SUPERADMIN_EMAIL;
@@ -565,11 +665,18 @@ function renderMyAvatarPreview(){
   const clr=document.getElementById('meAvClear'); if(clr)clr.style.display=(meAvatarPreview||(!meClearAvatar&&meAvatarUrl))?'':'none';
 }
 function pickMyColor(c){meColor=c;renderSwatches('meColors',meColor,'pickMyColor');renderMyAvatarPreview();}
+function startImageAdjustFromFile(file,onConfirm){
+  const img=new Image();
+  img.onload=()=>{ avAdjustImg=img; avAdjustScale=1; avAdjustOx=0; avAdjustOy=0; avAdjustOnConfirm=onConfirm; openAvatarAdjust(); };
+  img.src=URL.createObjectURL(file);
+}
 function onMyAvatarPicked(input){
   const f=input.files&&input.files[0]; if(!f)return; input.value='';
-  const img=new Image();
-  img.onload=()=>{ avAdjustImg=img; avAdjustScale=1; avAdjustOx=0; avAdjustOy=0; openAvatarAdjust(); };
-  img.src=URL.createObjectURL(f);
+  startImageAdjustFromFile(f,blob=>{
+    meAvatarFile=new File([blob],'avatar.jpg',{type:'image/jpeg'});
+    meAvatarPreview=URL.createObjectURL(blob); meClearAvatar=false;
+    renderMyAvatarPreview();
+  });
 }
 function clearMyAvatar(){meAvatarFile=null;meAvatarPreview=null;meAvatarUrl=null;meClearAvatar=true;renderMyAvatarPreview();}
 function avatarAdjustLayout(){
@@ -595,7 +702,7 @@ function openAvatarAdjust(){
 }
 function closeAvatarAdjust(){
   document.getElementById('avAdjustModal').classList.remove('on');
-  avAdjustImg=null; avAdjustDragging=false; avAdjustPinchDist=null;
+  avAdjustImg=null; avAdjustDragging=false; avAdjustPinchDist=null; avAdjustOnConfirm=null;
 }
 function confirmAvatarAdjust(){
   if(!avAdjustImg||!avAdjustCropPx)return;
@@ -610,9 +717,14 @@ function confirmAvatarAdjust(){
   ctx.drawImage(img,left*ratio,top*ratio,scaledW*ratio,scaledH*ratio);
   out.toBlob(blob=>{
     if(!blob)return;
-    meAvatarFile=new File([blob],'avatar.jpg',{type:'image/jpeg'});
-    meAvatarPreview=URL.createObjectURL(blob); meClearAvatar=false;
-    closeAvatarAdjust(); renderMyAvatarPreview();
+    const done=avAdjustOnConfirm;
+    closeAvatarAdjust();
+    if(done)done(blob);
+    else{
+      meAvatarFile=new File([blob],'avatar.jpg',{type:'image/jpeg'});
+      meAvatarPreview=URL.createObjectURL(blob); meClearAvatar=false;
+      renderMyAvatarPreview();
+    }
   },'image/jpeg',0.9);
 }
 function bindAvatarAdjustGestures(){
@@ -1112,7 +1224,7 @@ function renderRoomList(){
   const ubadge=id=>{const u=unreadByRoom[id]||0;return u>0?`<span class="unread">${u>99?'99+':u}</span>`:'';};
   const item=r=>{const isDM=r.category==='direct';const other=isDM?dmOther(r):null;
     const c=isDM?{l:'1:1',c:'#7a8a99'}:(CAT[r.category]||CAT.custom);const lm=lastMsgByRoom[r.id];
-    const prev=lm?esc(msgPreview(lm)):(isDM?(other?esc(other.member_type||''):''):(r.post_policy==='restricted'?'공지 · 관리자/지정작성자':''));
+    const prev=lm?esc(msgPreview(lm)):(isDM?(other?esc(other.member_type||''):''):(r.post_policy==='restricted'?'공지 · 관리자':''));
     const time=lm?fmtListTime(lm.created_at):'';
     const avStyle=isDM?personAvatarStyle(other):roomAvatarStyle(r);
     const avText=isDM?((other&&other.avatar_url)?'':ini(other&&other.name)):(r.icon_url?'':esc(r.name));
@@ -1139,7 +1251,7 @@ function renderRoomList(){
   document.getElementById('roomList').innerHTML=h;
 }
 
-/* ====== 관리자 콘솔 (가입승인 / 회원관리 / 방관리) ====== */
+/* ====== 관리자 콘솔 (가입승인 / 회원관리) ====== */
 async function reloadProfiles(){
   const {data}=await sb.from('profiles').select('*');
   profilesById={};(data||[]).forEach(p=>profilesById[p.id]=p);
@@ -1148,13 +1260,13 @@ let adminTab='approval';
 function openAdmin(){ if(!isAdmin())return; adminTab='approval'; show('adminScreen'); renderAdminTabs(); renderAdmin(); }
 function renderAdminTabs(){
   const sup=me.role==='superadmin';
-  const tabs=sup?[['approval','가입 승인'],['members','회원 관리'],['rooms','방 관리']]:[['approval','가입 승인']];
+  const tabs=sup?[['approval','가입 승인'],['members','회원 관리']]:[['approval','가입 승인']];
   document.getElementById('adminTabs').innerHTML=tabs.map(([k,l])=>`<div class="tab ${adminTab===k?'on':''}" onclick="adminGo('${k}')">${l}</div>`).join('');
 }
 function adminGo(k){ adminTab=k; renderAdminTabs(); renderAdmin(); }
 function renderAdmin(){
   document.getElementById('adminBody').innerHTML =
-    adminTab==='members'?renderMembers() : adminTab==='rooms'?renderRoomsAdmin() : renderApproval();
+    adminTab==='members'?renderMembers() : renderApproval();
 }
 function adminAvatar(p){
   const st=p.avatar_url
@@ -1212,18 +1324,6 @@ function renderMembers(){
   }
   return h;
 }
-function renderRoomsAdmin(){
-  const adminRooms=rooms.filter(r=>r.category!=='direct'); // DM 은 관리 목록에서 제외
-  if(!adminRooms.length) return `<p style="color:var(--sub);font-size:13px">방이 없습니다.</p>`;
-  let h=`<p style="color:var(--sub);font-size:12px;margin-bottom:10px">방을 눌러 구성원을 편집하거나 삭제하세요.</p>`;
-  return h+adminRooms.map(r=>{const c=CAT[r.category]||CAT.custom;
-    return `<div onclick="adminManageRoom('${r.id}')" style="display:flex;align-items:center;gap:11px;background:var(--surface);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer">
-      <div class="av" style="width:40px;height:40px;border-radius:12px;color:#fff;display:flex;align-items:center;justify-content:center;${roomAvatarStyle(r)}">${r.icon_url?'':esc(r.name)}</div>
-      <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(r.name)}</div>
-      <div style="color:var(--sub);font-size:11.5px">${c.l} · ${esc(r.post_policy)}</div></div><span style="color:var(--sub)">›</span></div>`;
-  }).join('');
-}
-function adminManageRoom(id){ active=rooms.find(r=>r.id===id); if(active) openRoomSettings(); }
 async function approveUser(id){
   const {error}=await sb.rpc('moim_approve_user',{p_user:id});
   if(error){alert('가입 승인 실패: '+error.message);return;}
@@ -1243,7 +1343,7 @@ async function adminDeactivate(id){
 }
 async function reactivateUser(id){
   const p=profilesById[id]||{};
-  if(!await uiConfirm(`'${p.name||'이 회원'}' 님의 계정을 복구할까요?\n로그인·활동이 다시 가능해지고 승인 상태가 됩니다.\n(이전 메시지·자료가 그대로 연결됩니다. 방 재배정은 방 관리에서)`,'계정 복구'))return;
+  if(!await uiConfirm(`'${p.name||'이 회원'}' 님의 계정을 복구할까요?\n로그인·활동이 다시 가능해지고 승인 상태가 됩니다.\n(이전 메시지·자료가 그대로 연결됩니다.)`,'계정 복구'))return;
   const {error}=await sb.rpc('moim_reactivate_user',{p_user:id});
   if(error){alert('계정 복구 실패: '+error.message);return;}
   await reloadProfiles(); renderAdmin();
@@ -1251,6 +1351,7 @@ async function reactivateUser(id){
 
 /* ====== 방 열기 ====== */
 const canPost=r=>isAdmin()||r.post_policy!=='restricted';
+const opensWeekCal=r=>r.default_view==='week'&&r.category!=='custom'&&r.category!=='direct';
 // 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
 const canRename=r=>isAdmin()||(!!r.created_by&&r.created_by===me.id);
 const canManage=r=>isAdmin()||(r.category==='custom'&&(!!r.created_by&&r.created_by===me.id));
@@ -1262,25 +1363,24 @@ async function openRoom(id){
   document.getElementById('settingsBtn').style.display=(!isDM&&canManage(active))?'':'none';
   // 본인이 만들지 않은 모임방: 나가기 (DM 은 표시 안 함)
   document.getElementById('leaveBtn').style.display=(!isDM&&active.category==='custom'&&!canManage(active))?'':'none';
-  document.getElementById('deleteBtn').style.display=(!isDM&&canDeleteRoom(active))?'':'none';   // 방삭제(생성자·전체관리자) 우상단
-  calMode=active.default_view==='week'?'week':'month';
+  document.getElementById('deleteBtn').style.display=isDM?'':'none';   // 1:1 대화만 우상단 방삭제
+  calMode=opensWeekCal(active)?'week':'month';
   selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
-  // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)·DM(direct)은 채팅만.
-  const isDefault=active.category!=='custom'&&!isDM;
-  document.querySelector('.tab[data-t="files"]').style.display=isDefault?'':'none';
-  document.querySelector('.tab[data-t="cal"]').style.display=isDefault?'':'none';
-  // DM 은 상대 이름, 그 외에는 '💬 채팅' (개설자는 상단 바 구성원 줄에 표시).
-  document.getElementById('chatTab').textContent=isDM?('💬 '+roomDisplayName(active)):'💬 채팅';
+  // 자료실·캘린더 탭 — 주간 학술활동 등 기본 방만. 과 전체공지·모임방·DM은 채팅만.
+  const isNotice=isNoticeRoom();
+  const isDefault=active.category!=='custom'&&!isDM&&!isNotice;
+  document.getElementById('roomTabs').style.display=isDefault?'':'none';
   renderTopBarMembers(active);   // 상단 바에 개설자·참여자 이름 나열 (넘치면 ...)
   show('roomScreen');
   const rs=document.getElementById('roomScreen');         // 오른쪽→왼쪽 펼침 효과
   rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');
   await setRoomRealtime(id);
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
-  tab(isDefault&&active.default_view==='week'?'cal':'chat');
+  tab(isNotice?'chat':(isDefault&&opensWeekCal(active)?'cal':'chat'));
   const allow=canPost(active);
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
+  setNoticeComposeMode(!!(active&&noticeTopRoom()&&noticeTopRoom().id===active.id));
   layoutChat();
 }
 // 상단 바 개설자·참여자 이름 나열 — 개설자 먼저, 나머지 이름순. DM·구성원없음은 숨김. (넘치면 CSS ellipsis)
@@ -1321,7 +1421,14 @@ function openRoomEdit(){
   document.getElementById('reditmodal').classList.add('on');
 }
 function pickEditColor(c){editColor=c;renderSwatches('eColors',editColor,'pickEditColor');renderEditIconPreview();}
-function onEditIconPicked(input){const f=input.files&&input.files[0];if(!f)return;editIconFile=f;editIconPreview=URL.createObjectURL(f);editIconCleared=false;renderEditIconPreview();input.value='';}
+function onEditIconPicked(input){
+  const f=input.files&&input.files[0]; if(!f)return; input.value='';
+  startImageAdjustFromFile(f,blob=>{
+    editIconFile=new File([blob],'icon.jpg',{type:'image/jpeg'});
+    editIconPreview=URL.createObjectURL(blob); editIconCleared=false;
+    renderEditIconPreview();
+  });
+}
 function clearEditIcon(){editIconFile=null;editIconPreview=null;editIconCleared=true;renderEditIconPreview();}
 function renderEditIconPreview(){
   const el=document.getElementById('eIconPrev');const nm=document.getElementById('editRoomName').value.trim()||'방';
@@ -1345,9 +1452,15 @@ async function saveRoomEdit(){
 }
 
 /* ====== 모임방 설정 (구성원 초대·제거 · 삭제) ====== */
-// 방 삭제는 생성자(방장) 또는 전체관리자(superadmin)만
+// 방 삭제는 개설자 또는 전체관리자(superadmin)만
 const canDeleteRoom=r=>r.category==='custom'&&(me.role==='superadmin'||(!!r.created_by&&r.created_by===me.id));
 let smMemberIds=[];
+function orderedRoomMemberIds(r,ids){
+  const creator=r.created_by,ordered=[];
+  if(creator&&ids.includes(creator))ordered.push(creator);
+  ids.filter(i=>i!==creator).sort((a,b)=>((profilesById[a]||{}).name||'').localeCompare((profilesById[b]||{}).name||'','ko')).forEach(i=>ordered.push(i));
+  return ordered;
+}
 async function openRoomSettings(){
   if(!active)return;
   document.getElementById('smodal').classList.add('on');
@@ -1363,9 +1476,9 @@ async function loadRoomMembersUI(){
 function renderRoomMembers(){
   const el=document.getElementById('smList');
   if(!smMemberIds.length){el.innerHTML='<p style="color:var(--sub);font-size:13px">참여 구성원이 없습니다. 아래에서 초대하세요.</p>';return;}
-  el.innerHTML=smMemberIds.map(uid=>{
+  el.innerHTML=orderedRoomMemberIds(active,smMemberIds).map(uid=>{
     const p=profilesById[uid]||{}; const isCreator=uid===active.created_by; const isMe=uid===me.id;
-    const tag=isCreator?' (방장)':(isMe?' (나)':'');
+    const tag=isCreator?' (개설자)':(isMe?' (나)':'');
     const btn=isCreator?'':`<span class="evkeptx" style="font-size:13px" onclick="kickMember('${uid}')">제거</span>`;
     return `<div class="evkept"><span>${esc(p.name||'?')}${tag}</span>${btn}</div>`;
   }).join('');
@@ -1398,12 +1511,21 @@ async function inviteMember(uid){
 }
 async function deleteRoom(){
   if(!active)return;
+  if(active.category==='direct'){
+    if(!await uiConfirm('이 대화를 목록에서 삭제할까요?\n상대는 그대로이며, 다시 메시지하면 이전 대화가 복구됩니다.','대화 삭제'))return;
+    const {error}=await sb.from('room_members').delete().eq('room_id',active.id).eq('user_id',me.id);
+    if(error){alert('삭제 실패: '+error.message);return;}
+    await closeRoom();await loadRooms();
+    return;
+  }
   if(!await uiConfirm(`'${active.name}' 모임방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.`,'모임방 삭제'))return;
   const {error}=await sb.from('rooms').delete().eq('id',active.id);
   if(error){alert('모임방 삭제 실패: '+error.message);return;}
   closeModal('smodal');active=null;await loadRooms();show('listScreen');
 }
-function tab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t));
+function tab(t){
+  const tabs=document.querySelectorAll('#roomScreen .tabs .tab[data-t]');
+  tabs.forEach(e=>e.classList.toggle('on',e.dataset.t===t));
   document.querySelectorAll('#roomScreen .pane').forEach(e=>e.classList.toggle('on',e.id==='pane-'+t));
   if(t==='chat'){layoutChat();renderMsgs();}
   if(t==='files')renderFiles();if(t==='cal')renderCal();}
@@ -1423,7 +1545,7 @@ function layoutChat(){
   const footH=foot?foot.offsetHeight:0;
   const phone=document.querySelector('.phone');
   const bottom=(phone||screen).getBoundingClientRect().bottom;
-  const tabs=screen.querySelector('.tabs');
+  const tabs=screen.querySelector('#roomTabs');
   const top=tabs?tabs.getBoundingClientRect().bottom:el.getBoundingClientRect().top;
   const h=Math.max(120,bottom-top-footH);
   el.style.height=h+'px';
@@ -1438,14 +1560,77 @@ function scrollMsgsToBottom(){
   const go=()=>{el.scrollTop=el.scrollHeight;};
   requestAnimationFrame(()=>requestAnimationFrame(go));
 }
+function mergeNoticeMsgs(msgs){
+  const out=[]; let i=0;
+  while(i<msgs.length){
+    const m=msgs[i], n=msgs[i+1];
+    if(n&&m.sender_id===n.sender_id){
+      if(m.type==='text'&&(n.type==='image'||n.type==='file')&&!(n.content||'').trim()){
+        out.push({...n,content:m.content}); i+=2; continue;
+      }
+      if((m.type==='image'||m.type==='file')&&!(m.content||'').trim()&&n.type==='text'&&!n.attachment_url){
+        out.push({...m,content:n.content}); i+=2; continue;
+      }
+    }
+    out.push(m); i++;
+  }
+  return out;
+}
+async function downloadAttachment(url,name){
+  try{
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('fetch');
+    const blob=await r.blob();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=name||'download';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+  }catch(_){
+    window.open(url,'_blank');
+  }
+}
+function noticeAttachmentHtml(m){
+  if(m.type==='image'&&m.attachment_url){
+    const nm=esc(m.attachment_name||'photo.jpg');
+    const uEnc=encodeURIComponent(m.attachment_url);
+    return `<div class="notice-media"><img class="bimg" src="${esc(m.attachment_url)}" onclick="downloadAttachment(decodeURIComponent('${uEnc}'),'${nm.replace(/'/g,"\\'")}')" alt="사진" title="클릭하여 다운로드"><p class="notice-dl-hint">클릭하여 다운로드</p></div>`;
+  }
+  if(m.type==='file'&&m.attachment_url){
+    const nm=esc(m.attachment_name||'file');
+    const uEnc=encodeURIComponent(m.attachment_url);
+    return `<div class="notice-media"><a class="bfile" href="#" onclick="event.preventDefault();downloadAttachment(decodeURIComponent('${uEnc}'),'${nm.replace(/'/g,"\\'")}');return false;">📎 <span>${esc(m.attachment_name||'파일')}</span></a><p class="notice-dl-hint">클릭하여 다운로드</p></div>`;
+  }
+  return '';
+}
+function noticePostHtml(m,who,mine){
+  const author=(who.name||'?')+(who.member_type?' · '+esc(who.member_type):'');
+  const cap=(m.content||'').trim();
+  let body='';
+  if(cap) body+=`<div class="notice-body">${esc(cap)}</div>`;
+  body+=noticeAttachmentHtml(m);
+  if(!body) body=`<div class="notice-body"></div>`;
+  const del=mine?`<span class="notice-del" onclick="delMsg('${m.id}')">🗑 삭제</span>`:'';
+  return `<div class="notice-post"><article class="notice-card">
+    <div class="notice-accent"></div>
+    <p class="notice-time">${fmtDetailTime(m.created_at)}</p>
+    <p class="notice-author">${author}</p>
+    <hr class="notice-hr">${body}${del}</article></div>`;
+}
 function renderMsgs(){
   const el=document.getElementById('msgs');
   if(!msgs.length){ el.innerHTML=`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`; scrollMsgsToBottom(); resolveAttachments(); return; }
+  const noticeLayout=active&&noticeTopRoom()&&noticeTopRoom().id===active.id;
   let html='', lastDate='';
-  msgs.forEach(m=>{
+  const list=noticeLayout?mergeNoticeMsgs(msgs):msgs;
+  list.forEach(m=>{
+    const mine=m.sender_id===me.id, who=profilesById[m.sender_id]||{};
+    if(noticeLayout){
+      html+=noticePostHtml(m,who,mine);
+      return;
+    }
     const dk=new Date(m.created_at).toDateString();
     if(dk!==lastDate){ html+=`<div class="datediv"><span>${fmtDateDivider(m.created_at)}</span></div>`; lastDate=dk; }
-    const mine=m.sender_id===me.id, who=profilesById[m.sender_id]||{};
     const un=(unreadByMsg[m.id]||0)>0?`<span class="munread">${unreadByMsg[m.id]}</span>`:'';
     const del=mine?`<span class="mdel" onclick="delMsg('${m.id}')" title="삭제">🗑</span>`:'';
     const avStyle=personAvatarStyle(who), avText=who.avatar_url?'':ini(who.name);
@@ -1459,19 +1644,33 @@ function renderMsgs(){
 }
 window.addEventListener('resize',layoutChat);
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize',()=>{layoutChat();if(document.activeElement===document.getElementById('msgInput'))scrollMsgsToBottom();});
+  window.visualViewport.addEventListener('resize',()=>{layoutChat();if(document.activeElement===activeMsgInput())scrollMsgsToBottom();});
+}
+function isNoticeRoom(){return active&&noticeTopRoom()&&noticeTopRoom().id===active.id;}
+function activeMsgInput(){return isNoticeRoom()?document.getElementById('msgInputNotice'):document.getElementById('msgInput');}
+function setNoticeComposeMode(on){
+  const bar=document.getElementById('inputbar');
+  if(bar)bar.classList.toggle('notice-compose',on);
+  if(!on){const ta=document.getElementById('msgInputNotice');if(ta)ta.value='';}
 }
 // 보내기(➤): 첨부가 대기 중이면 첨부를 보내고, 텍스트가 있으면 텍스트도 보낸다
 /** 한글 IME 조합 중 Enter 는 전송하지 않음 (마지막 글자만 먼저 나가는 버그 방지) */
 function onMsgKeydown(e){
+  if(e.target.id==='msgInputNotice')return;
   if(e.key!=='Enter')return;
   if(e.isComposing||e.keyCode===229)return;
   e.preventDefault();
   sendMsg();
 }
 async function sendMsg(){
-  if(pendingAttach){const ok=await sendPendingAttach();if(!ok)return;}
-  const i=document.getElementById('msgInput'),t=i.value.trim();
+  const i=activeMsgInput(),t=i.value.trim();
+  if(pendingAttach){
+    const ok=await sendPendingAttach(t||null);
+    if(!ok)return;
+    i.value='';
+    await loadMsgs();
+    return;
+  }
   if(t){i.value='';const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:t});
     if(error){alert('전송 실패: '+error.message);return;}}
   await loadMsgs();
@@ -1513,13 +1712,14 @@ async function delMsg(id){
   if(error){alert('삭제 실패: '+error.message);return;}
   await loadMsgs();
 }
-async function sendPendingAttach(){
+async function sendPendingAttach(caption){
   const {file,kind}=pendingAttach;
-  const path=active.id+'/'+Date.now()+'_'+file.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+  const path=storageObjectKey(active.id,file.name);
   const {error:upErr}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
   if(upErr){alert('업로드 실패: '+upErr.message);return false;}
   const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-  const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:null,type:kind,attachment_url:url,attachment_name:file.name});
+  const cap=(caption||'').trim();
+  const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:cap||null,type:kind,attachment_url:url,attachment_name:file.name});
   if(error){alert('전송 실패: '+error.message);return false;}
   clearAttach();return true;
 }
@@ -1564,7 +1764,7 @@ function pickUpload(input){const f=input.files[0];if(!f)return;pendingFile=f;
   document.getElementById('umodal').classList.add('on');}
 async function confirmUpload(){
   if(!pendingFile)return;
-  const path=active.id+'/'+Date.now()+'_'+pendingFile.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+  const path=storageObjectKey(active.id,pendingFile.name);
   const {error:upErr}=await sb.storage.from(BUCKET).upload(path,pendingFile,{upsert:true});
   if(upErr){alert('업로드 실패: '+upErr.message);return;}
   const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
@@ -1589,22 +1789,82 @@ function evAtts(e){
   if(e.attachment_url) return [{n:e.attachment_name||'첨부파일',u:e.attachment_url}];
   return [];
 }
-function evCard(e){const c=(CAT[active.category]||CAT.custom).c;
+function fmtDetailTime(iso){
+  const d=new Date(iso);
+  const dow=['일','월','화','수','목','금','토'][d.getDay()];
+  const time=d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});
+  return `${d.getMonth()+1}/${d.getDate()} (${dow}) ${time}`;
+}
+function evDetailHtml(e){
+  const c=(CAT[active.category]||CAT.custom).c;
   const presenter=(e.presenter&&e.presenter.trim())?esc(e.presenter):esc(nameOf(e.owner_id));
-  return `<div class="ev"><div class="evbar" style="background:${c}"></div><div class="evb"><b>${esc(e.title)}</b>
+  let h=`<article class="evdoc"><div class="evdoc-accent" style="background:${c}"></div>`;
+  h+=`<h3 class="evdoc-title">${esc(e.title)}</h3><hr class="evdoc-hr">`;
+  h+=`<dl class="evdoc-meta">`;
+  h+=`<div class="evdoc-row"><dt>일시</dt><dd>${fmtDetailTime(e.start_at)}</dd></div>`;
+  if(e.place)h+=`<div class="evdoc-row"><dt>장소</dt><dd>${esc(e.place)}</dd></div>`;
+  h+=`<div class="evdoc-row"><dt>발표자</dt><dd>${presenter}</dd></div>`;
+  if(e.scope)h+=`<div class="evdoc-row"><dt>참석</dt><dd>${esc(e.scope)}</dd></div>`;
+  h+=`</dl>`;
+  if(e.description){
+    h+=`<hr class="evdoc-hr"><p class="evdoc-sec">설명</p><p class="evdoc-body">${esc(e.description)}</p>`;
+  }
+  const atts=evAtts(e);
+  if(atts.length||e.link){
+    h+=`<hr class="evdoc-hr">`;
+    if(atts.length){
+      h+=`<p class="evdoc-sec">첨부</p>`;
+      h+=atts.map(a=>`<a class="evdoc-att" href="${esc(a.u)}" target="_blank" onclick="event.stopPropagation()"><span>📎</span><span>${esc(a.n)}</span></a>`).join('');
+    }
+    if(e.link)h+=`<a class="evdoc-link" href="${esc(e.link)}" target="_blank" onclick="event.stopPropagation()">🔗 링크 열기</a>`;
+  }
+  h+=`</article>`;
+  return h;
+}
+function evCardBody(e,extra=''){
+  const c=(CAT[active.category]||CAT.custom).c;
+  const presenter=(e.presenter&&e.presenter.trim())?esc(e.presenter):esc(nameOf(e.owner_id));
+  return `<div class="evbar" style="background:${c}"></div><div class="evb"><b>${esc(e.title)}</b>
     <div class="evmeta">📅 ${fmtTime(e.start_at)}${e.place?' · 📍'+esc(e.place):''}<br>
     👤 발표자 ${presenter}<br>
     ${e.scope?'참석: '+esc(e.scope)+'<br>':''}${e.description?esc(e.description)+'<br>':''}
     ${e.link?'🔗 <a href="'+esc(e.link)+'" target="_blank">링크</a>':''}</div>
-    ${evAtts(e).map(a=>`<a class="evatt" href="${esc(a.u)}" target="_blank">📎 ${esc(a.n)}</a>`).join(' ')}
-    ${canEdit(e)?`<span class="evedit" onclick="openEvent('${e.id}')">✏️ 수정</span>`:''}</div></div>`;}
+    ${evAtts(e).map(a=>`<a class="evatt" href="${esc(a.u)}" target="_blank" onclick="event.stopPropagation()">📎 ${esc(a.n)}</a>`).join(' ')}${extra}</div>`;
+}
+function evCard(e,compact){
+  const c=(CAT[active.category]||CAT.custom).c;
+  if(compact){
+    return `<div class="ev ev-compact" onclick="event.stopPropagation();openEventDetail('${e.id}')">
+      <div class="evbar" style="background:${c}"></div>
+      <div class="evb"><div class="evpreview">${esc(evPreviewText(e))}</div></div></div>`;
+  }
+  const edit=canEdit(e)?`<span class="evedit" onclick="openEvent('${e.id}')">✏️ 수정</span>`:'';
+  return `<div class="ev">${evCardBody(e,edit)}</div>`;
+}
+function evPreviewText(e){
+  const lines=[e.title,'📅 '+fmtTime(e.start_at)+(e.place?' · 📍'+e.place:'')];
+  lines.push('👤 발표자 '+(e.presenter&&e.presenter.trim()?e.presenter:nameOf(e.owner_id)));
+  if(e.scope)lines.push('참석: '+e.scope);
+  if(e.description)lines.push(e.description);
+  const atts=evAtts(e);
+  if(atts.length)lines.push('📎 '+atts[0].n+(atts.length>1?' 외 '+(atts.length-1)+'건':''));
+  return lines.join('\n');
+}
+function openEventDetail(id){
+  const e=events.find(x=>x.id===id); if(!e)return;
+  document.getElementById('evDetailBody').innerHTML=evDetailHtml(e);
+  document.getElementById('evDetailEdit').innerHTML=canEdit(e)
+    ?`<button class="ev-detail-edit" onclick="closeModal('evDetailModal');openEvent('${e.id}')">✏️ 수정</button>`:'';
+  document.getElementById('evDetailModal').classList.add('on');
+}
 const selLabel=()=>`${selDate.getMonth()+1}/${selDate.getDate()}`;
-function dayEventsHtml(d){
+function dayEventsHtml(d,compact){
   const de=events.filter(e=>sameDay(evDate(e),d)).sort((a,b)=>(a.start_at||'').localeCompare(b.start_at||''));
-  return de.length?de.map(evCard).join(''):`<p style="color:var(--sub);font-size:13px">등록된 일정이 없습니다.</p>`;
+  return de.length?de.map(e=>evCard(e,compact)).join(''):`<p style="color:var(--sub);font-size:13px">등록된 일정이 없습니다.</p>`;
 }
 function renderCal(){
   const today=new Date();today.setHours(0,0,0,0);
+  const compactEv=active&&opensWeekCal(active);
   let h=`<div class="calmode">
     <div class="cm ${calMode==='day'?'on':''}" onclick="calMode='day';renderCal()">금일</div>
     <div class="cm ${calMode==='week'?'on':''}" onclick="calMode='week';renderCal()">주간</div>
@@ -1628,7 +1888,7 @@ function renderCal(){
         +(isT?'background:var(--me);font-weight:800;':'')+(isSel?'box-shadow:inset 0 0 0 2px var(--accent);font-weight:800;':'');
       h+=`<div style="${style}" onclick="selectDay(${y},${m},${d})">${d}${evDays.has(d)?'<div style="width:5px;height:5px;border-radius:50%;background:var(--admin)"></div>':''}</div>`;}
     h+=`</div><h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">${sameDay(selDate,today)?'오늘':selLabel()} 일정</h4>`;
-    h+=dayEventsHtml(selDate);
+    h+=dayEventsHtml(selDate,compactEv);
   }else if(calMode==='week'){
     const mon=new Date(selDate);mon.setDate(selDate.getDate()-((selDate.getDay()+6)%7));
     const dow=['월','화','수','목','금','토','일'];
@@ -1637,10 +1897,10 @@ function renderCal(){
     for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);
       const de=events.filter(e=>sameDay(evDate(e),d));const isT=sameDay(d,today),isSel=sameDay(d,selDate);
       h+=`<div class="wday ${isT?'wtoday':''}" style="cursor:pointer;${isSel?'box-shadow:inset 0 0 0 2px var(--accent);border-radius:11px;':''}" onclick="selectDay(${d.getFullYear()},${d.getMonth()},${d.getDate()})"><div class="wdate"><b>${dow[i]}</b><span>${d.getMonth()+1}/${d.getDate()}</span></div>
-        <div class="wevents">${de.length?de.map(evCard).join(''):'<div class="noev">— 일정 없음</div>'}</div></div>`;}
+        <div class="wevents">${de.length?de.map(e=>evCard(e,compactEv)).join(''):'<div class="noev">— 일정 없음</div>'}</div></div>`;}
   }else{
     h+=calNav('day',today);
-    h+=dayEventsHtml(selDate);
+    h+=dayEventsHtml(selDate,compactEv);
   }
   document.getElementById('calBody').innerHTML=h;
 }
@@ -1666,6 +1926,7 @@ function calNav(mode,today){
   return `<div class="calnav"><span class="narr" onclick="${fn}(-1)">‹</span><b>${center}</b><span class="narr" onclick="${fn}(1)">›</span></div>${ret}`;
 }
 function openEvent(id){
+  closeModal('evDetailModal');
   editEventId=id||null;
   const e=id?events.find(x=>x.id===id):null;
   document.getElementById('evModalTitle').textContent=id?'일정 수정':'일정 추가';
@@ -1712,7 +1973,7 @@ function removeEvPending(i){ evPending.splice(i,1); renderEvPending(); }
 async function uploadFiles(files){
   const urls=[],names=[];
   for(const file of files){
-    const path=active.id+'/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'_'+file.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+    const path=storageObjectKey(active.id,file.name);
     const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
     if(error)throw error;
     urls.push(sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl);names.push(file.name);
@@ -1720,31 +1981,38 @@ async function uploadFiles(files){
   return {urls,names};
 }
 async function saveEvent(){
-  const g=k=>document.getElementById(k).value.trim();
-  if(!g('evTitle')){alert('제목을 입력하세요');return;}
-  const startAt=new Date(g('evDate')+'T'+(g('evTime')||'09:00')+':00').toISOString();
-  const presenter=g('evPresenter')||null;
-  let up={urls:[],names:[]};
-  if(evPending.length){
-    try{ up=await uploadFiles(evPending.map(p=>p.file)); }catch(e){ alert('첨부 업로드 실패: '+e.message); return; }
+  try{
+    const g=k=>document.getElementById(k).value.trim();
+    if(!g('evTitle')){alert('제목을 입력하세요');return;}
+    if(!g('evDate')){alert('날짜를 선택하세요.');return;}
+    const startAt=new Date(g('evDate')+'T'+(g('evTime')||'09:00')+':00');
+    if(isNaN(startAt.getTime())){alert('날짜·시간 형식이 올바르지 않습니다.');return;}
+    const startAtIso=startAt.toISOString();
+    const presenter=g('evPresenter')||null;
+    let up={urls:[],names:[]};
+    if(evPending.length){
+      try{ up=await uploadFiles(evPending.map(p=>p.file)); }catch(e){ alert('첨부 업로드 실패: '+e.message); return; }
+    }
+    if(editEventId){
+      const urls=evKept.map(a=>a.u).concat(up.urls);
+      const names=evKept.map(a=>a.n).concat(up.names);
+      const upd={title:g('evTitle'),start_at:startAtIso,place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,
+        scope:g('evScope')||null,description:g('evDesc')||null,
+        attachment_url:null,attachment_name:null,attachment_desc:null,
+        attachment_urls:urls,attachment_names:names};
+      const {error}=await withFreshSession(async()=>await sb.from('calendar_events').update(upd).eq('id',editEventId));
+      if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'수정 실패: '+error.message);return;}
+    }else{
+      const {error}=await withFreshSession(async()=>await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAtIso,
+        place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
+        owner_id:me.id,attachment_url:null,attachment_name:null,
+        attachment_urls:up.urls,attachment_names:up.names}));
+      if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'등록 실패: '+error.message);return;}
+    }
+    closeModal('emodal');await loadEvents();await loadFiles();renderCal();
+  }catch(e){
+    alert('저장 중 오류: '+(e.message||e));
   }
-  if(editEventId){
-    const urls=evKept.map(a=>a.u).concat(up.urls);
-    const names=evKept.map(a=>a.n).concat(up.names);
-    const upd={title:g('evTitle'),start_at:startAt,place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,
-      scope:g('evScope')||null,description:g('evDesc')||null,
-      attachment_url:null,attachment_name:null,attachment_desc:null,
-      attachment_urls:urls,attachment_names:names};
-    const {error}=await sb.from('calendar_events').update(upd).eq('id',editEventId);
-    if(error){alert('수정 실패: '+error.message);return;}
-  }else{
-    const {error}=await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAt,
-      place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
-      owner_id:me.id,attachment_url:null,attachment_name:null,
-      attachment_urls:up.urls,attachment_names:up.names});
-    if(error){alert('등록 실패: '+error.message);return;}
-  }
-  closeModal('emodal');await loadEvents();await loadFiles();renderCal();
 }
 // 일정 삭제 (작성자/관리자/교실·의국·비서·심리실)
 async function deleteEvent(){
@@ -1761,6 +2029,25 @@ async function deleteEvent(){
 async function openWard(){show('wardScreen');await loadWard();}
 async function loadWard(){const {data}=await sb.from('ward_status').select('*').eq('id',1).maybeSingle();
   wardText=data?data.content:'';wardUpdated=data?data.updated_at:null;renderWard(false);}
+function fmtWardPublish(iso){
+  const d=new Date(iso);
+  const dow=['일','월','화','수','목','금','토'][d.getDay()];
+  const time=d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});
+  return `${d.getMonth()+1}/${d.getDate()} (${dow}) ${time}`;
+}
+function wardViewHtml(){
+  let h=`<article class="warddoc"><div class="warddoc-accent"></div>`;
+  if(wardUpdated){
+    h+=`<p class="warddoc-lbl">게시</p><p class="warddoc-time">${fmtWardPublish(wardUpdated)}</p><hr class="warddoc-hr">`;
+  }
+  if(wardText.trim()){
+    h+=`<div class="warddoc-body">${esc(wardText)}</div>`;
+  }else{
+    h+=`<div class="warddoc-empty"><div class="eb">🛏</div><b>작성된 내용이 없습니다</b><div style="font-size:13px;line-height:1.5">우측 상단 ‘편집’을 눌러<br>잔여 병실 현황을 작성하세요.</div></div>`;
+  }
+  h+=`</article>`;
+  return h;
+}
 function renderWard(editing){
   const el=document.getElementById('wardBody');
   document.getElementById('wardEditBtn').textContent='편집';
@@ -1770,9 +2057,7 @@ function renderWard(editing){
       <button class="primary" onclick="wardSave()">게시</button>
       <button class="ghost" onclick="renderWard(false)">취소</button>`;
   }else{
-    const upd=wardUpdated?new Date(wardUpdated).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
-    el.innerHTML=(upd?`<div style="font-size:11px;color:var(--sub);margin-bottom:8px">최종 수정: ${upd}</div>`:'')
-      +(wardText.trim()?`<div class="wardmemo">${esc(wardText)}</div>`:`<div class="emptybox"><div class="eb">🛏</div><b>작성된 내용이 없습니다</b><div style="font-size:13px">‘편집’으로 작성하세요.</div></div>`);
+    el.innerHTML=wardViewHtml();
   }
 }
 function wardEdit(){renderWard(true);}
@@ -1801,7 +2086,14 @@ function toggleC(id){cpick.has(id)?cpick.delete(id):cpick.add(id);
   const el=document.querySelector(`#cpickList .pick[data-id="${id}"]`);
   el.classList.toggle('sel',cpick.has(id));el.querySelector('.chk').style.visibility=cpick.has(id)?'visible':'hidden';}
 function pickCreateColor(c){createColor=c;renderSwatches('cColors',createColor,'pickCreateColor');renderCreateIconPreview();}
-function onCreateIconPicked(input){const f=input.files&&input.files[0];if(!f)return;createIconFile=f;createIconPreview=URL.createObjectURL(f);renderCreateIconPreview();input.value='';}
+function onCreateIconPicked(input){
+  const f=input.files&&input.files[0]; if(!f)return; input.value='';
+  startImageAdjustFromFile(f,blob=>{
+    createIconFile=new File([blob],'icon.jpg',{type:'image/jpeg'});
+    createIconPreview=URL.createObjectURL(blob);
+    renderCreateIconPreview();
+  });
+}
 function clearCreateIcon(){createIconFile=null;createIconPreview=null;renderCreateIconPreview();}
 function renderCreateIconPreview(){
   const el=document.getElementById('cIconPrev');const nm=document.getElementById('newRoomName').value.trim()||'방';

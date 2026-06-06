@@ -26,6 +26,28 @@ object MoimRepository {
         supabase.auth.awaitInitialization()
     }
 
+    /** JWT 만료 직전·만료 후 refresh token 으로 access token 갱신 */
+    suspend fun ensureFreshSession() {
+        ensureAuthReady()
+        if (supabase.auth.currentSessionOrNull() == null) return
+        try {
+            supabase.auth.refreshCurrentSession()
+        } catch (_: Exception) {
+            // refresh 실패 시 다음 API 호출에서 withFreshSession 이 재시도
+        }
+    }
+
+    private suspend fun <T> withFreshSession(block: suspend () -> T): T {
+        ensureAuthReady()
+        return try {
+            block()
+        } catch (e: Exception) {
+            if (!isJwtExpiredError(e)) throw e
+            supabase.auth.refreshCurrentSession()
+            block()
+        }
+    }
+
     suspend fun signIn(email: String, password: String) {
         supabase.auth.signInWith(Email) {
             this.email = email
@@ -235,12 +257,12 @@ object MoimRepository {
     }
 
     /** 카톡식 첨부 전송: 공개 room-files 업로드 후 공개 URL 을 담아 메시지 삽입 (type = image | file) */
-    suspend fun sendAttachment(roomId: String, fileName: String, bytes: ByteArray, type: String) {
+    suspend fun sendAttachment(roomId: String, fileName: String, bytes: ByteArray, type: String, caption: String? = null) {
         val uid = currentUserId() ?: error("Not logged in")
         val url = uploadToStorage(roomId, fileName, bytes)
         supabase.from("messages").insert(
             MessageInsert(
-                roomId = roomId, senderId = uid, content = null, type = type,
+                roomId = roomId, senderId = uid, content = caption?.trim()?.takeIf { it.isNotEmpty() }, type = type,
                 attachmentUrl = url, attachmentName = fileName,
             )
         )
@@ -319,7 +341,7 @@ object MoimRepository {
         presenter: String?,
         keywords: List<String>,
         attachments: List<Pair<String, ByteArray>>,
-    ) {
+    ) = withFreshSession {
         val uid = currentUserId() ?: error("Not logged in")
         val urls = mutableListOf<String>()
         val names = mutableListOf<String>()
@@ -349,7 +371,7 @@ object MoimRepository {
     }
 
     /** 일정 삭제 (작성자/관리자/교실·의국·비서·심리실 — RLS 로 강제) */
-    suspend fun deleteEvent(eventId: String) {
+    suspend fun deleteEvent(eventId: String) = withFreshSession {
         supabase.from("calendar_events").delete { filter { eq("id", eventId) } }
     }
 
@@ -368,7 +390,7 @@ object MoimRepository {
         keptUrls: List<String>,
         keptNames: List<String>,
         newAttachments: List<Pair<String, ByteArray>>,
-    ) {
+    ) = withFreshSession {
         // 유지할 기존 첨부 + 새로 올린 첨부를 합쳐서 배열로 저장
         val urls = keptUrls.toMutableList()
         val names = keptNames.toMutableList()
@@ -450,10 +472,17 @@ object MoimRepository {
         ) { filter { eq("id", 1) } }
     }
 
+    /** Storage object key — ASCII only (Supabase/S3 rejects non-ASCII in key). DB에는 원본 파일명 저장. */
+    private fun storageObjectKey(roomId: String, fileName: String): String {
+        val rawExt = fileName.substringAfterLast('.', "")
+        val ext = rawExt.replace(Regex("[^A-Za-z0-9]"), "").lowercase().take(16).ifBlank { "bin" }
+        val token = java.util.UUID.randomUUID().toString().substring(0, 8)
+        return "$roomId/${System.currentTimeMillis()}_${token}.$ext"
+    }
+
     /** 파일을 Storage('room-files' 버킷)에 올리고 공개 URL 을 반환 */
     private suspend fun uploadToStorage(roomId: String, fileName: String, bytes: ByteArray): String {
-        val safe = fileName.replace(Regex("[^A-Za-z0-9._가-힣-]"), "_")
-        val path = "$roomId/${System.currentTimeMillis()}_$safe"
+        val path = storageObjectKey(roomId, fileName)
         val bucket = supabase.storage.from(FILES_BUCKET)
         bucket.upload(path, bytes) { upsert = true }
         return bucket.publicUrl(path)

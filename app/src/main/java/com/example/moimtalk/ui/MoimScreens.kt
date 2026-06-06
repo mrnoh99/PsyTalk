@@ -1,6 +1,10 @@
 package com.example.moimtalk.ui
 
+import android.app.DownloadManager
+import android.content.Context
 import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,6 +51,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -70,6 +75,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -81,6 +87,10 @@ import androidx.compose.ui.unit.sp
 import com.example.moimtalk.MoimViewModel
 import com.example.moimtalk.R
 import com.example.moimtalk.data.LastMsg
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
@@ -287,7 +297,7 @@ private fun ApprovalBanner(pending: Int, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text("관리자 콘솔", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
             Text(
-                if (pending > 0) "가입 승인 대기 ${pending}명" else "가입 승인 · 회원/방 관리",
+                if (pending > 0) "가입 승인 대기 ${pending}명" else "가입 승인 · 회원 관리",
                 color = Color(0xFFBDB4AB), fontSize = 11.5.sp
             )
         }
@@ -304,21 +314,14 @@ private fun ApprovalBanner(pending: Int, onClick: () -> Unit) {
     }
 }
 
-// 관리자 콘솔 — 가입승인 / 회원관리 / 방관리. 관리자는 '가입 승인'만, 전체관리자는 전부.
+// 관리자 콘솔 — 가입승인 / 회원관리. 관리자는 '가입 승인'만, 전체관리자는 둘 다.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminConsoleScreen(vm: MoimViewModel, onBack: () -> Unit) {
     val isSuper = vm.myProfile?.role == "superadmin"
-    val tabs = if (isSuper) listOf("가입 승인", "회원 관리", "방 관리") else listOf("가입 승인")
+    val tabs = if (isSuper) listOf("가입 승인", "회원 관리") else listOf("가입 승인")
     var tab by remember { mutableStateOf(0) }
     val collator = remember { java.text.Collator.getInstance(java.util.Locale.KOREAN) }
-    LaunchedEffect(Unit) { vm.loadRoomMemberCounts() }
-
-    // 방 관리: 방 선택 시 구성원 편집/삭제 다이얼로그
-    var manageRoom by remember { mutableStateOf<Room?>(null) }
-    manageRoom?.let { r ->
-        RoomSettingsDialog(vm = vm, room = r, onDismiss = { manageRoom = null }, onDeleted = { manageRoom = null })
-    }
 
     Scaffold(
         topBar = {
@@ -341,8 +344,7 @@ fun AdminConsoleScreen(vm: MoimViewModel, onBack: () -> Unit) {
             }
             when (tabs[tab]) {
                 "가입 승인" -> ApprovalTab(vm, collator)
-                "회원 관리" -> MemberManageTab(vm, collator)
-                else -> RoomManageTab(vm) { r -> vm.loadRoomMembers(r.id); manageRoom = r }
+                else -> MemberManageTab(vm, collator)
             }
         }
     }
@@ -427,16 +429,6 @@ private fun MemberManageTab(vm: MoimViewModel, collator: java.text.Collator) {
 }
 
 @Composable
-private fun RoomManageTab(vm: MoimViewModel, onManage: (Room) -> Unit) {
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        item {
-            Text("🏠 방 관리 · ${vm.rooms.size}개 · 방을 눌러 구성원 편집", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MoimSub, modifier = Modifier.padding(bottom = 10.dp))
-        }
-        items(vm.rooms, key = { it.id }) { r -> RoomManageRow(r, vm.roomMemberCounts[r.id] ?: 0, onManage) }
-    }
-}
-
-@Composable
 private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         label,
@@ -449,6 +441,12 @@ private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .background(if (selected) MoimAccent else MoimBg)
             .padding(horizontal = 14.dp, vertical = 7.dp)
     )
+}
+
+private fun roleLabel(role: String): String = when (role) {
+    "superadmin" -> "전체관리자"
+    "admin" -> "관리자"
+    else -> "회원"
 }
 
 @Composable
@@ -535,7 +533,7 @@ private fun MemberManageRow(p: Profile, vm: MoimViewModel) {
             Text("${p.memberType} · ${roleLabel(p.role)}", fontSize = 11.5.sp, color = MoimSub)
             MemberContactLines(p)
             if (!p.intro.isNullOrBlank()) {
-                Text(p.intro!!, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(p.intro, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         val isAdmin = p.role == "admin"
@@ -568,7 +566,7 @@ private fun MemberWithdrawnRow(p: Profile, vm: MoimViewModel) {
         AlertDialog(
             onDismissRequest = { confirm = false },
             title = { Text("계정 복구") },
-            text = { Text("‘${p.name}’ 님의 계정을 복구할까요?\n로그인·활동이 다시 가능해지고 승인 상태가 됩니다.\n(이전 메시지·자료가 그대로 연결됩니다. 방 재배정은 방 관리에서)") },
+            text = { Text("‘${p.name}’ 님의 계정을 복구할까요?\n로그인·활동이 다시 가능해지고 승인 상태가 됩니다.\n(이전 메시지·자료가 그대로 연결됩니다.)") },
             confirmButton = {
                 TextButton(onClick = { confirm = false; vm.reactivateUser(p.id) }) {
                     Text("복구", color = catColor("work"), fontWeight = FontWeight.Bold)
@@ -603,35 +601,6 @@ private fun MemberWithdrawnRow(p: Profile, vm: MoimViewModel) {
             modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { confirm = true }.background(catColor("work")).padding(horizontal = 14.dp, vertical = 7.dp)
         )
     }
-}
-
-// 방 관리 행 — 가운데 구분 바 없이 카드형. 누르면 구성원 편집/삭제
-@Composable
-private fun RoomManageRow(r: Room, count: Int, onManage: (Room) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 9.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MoimWhite, RoundedCornerShape(12.dp))
-            .clickable { onManage(r) }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RoomAvatar(r, 40, 12, 8.5)
-        Spacer(Modifier.width(11.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(r.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
-            Text("${catLabel(r.category)} · ${r.postPolicy}" + if (count > 0) " · ${count}명" else "", fontSize = 11.5.sp, color = MoimSub)
-        }
-        Text("›", fontSize = 18.sp, color = MoimSub)
-    }
-}
-
-private fun roleLabel(role: String): String = when (role) {
-    "superadmin" -> "전체관리자"
-    "admin" -> "관리자"
-    else -> "회원"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -837,8 +806,9 @@ fun RoomAppearancePicker(
     name: String,
     color: String,
     onColor: (String) -> Unit,
-    iconUri: Uri?,
-    existingIconUrl: String?,
+    iconBytes: ByteArray? = null,
+    iconUri: Uri? = null,
+    existingIconUrl: String? = null,
     onPickPhoto: () -> Unit,
     onClearPhoto: () -> Unit,
 ) {
@@ -850,7 +820,7 @@ fun RoomAppearancePicker(
     Spacer(Modifier.height(6.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
         val shape = RoundedCornerShape(12.dp)
-        val img: Any? = iconUri ?: existingIconUrl
+        val img: Any? = iconBytes ?: iconUri ?: existingIconUrl
         if (img != null) {
             AsyncImage(model = img, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(44.dp).clip(shape))
         } else {
@@ -892,10 +862,11 @@ fun RoomAvatar(room: Room, sizeDp: Int, cornerDp: Int, fontSp: Double) {
 @Composable
 fun PersonAvatar(profile: Profile?, sizeDp: Int, cornerDp: Int, fontSp: Double) {
     val shape = RoundedCornerShape(cornerDp.dp)
-    if (!profile?.avatarUrl.isNullOrBlank()) {
+    val avatarUrl = profile?.avatarUrl
+    if (profile != null && !avatarUrl.isNullOrBlank()) {
         AsyncImage(
-            model = profile?.avatarUrl,
-            contentDescription = profile?.name,
+            model = avatarUrl,
+            contentDescription = profile.name,
             contentScale = ContentScale.Crop,
             modifier = Modifier.size(sizeDp.dp).clip(shape)
         )
@@ -947,7 +918,7 @@ fun RoomRow(
             val desc = msgPreview(lastMsg).ifBlank {
                 when {
                     isDM -> other?.memberType.orEmpty()
-                    room.postPolicy == "restricted" -> "공지 · 관리자/지정작성자"
+                    room.postPolicy == "restricted" -> "공지 · 관리자"
                     else -> ""
                 }
             }
@@ -979,8 +950,16 @@ private fun UnreadBadge(n: Int) {
 fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     // 이름 변경이 반영되도록 최신 방 정보를 vm.rooms 에서 조회
     val liveRoom = vm.rooms.firstOrNull { it.id == room.id } ?: room
-    // 주간 학술활동 등 default_view='week' 방은 열자마자 캘린더(주간 목록)로 (프로토타입과 동일)
-    var tab by remember { mutableStateOf(if (room.category != "custom" && room.defaultView == "week") "cal" else "chat") }
+    // 주간 학술활동(default_view=week) 방은 열자마자 캘린더(주간) 탭으로
+    var tab by remember(liveRoom.id) {
+        mutableStateOf(
+            when {
+                isNoticeTopRoom(liveRoom, vm.rooms) -> "chat"
+                opensWeekCalendar(liveRoom) -> "cal"
+                else -> "chat"
+            },
+        )
+    }
     var input by remember { mutableStateOf("") }
     var showAttach by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -1000,17 +979,19 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     var editIconBytes by remember { mutableStateOf<ByteArray?>(null) }
     var editIconName by remember { mutableStateOf<String?>(null) }
     var editIconCleared by remember { mutableStateOf(false) }
+    var pendingIconAdjustUri by remember { mutableStateOf<Uri?>(null) }
     val iconPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) { editIconUri = uri; editIconCleared = false; readUri(context, uri)?.let { (n, b) -> editIconName = n; editIconBytes = b } }
+        if (uri != null) pendingIconAdjustUri = uri
     }
     var showSettings by remember { mutableStateOf(false) }
     var showLeave by remember { mutableStateOf(false) }
     var showDeleteRoom by remember { mutableStateOf(false) }
     val profile = vm.myProfile
     val canPost = canPostInRoom(profile, room)
-    // 1:1 DM 은 채팅 전용 (캘린더·자료실 탭, 이름변경·설정·나가기 모두 숨김). 제목=상대 이름.
+    // 1:1 DM 은 채팅 전용 (캘린더·자료실 탭, 이름변경·설정 숨김). 제목=상대 이름. 방삭제=목록에서 제거.
     val dm = isDirect(liveRoom)
     val titleName = roomDisplayName(liveRoom, vm.profilesById)
+    val noticeCompose = isNoticeTopRoom(liveRoom, vm.rooms)
 
     if (showLeave) {
         AlertDialog(
@@ -1030,12 +1011,12 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     if (showDeleteRoom) {
         AlertDialog(
             onDismissRequest = { showDeleteRoom = false },
-            title = { Text("방 삭제") },
-            text = { Text("'${liveRoom.name}' 방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.") },
+            title = { Text("대화 삭제") },
+            text = { Text("이 대화를 목록에서 삭제할까요?\n상대는 그대로이며, 다시 메시지하면 이전 대화가 복구됩니다.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteRoom = false
-                    vm.deleteRoom(liveRoom) { onBack() }
+                    vm.leaveRoom(liveRoom) { onBack() }
                 }) { Text("삭제", color = MoimAdmin, fontWeight = FontWeight.Bold) }
             },
             dismissButton = { TextButton(onClick = { showDeleteRoom = false }) { Text("취소") } }
@@ -1046,7 +1027,14 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     LaunchedEffect(vm.messages) { vm.resolveAttachments() }
 
     // 상단 바에 개설자·참여자 이름을 나열하기 위해 방 구성원 로드 (DM 제외)
-    LaunchedEffect(liveRoom.id) { if (!dm) vm.loadRoomMembers(liveRoom.id) }
+    LaunchedEffect(liveRoom.id) {
+        if (!dm) vm.loadRoomMembers(liveRoom.id)
+        tab = when {
+            isNoticeTopRoom(liveRoom, vm.rooms) -> "chat"
+            opensWeekCalendar(liveRoom) -> "cal"
+            else -> "chat"
+        }
+    }
 
     if (showSettings) {
         RoomSettingsDialog(
@@ -1054,6 +1042,20 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
             room = liveRoom,
             onDismiss = { showSettings = false },
             onDeleted = { showSettings = false; onBack() }
+        )
+    }
+
+    pendingIconAdjustUri?.let { uri ->
+        AvatarAdjustDialog(
+            sourceUri = uri,
+            onDismiss = { pendingIconAdjustUri = null },
+            onConfirm = { bytes, name ->
+                editIconBytes = bytes
+                editIconName = name
+                editIconUri = null
+                editIconCleared = false
+                pendingIconAdjustUri = null
+            },
         )
     }
 
@@ -1073,6 +1075,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                     Spacer(Modifier.height(14.dp))
                     RoomAppearancePicker(
                         name = renameText, color = editColor, onColor = { editColor = it },
+                        iconBytes = editIconBytes,
                         iconUri = editIconUri,
                         existingIconUrl = if (editIconCleared) null else liveRoom.iconUrl,
                         onPickPhoto = { iconPicker.launch("image/*") },
@@ -1095,82 +1098,99 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             Column(modifier = Modifier.background(MoimPaper)) {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(titleName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Text(catLabel(liveRoom.category), fontSize = 12.sp, color = MoimSub)
-                            // 개설자·참여자 이름 나열 (작은 글씨, 넘치면 ... — DM 제외)
-                            if (!dm && vm.memberListRoomId == liveRoom.id) {
-                                val memberLine = roomMemberNames(liveRoom, vm.roomMemberIds, vm.profilesById).joinToString(", ")
-                                if (memberLine.isNotBlank()) {
-                                    Text(memberLine, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
+                // 웹 .hdr 와 동일: 뒤로 · 방이름+구성원(ellipsis) · 액션 버튼
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 4.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onBack, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                        Text("‹", fontSize = 25.sp)
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    ) {
+                        Text(
+                            titleName,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        // 개설자·참여자 이름 나열 (작은 글씨, 넘치면 ... — DM 제외)
+                        if (!dm && vm.memberListRoomId == liveRoom.id) {
+                            val memberLine = roomMemberNames(liveRoom, vm.roomMemberIds, vm.profilesById).joinToString(", ")
+                            if (memberLine.isNotBlank()) {
+                                Text(
+                                    memberLine,
+                                    fontSize = 11.sp,
+                                    color = MoimSub,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
                             }
                         }
-                    },
-                    navigationIcon = {
-                        TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
-                    },
-                    actions = {
-                        if (!dm && canRenameRoom(profile, liveRoom)) {
-                            TextButton(onClick = {
+                    }
+                    if (!dm && canRenameRoom(profile, liveRoom)) {
+                        TextButton(
+                            onClick = {
                                 renameText = liveRoom.name
                                 editColor = liveRoom.color ?: ROOM_COLORS[1]
                                 editIconUri = null; editIconBytes = null; editIconName = null; editIconCleared = false
                                 showRename = true
-                            }) { Text("이름변경", fontSize = 13.sp, color = MoimAccent, fontWeight = FontWeight.Bold) }
-                        }
-                        if (!dm && canManageRoom(profile, liveRoom)) {
-                            TextButton(onClick = {
+                            },
+                            contentPadding = PaddingValues(horizontal = 6.dp),
+                        ) { Text("이름변경", fontSize = 13.sp, color = MoimAccent, fontWeight = FontWeight.Bold) }
+                    }
+                    if (!dm && canManageRoom(profile, liveRoom)) {
+                        TextButton(
+                            onClick = {
                                 vm.loadRoomMembers(liveRoom.id)
                                 showSettings = true
-                            }) { Text("⚙️", fontSize = 17.sp) }
+                            },
+                            contentPadding = PaddingValues(horizontal = 6.dp),
+                        ) { Text("⚙️", fontSize = 17.sp) }
+                    }
+                    if (!dm && canLeaveRoom(profile, liveRoom)) {
+                        TextButton(onClick = { showLeave = true }, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                            Text("나가기", fontSize = 13.sp, color = MoimAdmin)
                         }
-                        // 본인이 만들지 않은 모임방: 나가기
-                        if (!dm && canLeaveRoom(profile, liveRoom)) {
-                            TextButton(onClick = { showLeave = true }) {
-                                Text("나가기", fontSize = 13.sp, color = MoimAdmin)
-                            }
+                    }
+                    if (dm) {
+                        TextButton(onClick = { showDeleteRoom = true }, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                            Text("방삭제", fontSize = 13.sp, color = MoimAdmin, fontWeight = FontWeight.Bold)
                         }
-                        // 방 삭제 (모임방 생성자·전체관리자) — 우상단
-                        if (!dm && canDeleteRoom(profile, liveRoom)) {
-                            TextButton(onClick = { showDeleteRoom = true }) {
-                                Text("방삭제", fontSize = 13.sp, color = MoimAdmin, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
-                )
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)·1:1(direct)은 채팅만.
-                    // DM 은 '💬 상대이름', 그 외에는 '💬 채팅' (개설자는 상단 바 구성원 줄에 표시).
-                    val chatLabel = if (dm) "💬 $titleName" else "💬 채팅"
-                    val tabs = if (room.category != "custom" && !dm)
-                        listOf("chat" to "💬 채팅", "files" to "📁 자료실", "cal" to "📅 캘린더")
-                    else listOf("chat" to chatLabel)
-                    tabs.forEach { (id, label) ->
-                        val on = tab == id
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { tab = id }
-                                .padding(vertical = 12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                label,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (on) MoimInk else MoimSub
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Box(
+                    }
+                }
+                val showSubTabs = room.category != "custom" && !dm && !isNoticeTopRoom(liveRoom, vm.rooms)
+                if (showSubTabs) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        listOf("chat" to "💬 채팅", "files" to "📁 자료실", "cal" to "📅 캘린더").forEach { (id, label) ->
+                            val on = tab == id
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth(0.6f)
-                                    .height(2.5.dp)
-                                    .background(if (on) MoimYellow else Color.Transparent)
-                            )
+                                    .weight(1f)
+                                    .clickable { tab = id }
+                                    .padding(vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    label,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (on) MoimInk else MoimSub
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.6f)
+                                        .height(2.5.dp)
+                                        .background(if (on) MoimYellow else Color.Transparent)
+                                )
+                            }
                         }
                     }
                 }
@@ -1213,7 +1233,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = if (noticeCompose) Alignment.Bottom else Alignment.CenterVertically,
                     ) {
                         Box {
                             Box(
@@ -1241,10 +1261,19 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         OutlinedTextField(
                             value = input,
                             onValueChange = { input = it },
-                            modifier = Modifier.weight(1f),
-                            placeholder = { Text("메시지 입력") },
-                            singleLine = true,
-                            shape = RoundedCornerShape(20.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .then(
+                                    if (noticeCompose) Modifier.heightIn(min = 88.dp, max = 160.dp)
+                                    else Modifier,
+                                ),
+                            placeholder = {
+                                Text(if (noticeCompose) "공지 내용 입력 (줄바꿈 가능)" else "메시지 입력")
+                            },
+                            singleLine = !noticeCompose,
+                            minLines = if (noticeCompose) 3 else 1,
+                            maxLines = if (noticeCompose) 8 else 1,
+                            shape = if (noticeCompose) RoundedCornerShape(14.dp) else RoundedCornerShape(20.dp),
                         )
                         Spacer(Modifier.width(8.dp))
                         Box(
@@ -1252,12 +1281,16 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                 .size(33.dp)
                                 .background(MoimYellow, CircleShape)
                                 .clickable {
+                                    val text = input.trim()
                                     pendingAttach?.let { (n, b, k) ->
-                                        vm.sendAttachment(n, b, k); pendingAttach = null
-                                    }
-                                    if (input.isNotBlank()) {
-                                        vm.send(input.trim())
+                                        vm.sendAttachment(n, b, k, caption = text.ifBlank { null })
+                                        pendingAttach = null
                                         input = ""
+                                    } ?: run {
+                                        if (text.isNotBlank()) {
+                                            vm.send(text)
+                                            input = ""
+                                        }
                                     }
                                 },
                             contentAlignment = Alignment.Center
@@ -1277,7 +1310,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "🔒 공지 전용 방 · 관리자와 지정 작성자만 글을 쓸 수 있어요",
+                            "🔒 공지 전용 방 · 관리자만 글을 쓸 수 있어요",
                             fontSize = 12.5.sp,
                             color = MoimSub,
                             fontWeight = FontWeight.SemiBold,
@@ -1298,7 +1331,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 attachUrl = { vm.attachmentUrls[it] },
                 onDelete = { vm.deleteMessage(it.id) },
                 unreadOf = { vm.unreadByMsg[it.id] ?: 0 },
-                profileOf = { vm.profilesById[it] }
+                profileOf = { vm.profilesById[it] },
+                noticeLayout = isNoticeTopRoom(liveRoom, vm.rooms),
             )
             "files" -> FilesPane(
                 vm = vm,
@@ -1307,7 +1341,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
             )
             else -> CalendarPane(
                 vm = vm,
-                room = room,
+                room = liveRoom,
                 canPost = canPost,
                 modifier = Modifier.padding(pad)
             )
@@ -1324,7 +1358,8 @@ private fun ChatPane(
     attachUrl: (String) -> String?,
     onDelete: (Message) -> Unit,
     unreadOf: (Message) -> Int,
-    profileOf: (String) -> Profile? = { null }
+    profileOf: (String) -> Profile? = { null },
+    noticeLayout: Boolean = false,
 ) {
     var deleteTarget by remember { mutableStateOf<Message?>(null) }
     deleteTarget?.let { tgt ->
@@ -1369,6 +1404,19 @@ private fun ChatPane(
                     fontSize = 14.sp
                 )
             }
+        } else if (noticeLayout) {
+            mergeNoticeMessages(messages).forEach { m ->
+                item(key = m.id) {
+                    NoticePostCard(
+                        m = m,
+                        senderName = nameOf(m.senderId),
+                        sender = profileOf(m.senderId),
+                        mine = isMine(m),
+                        attachUrl = attachUrl,
+                        onDelete = { deleteTarget = m },
+                    )
+                }
+            }
         } else {
             // 날짜가 바뀌면 가운데 날짜 구분선 삽입
             var lastDay = ""
@@ -1399,6 +1447,158 @@ private fun DateDivider(text: String) {
                 .background(Color(0x33000000), RoundedCornerShape(20.dp))
                 .padding(horizontal = 12.dp, vertical = 4.dp)
         )
+    }
+}
+
+private val NOTICE_ACCENT = Color(0xFFB5651D)
+
+private fun downloadAttachment(context: Context, url: String, fileName: String) {
+    runCatching {
+        val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val req = DownloadManager.Request(Uri.parse(url))
+            .setTitle(fileName)
+            .setDescription("다운로드 중…")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+        dm.enqueue(req)
+        Toast.makeText(context, "다운로드 시작", Toast.LENGTH_SHORT).show()
+    }.onFailure {
+        Toast.makeText(context, "다운로드 실패", Toast.LENGTH_SHORT).show()
+    }
+}
+
+@Composable
+private fun NoticePostCard(
+    m: Message,
+    senderName: String,
+    sender: Profile?,
+    mine: Boolean,
+    attachUrl: (String) -> String?,
+    onDelete: () -> Unit,
+) {
+    val context = LocalContext.current
+    val path = m.attachmentUrl
+    val resolved = path?.let { p -> attachUrl(p) ?: if (p.startsWith("http")) p else null }
+    val caption = m.content?.trim()?.takeIf { it.isNotEmpty() }
+    val authorLine = buildString {
+        append(senderName)
+        sender?.memberType?.takeIf { it.isNotBlank() }?.let { append(" · $it") }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .shadow(3.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.08f))
+                .clip(RoundedCornerShape(16.dp))
+                .background(MoimWhite)
+                .border(1.dp, MoimLine, RoundedCornerShape(16.dp))
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(NOTICE_ACCENT, RoundedCornerShape(2.dp)),
+            )
+            Spacer(Modifier.height(14.dp))
+            Text(
+                fmtPublishTime(m.createdAt),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MoimInk,
+                lineHeight = 28.sp,
+            )
+            Text(authorLine, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MoimSub, modifier = Modifier.padding(top = 6.dp))
+            Spacer(Modifier.height(14.dp))
+            HorizontalDivider(color = MoimLine)
+            Spacer(Modifier.height(14.dp))
+            if (caption != null) {
+                Text(
+                    caption,
+                    color = MoimInk,
+                    fontSize = 15.sp,
+                    lineHeight = 24.sp,
+                )
+            }
+            when {
+                m.type == "image" && path != null -> {
+                    if (caption != null) Spacer(Modifier.height(12.dp))
+                    AsyncImage(
+                        model = resolved,
+                        contentDescription = "사진",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 320.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MoimBg, RoundedCornerShape(12.dp))
+                            .clickable {
+                                resolved?.let { downloadAttachment(context, it, m.attachmentName ?: "photo.jpg") }
+                            },
+                        contentScale = ContentScale.Fit,
+                    )
+                    Text(
+                        "탭하여 다운로드",
+                        fontSize = 11.sp,
+                        color = MoimSub,
+                        modifier = Modifier.padding(top = 6.dp).fillMaxWidth(),
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                m.type == "file" && path != null -> {
+                    if (caption != null) Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MoimPaper)
+                            .border(1.dp, MoimLine, RoundedCornerShape(10.dp))
+                            .clickable {
+                                resolved?.let { downloadAttachment(context, it, m.attachmentName ?: "file") }
+                            }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("📎", fontSize = 16.sp)
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                m.attachmentName ?: "파일",
+                                color = MoimInk,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text("탭하여 다운로드", fontSize = 11.sp, color = MoimSub)
+                        }
+                    }
+                }
+                caption == null -> Text(
+                    m.content.orEmpty(),
+                    color = MoimInk,
+                    fontSize = 15.sp,
+                    lineHeight = 24.sp,
+                )
+            }
+            if (mine) {
+                Text(
+                    "🗑 삭제",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MoimAdmin,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(top = 10.dp)
+                        .clickable { onDelete() },
+                )
+            }
+        }
     }
 }
 
@@ -1740,7 +1940,9 @@ private fun MyInfoTab(vm: MoimViewModel) {
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = memberTypeExpanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                modifier = Modifier
+                    .menuAnchor(type = MenuAnchorType.PrimaryNotEditable, enabled = true)
+                    .fillMaxWidth(),
             )
             ExposedDropdownMenu(
                 expanded = memberTypeExpanded,
@@ -2008,7 +2210,7 @@ private fun MemberSearchRow(p: Profile, onMessage: () -> Unit) {
             Text(p.memberType, fontSize = 11.5.sp, color = MoimSub)
             MemberContactLines(p)
             if (!p.intro.isNullOrBlank()) {
-                Text(p.intro!!, fontSize = 11.5.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(p.intro, fontSize = 11.5.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         Spacer(Modifier.width(8.dp))
@@ -2028,6 +2230,70 @@ private fun PinIcon(t: String, color: Color = MoimAccent, onClick: () -> Unit) {
 }
 
 // 잔여 병실 현황 — 메모 형식 자유 텍스트 (편집 → 게시, 모두에게 공유)
+private val WARD_ACCENT = Color(0xFFEA7317)
+private val WARD_KST = ZoneId.of("Asia/Seoul")
+private val WARD_DOW = arrayOf("월", "화", "수", "목", "금", "토", "일")
+
+private fun wardPublishLabel(iso: String?): String? {
+    if (iso.isNullOrBlank()) return null
+    return runCatching {
+        val z = OffsetDateTime.parse(iso).atZoneSameInstant(WARD_KST)
+        val dow = WARD_DOW[z.dayOfWeek.value - 1]
+        val d = z.format(DateTimeFormatter.ofPattern("M/d", Locale.KOREAN))
+        val t = z.format(DateTimeFormatter.ofPattern("a h:mm", Locale.KOREAN))
+        "$d ($dow) $t"
+    }.getOrNull()
+}
+
+@Composable
+private fun WardStatusDocument(content: String, publishLabel: String?) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(3.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.08f))
+            .clip(RoundedCornerShape(16.dp))
+            .background(MoimWhite)
+            .border(1.dp, MoimLine, RoundedCornerShape(16.dp))
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .background(WARD_ACCENT, RoundedCornerShape(2.dp)),
+        )
+        Spacer(Modifier.height(16.dp))
+        if (publishLabel != null) {
+            Text("게시", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(4.dp))
+            Text(publishLabel, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 28.sp)
+            Spacer(Modifier.height(14.dp))
+            HorizontalDivider(color = MoimLine)
+            Spacer(Modifier.height(14.dp))
+        }
+        if (content.isBlank()) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("🛏", fontSize = 36.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("작성된 내용이 없습니다", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MoimInk)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "우측 상단 ‘편집’을 눌러\n잔여 병실 현황을 작성하세요.",
+                    fontSize = 13.sp,
+                    color = MoimSub,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp,
+                )
+            }
+        } else {
+            Text(content, fontSize = 15.sp, color = MoimInk, lineHeight = 24.sp)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
@@ -2035,13 +2301,7 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
     var draft by remember { mutableStateOf("") }
     LaunchedEffect(Unit) { vm.loadWardStatus() }
 
-    val updatedLabel = vm.wardStatusUpdatedAt?.let {
-        runCatching {
-            java.time.OffsetDateTime.parse(it)
-                .atZoneSameInstant(java.time.ZoneId.of("Asia/Seoul"))
-                .format(java.time.format.DateTimeFormatter.ofPattern("M/d HH:mm"))
-        }.getOrNull()
-    }
+    val publishLabel = wardPublishLabel(vm.wardStatusUpdatedAt)
 
     Scaffold(
         topBar = {
@@ -2062,13 +2322,13 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
         },
         containerColor = MoimPaper
     ) { pad ->
-        Column(
-            modifier = Modifier
-                .padding(pad)
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            if (editing) {
+        if (editing) {
+            Column(
+                modifier = Modifier
+                    .padding(pad)
+                    .fillMaxSize()
+                    .padding(16.dp),
+            ) {
                 OutlinedTextField(
                     value = draft,
                     onValueChange = { draft = it },
@@ -2077,47 +2337,32 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
                         .weight(1f),
                     placeholder = {
                         Text("예:\n- 남자\n다인실: 0자리 (1자리 EICU 전과예정)\n3인실(APICU): 0자리")
-                    }
+                    },
                 )
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         onClick = { editing = false },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MoimLine, contentColor = MoimInk)
+                        colors = ButtonDefaults.buttonColors(containerColor = MoimLine, contentColor = MoimInk),
                     ) { Text("취소") }
                     Button(
                         onClick = { vm.saveWardStatus(draft) { editing = false } },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MoimAccent)
+                        colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
                     ) { Text("게시") }
                 }
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🛏", fontSize = 22.sp)
-                    Spacer(Modifier.width(8.dp))
-                    Text("잔여 병실 현황", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MoimInk)
-                }
-                updatedLabel?.let {
-                    Spacer(Modifier.height(4.dp))
-                    Text("최종 수정: $it", fontSize = 11.sp, color = MoimSub)
-                }
-                Spacer(Modifier.height(14.dp))
-                if (vm.wardStatus.isBlank()) {
-                    EmptyBox("🛏", "작성된 내용이 없습니다", "우측 상단 ‘편집’을 눌러\n잔여 병실 현황을 작성하세요.")
-                } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .clip(RoundedCornerShape(15.dp))
-                            .background(MoimWhite)
-                            .padding(16.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        Text(vm.wardStatus, fontSize = 15.sp, color = MoimInk, lineHeight = 24.sp)
-                    }
-                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .padding(pad)
+                    .fillMaxSize()
+                    .background(MoimBg)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+            ) {
+                WardStatusDocument(content = vm.wardStatus, publishLabel = publishLabel)
             }
         }
     }
@@ -2181,7 +2426,7 @@ fun RoomSettingsDialog(
                 } else if (memberIds.isEmpty()) {
                     Text("참여 구성원이 없습니다. 아래에서 초대하세요.", fontSize = 13.sp, color = MoimSub)
                 }
-                memberIds.forEach { uid ->
+                orderedRoomMemberIds(room, memberIds, vm.profilesById).forEach { uid ->
                     val isCreator = uid == room.createdBy
                     val isMe = uid == MoimRepository.currentUserId()
                     Row(
@@ -2192,7 +2437,7 @@ fun RoomSettingsDialog(
                     ) {
                         Text(
                             vm.nameOf(uid) + when {
-                                isCreator -> " (방장)"
+                                isCreator -> " (개설자)"
                                 isMe -> " (나)"
                                 else -> ""
                             },
@@ -2201,7 +2446,7 @@ fun RoomSettingsDialog(
                             color = MoimInk,
                             modifier = Modifier.weight(1f)
                         )
-                        // 방장은 내보낼 수 없음
+                        // 개설자는 내보낼 수 없음
                         if (!isCreator) {
                             TextButton(onClick = { kickTarget = uid }) {
                                 Text("내보내기", fontSize = 13.sp, color = MoimAdmin)
@@ -2261,11 +2506,24 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
     var iconUri by remember { mutableStateOf<Uri?>(null) }
     var iconBytes by remember { mutableStateOf<ByteArray?>(null) }
     var iconName by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
+    var pendingIconAdjustUri by remember { mutableStateOf<Uri?>(null) }
     val iconPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) { iconUri = uri; readUri(context, uri)?.let { (n, b) -> iconName = n; iconBytes = b } }
+        if (uri != null) pendingIconAdjustUri = uri
     }
     val people = vm.otherProfiles()
+
+    pendingIconAdjustUri?.let { uri ->
+        AvatarAdjustDialog(
+            sourceUri = uri,
+            onDismiss = { pendingIconAdjustUri = null },
+            onConfirm = { bytes, name ->
+                iconBytes = bytes
+                iconName = name
+                iconUri = null
+                pendingIconAdjustUri = null
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -2296,7 +2554,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
             Spacer(Modifier.height(14.dp))
             RoomAppearancePicker(
                 name = name, color = color, onColor = { color = it },
-                iconUri = iconUri, existingIconUrl = null,
+                iconBytes = iconBytes, iconUri = iconUri, existingIconUrl = null,
                 onPickPhoto = { iconPicker.launch("image/*") },
                 onClearPhoto = { iconUri = null; iconBytes = null; iconName = null }
             )

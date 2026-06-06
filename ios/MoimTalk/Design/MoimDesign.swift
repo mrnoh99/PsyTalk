@@ -43,20 +43,30 @@ func byName(_ a: Profile, _ b: Profile) -> Bool {
     a.name.localizedCompare(b.name) == .orderedAscending
 }
 
+/// 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본
+func opensWeekCalendar(_ room: Room) -> Bool {
+    room.category != "custom" && room.category != "direct" && room.defaultView == "week"
+}
+
 /// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방.
 func noticeTopRoom(_ rooms: [Room]) -> Room? {
     rooms.filter { $0.category != "custom" && $0.category != "direct" && $0.defaultView != "week" }
         .min { $0.sortOrder < $1.sortOrder }
 }
 
-/// 방 구성원 이름 나열 — 개설자(createdBy)를 맨 앞에, 나머지는 이름순. 잘림(...)은 UI 가 처리.
-func roomMemberNames(_ room: Room, memberIds: [String], profiles: [String: Profile]) -> [String] {
+/// 방 구성원 id 정렬 — 개설자(createdBy) 맨 앞, 나머지 가나다순
+func orderedRoomMemberIds(_ room: Room, memberIds: [String], profiles: [String: Profile]) -> [String] {
     let creator = room.createdBy
     var ordered: [String] = []
     if let c = creator, memberIds.contains(c) { ordered.append(c) }
     ordered.append(contentsOf: memberIds.filter { $0 != creator }
-        .sorted { (profiles[$0]?.name ?? "") < (profiles[$1]?.name ?? "") })
-    return ordered.compactMap { profiles[$0]?.name }
+        .sorted { (profiles[$0]?.name ?? "").localizedCompare(profiles[$1]?.name ?? "") == .orderedAscending })
+    return ordered
+}
+
+/// 방 구성원 이름 나열 — 개설자(createdBy)를 맨 앞에, 나머지는 이름순. 잘림(...)은 UI 가 처리.
+func roomMemberNames(_ room: Room, memberIds: [String], profiles: [String: Profile]) -> [String] {
+    orderedRoomMemberIds(room, memberIds: memberIds, profiles: profiles).compactMap { profiles[$0]?.name }
 }
 
 // 화면 테마 — 🌙 다크(기본) / ☀️ 라이트 전환. UserDefaults 에 저장, 루트 뷰가 관찰해 재렌더.
@@ -185,6 +195,45 @@ func fmtDateDivider(_ createdAt: String?) -> String {
 func dayKey(_ createdAt: String?) -> String {
     guard let d = parseISO(createdAt) else { return "" }
     return kstFormatter("yyyy-MM-dd").string(from: d)
+}
+/// 공지·게시 카드용 — "6/7 (토) 오후 2:30"
+func fmtPublishTime(_ createdAt: String?) -> String {
+    guard let iso = createdAt else { return "" }
+    return CalDate.detailTimeLabel(iso)
+}
+func isNoticeTopRoom(_ room: Room, rooms: [Room]) -> Bool {
+    noticeTopRoom(rooms)?.id == room.id
+}
+/// 과 전체공지 — 텍스트+첨부가 연속으로 온 경우 한 카드로 합침 (기존 분리 전송 호환)
+func mergeNoticeMessages(_ messages: [Message]) -> [Message] {
+    guard !messages.isEmpty else { return messages }
+    var out: [Message] = []
+    var i = 0
+    while i < messages.count {
+        let m = messages[i]
+        if i + 1 < messages.count {
+            let n = messages[i + 1]
+            if m.senderId == n.senderId {
+                if m.type == "text", (n.type == "image" || n.type == "file"), (n.content ?? "").isEmpty {
+                    var merged = n
+                    merged.content = m.content
+                    out.append(merged)
+                    i += 2
+                    continue
+                }
+                if (m.type == "image" || m.type == "file"), (m.content ?? "").isEmpty, n.type == "text", n.attachmentUrl == nil {
+                    var merged = m
+                    merged.content = n.content
+                    out.append(merged)
+                    i += 2
+                    continue
+                }
+            }
+        }
+        out.append(m)
+        i += 1
+    }
+    return out
 }
 /// 마지막 메시지 미리보기
 func msgPreview(_ lm: LastMsg?) -> String {

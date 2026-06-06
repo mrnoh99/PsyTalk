@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -88,6 +90,11 @@ private fun parseZdt(iso: String?): ZonedDateTime? {
 
 private fun eventDate(iso: String?): LocalDate? = parseZdt(iso)?.toLocalDate()
 private fun timeLabel(iso: String): String = parseZdt(iso)?.format(FMT_DISPLAY) ?: iso
+private fun detailTimeLabel(iso: String): String {
+    val z = parseZdt(iso) ?: return iso
+    val dow = DOW_KO[z.dayOfWeek.value - 1]
+    return "${z.format(FMT_DAY)} ($dow) ${z.format(DateTimeFormatter.ofPattern("a h:mm", Locale.KOREAN))}"
+}
 private fun dayLabel(iso: String?): String = parseZdt(iso)?.format(FMT_DAY) ?: ""
 
 private fun buildStartAt(date: LocalDate, time: LocalTime): String =
@@ -335,36 +342,50 @@ private fun FileUploadDialog(fileName: String, onDismiss: () -> Unit, onConfirm:
 @Composable
 fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modifier = Modifier) {
     val today = remember { LocalDate.now(KST) }
-    var mode by remember { mutableStateOf(if (room.defaultView == "week") "week" else "month") }
+    var mode by remember(room.id) { mutableStateOf(if (opensWeekCalendar(room)) "week" else "month") }
     var ym by remember { mutableStateOf(YearMonth.from(today)) }
     // 선택한 날짜 — 기본은 오늘. 날짜를 누르면 그날로 포커스가 옮겨가고, 일정 추가·아래 목록이 이 날짜를 따른다.
     var selected by remember { mutableStateOf(today) }
     var editing by remember { mutableStateOf<CalendarEvent?>(null) }
+    var viewing by remember { mutableStateOf<CalendarEvent?>(null) }
     var creating by remember { mutableStateOf(false) }
+    val compactEvents = opensWeekCalendar(room)
 
-    LazyColumn(modifier = modifier.fillMaxSize().padding(13.dp)) {
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                ModeButton("금일", mode == "day", Modifier.weight(1f)) { mode = "day" }
-                ModeButton("주간", mode == "week", Modifier.weight(1f)) { mode = "week" }
-                ModeButton("월간", mode == "month", Modifier.weight(1f)) { mode = "month" }
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(13.dp)) {
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    ModeButton("금일", mode == "day", Modifier.weight(1f)) { mode = "day" }
+                    ModeButton("주간", mode == "week", Modifier.weight(1f)) { mode = "week" }
+                    ModeButton("월간", mode == "month", Modifier.weight(1f)) { mode = "month" }
+                }
+                Spacer(Modifier.height(13.dp))
+                if (canPost) {
+                    Button(
+                        onClick = { creating = true },
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
+                        shape = RoundedCornerShape(12.dp)
+                    ) { Text("＋ 일정 추가", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+                    Spacer(Modifier.height(14.dp))
+                }
             }
-            Spacer(Modifier.height(13.dp))
-            if (canPost) {
-                Button(
-                    onClick = { creating = true },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
-                    shape = RoundedCornerShape(12.dp)
-                ) { Text("＋ 일정 추가", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
-                Spacer(Modifier.height(14.dp))
+
+            when (mode) {
+                "month" -> monthContent(this, vm, ym, today, selected, compactEvents, { ym = it }, { selected = it }, { viewing = it }, { editing = it })
+                "week" -> weekContent(this, vm, today, selected, compactEvents, { selected = it }, { viewing = it }, { editing = it })
+                else -> dayContent(this, vm, today, selected, compactEvents, { selected = it }, { viewing = it }, { editing = it })
             }
         }
 
-        when (mode) {
-            "month" -> monthContent(this, vm, ym, today, selected, { ym = it }, { selected = it }, { editing = it })
-            "week" -> weekContent(this, vm, today, selected, { selected = it }, { editing = it })
-            else -> dayContent(this, vm, today, selected, { selected = it }, { editing = it })
+        viewing?.let { ev ->
+            EventDetailPane(
+                event = ev,
+                vm = vm,
+                onBack = { viewing = null },
+                onEdit = { viewing = null; editing = it },
+                modifier = Modifier.fillMaxSize(),
+            )
         }
     }
 
@@ -407,8 +428,10 @@ private fun monthContent(
     ym: YearMonth,
     today: LocalDate,
     selected: LocalDate,
+    compactEvents: Boolean,
     onMonth: (YearMonth) -> Unit,
     onSelect: (LocalDate) -> Unit,
+    onView: (CalendarEvent) -> Unit,
     onEdit: (CalendarEvent) -> Unit,
 ) {
     val monthEvents = vm.events.filter { eventDate(it.startAt)?.let { d -> YearMonth.from(d) == ym } == true }
@@ -478,7 +501,7 @@ private fun monthContent(
     if (dayEvents.isEmpty()) {
         scope.item { NoEvents() }
     } else {
-        scope.items(dayEvents.size) { i -> EventCard(dayEvents[i], vm, onEdit) }
+        scope.items(dayEvents.size) { i -> EventCard(dayEvents[i], vm, compactEvents, onView, onEdit) }
     }
 }
 
@@ -487,7 +510,9 @@ private fun weekContent(
     vm: MoimViewModel,
     today: LocalDate,
     selected: LocalDate,
+    compactEvents: Boolean,
     onSelect: (LocalDate) -> Unit,
+    onView: (CalendarEvent) -> Unit,
     onEdit: (CalendarEvent) -> Unit,
 ) {
     // 선택한 날짜가 속한 주를 보여준다 (월~일)
@@ -527,7 +552,7 @@ private fun weekContent(
                     if (dayEvents.isEmpty()) {
                         Text("— 일정 없음", fontSize = 12.sp, color = Color(0xFFC4BCB2), modifier = Modifier.padding(vertical = 7.dp))
                     } else {
-                        dayEvents.forEach { EventCard(it, vm, onEdit) }
+                        dayEvents.forEach { EventCard(it, vm, compactEvents, onView, onEdit) }
                     }
                 }
             }
@@ -541,7 +566,9 @@ private fun dayContent(
     vm: MoimViewModel,
     today: LocalDate,
     selected: LocalDate,
+    compactEvents: Boolean,
     onSelect: (LocalDate) -> Unit,
+    onView: (CalendarEvent) -> Unit,
     onEdit: (CalendarEvent) -> Unit,
 ) {
     val dayEvents = vm.events.filter { eventDate(it.startAt) == selected }.sortedBy { it.startAt }
@@ -558,7 +585,7 @@ private fun dayContent(
     if (dayEvents.isEmpty()) {
         scope.item { NoEvents() }
     } else {
-        scope.items(dayEvents.size) { i -> EventCard(dayEvents[i], vm, onEdit) }
+        scope.items(dayEvents.size) { i -> EventCard(dayEvents[i], vm, compactEvents, onView, onEdit) }
     }
 }
 
@@ -608,7 +635,47 @@ private fun ModeButton(label: String, on: Boolean, modifier: Modifier, onClick: 
 }
 
 @Composable
-private fun EventCard(e: CalendarEvent, vm: MoimViewModel, onEdit: (CalendarEvent) -> Unit) {
+private fun EventCard(
+    e: CalendarEvent,
+    vm: MoimViewModel,
+    compact: Boolean,
+    onView: (CalendarEvent) -> Unit,
+    onEdit: (CalendarEvent) -> Unit,
+) {
+    if (compact) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 9.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MoimWhite, RoundedCornerShape(12.dp))
+                .clickable { onView(e) }
+                .padding(12.dp)
+        ) {
+            Box(Modifier.width(4.dp).height(56.dp).background(catColor("notice"), RoundedCornerShape(4.dp)))
+            Spacer(Modifier.width(11.dp))
+            Text(
+                eventPreviewText(e, vm),
+                fontSize = 12.5.sp,
+                color = MoimInk,
+                lineHeight = 18.sp,
+                maxLines = 4,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    } else {
+        EventCardBody(e, vm, showEdit = true, onEdit = onEdit)
+    }
+}
+
+@Composable
+private fun EventCardBody(
+    e: CalendarEvent,
+    vm: MoimViewModel,
+    showEdit: Boolean,
+    onEdit: (CalendarEvent) -> Unit,
+) {
     val context = LocalContext.current
     Row(
         modifier = Modifier
@@ -654,13 +721,179 @@ private fun EventCard(e: CalendarEvent, vm: MoimViewModel, onEdit: (CalendarEven
                             .clickable { openUrl(context, link) }
                             .padding(horizontal = 10.dp, vertical = 4.dp))
                 }
-                if (vm.canEditEvent(e)) {
+                if (showEdit && vm.canEditEvent(e)) {
                     Text("✏️ 수정", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MoimSub,
                         modifier = Modifier
                             .background(MoimBg, RoundedCornerShape(8.dp))
                             .clickable { onEdit(e) }
                             .padding(horizontal = 10.dp, vertical = 4.dp))
                 }
+            }
+        }
+    }
+}
+
+private fun eventPreviewText(e: CalendarEvent, vm: MoimViewModel): String = buildString {
+    appendLine(e.title)
+    append("📅 ${timeLabel(e.startAt)}")
+    e.place?.takeIf { it.isNotBlank() }?.let { append(" · 📍 $it") }
+    append('\n')
+    appendLine("👤 발표자 ${e.presenter?.takeIf { it.isNotBlank() } ?: vm.nameOf(e.ownerId)}")
+    e.scope?.takeIf { it.isNotBlank() }?.let { appendLine("참석 $it") }
+    e.description?.takeIf { it.isNotBlank() }?.let { append(it) }
+    val atts = e.attachmentPairs()
+    if (atts.isNotEmpty()) {
+        if (isNotEmpty() && !endsWith('\n')) append('\n')
+        append("📎 ${atts.first().first}")
+        if (atts.size > 1) append(" 외 ${atts.size - 1}건")
+    }
+}
+
+@Composable
+private fun EventDocRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub, modifier = Modifier.width(52.dp))
+        Text(value, fontSize = 13.5.sp, color = MoimInk, lineHeight = 20.sp, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun EventDetailDocument(
+    event: CalendarEvent,
+    vm: MoimViewModel,
+) {
+    val context = LocalContext.current
+    val atts = event.attachmentPairs()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+            .shadow(3.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.08f))
+            .clip(RoundedCornerShape(16.dp))
+            .background(MoimWhite)
+            .border(1.dp, MoimLine, RoundedCornerShape(16.dp))
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .background(catColor("notice"), RoundedCornerShape(2.dp)),
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            event.title,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = MoimInk,
+            lineHeight = 28.sp,
+        )
+        Spacer(Modifier.height(14.dp))
+        HorizontalDivider(color = MoimLine)
+        Spacer(Modifier.height(10.dp))
+        EventDocRow("일시", detailTimeLabel(event.startAt))
+        event.place?.takeIf { it.isNotBlank() }?.let { EventDocRow("장소", it) }
+        EventDocRow(
+            "발표자",
+            event.presenter?.takeIf { it.isNotBlank() } ?: vm.nameOf(event.ownerId),
+        )
+        event.scope?.takeIf { it.isNotBlank() }?.let { EventDocRow("참석", it) }
+        event.description?.takeIf { it.isNotBlank() }?.let { desc ->
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = MoimLine)
+            Spacer(Modifier.height(14.dp))
+            Text("설명", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(8.dp))
+            Text(desc, fontSize = 14.sp, color = MoimInk, lineHeight = 22.sp)
+        }
+        if (atts.isNotEmpty() || !event.link.isNullOrBlank()) {
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = MoimLine)
+            Spacer(Modifier.height(14.dp))
+        }
+        if (atts.isNotEmpty()) {
+            Text("첨부", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(8.dp))
+            atts.forEach { (n, url) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MoimPaper)
+                        .border(1.dp, MoimLine, RoundedCornerShape(10.dp))
+                        .clickable { openUrl(context, url) }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("📎", fontSize = 16.sp)
+                    Text(n, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MoimInk, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+        event.link?.takeIf { it.isNotBlank() }?.let { link ->
+            if (atts.isNotEmpty()) Spacer(Modifier.height(4.dp))
+            Text(
+                "🔗 링크 열기",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = catColor("group"),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFFEEF2F8))
+                    .clickable { openUrl(context, link) }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun EventDetailPane(
+    event: CalendarEvent,
+    vm: MoimViewModel,
+    onBack: () -> Unit,
+    onEdit: (CalendarEvent) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier.background(MoimPaper).navigationBarsPadding(),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
+            Text("일정 상세", fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.weight(1f))
+        }
+        HorizontalDivider(color = MoimLine)
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .background(MoimBg)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            item { EventDetailDocument(event, vm) }
+        }
+        if (vm.canEditEvent(event)) {
+            HorizontalDivider(color = MoimLine)
+            Button(
+                onClick = { onEdit(event) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+                    .navigationBarsPadding(),
+                colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
+                shape = RoundedCornerShape(12.dp),
+            ) {
+                Text("✏️ 수정", fontSize = 15.sp, fontWeight = FontWeight.Bold)
             }
         }
     }

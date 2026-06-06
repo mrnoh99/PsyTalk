@@ -11,7 +11,7 @@ struct RoomSettingsView: View {
     @State private var kickTarget: String?
     @State private var showInvite = false
 
-    // 방 삭제는 생성자(방장) 또는 전체관리자만
+    // 방 삭제는 개설자 또는 전체관리자만
     private var canDelete: Bool {
         room.createdBy == MoimRepository.currentUserId() || vm.isSuperAdmin
     }
@@ -33,11 +33,11 @@ struct RoomSettingsView: View {
                     } else if vm.roomMemberIds.isEmpty {
                         Text("참여 구성원이 없습니다. 위에서 초대하세요.").font(.system(size: 13)).foregroundColor(Moim.sub)
                     }
-                    ForEach(vm.roomMemberIds, id: \.self) { uid in
+                    ForEach(orderedRoomMemberIds(room, memberIds: vm.roomMemberIds, profiles: vm.profilesById), id: \.self) { uid in
                         let isCreator = uid == room.createdBy
                         let isMe = uid == MoimRepository.currentUserId()
                         HStack {
-                            Text(vm.name(of: uid) + (isCreator ? " (방장)" : (isMe ? " (나)" : "")))
+                            Text(vm.name(of: uid) + (isCreator ? " (개설자)" : (isMe ? " (나)" : "")))
                                 .font(.system(size: 15, weight: .semibold)).foregroundColor(Moim.ink)
                             Spacer()
                             if !isCreator {
@@ -66,13 +66,13 @@ struct RoomSettingsView: View {
                 }
             }
             // 모임방 삭제 확인
-            .confirmationDialog("‘\(room.name)’ 모임방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.",
+            .confirmationDialog("'\(room.name)' 모임방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.",
                                 isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("삭제", role: .destructive) { vm.deleteRoom(room) { onDeleted() } }
                 Button("취소", role: .cancel) {}
             }
             // 회원 내보내기 확인
-            .confirmationDialog("‘\(kickTarget.map { vm.name(of: $0) } ?? "")’ 님을 내보낼까요?",
+            .confirmationDialog("'\(kickTarget.map { vm.name(of: $0) } ?? "")' 님을 내보낼까요?",
                                 isPresented: Binding(get: { kickTarget != nil },
                                                      set: { if !$0 { kickTarget = nil } }),
                                 titleVisibility: .visible) {

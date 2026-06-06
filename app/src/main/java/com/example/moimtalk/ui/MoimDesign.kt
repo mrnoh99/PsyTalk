@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import com.example.moimtalk.data.CalendarEvent
 import com.example.moimtalk.data.LastMsg
+import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
@@ -111,20 +112,30 @@ fun roomDisplayName(room: Room, profiles: Map<String, Profile>): String =
 /** DM = 채팅 전용 (캘린더·자료실 탭, 이름변경·설정·나가기 모두 숨김) */
 fun isDirect(room: Room): Boolean = room.category == "direct"
 
+/** 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본 */
+fun opensWeekCalendar(room: Room): Boolean =
+    room.category != "custom" && room.category != "direct" && room.defaultView == "week"
+
 /** 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방. */
 fun noticeTopRoom(rooms: List<Room>): Room? =
     rooms.filter { it.category != "custom" && it.category != "direct" && it.defaultView != "week" }
         .minByOrNull { it.sortOrder }
 
-/** 방 구성원 이름 나열 — 개설자(created_by)를 맨 앞에, 나머지는 이름순. 표시는 ... 잘림은 UI 가 처리. */
-fun roomMemberNames(room: Room, memberIds: List<String>, profiles: Map<String, Profile>): List<String> {
+/** 방 구성원 id 정렬 — 개설자(created_by) 맨 앞, 나머지 가나다순 */
+fun orderedRoomMemberIds(room: Room, memberIds: List<String>, profiles: Map<String, Profile>): List<String> {
+    val collator = java.text.Collator.getInstance(java.util.Locale.KOREAN)
     val creator = room.createdBy
-    val ordered = buildList {
+    return buildList {
         if (creator != null && memberIds.contains(creator)) add(creator)
-        addAll(memberIds.filter { it != creator }.sortedBy { profiles[it]?.name ?: "" })
+        addAll(memberIds.filter { it != creator }.sortedWith { a, b ->
+            collator.compare(profiles[a]?.name ?: "", profiles[b]?.name ?: "")
+        })
     }
-    return ordered.mapNotNull { id -> profiles[id]?.name }
 }
+
+/** 방 구성원 이름 나열 — 개설자(created_by)를 맨 앞에, 나머지는 이름순. 표시는 ... 잘림은 UI 가 처리. */
+fun roomMemberNames(room: Room, memberIds: List<String>, profiles: Map<String, Profile>): List<String> =
+    orderedRoomMemberIds(room, memberIds, profiles).mapNotNull { id -> profiles[id]?.name }
 
 fun typeColor(memberType: String): Color = when (memberType) {
     "교실" -> Color(0xFFB5651D)
@@ -223,6 +234,46 @@ fun fmtDateDivider(createdAt: String?): String = runCatching {
 fun dayKey(createdAt: String?): String = runCatching {
     zdt(createdAt).toLocalDate().toString()
 }.getOrDefault("")
+
+private val PUBLISH_DOW = listOf("월", "화", "수", "목", "금", "토", "일")
+
+/** 공지·게시 카드용 — "6/7 (토) 오후 2:30" */
+fun fmtPublishTime(createdAt: String?): String = runCatching {
+    val z = zdt(createdAt)
+    val dow = PUBLISH_DOW[z.dayOfWeek.value - 1]
+    val d = "${z.monthValue}/${z.dayOfMonth}"
+    val t = z.format(java.time.format.DateTimeFormatter.ofPattern("a h:mm", java.util.Locale.KOREAN))
+    "$d ($dow) $t"
+}.getOrDefault("")
+
+fun isNoticeTopRoom(room: Room, rooms: List<Room>): Boolean =
+    noticeTopRoom(rooms)?.id == room.id
+
+/** 과 전체공지 — 텍스트+첨부가 연속으로 온 경우 한 카드로 합침 (기존 분리 전송 호환) */
+fun mergeNoticeMessages(messages: List<Message>): List<Message> {
+    if (messages.isEmpty()) return messages
+    val out = mutableListOf<Message>()
+    var i = 0
+    while (i < messages.size) {
+        val m = messages[i]
+        val n = messages.getOrNull(i + 1)
+        if (n != null && m.senderId == n.senderId) {
+            if (m.type == "text" && (n.type == "image" || n.type == "file") && n.content.isNullOrBlank()) {
+                out.add(n.copy(content = m.content))
+                i += 2
+                continue
+            }
+            if ((m.type == "image" || m.type == "file") && m.content.isNullOrBlank() && n.type == "text" && n.attachmentUrl == null) {
+                out.add(m.copy(content = n.content))
+                i += 2
+                continue
+            }
+        }
+        out.add(m)
+        i++
+    }
+    return out
+}
 
 /** 마지막 메시지 미리보기 */
 fun msgPreview(lm: LastMsg?): String {

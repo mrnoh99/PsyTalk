@@ -82,14 +82,19 @@ struct DMSwipeRow<Content: View>: View {
     }
 }
 
-// 방표식(색상·사진) 편집기 — 생성/이름변경 공통
+// 방표식(색상·사진) 편집기 — 생성/이름변경 공통 (사진 선택 → AvatarAdjustView)
 struct RoomAppearanceEditor: View {
     let name: String
     @Binding var color: String
-    @Binding var photoItem: PhotosPickerItem?
-    let previewData: Data?
+    @Binding var previewData: Data?
     let existingIconUrl: String?
     let onClear: () -> Void
+    var onPhotoConfirmed: (() -> Void)? = nil
+
+    @State private var photoItem: PhotosPickerItem?
+    @State private var pendingAdjustImage: UIImage?
+    @State private var showAvatarAdjust = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("방표식 색상").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
@@ -122,6 +127,34 @@ struct RoomAppearanceEditor: View {
                 if previewData != nil || existingIconUrl != nil {
                     Button("제거") { onClear() }.font(.system(size: 13, weight: .bold)).foregroundColor(Moim.admin)
                 }
+            }
+        }
+        .onChange(of: photoItem) { _ in
+            Task {
+                guard let item = photoItem else { return }
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let ui = UIImage(data: data) {
+                    pendingAdjustImage = ui
+                    showAvatarAdjust = true
+                }
+                photoItem = nil
+            }
+        }
+        .fullScreenCover(isPresented: $showAvatarAdjust) {
+            if let img = pendingAdjustImage {
+                AvatarAdjustView(
+                    sourceImage: img,
+                    onDismiss: {
+                        showAvatarAdjust = false
+                        pendingAdjustImage = nil
+                    },
+                    onConfirm: { data in
+                        previewData = data
+                        onPhotoConfirmed?()
+                        showAvatarAdjust = false
+                        pendingAdjustImage = nil
+                    }
+                )
             }
         }
     }
@@ -380,7 +413,7 @@ struct RoomRow: View {
                         Text(isDM ? vm.roomDisplayName(room) : room.name).font(.system(size: 15, weight: .bold)).foregroundColor(Moim.ink)
                     }
                     Text(msgPreview(lastMsg).isEmpty
-                         ? (isDM ? (other?.memberType ?? "") : (room.postPolicy == "restricted" ? "공지 · 관리자/지정작성자" : ""))
+                         ? (isDM ? (other?.memberType ?? "") : (room.postPolicy == "restricted" ? "공지 · 관리자" : ""))
                          : msgPreview(lastMsg))
                         .font(.system(size: 12.5)).foregroundColor(Moim.sub).lineLimit(1)
                 }

@@ -237,6 +237,26 @@ enum MoimRepository {
         return m.contains("23505") || m.contains("duplicate key")
     }
 
+    private static func isJwtExpired(_ error: Error) -> Bool {
+        let m = error.localizedDescription.lowercased()
+        return m.contains("jwt expired") || m.contains("invalid jwt") || m.contains("invalid claim")
+    }
+
+    private static func withFreshSession<T>(_ block: () async throws -> T) async throws -> T {
+        do {
+            return try await block()
+        } catch {
+            guard isJwtExpired(error) else { throw error }
+            try await supabase.auth.refreshSession()
+            return try await block()
+        }
+    }
+
+    static func ensureFreshSession() async {
+        guard currentUserId() != nil else { return }
+        try? await supabase.auth.refreshSession()
+    }
+
     // ── 채팅 ──
     static func messages(roomId: String) async throws -> [Message] {
         try await supabase.from("messages")
@@ -283,11 +303,12 @@ enum MoimRepository {
     }
 
     /// 카톡식 첨부 전송: 공개 room-files 업로드 후 공개 URL 을 담아 메시지 삽입 (type = image | file)
-    static func sendAttachment(roomId: String, fileName: String, data: Data, type: String) async throws {
+    static func sendAttachment(roomId: String, fileName: String, data: Data, type: String, caption: String? = nil) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
         let url = try await uploadToStorage(roomId: roomId, fileName: fileName, data: data)
+        let cap = caption?.trimmingCharacters(in: .whitespacesAndNewlines)
         let payload = MessageInsert(
-            roomId: roomId, senderId: uid, content: nil, type: type,
+            roomId: roomId, senderId: uid, content: cap.flatMap { $0.isEmpty ? nil : $0 }, type: type,
             attachmentUrl: url, attachmentName: fileName
         )
         try await supabase.from("messages").insert(payload).execute()
@@ -306,26 +327,30 @@ enum MoimRepository {
         presenter: String?, keywords: [String],
         attachments: [(name: String, data: Data)]
     ) async throws {
-        guard let uid = currentUserId() else { throw AppError.notLoggedIn }
-        var urls = [String]()
-        var names = [String]()
-        for a in attachments {
-            urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
-            names.append(a.name)
+        try await withFreshSession {
+            guard let uid = currentUserId() else { throw AppError.notLoggedIn }
+            var urls = [String]()
+            var names = [String]()
+            for a in attachments {
+                urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
+                names.append(a.name)
+            }
+            let payload = CalendarEventInsert(
+                roomId: roomId, title: title, startAt: startAt,
+                place: place, link: link, scope: scope, description: description,
+                presenter: (presenter?.isEmpty == false) ? presenter : nil,
+                keywords: keywords, ownerId: uid,
+                attachmentUrls: urls, attachmentNames: names
+            )
+            try await supabase.from("calendar_events").insert(payload).execute()
         }
-        let payload = CalendarEventInsert(
-            roomId: roomId, title: title, startAt: startAt,
-            place: place, link: link, scope: scope, description: description,
-            presenter: (presenter?.isEmpty == false) ? presenter : nil,
-            keywords: keywords, ownerId: uid,
-            attachmentUrls: urls, attachmentNames: names
-        )
-        try await supabase.from("calendar_events").insert(payload).execute()
     }
 
     /// 일정 삭제 (작성자/관리자/교실·의국·비서·심리실 — RLS 로 강제)
     static func deleteEvent(id: String) async throws {
-        try await supabase.from("calendar_events").delete().eq("id", value: id).execute()
+        try await withFreshSession {
+            try await supabase.from("calendar_events").delete().eq("id", value: id).execute()
+        }
     }
 
     static func updateEvent(
@@ -334,29 +359,31 @@ enum MoimRepository {
         presenter: String?, keywords: [String],
         keptUrls: [String], keptNames: [String], newAttachments: [(name: String, data: Data)]
     ) async throws {
-        // 유지할 기존 첨부 + 새로 올린 첨부를 합쳐 배열로 저장
-        var urls = keptUrls
-        var names = keptNames
-        for a in newAttachments {
-            urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
-            names.append(a.name)
+        try await withFreshSession {
+            // 유지할 기존 첨부 + 새로 올린 첨부를 합쳐 배열로 저장
+            var urls = keptUrls
+            var names = keptNames
+            for a in newAttachments {
+                urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
+                names.append(a.name)
+            }
+            let fields: [String: AnyJSON] = [
+                "title": .string(title),
+                "start_at": .string(startAt),
+                "place": place.map { AnyJSON.string($0) } ?? .null,
+                "link": link.map { AnyJSON.string($0) } ?? .null,
+                "scope": scope.map { AnyJSON.string($0) } ?? .null,
+                "description": description.map { AnyJSON.string($0) } ?? .null,
+                "presenter": presenter.map { AnyJSON.string($0) } ?? .null,
+                "keywords": .array(keywords.map { AnyJSON.string($0) }),
+                "attachment_url": .null,
+                "attachment_name": .null,
+                "attachment_desc": .null,
+                "attachment_urls": .array(urls.map { AnyJSON.string($0) }),
+                "attachment_names": .array(names.map { AnyJSON.string($0) }),
+            ]
+            try await supabase.from("calendar_events").update(fields).eq("id", value: eventId).execute()
         }
-        let fields: [String: AnyJSON] = [
-            "title": .string(title),
-            "start_at": .string(startAt),
-            "place": place.map { AnyJSON.string($0) } ?? .null,
-            "link": link.map { AnyJSON.string($0) } ?? .null,
-            "scope": scope.map { AnyJSON.string($0) } ?? .null,
-            "description": description.map { AnyJSON.string($0) } ?? .null,
-            "presenter": presenter.map { AnyJSON.string($0) } ?? .null,
-            "keywords": .array(keywords.map { AnyJSON.string($0) }),
-            "attachment_url": .null,
-            "attachment_name": .null,
-            "attachment_desc": .null,
-            "attachment_urls": .array(urls.map { AnyJSON.string($0) }),
-            "attachment_names": .array(names.map { AnyJSON.string($0) }),
-        ]
-        try await supabase.from("calendar_events").update(fields).eq("id", value: eventId).execute()
     }
 
     // ── 자료실 ──
@@ -405,11 +432,19 @@ enum MoimRepository {
         try await supabase.from("ward_status").update(payload).eq("id", value: 1).execute()
     }
 
+    /// Storage object key — ASCII only (Supabase/S3 rejects non-ASCII in key). DB에는 원본 파일명 저장.
+    private static func storageObjectKey(roomId: String, fileName: String) -> String {
+        let rawExt = (fileName as NSString).pathExtension
+        let ext = rawExt.replacingOccurrences(of: "[^A-Za-z0-9]", with: "", options: .regularExpression)
+            .lowercased()
+        let e = ext.isEmpty ? "bin" : String(ext.prefix(16))
+        let token = UUID().uuidString.lowercased().prefix(8)
+        return "\(roomId)/\(Int(Date().timeIntervalSince1970 * 1000))_\(token).\(e)"
+    }
+
     /// Storage('room-files' 버킷) 업로드 후 공개 URL 반환
     static func uploadToStorage(roomId: String, fileName: String, data: Data) async throws -> String {
-        let safe = fileName.replacingOccurrences(
-            of: "[^A-Za-z0-9._가-힣-]", with: "_", options: .regularExpression)
-        let path = "\(roomId)/\(Int(Date().timeIntervalSince1970 * 1000))_\(safe)"
+        let path = storageObjectKey(roomId: roomId, fileName: fileName)
         let bucket = supabase.storage.from(filesBucket)
         try await bucket.upload(path, data: data, options: FileOptions(upsert: true))
         return try bucket.getPublicURL(path: path).absoluteString

@@ -63,7 +63,7 @@ object MoimRepository {
     /** 핸드폰번호 → 이메일 조회 (핸드폰 로그인용). 없으면 null */
     suspend fun emailForPhone(phone: String): String? = try {
         supabase.postgrest.rpc("moim_email_for_phone", buildJsonObject { put("p_phone", phone) })
-            .decodeAs<String?>()
+            .decodeAsOrNull<String>()
     } catch (_: Exception) { null }
 
     suspend fun myProfile(): Profile {

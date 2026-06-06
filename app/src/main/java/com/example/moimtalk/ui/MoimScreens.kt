@@ -764,7 +764,6 @@ private fun SectionHead(title: String, action: String? = null, onAction: (() -> 
 }
 
 @Composable
-@Composable
 fun ColorSwatchRow(selected: String?, onPick: (String) -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),

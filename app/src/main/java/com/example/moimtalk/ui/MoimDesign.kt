@@ -79,15 +79,21 @@ fun noticeTopRoom(rooms: List<Room>): Room? =
     rooms.filter { it.category != "custom" && it.category != "direct" && it.defaultView != "week" }
         .minByOrNull { it.sortOrder }
 
-/** 방 구성원 이름 나열 — 개설자(created_by)를 맨 앞에, 나머지는 이름순. 표시는 ... 잘림은 UI 가 처리. */
-fun roomMemberNames(room: Room, memberIds: List<String>, profiles: Map<String, Profile>): List<String> {
+/** 방 구성원 id 정렬 — 개설자(created_by) 맨 앞, 나머지 가나다순 */
+fun orderedRoomMemberIds(room: Room, memberIds: List<String>, profiles: Map<String, Profile>): List<String> {
+    val collator = java.text.Collator.getInstance(java.util.Locale.KOREAN)
     val creator = room.createdBy
-    val ordered = buildList {
+    return buildList {
         if (creator != null && memberIds.contains(creator)) add(creator)
-        addAll(memberIds.filter { it != creator }.sortedBy { profiles[it]?.name ?: "" })
+        addAll(memberIds.filter { it != creator }.sortedWith { a, b ->
+            collator.compare(profiles[a]?.name ?: "", profiles[b]?.name ?: "")
+        })
     }
-    return ordered.mapNotNull { id -> profiles[id]?.name }
 }
+
+/** 방 구성원 이름 나열 — 개설자(created_by)를 맨 앞에, 나머지는 이름순. 표시는 ... 잘림은 UI 가 처리. */
+fun roomMemberNames(room: Room, memberIds: List<String>, profiles: Map<String, Profile>): List<String> =
+    orderedRoomMemberIds(room, memberIds, profiles).mapNotNull { id -> profiles[id]?.name }
 
 fun typeColor(memberType: String): Color = when (memberType) {
     "교실" -> Color(0xFFB5651D)

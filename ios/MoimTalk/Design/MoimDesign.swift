@@ -54,14 +54,19 @@ func noticeTopRoom(_ rooms: [Room]) -> Room? {
         .min { $0.sortOrder < $1.sortOrder }
 }
 
-/// 방 구성원 이름 나열 — 개설자(createdBy)를 맨 앞에, 나머지는 이름순. 잘림(...)은 UI 가 처리.
-func roomMemberNames(_ room: Room, memberIds: [String], profiles: [String: Profile]) -> [String] {
+/// 방 구성원 id 정렬 — 개설자(createdBy) 맨 앞, 나머지 가나다순
+func orderedRoomMemberIds(_ room: Room, memberIds: [String], profiles: [String: Profile]) -> [String] {
     let creator = room.createdBy
     var ordered: [String] = []
     if let c = creator, memberIds.contains(c) { ordered.append(c) }
     ordered.append(contentsOf: memberIds.filter { $0 != creator }
-        .sorted { (profiles[$0]?.name ?? "") < (profiles[$1]?.name ?? "") })
-    return ordered.compactMap { profiles[$0]?.name }
+        .sorted { (profiles[$0]?.name ?? "").localizedCompare(profiles[$1]?.name ?? "") == .orderedAscending })
+    return ordered
+}
+
+/// 방 구성원 이름 나열 — 개설자(createdBy)를 맨 앞에, 나머지는 이름순. 잘림(...)은 UI 가 처리.
+func roomMemberNames(_ room: Room, memberIds: [String], profiles: [String: Profile]) -> [String] {
+    orderedRoomMemberIds(room, memberIds: memberIds, profiles: profiles).compactMap { profiles[$0]?.name }
 }
 
 enum Moim {

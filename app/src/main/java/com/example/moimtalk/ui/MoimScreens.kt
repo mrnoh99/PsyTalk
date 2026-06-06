@@ -287,7 +287,7 @@ private fun ApprovalBanner(pending: Int, onClick: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text("관리자 콘솔", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
             Text(
-                if (pending > 0) "가입 승인 대기 ${pending}명" else "가입 승인 · 회원/방 관리",
+                if (pending > 0) "가입 승인 대기 ${pending}명" else "가입 승인 · 회원 관리",
                 color = Color(0xFFBDB4AB), fontSize = 11.5.sp
             )
         }
@@ -304,21 +304,14 @@ private fun ApprovalBanner(pending: Int, onClick: () -> Unit) {
     }
 }
 
-// 관리자 콘솔 — 가입승인 / 회원관리 / 방관리. 관리자는 '가입 승인'만, 전체관리자는 전부.
+// 관리자 콘솔 — 가입승인 / 회원관리. 관리자는 '가입 승인'만, 전체관리자는 둘 다.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminConsoleScreen(vm: MoimViewModel, onBack: () -> Unit) {
     val isSuper = vm.myProfile?.role == "superadmin"
-    val tabs = if (isSuper) listOf("가입 승인", "회원 관리", "방 관리") else listOf("가입 승인")
+    val tabs = if (isSuper) listOf("가입 승인", "회원 관리") else listOf("가입 승인")
     var tab by remember { mutableStateOf(0) }
     val collator = remember { java.text.Collator.getInstance(java.util.Locale.KOREAN) }
-    LaunchedEffect(Unit) { vm.loadRoomMemberCounts() }
-
-    // 방 관리: 방 선택 시 구성원 편집/삭제 다이얼로그
-    var manageRoom by remember { mutableStateOf<Room?>(null) }
-    manageRoom?.let { r ->
-        RoomSettingsDialog(vm = vm, room = r, onDismiss = { manageRoom = null }, onDeleted = { manageRoom = null })
-    }
 
     Scaffold(
         topBar = {
@@ -341,8 +334,7 @@ fun AdminConsoleScreen(vm: MoimViewModel, onBack: () -> Unit) {
             }
             when (tabs[tab]) {
                 "가입 승인" -> ApprovalTab(vm, collator)
-                "회원 관리" -> MemberManageTab(vm, collator)
-                else -> RoomManageTab(vm) { r -> vm.loadRoomMembers(r.id); manageRoom = r }
+                else -> MemberManageTab(vm, collator)
             }
         }
     }
@@ -427,16 +419,6 @@ private fun MemberManageTab(vm: MoimViewModel, collator: java.text.Collator) {
 }
 
 @Composable
-private fun RoomManageTab(vm: MoimViewModel, onManage: (Room) -> Unit) {
-    LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        item {
-            Text("🏠 방 관리 · ${vm.rooms.size}개 · 방을 눌러 구성원 편집", fontSize = 11.5.sp, fontWeight = FontWeight.Bold, color = MoimSub, modifier = Modifier.padding(bottom = 10.dp))
-        }
-        items(vm.rooms, key = { it.id }) { r -> RoomManageRow(r, vm.roomMemberCounts[r.id] ?: 0, onManage) }
-    }
-}
-
-@Composable
 private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(
         label,
@@ -449,6 +431,12 @@ private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
             .background(if (selected) MoimAccent else MoimBg)
             .padding(horizontal = 14.dp, vertical = 7.dp)
     )
+}
+
+private fun roleLabel(role: String): String = when (role) {
+    "superadmin" -> "전체관리자"
+    "admin" -> "관리자"
+    else -> "회원"
 }
 
 @Composable
@@ -568,7 +556,7 @@ private fun MemberWithdrawnRow(p: Profile, vm: MoimViewModel) {
         AlertDialog(
             onDismissRequest = { confirm = false },
             title = { Text("계정 복구") },
-            text = { Text("‘${p.name}’ 님의 계정을 복구할까요?\n로그인·활동이 다시 가능해지고 승인 상태가 됩니다.\n(이전 메시지·자료가 그대로 연결됩니다. 방 재배정은 방 관리에서)") },
+            text = { Text("‘${p.name}’ 님의 계정을 복구할까요?\n로그인·활동이 다시 가능해지고 승인 상태가 됩니다.\n(이전 메시지·자료가 그대로 연결됩니다.)") },
             confirmButton = {
                 TextButton(onClick = { confirm = false; vm.reactivateUser(p.id) }) {
                     Text("복구", color = catColor("work"), fontWeight = FontWeight.Bold)
@@ -605,30 +593,8 @@ private fun MemberWithdrawnRow(p: Profile, vm: MoimViewModel) {
     }
 }
 
-// 방 관리 행 — 가운데 구분 바 없이 카드형. 누르면 구성원 편집/삭제
 @Composable
-private fun RoomManageRow(r: Room, count: Int, onManage: (Room) -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 9.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .background(MoimWhite, RoundedCornerShape(12.dp))
-            .clickable { onManage(r) }
-            .padding(12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        RoomAvatar(r, 40, 12, 8.5)
-        Spacer(Modifier.width(11.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(r.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
-            Text("${catLabel(r.category)} · ${r.postPolicy}" + if (count > 0) " · ${count}명" else "", fontSize = 11.5.sp, color = MoimSub)
-        }
-        Text("›", fontSize = 18.sp, color = MoimSub)
-    }
-}
-
-private fun roleLabel(role: String): String = when (role) {
+private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
     "superadmin" -> "전체관리자"
     "admin" -> "관리자"
     else -> "회원"
@@ -2178,7 +2144,7 @@ fun RoomSettingsDialog(
                 } else if (memberIds.isEmpty()) {
                     Text("참여 구성원이 없습니다. 아래에서 초대하세요.", fontSize = 13.sp, color = MoimSub)
                 }
-                memberIds.forEach { uid ->
+                orderedRoomMemberIds(room, memberIds, vm.profilesById).forEach { uid ->
                     val isCreator = uid == room.createdBy
                     val isMe = uid == MoimRepository.currentUserId()
                     Row(
@@ -2189,7 +2155,7 @@ fun RoomSettingsDialog(
                     ) {
                         Text(
                             vm.nameOf(uid) + when {
-                                isCreator -> " (방장)"
+                                isCreator -> " (개설자)"
                                 isMe -> " (나)"
                                 else -> ""
                             },
@@ -2198,7 +2164,7 @@ fun RoomSettingsDialog(
                             color = MoimInk,
                             modifier = Modifier.weight(1f)
                         )
-                        // 방장은 내보낼 수 없음
+                        // 개설자는 내보낼 수 없음
                         if (!isCreator) {
                             TextButton(onClick = { kickTarget = uid }) {
                                 Text("내보내기", fontSize = 13.sp, color = MoimAdmin)

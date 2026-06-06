@@ -1244,7 +1244,7 @@ async function openRoom(id){
   // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시. DM 은 상대 이름.
   const creatorName=active.created_by?(profilesById[active.created_by]||{}).name:null;
   document.getElementById('chatTab').textContent=isDM?('💬 '+roomDisplayName(active)):((active.category==='custom'&&creatorName)?('개설자: '+creatorName):'💬 채팅');
-  renderRoomMembers(active);   // 상단 바에 개설자·참여자 이름 나열 (넘치면 ...)
+  renderTopBarMembers(active);   // 상단 바에 개설자·참여자 이름 나열 (넘치면 ...)
   show('roomScreen');
   const rs=document.getElementById('roomScreen');         // 오른쪽→왼쪽 펼침 효과
   rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');
@@ -1257,7 +1257,7 @@ async function openRoom(id){
   layoutChat();
 }
 // 상단 바 개설자·참여자 이름 나열 — 개설자 먼저, 나머지 이름순. DM·구성원없음은 숨김. (넘치면 CSS ellipsis)
-async function renderRoomMembers(r){
+async function renderTopBarMembers(r){
   const el=document.getElementById('roomMembers'); if(!el)return;
   el.textContent=''; el.style.display='none';
   if(!r||r.category==='direct')return;

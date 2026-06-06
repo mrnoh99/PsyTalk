@@ -495,6 +495,13 @@ final class MoimViewModel: ObservableObject {
         room.category == "custom" && !canManageRoom(room)
     }
 
+    /// 방 삭제 권한: 모임방(custom)에 한해 생성자(본인이 만든 방) 또는 전체관리자(superadmin)
+    func canDeleteRoom(_ room: Room) -> Bool {
+        guard room.category == "custom" else { return false }
+        if isSuperAdmin { return true }
+        return room.createdBy != nil && room.createdBy == MoimRepository.currentUserId()
+    }
+
     /// 방 나가기 (본인이 만들지 않은 모임방). 성공 시 방 목록으로 복귀
     func leaveRoom(_ room: Room, onDone: @escaping () -> Void) {
         Task {

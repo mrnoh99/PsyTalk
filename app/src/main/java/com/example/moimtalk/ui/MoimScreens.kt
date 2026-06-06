@@ -1005,6 +1005,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     }
     var showSettings by remember { mutableStateOf(false) }
     var showLeave by remember { mutableStateOf(false) }
+    var showDeleteRoom by remember { mutableStateOf(false) }
     val profile = vm.myProfile
     val canPost = canPostInRoom(profile, room)
     // 1:1 DM 은 채팅 전용 (캘린더·자료실 탭, 이름변경·설정·나가기 모두 숨김). 제목=상대 이름.
@@ -1023,6 +1024,21 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 }) { Text("나가기", color = MoimAdmin) }
             },
             dismissButton = { TextButton(onClick = { showLeave = false }) { Text("취소") } }
+        )
+    }
+
+    if (showDeleteRoom) {
+        AlertDialog(
+            onDismissRequest = { showDeleteRoom = false },
+            title = { Text("방 삭제") },
+            text = { Text("'${liveRoom.name}' 방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteRoom = false
+                    vm.deleteRoom(liveRoom) { onBack() }
+                }) { Text("삭제", color = MoimAdmin, fontWeight = FontWeight.Bold) }
+            },
+            dismissButton = { TextButton(onClick = { showDeleteRoom = false }) { Text("취소") } }
         )
     }
 
@@ -1115,6 +1131,12 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         if (!dm && canLeaveRoom(profile, liveRoom)) {
                             TextButton(onClick = { showLeave = true }) {
                                 Text("나가기", fontSize = 13.sp, color = MoimAdmin)
+                            }
+                        }
+                        // 방 삭제 (모임방 생성자·전체관리자) — 우상단
+                        if (!dm && canDeleteRoom(profile, liveRoom)) {
+                            TextButton(onClick = { showDeleteRoom = true }) {
+                                Text("방삭제", fontSize = 13.sp, color = MoimAdmin, fontWeight = FontWeight.Bold)
                             }
                         }
                     },

@@ -17,6 +17,7 @@ struct RoomView: View {
     @State private var editIconCleared = false
     @State private var showSettings = false
     @State private var showLeave = false
+    @State private var showDeleteRoom = false
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
@@ -83,6 +84,11 @@ struct RoomView: View {
                 Button("나가기") { showLeave = true }
                     .font(.system(size: 13)).foregroundColor(Moim.admin)
             }
+            // 방 삭제 (모임방 생성자·전체관리자) — 우상단
+            if !isDM, vm.canDeleteRoom(liveRoom) {
+                Button("방삭제") { showDeleteRoom = true }
+                    .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.admin)
+            }
         }
         .padding(.horizontal, 16).padding(.vertical, 10)
         .background(Moim.paper)
@@ -120,6 +126,12 @@ struct RoomView: View {
             Button("나가기", role: .destructive) { vm.leaveRoom(liveRoom) { onBack() } }
         } message: {
             Text("'\(liveRoom.name)' 방에서 나갈까요?")
+        }
+        .alert("방 삭제", isPresented: $showDeleteRoom) {
+            Button("취소", role: .cancel) {}
+            Button("삭제", role: .destructive) { vm.deleteRoom(liveRoom) { onBack() } }
+        } message: {
+            Text("'\(liveRoom.name)' 방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.")
         }
         .sheet(isPresented: $showSettings) {
             RoomSettingsView(vm: vm, room: liveRoom,

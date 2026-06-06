@@ -237,7 +237,8 @@
       </div>
       <button id="renameBtn" class="lk" style="display:none" onclick="openRoomEdit()">이름변경</button>
       <button id="settingsBtn" class="back" style="display:none;font-size:17px" onclick="openRoomSettings()">⚙️</button>
-      <button id="leaveBtn" class="lk" style="display:none" onclick="leaveRoom()">나가기</button></div>
+      <button id="leaveBtn" class="lk" style="display:none" onclick="leaveRoom()">나가기</button>
+      <button id="deleteBtn" class="lk" style="display:none;color:var(--admin);font-weight:700" onclick="deleteRoom()">방삭제</button></div>
     <div class="tabs">
       <div class="tab on" data-t="chat" id="chatTab" onclick="tab('chat')">💬 채팅</div>
       <div class="tab" data-t="files" onclick="tab('files')">📁 자료실</div>
@@ -1244,6 +1245,7 @@ async function openRoom(id){
   document.getElementById('settingsBtn').style.display=(!isDM&&canManage(active))?'':'none';
   // 본인이 만들지 않은 모임방: 나가기 (DM 은 표시 안 함)
   document.getElementById('leaveBtn').style.display=(!isDM&&active.category==='custom'&&!canManage(active))?'':'none';
+  document.getElementById('deleteBtn').style.display=(!isDM&&canDeleteRoom(active))?'':'none';   // 방삭제(생성자·전체관리자) 우상단
   calMode=active.default_view==='week'?'week':'month';
   selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
   // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)·DM(direct)은 채팅만.

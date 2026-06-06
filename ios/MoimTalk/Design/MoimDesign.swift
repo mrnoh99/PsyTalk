@@ -194,6 +194,37 @@ func fmtPublishTime(_ createdAt: String?) -> String {
 func isNoticeTopRoom(_ room: Room, rooms: [Room]) -> Bool {
     noticeTopRoom(rooms)?.id == room.id
 }
+/// 과 전체공지 — 텍스트+첨부가 연속으로 온 경우 한 카드로 합침 (기존 분리 전송 호환)
+func mergeNoticeMessages(_ messages: [Message]) -> [Message] {
+    guard !messages.isEmpty else { return messages }
+    var out: [Message] = []
+    var i = 0
+    while i < messages.count {
+        let m = messages[i]
+        if i + 1 < messages.count {
+            let n = messages[i + 1]
+            if m.senderId == n.senderId {
+                if m.type == "text", (n.type == "image" || n.type == "file"), (n.content ?? "").isEmpty {
+                    var merged = n
+                    merged.content = m.content
+                    out.append(merged)
+                    i += 2
+                    continue
+                }
+                if (m.type == "image" || m.type == "file"), (m.content ?? "").isEmpty, n.type == "text", n.attachmentUrl == nil {
+                    var merged = m
+                    merged.content = n.content
+                    out.append(merged)
+                    i += 2
+                    continue
+                }
+            }
+        }
+        out.append(m)
+        i += 1
+    }
+    return out
+}
 /// 마지막 메시지 미리보기
 func msgPreview(_ lm: LastMsg?) -> String {
     guard let lm = lm else { return "" }

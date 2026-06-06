@@ -158,8 +158,10 @@
   .notice-author{font-size:13px;font-weight:600;color:var(--sub);margin:6px 0 0}
   .notice-hr{border:none;border-top:1px solid var(--line);margin:14px 0}
   .notice-body{white-space:pre-wrap;font-size:15px;line-height:1.65;color:var(--ink);word-break:break-word}
-  .notice-card .bimg{max-width:100%;border-radius:12px;display:block;margin:0 auto}
-  .notice-card .bfile{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600;margin-top:4px}
+  .notice-media{margin-top:12px}
+  .notice-card .bimg{max-width:100%;border-radius:12px;display:block;margin:0 auto;cursor:pointer}
+  .notice-card .bfile{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600;cursor:pointer}
+  .notice-dl-hint{font-size:11px;color:var(--sub);text-align:center;margin-top:6px}
   .notice-del{display:block;margin-top:10px;text-align:right;font-size:12px;color:var(--admin);cursor:pointer;font-weight:700}
   .card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;margin-bottom:13px}
   .card h3{font-size:11.5px;color:var(--sub);font-weight:800;text-transform:uppercase;margin-bottom:11px}
@@ -1541,14 +1543,56 @@ function scrollMsgsToBottom(){
   const go=()=>{el.scrollTop=el.scrollHeight;};
   requestAnimationFrame(()=>requestAnimationFrame(go));
 }
+function mergeNoticeMsgs(msgs){
+  const out=[]; let i=0;
+  while(i<msgs.length){
+    const m=msgs[i], n=msgs[i+1];
+    if(n&&m.sender_id===n.sender_id){
+      if(m.type==='text'&&(n.type==='image'||n.type==='file')&&!(n.content||'').trim()){
+        out.push({...n,content:m.content}); i+=2; continue;
+      }
+      if((m.type==='image'||m.type==='file')&&!(m.content||'').trim()&&n.type==='text'&&!n.attachment_url){
+        out.push({...m,content:n.content}); i+=2; continue;
+      }
+    }
+    out.push(m); i++;
+  }
+  return out;
+}
+async function downloadAttachment(url,name){
+  try{
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('fetch');
+    const blob=await r.blob();
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);
+    a.download=name||'download';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(a.href);
+  }catch(_){
+    window.open(url,'_blank');
+  }
+}
+function noticeAttachmentHtml(m){
+  if(m.type==='image'&&m.attachment_url){
+    const nm=esc(m.attachment_name||'photo.jpg');
+    const uEnc=encodeURIComponent(m.attachment_url);
+    return `<div class="notice-media"><img class="bimg" src="${esc(m.attachment_url)}" onclick="downloadAttachment(decodeURIComponent('${uEnc}'),'${nm.replace(/'/g,"\\'")}')" alt="사진" title="클릭하여 다운로드"><p class="notice-dl-hint">클릭하여 다운로드</p></div>`;
+  }
+  if(m.type==='file'&&m.attachment_url){
+    const nm=esc(m.attachment_name||'file');
+    const uEnc=encodeURIComponent(m.attachment_url);
+    return `<div class="notice-media"><a class="bfile" href="#" onclick="event.preventDefault();downloadAttachment(decodeURIComponent('${uEnc}'),'${nm.replace(/'/g,"\\'")}');return false;">📎 <span>${esc(m.attachment_name||'파일')}</span></a><p class="notice-dl-hint">클릭하여 다운로드</p></div>`;
+  }
+  return '';
+}
 function noticePostHtml(m,who,mine){
   const author=(who.name||'?')+(who.member_type?' · '+esc(who.member_type):'');
+  const cap=(m.content||'').trim();
   let body='';
-  if(m.type==='image'&&m.attachment_url)
-    body=`<img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진">`;
-  else if(m.type==='file'&&m.attachment_url)
-    body=`<a class="bfile" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a>`;
-  else body=`<div class="notice-body">${esc(m.content||'')}</div>`;
+  if(cap) body+=`<div class="notice-body">${esc(cap)}</div>`;
+  body+=noticeAttachmentHtml(m);
+  if(!body) body=`<div class="notice-body"></div>`;
   const del=mine?`<span class="notice-del" onclick="delMsg('${m.id}')">🗑 삭제</span>`:'';
   return `<div class="notice-post"><article class="notice-card">
     <div class="notice-accent"></div>
@@ -1561,7 +1605,8 @@ function renderMsgs(){
   if(!msgs.length){ el.innerHTML=`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`; scrollMsgsToBottom(); resolveAttachments(); return; }
   const noticeLayout=active&&noticeTopRoom()&&noticeTopRoom().id===active.id;
   let html='', lastDate='';
-  msgs.forEach(m=>{
+  const list=noticeLayout?mergeNoticeMsgs(msgs):msgs;
+  list.forEach(m=>{
     const mine=m.sender_id===me.id, who=profilesById[m.sender_id]||{};
     if(noticeLayout){
       html+=noticePostHtml(m,who,mine);
@@ -1601,8 +1646,14 @@ function onMsgKeydown(e){
   sendMsg();
 }
 async function sendMsg(){
-  if(pendingAttach){const ok=await sendPendingAttach();if(!ok)return;}
   const i=activeMsgInput(),t=i.value.trim();
+  if(pendingAttach){
+    const ok=await sendPendingAttach(t||null);
+    if(!ok)return;
+    i.value='';
+    await loadMsgs();
+    return;
+  }
   if(t){i.value='';const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:t});
     if(error){alert('전송 실패: '+error.message);return;}}
   await loadMsgs();
@@ -1644,13 +1695,14 @@ async function delMsg(id){
   if(error){alert('삭제 실패: '+error.message);return;}
   await loadMsgs();
 }
-async function sendPendingAttach(){
+async function sendPendingAttach(caption){
   const {file,kind}=pendingAttach;
   const path=storageObjectKey(active.id,file.name);
   const {error:upErr}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
   if(upErr){alert('업로드 실패: '+upErr.message);return false;}
   const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-  const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:null,type:kind,attachment_url:url,attachment_name:file.name});
+  const cap=(caption||'').trim();
+  const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:cap||null,type:kind,attachment_url:url,attachment_name:file.name});
   if(error){alert('전송 실패: '+error.message);return false;}
   clearAttach();return true;
 }

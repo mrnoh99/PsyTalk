@@ -3,6 +3,7 @@ package com.example.moimtalk.ui
 import androidx.compose.ui.graphics.Color
 import com.example.moimtalk.data.CalendarEvent
 import com.example.moimtalk.data.LastMsg
+import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.Room
@@ -206,6 +207,32 @@ fun fmtPublishTime(createdAt: String?): String = runCatching {
 
 fun isNoticeTopRoom(room: Room, rooms: List<Room>): Boolean =
     noticeTopRoom(rooms)?.id == room.id
+
+/** 과 전체공지 — 텍스트+첨부가 연속으로 온 경우 한 카드로 합침 (기존 분리 전송 호환) */
+fun mergeNoticeMessages(messages: List<Message>): List<Message> {
+    if (messages.isEmpty()) return messages
+    val out = mutableListOf<Message>()
+    var i = 0
+    while (i < messages.size) {
+        val m = messages[i]
+        val n = messages.getOrNull(i + 1)
+        if (n != null && m.senderId == n.senderId) {
+            if (m.type == "text" && (n.type == "image" || n.type == "file") && n.content.isNullOrBlank()) {
+                out.add(n.copy(content = m.content))
+                i += 2
+                continue
+            }
+            if ((m.type == "image" || m.type == "file") && m.content.isNullOrBlank() && n.type == "text" && n.attachmentUrl == null) {
+                out.add(m.copy(content = n.content))
+                i += 2
+                continue
+            }
+        }
+        out.add(m)
+        i++
+    }
+    return out
+}
 
 /** 마지막 메시지 미리보기 */
 fun msgPreview(lm: LastMsg?): String {

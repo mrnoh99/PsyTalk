@@ -257,12 +257,12 @@ object MoimRepository {
     }
 
     /** 카톡식 첨부 전송: 공개 room-files 업로드 후 공개 URL 을 담아 메시지 삽입 (type = image | file) */
-    suspend fun sendAttachment(roomId: String, fileName: String, bytes: ByteArray, type: String) {
+    suspend fun sendAttachment(roomId: String, fileName: String, bytes: ByteArray, type: String, caption: String? = null) {
         val uid = currentUserId() ?: error("Not logged in")
         val url = uploadToStorage(roomId, fileName, bytes)
         supabase.from("messages").insert(
             MessageInsert(
-                roomId = roomId, senderId = uid, content = null, type = type,
+                roomId = roomId, senderId = uid, content = caption?.trim()?.takeIf { it.isNotEmpty() }, type = type,
                 attachmentUrl = url, attachmentName = fileName,
             )
         )

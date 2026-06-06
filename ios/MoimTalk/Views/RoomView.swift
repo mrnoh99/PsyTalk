@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
+import UIKit
 
 struct RoomView: View {
     @ObservedObject var vm: MoimViewModel
@@ -197,7 +198,7 @@ struct ChatView: View {
     private var chatItems: [ChatRowItem] {
         var out: [ChatRowItem] = []
         if noticeLayout {
-            for m in vm.messages { out.append(.message(m)) }
+            for m in mergeNoticeMessages(vm.messages) { out.append(.message(m)) }
             return out
         }
         var lastDay = ""
@@ -304,12 +305,15 @@ struct ChatView: View {
                             .textFieldStyle(.roundedBorder)
                     }
                     Button {
-                        if let p = pendingAttach {
-                            vm.sendAttachment(fileName: p.name, data: p.data, type: p.type)
-                            pendingAttach = nil
-                        }
                         let t = input.trimmingCharacters(in: .whitespaces)
-                        if !t.isEmpty { vm.send(t); input = "" }
+                        if let p = pendingAttach {
+                            vm.sendAttachment(fileName: p.name, data: p.data, type: p.type, caption: t.isEmpty ? nil : t)
+                            pendingAttach = nil
+                            input = ""
+                        } else if !t.isEmpty {
+                            vm.send(t)
+                            input = ""
+                        }
                     } label: {
                         Text("➤").font(.system(size: 14))
                             .frame(width: 33, height: 33).background(Moim.yellow).clipShape(Circle())
@@ -495,6 +499,10 @@ struct NoticePostCard: View {
         return mt.isEmpty ? senderName : "\(senderName) · \(mt)"
     }
 
+    private var caption: String? {
+        message.content?.trimmingCharacters(in: .whitespacesAndNewlines).flatMap { $0.isEmpty ? nil : $0 }
+    }
+
     var body: some View {
         HStack {
             Spacer(minLength: 0)
@@ -532,43 +540,91 @@ struct NoticePostCard: View {
     }
 
     @ViewBuilder private var noticeBody: some View {
+        if let cap = caption {
+            Text(cap)
+                .font(.system(size: 15))
+                .foregroundColor(Moim.ink)
+                .lineSpacing(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
         if message.type == "image", message.attachmentUrl != nil {
-            let u = attachUrl.flatMap { URL(string: $0) }
-            Group {
-                if let u {
-                    Link(destination: u) {
-                        AsyncImage(url: u) { phase in
-                            if let img = phase.image { img.resizable().scaledToFit() }
-                            else if phase.error != nil { Color.gray.opacity(0.15) }
-                            else { ProgressView() }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-                } else {
-                    ProgressView().frame(maxWidth: .infinity).padding(.vertical, 24)
-                }
-            }
+            if caption != nil { Spacer().frame(height: 12) }
+            noticeImageBlock
         } else if message.type == "file", message.attachmentUrl != nil {
-            let chip = HStack(spacing: 8) {
-                Text("📎").font(.system(size: 16))
-                Text(message.attachmentName ?? "파일")
-                    .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink).lineLimit(2)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12).padding(.vertical, 10)
-            .background(Moim.paper)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Moim.line, lineWidth: 1))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            if let u = attachUrl.flatMap({ URL(string: $0) }) {
-                Link(destination: u) { chip }
-            } else { chip }
-        } else {
+            if caption != nil { Spacer().frame(height: 12) }
+            noticeFileBlock
+        } else if caption == nil {
             Text(message.content ?? "")
                 .font(.system(size: 15))
                 .foregroundColor(Moim.ink)
                 .lineSpacing(6)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    @ViewBuilder private var noticeImageBlock: some View {
+        let u = attachUrl.flatMap { URL(string: $0) }
+        Group {
+            if let u {
+                AsyncImage(url: u) { phase in
+                    if let img = phase.image { img.resizable().scaledToFit() }
+                    else if phase.error != nil { Color.gray.opacity(0.15) }
+                    else { ProgressView() }
+                }
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .contentShape(RoundedRectangle(cornerRadius: 12))
+                .onTapGesture {
+                    noticeDownloadAttachment(from: u.absoluteString, fileName: message.attachmentName ?? "photo.jpg")
+                }
+            } else {
+                ProgressView().frame(maxWidth: .infinity).padding(.vertical, 24)
+            }
+        }
+        Text("탭하여 다운로드")
+            .font(.system(size: 11))
+            .foregroundColor(Moim.sub)
+            .frame(maxWidth: .infinity)
+            .padding(.top, 6)
+    }
+
+    @ViewBuilder private var noticeFileBlock: some View {
+        let chip = HStack(spacing: 8) {
+            Text("📎").font(.system(size: 16))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(message.attachmentName ?? "파일")
+                    .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink).lineLimit(2)
+                Text("탭하여 다운로드").font(.system(size: 11)).foregroundColor(Moim.sub)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 12).padding(.vertical, 10)
+        .background(Moim.paper)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(Moim.line, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        if let u = attachUrl.flatMap({ URL(string: $0) }) {
+            chip.onTapGesture { noticeDownloadAttachment(from: u.absoluteString, fileName: message.attachmentName ?? "file") }
+        } else { chip }
+    }
+}
+
+private func noticeDownloadAttachment(from urlString: String, fileName: String) {
+    guard let url = URL(string: urlString) else { return }
+    Task {
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let dest = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
+            try data.write(to: dest)
+            await MainActor.run {
+                guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first,
+                      let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
+                let vc = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
+                if let pop = vc.popoverPresentationController {
+                    pop.sourceView = root.view
+                    pop.sourceRect = CGRect(x: root.view.bounds.midX, y: root.view.bounds.midY, width: 0, height: 0)
+                }
+                root.present(vc, animated: true)
+            }
+        } catch {}
     }
 }

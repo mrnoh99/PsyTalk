@@ -303,11 +303,12 @@ enum MoimRepository {
     }
 
     /// 카톡식 첨부 전송: 공개 room-files 업로드 후 공개 URL 을 담아 메시지 삽입 (type = image | file)
-    static func sendAttachment(roomId: String, fileName: String, data: Data, type: String) async throws {
+    static func sendAttachment(roomId: String, fileName: String, data: Data, type: String, caption: String? = nil) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
         let url = try await uploadToStorage(roomId: roomId, fileName: fileName, data: data)
+        let cap = caption?.trimmingCharacters(in: .whitespacesAndNewlines)
         let payload = MessageInsert(
-            roomId: roomId, senderId: uid, content: nil, type: type,
+            roomId: roomId, senderId: uid, content: cap.flatMap { $0.isEmpty ? nil : $0 }, type: type,
             attachmentUrl: url, attachmentName: fileName
         )
         try await supabase.from("messages").insert(payload).execute()

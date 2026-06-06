@@ -1,6 +1,10 @@
 package com.example.moimtalk.ui
 
+import android.app.DownloadManager
+import android.content.Context
 import android.net.Uri
+import android.os.Environment
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -1277,12 +1281,16 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                 .size(33.dp)
                                 .background(MoimYellow, CircleShape)
                                 .clickable {
+                                    val text = input.trim()
                                     pendingAttach?.let { (n, b, k) ->
-                                        vm.sendAttachment(n, b, k); pendingAttach = null
-                                    }
-                                    if (input.isNotBlank()) {
-                                        vm.send(input.trim())
+                                        vm.sendAttachment(n, b, k, caption = text.ifBlank { null })
+                                        pendingAttach = null
                                         input = ""
+                                    } ?: run {
+                                        if (text.isNotBlank()) {
+                                            vm.send(text)
+                                            input = ""
+                                        }
                                     }
                                 },
                             contentAlignment = Alignment.Center
@@ -1397,7 +1405,7 @@ private fun ChatPane(
                 )
             }
         } else if (noticeLayout) {
-            messages.forEach { m ->
+            mergeNoticeMessages(messages).forEach { m ->
                 item(key = m.id) {
                     NoticePostCard(
                         m = m,
@@ -1444,6 +1452,21 @@ private fun DateDivider(text: String) {
 
 private val NOTICE_ACCENT = Color(0xFFB5651D)
 
+private fun downloadAttachment(context: Context, url: String, fileName: String) {
+    runCatching {
+        val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        val req = DownloadManager.Request(Uri.parse(url))
+            .setTitle(fileName)
+            .setDescription("다운로드 중…")
+            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
+        dm.enqueue(req)
+        Toast.makeText(context, "다운로드 시작", Toast.LENGTH_SHORT).show()
+    }.onFailure {
+        Toast.makeText(context, "다운로드 실패", Toast.LENGTH_SHORT).show()
+    }
+}
+
 @Composable
 private fun NoticePostCard(
     m: Message,
@@ -1453,9 +1476,10 @@ private fun NoticePostCard(
     attachUrl: (String) -> String?,
     onDelete: () -> Unit,
 ) {
-    val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
     val path = m.attachmentUrl
     val resolved = path?.let { p -> attachUrl(p) ?: if (p.startsWith("http")) p else null }
+    val caption = m.content?.trim()?.takeIf { it.isNotEmpty() }
     val authorLine = buildString {
         append(senderName)
         sender?.memberType?.takeIf { it.isNotBlank() }?.let { append(" · $it") }
@@ -1494,40 +1518,68 @@ private fun NoticePostCard(
             Spacer(Modifier.height(14.dp))
             HorizontalDivider(color = MoimLine)
             Spacer(Modifier.height(14.dp))
-            when {
-                m.type == "image" && path != null -> AsyncImage(
-                    model = resolved,
-                    contentDescription = "사진",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 320.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MoimBg, RoundedCornerShape(12.dp))
-                        .clickable { resolved?.let { uriHandler.openUri(it) } },
-                    contentScale = ContentScale.Fit,
+            if (caption != null) {
+                Text(
+                    caption,
+                    color = MoimInk,
+                    fontSize = 15.sp,
+                    lineHeight = 24.sp,
                 )
-                m.type == "file" && path != null -> Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MoimPaper)
-                        .border(1.dp, MoimLine, RoundedCornerShape(10.dp))
-                        .clickable { resolved?.let { uriHandler.openUri(it) } }
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text("📎", fontSize = 16.sp)
+            }
+            when {
+                m.type == "image" && path != null -> {
+                    if (caption != null) Spacer(Modifier.height(12.dp))
+                    AsyncImage(
+                        model = resolved,
+                        contentDescription = "사진",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 320.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MoimBg, RoundedCornerShape(12.dp))
+                            .clickable {
+                                resolved?.let { downloadAttachment(context, it, m.attachmentName ?: "photo.jpg") }
+                            },
+                        contentScale = ContentScale.Fit,
+                    )
                     Text(
-                        m.attachmentName ?: "파일",
-                        color = MoimInk,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
+                        "탭하여 다운로드",
+                        fontSize = 11.sp,
+                        color = MoimSub,
+                        modifier = Modifier.padding(top = 6.dp).fillMaxWidth(),
+                        textAlign = TextAlign.Center,
                     )
                 }
-                else -> Text(
+                m.type == "file" && path != null -> {
+                    if (caption != null) Spacer(Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(MoimPaper)
+                            .border(1.dp, MoimLine, RoundedCornerShape(10.dp))
+                            .clickable {
+                                resolved?.let { downloadAttachment(context, it, m.attachmentName ?: "file") }
+                            }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text("📎", fontSize = 16.sp)
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                m.attachmentName ?: "파일",
+                                color = MoimInk,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text("탭하여 다운로드", fontSize = 11.sp, color = MoimSub)
+                        }
+                    }
+                }
+                caption == null -> Text(
                     m.content.orEmpty(),
                     color = MoimInk,
                     fontSize = 15.sp,

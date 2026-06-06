@@ -285,11 +285,11 @@ final class MoimViewModel: ObservableObject {
     }
 
     /// 카톡식 첨부 전송 (type = image | file)
-    func sendAttachment(fileName: String, data: Data, type: String) {
+    func sendAttachment(fileName: String, data: Data, type: String, caption: String? = nil) {
         guard let rid = activeRoom else { return }
         Task {
             do {
-                try await MoimRepository.sendAttachment(roomId: rid, fileName: fileName, data: data, type: type)
+                try await MoimRepository.sendAttachment(roomId: rid, fileName: fileName, data: data, type: type, caption: caption)
                 messages = try await MoimRepository.messages(roomId: rid)
                 resolveAttachments()
             } catch { self.error = "첨부 전송: \(error.localizedDescription)" }

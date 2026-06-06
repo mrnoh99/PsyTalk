@@ -231,7 +231,10 @@
   <!-- ROOM -->
   <section id="roomScreen" class="hidden app-screen">
     <div class="hdr"><button class="back" onclick="closeRoom()">‹</button>
-      <h1 id="roomTitle" style="font-size:16px"></h1><span class="spacer"></span>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <h1 id="roomTitle" style="font-size:16px"></h1>
+        <div id="roomMembers" style="font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      </div>
       <button id="renameBtn" class="lk" style="display:none" onclick="openRoomEdit()">이름변경</button>
       <button id="settingsBtn" class="back" style="display:none;font-size:17px" onclick="openRoomSettings()">⚙️</button>
       <button id="leaveBtn" class="lk" style="display:none" onclick="leaveRoom()">나가기</button></div>
@@ -1241,6 +1244,7 @@ async function openRoom(id){
   // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시. DM 은 상대 이름.
   const creatorName=active.created_by?(profilesById[active.created_by]||{}).name:null;
   document.getElementById('chatTab').textContent=isDM?('💬 '+roomDisplayName(active)):((active.category==='custom'&&creatorName)?('개설자: '+creatorName):'💬 채팅');
+  renderRoomMembers(active);   // 상단 바에 개설자·참여자 이름 나열 (넘치면 ...)
   show('roomScreen');
   const rs=document.getElementById('roomScreen');         // 오른쪽→왼쪽 펼침 효과
   rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');
@@ -1251,6 +1255,22 @@ async function openRoom(id){
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
   layoutChat();
+}
+// 상단 바 개설자·참여자 이름 나열 — 개설자 먼저, 나머지 이름순. DM·구성원없음은 숨김. (넘치면 CSS ellipsis)
+async function renderRoomMembers(r){
+  const el=document.getElementById('roomMembers'); if(!el)return;
+  el.textContent=''; el.style.display='none';
+  if(!r||r.category==='direct')return;
+  const {data}=await sb.from('room_members').select('user_id').eq('room_id',r.id);
+  if(!active||active.id!==r.id)return;   // 그 사이 다른 방으로 이동했으면 무시
+  const ids=(data||[]).map(m=>m.user_id);
+  if(!ids.length)return;
+  const creator=r.created_by, ordered=[];
+  if(creator&&ids.includes(creator))ordered.push(creator);
+  ids.filter(i=>i!==creator).sort((a,b)=>((profilesById[a]||{}).name||'').localeCompare((profilesById[b]||{}).name||'')).forEach(i=>ordered.push(i));
+  const names=ordered.map(i=>(profilesById[i]||{}).name).filter(Boolean);
+  if(!names.length)return;
+  el.textContent=names.join(', '); el.style.display='';
 }
 async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);show('listScreen');loadUnreadCounts();loadLastMessages();}
 /* ====== 방 정보 변경 (이름·방표식 색상·사진) ====== */

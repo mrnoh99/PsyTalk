@@ -42,6 +42,8 @@ struct RoomView: View {
             }
         }
         .background(Moim.paper.ignoresSafeArea())
+        // 상단 바에 개설자·참여자 이름을 나열하기 위해 방 구성원 로드 (DM 제외)
+        .task(id: liveRoom.id) { if !isDM { vm.loadRoomMembers(liveRoom.id) } }
     }
 
     private var topBar: some View {
@@ -50,6 +52,13 @@ struct RoomView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(vm.roomDisplayName(liveRoom)).font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
                 Text(isDM ? "1:1 대화" : catLabel(liveRoom.category)).font(.system(size: 12)).foregroundColor(Moim.sub)
+                // 개설자·참여자 이름 나열 (작은 글씨, 넘치면 ... — DM 제외)
+                if !isDM, vm.memberListRoomId == liveRoom.id {
+                    let line = roomMemberNames(liveRoom, memberIds: vm.roomMemberIds, profiles: vm.profilesById).joined(separator: ", ")
+                    if !line.isEmpty {
+                        Text(line).font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1).truncationMode(.tail)
+                    }
+                }
             }
             Spacer()
             if !isDM, canRenameRoom(vm.myProfile, liveRoom) {

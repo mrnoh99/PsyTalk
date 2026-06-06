@@ -84,7 +84,7 @@ class MoimViewModel : ViewModel() {
     var memberSearchByType by mutableStateOf(false)   // false=이름순, true=직종별
 
     private var activeRoom: String? = null
-    private var memberListRoomId: String? = null
+    var memberListRoomId: String? by mutableStateOf(null)
     private var roomPollJob: Job? = null
     private var messagePollJob: Job? = null
 

@@ -70,6 +70,16 @@ fun roomDisplayName(room: Room, profiles: Map<String, Profile>): String =
 /** DM = 채팅 전용 (캘린더·자료실 탭, 이름변경·설정·나가기 모두 숨김) */
 fun isDirect(room: Room): Boolean = room.category == "direct"
 
+/** 방 구성원 이름 나열 — 개설자(created_by)를 맨 앞에, 나머지는 이름순. 표시는 ... 잘림은 UI 가 처리. */
+fun roomMemberNames(room: Room, memberIds: List<String>, profiles: Map<String, Profile>): List<String> {
+    val creator = room.createdBy
+    val ordered = buildList {
+        if (creator != null && memberIds.contains(creator)) add(creator)
+        addAll(memberIds.filter { it != creator }.sortedBy { profiles[it]?.name ?: "" })
+    }
+    return ordered.mapNotNull { id -> profiles[id]?.name }
+}
+
 fun typeColor(memberType: String): Color = when (memberType) {
     "교실" -> Color(0xFFB5651D)
     "의국" -> Color(0xFF4A6FA5)

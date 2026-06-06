@@ -431,7 +431,7 @@ final class MoimViewModel: ObservableObject {
     @Published var roomMemberIds: [String] = []
     @Published var roomMembersLoaded = false
     @Published var roomMemberCounts: [String: Int] = [:]
-    private var memberListRoomId: String?
+    @Published private(set) var memberListRoomId: String?
 
     func loadRoomMemberCounts() {
         Task {

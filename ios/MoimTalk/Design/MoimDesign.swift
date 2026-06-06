@@ -43,6 +43,16 @@ func byName(_ a: Profile, _ b: Profile) -> Bool {
     a.name.localizedCompare(b.name) == .orderedAscending
 }
 
+/// 방 구성원 이름 나열 — 개설자(createdBy)를 맨 앞에, 나머지는 이름순. 잘림(...)은 UI 가 처리.
+func roomMemberNames(_ room: Room, memberIds: [String], profiles: [String: Profile]) -> [String] {
+    let creator = room.createdBy
+    var ordered: [String] = []
+    if let c = creator, memberIds.contains(c) { ordered.append(c) }
+    ordered.append(contentsOf: memberIds.filter { $0 != creator }
+        .sorted { (profiles[$0]?.name ?? "") < (profiles[$1]?.name ?? "") })
+    return ordered.compactMap { profiles[$0]?.name }
+}
+
 enum Moim {
     static let bg = Color(hex: 0xE9E4DD)
     static let paper = Color(hex: 0xF5F1EA)

@@ -486,8 +486,9 @@ final class MoimViewModel: ObservableObject {
 
     /// 모임방 관리 권한: 관리자는 모든 방, 그 외는 custom 방 생성자
     func canManageRoom(_ room: Room) -> Bool {
+        // 기본 방(과 전체공지·주간 학술활동 등 비-모임방)의 설정(⚙️)은 전체관리자만
+        if room.category != "custom" { return isSuperAdmin }
         if let r = myProfile?.role, r == "superadmin" || r == "admin" { return true }
-        guard room.category == "custom" else { return false }
         return room.createdBy != nil && room.createdBy == MoimRepository.currentUserId()
     }
 

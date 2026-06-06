@@ -14,17 +14,23 @@ ALTER TABLE public.rooms ADD COLUMN IF NOT EXISTS dm_key text;
 CREATE UNIQUE INDEX IF NOT EXISTS rooms_dm_key_unique
   ON public.rooms (dm_key) WHERE dm_key IS NOT NULL;
 
+-- category 가 enum(room_category): 'direct' 값 추가 (이미 있으면 무시).
+--   ※ 새 enum 값은 추가한 같은 트랜잭션 안에서 "사용"하면 오류(unsafe use)가 나므로,
+--     아래 정책에서는 'direct' 비교를 category::text 로 처리(=enum 값 직접사용 회피)해 한 번에 실행돼도 안전.
+--   ※ ALTER TYPE ADD VALUE 는 DO/함수 블록 안에서 못 쓰므로 최상위 문으로 실행.
+ALTER TYPE public.room_category ADD VALUE IF NOT EXISTS 'direct';
+
 -- 방 가시성 재정의: 기본 방=전체 / 모임방=구성원·생성자·관리자 / DM=구성원만(관리자도 콘솔엔 안 보임)
 DROP POLICY IF EXISTS "rooms_select_visible" ON public.rooms;
 CREATE POLICY "rooms_select_visible"
   ON public.rooms FOR SELECT TO authenticated
   USING (
-    (category <> 'custom' AND category <> 'direct')                 -- 기본 방(전체방·학술활동 등)
+    (category <> 'custom' AND category::text <> 'direct')           -- 기본 방(전체방·학술활동 등)
     OR (category = 'custom' AND (
           created_by = auth.uid()
           OR id IN (SELECT public.moim_my_room_ids())
           OR public.moim_is_admin()))
-    OR (category = 'direct' AND id IN (SELECT public.moim_my_room_ids()))  -- DM 은 당사자만
+    OR (category::text = 'direct' AND id IN (SELECT public.moim_my_room_ids()))  -- DM 은 당사자만
   );
 
 -- DM 열기(없으면 생성): 상대 user id 를 받아 방 id 반환. 양쪽 멤버십 보정.

@@ -6,6 +6,10 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -328,9 +332,11 @@ private fun FileUploadDialog(fileName: String, onDismiss: () -> Unit, onConfirm:
     var kw by remember { mutableStateOf("") }
     SheetDialog(title = "자료 올리기", subtitle = fileName, onDismiss = onDismiss) {
         FieldLabel("설명문")
-        OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 발표 슬라이드 초안", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+desc, { desc = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 발표 슬라이드 초안", color = MoimHint) }, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("키워드 (쉼표로 구분)")
-        OutlinedTextField(kw, { kw = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("코호트, 우울증", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+kw, { kw = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("코호트, 우울증", color = MoimHint) }, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         Spacer(Modifier.height(18.dp))
         PrimaryButton("업로드") { onConfirm(desc.trim(), parseKeywords(kw)) }
     }
@@ -347,8 +353,13 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
     // 선택한 날짜 — 기본은 오늘. 날짜를 누르면 그날로 포커스가 옮겨가고, 일정 추가·아래 목록이 이 날짜를 따른다.
     var selected by remember { mutableStateOf(today) }
     var editing by remember { mutableStateOf<CalendarEvent?>(null) }
-    var viewing by remember { mutableStateOf<CalendarEvent?>(null) }
+    var showEventDetail by remember { mutableStateOf(false) }
+    var overlayEvent by remember { mutableStateOf<CalendarEvent?>(null) }
     var creating by remember { mutableStateOf(false) }
+    val openEventDetail: (CalendarEvent) -> Unit = { ev ->
+        overlayEvent = ev
+        showEventDetail = true
+    }
     val compactEvents = opensWeekCalendar(room)
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -372,20 +383,27 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
             }
 
             when (mode) {
-                "month" -> monthContent(this, vm, ym, today, selected, compactEvents, { ym = it }, { selected = it }, { viewing = it }, { editing = it })
-                "week" -> weekContent(this, vm, today, selected, compactEvents, { selected = it }, { viewing = it }, { editing = it })
-                else -> dayContent(this, vm, today, selected, compactEvents, { selected = it }, { viewing = it }, { editing = it })
+                "month" -> monthContent(this, vm, ym, today, selected, compactEvents, { ym = it }, { selected = it }, openEventDetail, { editing = it })
+                "week" -> weekContent(this, vm, today, selected, compactEvents, { selected = it }, openEventDetail, { editing = it })
+                else -> dayContent(this, vm, today, selected, compactEvents, { selected = it }, openEventDetail, { editing = it })
             }
         }
 
-        viewing?.let { ev ->
-            EventDetailPane(
-                event = ev,
-                vm = vm,
-                onBack = { viewing = null },
-                onEdit = { viewing = null; editing = it },
-                modifier = Modifier.fillMaxSize(),
-            )
+        AnimatedVisibility(
+            visible = showEventDetail,
+            modifier = Modifier.fillMaxSize(),
+            enter = slideInHorizontally(tween(260)) { it },
+            exit = slideOutHorizontally(tween(260)) { it },
+        ) {
+            overlayEvent?.let { ev ->
+                EventDetailPane(
+                    event = ev,
+                    vm = vm,
+                    onBack = { showEventDetail = false },
+                    onEdit = { showEventDetail = false; editing = it },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
     }
 
@@ -538,7 +556,7 @@ private fun weekContent(
             Row(
                 modifier = Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(11.dp))
-                    .background(if (isToday) Color(0xFFFFF8E0) else Color.Transparent, RoundedCornerShape(11.dp))
+                    .background(if (isToday) MoimHl else Color.Transparent, RoundedCornerShape(11.dp))
                     .then(if (isSelected) Modifier.border(2.dp, MoimAccent, RoundedCornerShape(11.dp)) else Modifier)
                     .clickable { onSelect(date) }
                     .padding(vertical = 9.dp, horizontal = 6.dp)
@@ -959,22 +977,30 @@ private fun EventDialog(
 
     SheetDialog(title = title, subtitle = "참석범위·첨부자료까지 등록할 수 있습니다.", onDismiss = onDismiss) {
         FieldLabel("제목")
-        OutlinedTextField(evTitle, { evTitle = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 증례 컨퍼런스", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+evTitle, { evTitle = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 증례 컨퍼런스", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("날짜 · 시간")
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-            OutlinedTextField(dateStr, { dateStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("2026-06-05", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
-            OutlinedTextField(timeStr, { timeStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("14:00", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+            OutlinedTextField(
+dateStr, { dateStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("2026-06-05", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
+            OutlinedTextField(
+timeStr, { timeStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("14:00", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         }
         FieldLabel("장소")
-        OutlinedTextField(place, { place = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("의국 회의실", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+place, { place = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("의국 회의실", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("링크 (선택)")
-        OutlinedTextField(link, { link = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("https://zoom.us/...", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+link, { link = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("https://zoom.us/...", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("발표자 (이름·직위, 여러 명은 쉼표로)")
-        OutlinedTextField(presenter, { presenter = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("예: 김철수 교수, 박영희 전공의 3년차", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+presenter, { presenter = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("예: 김철수 교수, 박영희 전공의 3년차", color = MoimHint) }, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("참석 범위")
-        OutlinedTextField(scope, { scope = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 의국 전공의 전원", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+scope, { scope = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 의국 전공의 전원", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("설명")
-        OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("안건 / 준비사항", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("안건 / 준비사항", color = MoimHint) }, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
 
         FieldLabel("첨부 자료 (여러 개 가능)")
         Box(

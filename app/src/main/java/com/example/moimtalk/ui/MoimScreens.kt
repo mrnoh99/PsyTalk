@@ -1,10 +1,7 @@
 package com.example.moimtalk.ui
 
-import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
-import android.os.Environment
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -131,6 +128,7 @@ fun LoginScreen(vm: MoimViewModel) {
         Text("정신건강의학과", fontSize = 15.sp, color = MoimSub)
         Spacer(Modifier.height(32.dp))
         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
             value = email,
             onValueChange = { email = it },
             label = { Text(if (signup) "이메일" else "이메일 또는 핸드폰번호") },
@@ -139,6 +137,7 @@ fun LoginScreen(vm: MoimViewModel) {
         )
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
             value = pw,
             onValueChange = { pw = it },
             label = { Text("비밀번호") },
@@ -149,6 +148,7 @@ fun LoginScreen(vm: MoimViewModel) {
         if (signup) {
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = pwConfirm,
                 onValueChange = { pwConfirm = it },
                 label = { Text("비밀번호 확인") },
@@ -166,6 +166,7 @@ fun LoginScreen(vm: MoimViewModel) {
             }
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("이름") },
@@ -174,6 +175,7 @@ fun LoginScreen(vm: MoimViewModel) {
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = phone,
                 onValueChange = { phone = it },
                 label = { Text("핸드폰번호 (예: 010-1234-5678)") },
@@ -182,6 +184,7 @@ fun LoginScreen(vm: MoimViewModel) {
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = intro,
                 onValueChange = { intro = it },
                 label = { Text("간단한 소개 (예: 3년차 전공의)") },
@@ -1066,6 +1069,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
             text = {
                 Column {
                     OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                         value = renameText,
                         onValueChange = { renameText = it },
                         singleLine = true,
@@ -1259,6 +1263,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         }
                         Spacer(Modifier.width(8.dp))
                         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                             value = input,
                             onValueChange = { input = it },
                             modifier = Modifier
@@ -1452,21 +1457,6 @@ private fun DateDivider(text: String) {
 
 private val NOTICE_ACCENT = Color(0xFFB5651D)
 
-private fun downloadAttachment(context: Context, url: String, fileName: String) {
-    runCatching {
-        val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val req = DownloadManager.Request(Uri.parse(url))
-            .setTitle(fileName)
-            .setDescription("다운로드 중…")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
-        dm.enqueue(req)
-        Toast.makeText(context, "다운로드 시작", Toast.LENGTH_SHORT).show()
-    }.onFailure {
-        Toast.makeText(context, "다운로드 실패", Toast.LENGTH_SHORT).show()
-    }
-}
-
 @Composable
 private fun NoticePostCard(
     m: Message,
@@ -1476,7 +1466,7 @@ private fun NoticePostCard(
     attachUrl: (String) -> String?,
     onDelete: () -> Unit,
 ) {
-    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val path = m.attachmentUrl
     val resolved = path?.let { p -> attachUrl(p) ?: if (p.startsWith("http")) p else null }
     val caption = m.content?.trim()?.takeIf { it.isNotEmpty() }
@@ -1537,17 +1527,8 @@ private fun NoticePostCard(
                             .heightIn(max = 320.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(MoimBg, RoundedCornerShape(12.dp))
-                            .clickable {
-                                resolved?.let { downloadAttachment(context, it, m.attachmentName ?: "photo.jpg") }
-                            },
+                            .clickable { resolved?.let { uriHandler.openUri(it) } },
                         contentScale = ContentScale.Fit,
-                    )
-                    Text(
-                        "탭하여 다운로드",
-                        fontSize = 11.sp,
-                        color = MoimSub,
-                        modifier = Modifier.padding(top = 6.dp).fillMaxWidth(),
-                        textAlign = TextAlign.Center,
                     )
                 }
                 m.type == "file" && path != null -> {
@@ -1558,25 +1539,21 @@ private fun NoticePostCard(
                             .clip(RoundedCornerShape(10.dp))
                             .background(MoimPaper)
                             .border(1.dp, MoimLine, RoundedCornerShape(10.dp))
-                            .clickable {
-                                resolved?.let { downloadAttachment(context, it, m.attachmentName ?: "file") }
-                            }
+                            .clickable { resolved?.let { uriHandler.openUri(it) } }
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text("📎", fontSize = 16.sp)
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                m.attachmentName ?: "파일",
-                                color = MoimInk,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text("탭하여 다운로드", fontSize = 11.sp, color = MoimSub)
-                        }
+                        Text(
+                            m.attachmentName ?: "파일",
+                            color = MoimInk,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
                 caption == null -> Text(
@@ -1886,7 +1863,7 @@ private fun MyInfoTab(vm: MoimViewModel) {
                 fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimAccent,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .clickable { MoimTheme.setDark(!MoimTheme.dark) }
+                    .clickable { MoimTheme.dark = !MoimTheme.dark }
                     .background(MoimBg, RoundedCornerShape(20.dp))
                     .padding(horizontal = 14.dp, vertical = 7.dp)
             )
@@ -1915,10 +1892,12 @@ private fun MyInfoTab(vm: MoimViewModel) {
         }
         Spacer(Modifier.height(16.dp))
         Text("이름 (변경 불가)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-        OutlinedTextField(value = me?.name ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = me?.name ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = moimOutlinedTextFieldColors())
         Spacer(Modifier.height(10.dp))
         Text("이메일 (변경 불가)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
             value = MoimRepository.currentUserEmail() ?: "",
             onValueChange = {},
             enabled = false,
@@ -1927,7 +1906,8 @@ private fun MyInfoTab(vm: MoimViewModel) {
         )
         Spacer(Modifier.height(10.dp))
         Text("전화번호 (변경 불가)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-        OutlinedTextField(value = me?.phone ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = me?.phone ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = moimOutlinedTextFieldColors())
         Spacer(Modifier.height(10.dp))
         Text("직군", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         ExposedDropdownMenuBox(
@@ -1936,6 +1916,7 @@ private fun MyInfoTab(vm: MoimViewModel) {
             modifier = Modifier.fillMaxWidth(),
         ) {
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = memberType,
                 onValueChange = {},
                 readOnly = true,
@@ -1963,6 +1944,7 @@ private fun MyInfoTab(vm: MoimViewModel) {
         Spacer(Modifier.height(10.dp))
         Text("자기소개", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
             value = intro, onValueChange = { intro = it; savedMsg = false },
             placeholder = { Text("자기소개를 입력하세요") }, modifier = Modifier.fillMaxWidth()
         )
@@ -1989,12 +1971,14 @@ private fun MyInfoTab(vm: MoimViewModel) {
             Text("전체관리자 계정의 비밀번호는 변경할 수 없습니다.", color = MoimSub, fontSize = 12.5.sp)
         } else {
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = pw, onValueChange = { pw = it; pwMsg = null },
                 placeholder = { Text("새 비밀번호 (6자 이상)") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = pw2, onValueChange = { pw2 = it; pwMsg = null },
                 placeholder = { Text("새 비밀번호 확인") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()
@@ -2146,6 +2130,7 @@ private fun MemberSearchTab(vm: MoimViewModel, onOpenRoom: (Room) -> Unit) {
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
             value = vm.memberSearchQuery,
             onValueChange = { vm.memberSearchQuery = it },
             placeholder = { Text("🔍 이름으로 검색") },
@@ -2330,6 +2315,7 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
                     .padding(16.dp),
             ) {
                 OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier
@@ -2544,6 +2530,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 .padding(16.dp)
         ) {
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = name,
                 onValueChange = { name = it },
                 modifier = Modifier.fillMaxWidth(),
@@ -2579,7 +2566,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                             .padding(bottom = 7.dp)
                             .clip(RoundedCornerShape(11.dp))
                             .clickable { selected = if (on) selected - p.id else selected + p.id }
-                            .background(if (on) Color(0xFFFFF8E0) else MoimWhite)
+                            .background(if (on) MoimHl else MoimWhite)
                             .padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

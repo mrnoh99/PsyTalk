@@ -56,7 +56,7 @@ struct CreateRoomView: View {
                                 Text(on ? "✓" : "○").foregroundColor(on ? Moim.accent : Moim.line).fontWeight(.bold)
                             }
                             .padding(10)
-                            .background(on ? Color(hex: 0xFFF8E0) : Moim.white)
+                            .background(on ? Moim.hl : Moim.white)
                             .clipShape(RoundedRectangle(cornerRadius: 11))
                             .padding(.bottom, 7)
                             .contentShape(Rectangle())

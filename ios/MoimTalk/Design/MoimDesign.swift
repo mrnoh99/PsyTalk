@@ -89,7 +89,18 @@ enum Moim {
     static var admin: Color { moimDark ? Color(hex: 0xF44336) : Color(hex: 0xD32F2F) }
     static var success: Color { moimDark ? Color(hex: 0x4CAF50) : Color(hex: 0x388E3C) }
     static var white: Color { moimDark ? Color(hex: 0x1E1E1E) : Color(hex: 0xFFFFFF) }   // 카드/표면
+    static var hl: Color { moimDark ? Color(hex: 0x33301F) : Color(hex: 0xFFF8E0) }      // 선택·오늘 하이라이트
     static let orange = Color(hex: 0xEA7317)
+}
+
+/// 방·일정 상세 등 오버레이 슬라이드 — Android/Web 과 동일(진입 trailing, 복귀 trailing)
+enum MoimOverlayAnim {
+    static let duration = 0.26
+    static let anim = Animation.easeOut(duration: duration)
+    static let transition = AnyTransition.asymmetric(
+        insertion: .move(edge: .trailing),
+        removal: .move(edge: .trailing)
+    )
 }
 
 func catColor(_ category: String) -> Color {

@@ -26,6 +26,16 @@
     --me:#ffe45c;--line:#e0e0e0;--admin:#d32f2f;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  /* 폼 입력 — 다크/라이트 테마 글자·배경 동기화 */
+  input:not([type=file]):not([type=checkbox]):not([type=radio]),
+  textarea,select{color:var(--ink);background:var(--surface)}
+  input::placeholder,textarea::placeholder{color:var(--sub);opacity:1}
+  input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,textarea:-webkit-autofill:hover,textarea:-webkit-autofill:focus{
+    -webkit-text-fill-color:var(--ink);caret-color:var(--ink);
+    -webkit-box-shadow:0 0 0 1000px var(--surface) inset;box-shadow:0 0 0 1000px var(--surface) inset}
+  html:not(.light) input[type=date],html:not(.light) input[type=time],html:not(.light) input[type=datetime-local]{color-scheme:dark}
+  html.light input[type=date],html.light input[type=time],html.light input[type=datetime-local]{color-scheme:light}
   html,body{height:100%;overflow:hidden}
   body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
     background:var(--bg);color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center}
@@ -36,8 +46,10 @@
     border-bottom:1px solid var(--line);flex-shrink:0}
   .hdr h1{font-size:20px;font-weight:800}.hdr .badge{font-size:10.5px;font-weight:700;color:var(--accent);
     background:var(--me);padding:3px 8px;border-radius:20px}
-  .back{font-size:25px;background:none;border:none;cursor:pointer;width:26px}
-  .hdr .spacer{flex:1}.hdr .lk{font-size:12px;color:var(--sub);cursor:pointer;background:none;border:none}
+  .back{font-size:25px;background:none;border:none;color:var(--ink);cursor:pointer;width:26px;line-height:1;padding:0;flex-shrink:0}
+  .lk{font-size:12px;color:var(--sub);cursor:pointer;background:none;border:none;font-family:inherit;padding:0;line-height:1.3}
+  .lk-pill{background:var(--bg);padding:8px 12px;border-radius:10px;color:var(--accent);font-weight:700}
+  .hdr .spacer{flex:1}
   .list{flex:1;overflow-y:auto;padding-bottom:10px}
   .banner{display:flex;align-items:center;gap:12px;margin:10px 14px;padding:14px 16px;border-radius:14px;background:var(--orange);color:#fff;cursor:pointer}
   .banner b{font-size:16px}.banner small{display:block;font-size:11.5px;color:#ffe9d6}
@@ -49,12 +61,12 @@
   .sechead{font-size:11px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;
     padding:16px 18px 8px;display:flex;justify-content:space-between;align-items:center}
   .sechead button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer}
-  .room{display:flex;gap:12px;align-items:center;padding:12px 18px;cursor:pointer;border-bottom:1px solid rgba(220,213,204,.4)}
-  .room:hover{background:#ece6dd}
+  .room{display:flex;gap:12px;align-items:center;padding:12px 18px;cursor:pointer;border-bottom:1px solid var(--line)}
+  .room:hover{background:var(--surface)}
   .av{width:48px;height:48px;border-radius:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px}
   .room-mid{flex:1;min-width:0}.room-top{display:flex;align-items:center;gap:6px}
   .catdot{font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;color:#fff}
-  .room-name{font-weight:700;font-size:15px}.room-msg{font-size:12.5px;color:var(--sub);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .room-name{font-weight:700;font-size:15px;color:var(--ink)}.room-msg{font-size:12.5px;color:var(--sub);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .room-right{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0}
   .room-time{font-size:11px;color:var(--sub);white-space:nowrap}
   .mtime{font-size:10px;color:var(--sub);align-self:flex-end;white-space:nowrap;margin:0 3px;flex-shrink:0}
@@ -71,7 +83,7 @@
   #pane-files,#pane-cal{overflow-y:auto;-webkit-overflow-scrolling:touch}
   /* 채팅: grid로 msgs 높이 고정(Chrome flex 스크롤 버그 회피) */
   #pane-chat.pane.on{display:grid;grid-template-rows:minmax(0,1fr) auto;overflow:hidden}
-  .msgs{grid-row:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px 12px;background:var(--bg)}
+  .msgs{grid-row:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px 12px;background:var(--bg);scrollbar-gutter:stable}
   .inputbar,.readonly{grid-row:2;flex-shrink:0}
   .mrow{display:flex;gap:8px;max-width:86%;margin-top:9px}
   .mrow.me{margin-left:auto;flex-direction:row-reverse}
@@ -157,7 +169,7 @@
   .warddoc-empty{text-align:center;padding:24px 8px;color:var(--sub)}
   .warddoc-empty .eb{font-size:36px;margin-bottom:8px}
   .warddoc-empty b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
-  .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical;background:var(--surface)}
+  .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical;background:var(--surface);color:var(--ink)}
   /* 과 전체공지 — 가운데 정렬 게시 카드 */
   .notice-post{width:94%;max-width:400px;margin:12px auto 18px}
   .notice-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
@@ -182,13 +194,15 @@
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30;padding:14px}
   #emodal{z-index:45}
   #evDetailModal{z-index:40}
+  #evDetailModal .ev-detail-scroll{flex:1;overflow-y:auto;min-height:0;background:var(--bg);padding:12px 16px}
+  #evDetailModal .ev-detail-foot{padding:12px 16px;border-top:1px solid var(--line);background:var(--paper)}
   /* 공용 확인/알림 대화상자는 다른 모달(일정 상세 등) 위에 항상 표시 */
   #uiDialog{z-index:60}
   .modal.on{display:flex}
   .sheet{background:var(--paper);width:100%;max-width:430px;border-radius:18px;padding:20px;max-height:88vh;overflow-y:auto}
   .sheet h2{font-size:18px;font-weight:800;margin-bottom:4px}.sheet p{font-size:13px;color:var(--sub);margin-bottom:14px}
   .lbl{font-size:11.5px;font-weight:700;color:var(--sub);margin:13px 0 6px;display:block}
-  .field{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:var(--surface);outline:none}
+  .field{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:var(--surface);color:var(--ink);outline:none}
   textarea.field{resize:vertical;min-height:60px}.twocol{display:flex;gap:9px}.twocol .field{flex:1}
   .pinrow{display:flex;align-items:center;gap:6px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin-bottom:7px;background:var(--surface);font-size:14px}
   .pinbtn{cursor:pointer;font-size:13px;font-weight:700;padding:4px 9px;border-radius:8px;background:var(--bg);color:var(--accent);user-select:none}
@@ -199,7 +213,7 @@
   .sortbtn{border:1px solid var(--line);background:var(--surface);color:var(--sub);border-radius:14px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer}
   .sortbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .pulldown{position:relative}
-  .pulldown-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;cursor:pointer;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:var(--surface);outline:none}
+  .pulldown-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;cursor:pointer;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:var(--surface);color:var(--ink);outline:none}
   .pulldown-btn:focus{border-color:var(--accent)}
   .pulldown-arrow{color:var(--sub);font-size:11px;flex-shrink:0}
   .pulldown-menu{position:fixed;background:var(--surface);border:1px solid var(--line);border-radius:11px;max-height:240px;overflow-y:auto;z-index:90;box-shadow:0 10px 28px rgba(35,31,28,.14)}
@@ -211,7 +225,11 @@
   .my-field .lbl{margin-top:0}
   .pinrow.dragging{opacity:.45}
   @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
-  #roomScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1)}
+  @keyframes slideOutRight{from{transform:translateX(0)}to{transform:translateX(100%)}}
+  #roomScreen.slide-overlay,#wardScreen.slide-overlay,#evDetailModal.slide-overlay,#adminScreen.slide-overlay,#settingsScreen.slide-overlay,#createRoomScreen.slide-overlay{position:absolute;inset:0;z-index:20;background:var(--paper);display:flex;flex-direction:column}
+  #roomScreen.slidein,#wardScreen.slidein,#evDetailModal.slidein,#adminScreen.slidein,#settingsScreen.slidein,#createRoomScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1);will-change:transform}
+  #roomScreen.slideout,#wardScreen.slideout,#evDetailModal.slideout,#adminScreen.slideout,#settingsScreen.slideout,#createRoomScreen.slideout{animation:slideOutRight .26s cubic-bezier(.22,.61,.36,1) forwards;will-change:transform}
+  #adminScreen{z-index:25}#settingsScreen{z-index:25}#createRoomScreen{z-index:25}
   .pick{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;border:1px solid var(--line);margin-bottom:7px;background:var(--surface)}
   .pick.sel{border-color:var(--accent);background:var(--hl)}.pick .av{width:32px;height:32px;border-radius:10px;font-size:11px}
   .pick .pn{flex:1;font-size:13.5px;font-weight:600}.chk{font-weight:800;color:var(--accent)}
@@ -284,7 +302,7 @@
   </section>
 
   <!-- ROOM -->
-  <section id="roomScreen" class="hidden app-screen">
+  <section id="roomScreen" class="hidden app-screen slide-overlay">
     <div class="hdr"><button class="back" onclick="closeRoom()">‹</button>
       <div style="flex:1;min-width:0;display:flex;flex-direction:column">
         <h1 id="roomTitle" style="font-size:16px"></h1>
@@ -319,45 +337,48 @@
   </section>
 
   <!-- WARD -->
-  <section id="wardScreen" class="hidden app-screen">
-    <div class="hdr"><button class="back" onclick="show('listScreen')">‹</button>
+  <section id="wardScreen" class="hidden app-screen slide-overlay">
+    <div class="hdr"><button class="back" onclick="closeWard()">‹</button>
       <h1 style="font-size:16px">잔여 병실 현황</h1><span class="spacer"></span>
       <button class="lk" id="wardEditBtn" onclick="wardEdit()">편집</button></div>
     <div class="wardbody" id="wardBody" style="flex:1;overflow-y:auto"></div>
   </section>
 
   <!-- ADMIN CONSOLE (관리자: 가입승인 / 회원관리 / 방관리) -->
-  <section id="adminScreen" class="hidden app-screen">
-    <div class="hdr"><button class="back" onclick="show('listScreen')">‹</button>
+  <section id="adminScreen" class="hidden app-screen slide-overlay">
+    <div class="hdr"><button class="back" onclick="closeAdmin()">‹</button>
       <h1 style="font-size:16px">관리자 콘솔</h1><span class="spacer"></span></div>
     <div class="tabs" id="adminTabs"></div>
     <div class="pane on" id="adminBody" style="flex:1;overflow-y:auto;padding:12px"></div>
   </section>
 
   <!-- SETTINGS (설정): 내 정보 / 방 순서 / 회원 검색 -->
-  <section id="settingsScreen" class="hidden app-screen">
-    <div class="hdr"><button class="back" onclick="show('listScreen')">‹</button>
+  <section id="settingsScreen" class="hidden app-screen slide-overlay">
+    <div class="hdr"><button class="back" onclick="closeSettings()">‹</button>
       <b style="font-size:16px">설정</b><span class="spacer"></span></div>
     <div class="tabs" id="setTabs"></div>
     <div class="pane on" id="setBody" style="flex:1;overflow-y:auto;padding:14px"></div>
   </section>
 
-  <!-- CREATE ROOM MODAL -->
-  <div class="modal" id="cmodal"><div class="sheet">
-    <h2>새 모임방 만들기</h2><p>이름·방표식을 정하고 참여할 회원을 선택하세요.</p>
-    <input class="field" id="newRoomName" placeholder="예: 우울증 연구모임">
-    <span class="lbl">방표식 색상</span><div id="cColors" class="swatches"></div>
-    <span class="lbl">방표식 사진 (선택)</span>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
-      <div id="cIconPrev" class="av" style="width:44px;height:44px;border-radius:12px;font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word"></div>
-      <button class="lk" style="background:var(--bg);padding:8px 12px;border-radius:10px" onclick="document.getElementById('cIconInput').click()">사진 선택</button>
-      <button class="lk" id="cIconClear" style="display:none;color:var(--admin)" onclick="clearCreateIcon()">제거</button>
-      <input type="file" id="cIconInput" accept="image/*" style="display:none" onchange="onCreateIconPicked(this)">
+  <!-- CREATE ROOM (목록 위 슬라이드 오버레이) -->
+  <section id="createRoomScreen" class="hidden app-screen slide-overlay">
+    <div class="hdr"><button class="back" onclick="closeCreateRoom()">‹</button>
+      <h1 style="font-size:16px">새 모임방 만들기</h1><span class="spacer"></span></div>
+    <div style="flex:1;overflow-y:auto;padding:14px 16px">
+      <p style="font-size:13px;color:var(--sub);margin-bottom:14px">이름·방표식을 정하고 참여할 회원을 선택하세요.</p>
+      <input class="field" id="newRoomName" placeholder="예: 우울증 연구모임">
+      <span class="lbl">방표식 색상</span><div id="cColors" class="swatches"></div>
+      <span class="lbl">방표식 사진 (선택)</span>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+        <div id="cIconPrev" class="av" style="width:44px;height:44px;border-radius:12px;font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word"></div>
+        <button class="lk lk-pill" onclick="document.getElementById('cIconInput').click()">사진 선택</button>
+        <button class="lk" id="cIconClear" style="display:none;color:var(--admin)" onclick="clearCreateIcon()">제거</button>
+        <input type="file" id="cIconInput" accept="image/*" style="display:none" onchange="onCreateIconPicked(this)">
+      </div>
+      <span class="lbl">회원 선택</span><div id="cpickList"></div>
+      <button class="primary" onclick="createRoom()" style="margin-top:16px">방 만들기</button>
     </div>
-    <span class="lbl">회원 선택</span><div id="cpickList"></div>
-    <button class="primary" onclick="createRoom()">방 만들기</button>
-    <button class="ghost" onclick="closeModal('cmodal')">취소</button>
-  </div></div>
+  </section>
 
   <!-- ROOM EDIT MODAL (이름·방표식 변경) -->
   <div class="modal" id="reditmodal"><div class="sheet">
@@ -367,7 +388,7 @@
     <span class="lbl">방표식 사진 (선택)</span>
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
       <div id="eIconPrev" class="av" style="width:44px;height:44px;border-radius:12px;font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word"></div>
-      <button class="lk" style="background:var(--bg);padding:8px 12px;border-radius:10px" onclick="document.getElementById('eIconInput').click()">사진 선택</button>
+      <button class="lk lk-pill" onclick="document.getElementById('eIconInput').click()">사진 선택</button>
       <button class="lk" id="eIconClear" style="display:none;color:var(--admin)" onclick="clearEditIcon()">제거</button>
       <input type="file" id="eIconInput" accept="image/*" style="display:none" onchange="onEditIconPicked(this)">
     </div>
@@ -392,13 +413,13 @@
     <button class="ghost" id="uiDialogCancel" onclick="uiDialogResolve(false)">취소</button>
   </div></div>
 
-  <!-- EVENT DETAIL (주간 학술활동 — 4줄 미리보기 후 전체 보기) -->
-  <div class="modal" id="evDetailModal"><div class="sheet" style="max-height:90vh;display:flex;flex-direction:column">
-    <h2>일정 상세</h2>
-    <div id="evDetailBody" class="ev-detail-body" style="flex:1;overflow-y:auto;min-height:0"></div>
-    <div id="evDetailEdit"></div>
-    <button class="ghost" onclick="closeModal('evDetailModal')">닫기</button>
-  </div></div>
+  <!-- EVENT DETAIL (캘린더 위 슬라이드 오버레이) -->
+  <div id="evDetailModal" class="hidden slide-overlay app-screen">
+    <div class="hdr"><button class="back" onclick="closeEventDetail()">‹</button>
+      <h1 style="font-size:16px">일정 상세</h1><span class="spacer"></span></div>
+    <div id="evDetailBody" class="ev-detail-body ev-detail-scroll"></div>
+    <div id="evDetailEdit" class="ev-detail-foot"></div>
+  </div>
 
   <!-- EVENT MODAL -->
   <div class="modal" id="emodal"><div class="sheet">
@@ -491,7 +512,7 @@ async function ensureFreshSession(){
   }catch(_){return false;}
 }
 async function authFailAndLogin(){
-  closeModal('emodal'); closeModal('evDetailModal');
+  closeModal('emodal'); closeEventDetail(true);
   await sb.auth.signOut().catch(()=>{});
   me=null; show('login');
   alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
@@ -520,6 +541,8 @@ function storageObjectKey(roomId,fileName){
 
 /* ====== 상태 ====== */
 let me=null, rooms=[], myRoomIds=new Set(), profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
+let roomSlideActive=false; // 슬라이드 진입 애니 중 layoutChat 지연(떨림 방지)
+let roomListScrollTop=0;   // 방 목록 스크롤 — 방 진입·재렌더 후 복원
 let unreadByRoom={}, unreadByMsg={}, lastMsgByRoom={};  // #1 안읽은 수, #2 메시지별 안읽은 수, 방별 마지막 메시지
 let roomPins=[], pinDraft=[];  // 개인 고정 방 순서(room id 배열, 최대 5)
 async function loadRoomPins(){
@@ -545,7 +568,8 @@ async function refreshMeProfile(){
   const {data:prof}=await sb.from('profiles').select('*').eq('id',me.id).maybeSingle();
   if(user) me=mergeMeProfile(prof||me,user);
 }
-async function openSettings(){ setTab='me'; show('settingsScreen'); await refreshMeProfile(); renderSetTabs(); renderSet(); }
+async function openSettings(){ setTab='me'; openListSlideOverlay('settingsScreen'); await refreshMeProfile(); renderSetTabs(); renderSet(); }
+async function closeSettings(){ await closeListSlideOverlay('settingsScreen'); }
 function renderSetTabs(){ const tabs=[['me','내 정보'],['order','방 순서'],['search','회원 검색']];
   document.getElementById('setTabs').innerHTML=tabs.map(([k,l])=>`<div class="tab ${setTab===k?'on':''}" onclick="setGo('${k}')">${l}</div>`).join(''); }
 async function setGo(k){ setTab=k; if(k==='me')await refreshMeProfile(); renderSetTabs(); renderSet(); }
@@ -572,7 +596,7 @@ function renderMyInfo(){
     <div style="display:flex;flex-direction:column;align-items:center;gap:9px;margin-bottom:14px">
       <div id="meAvPrev" class="av" style="width:84px;height:84px;border-radius:26px;font-size:24px"></div>
       <div style="display:flex;gap:8px">
-        <button class="lk" style="background:var(--bg);padding:7px 12px;border-radius:10px" onclick="document.getElementById('meAvInput').click()">사진 선택</button>
+        <button class="lk lk-pill" style="padding:7px 12px" onclick="document.getElementById('meAvInput').click()">사진 선택</button>
         <button class="lk" id="meAvClear" style="color:var(--admin);display:none" onclick="clearMyAvatar()">사진 제거</button>
       </div>
       <input type="file" id="meAvInput" accept="image/*" style="display:none" onchange="onMyAvatarPicked(this)">
@@ -1035,7 +1059,45 @@ const isAdmin=()=>me&&(me.role==='superadmin'||me.role==='admin');
 const canEditWard=()=>!!me&&(isAdmin()||['교실','의국','간호사'].includes(me.member_type));
 // 일정 삭제: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 const canDeleteEvent=ev=>!!me&&((ev&&ev.owner_id===me.id)||isAdmin()||['교실','의국','비서','심리실'].includes(me.member_type));
-function show(id){['login','pending','reset','listScreen','roomScreen','wardScreen','adminScreen','settingsScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
+function show(id){['login','pending','reset','listScreen','roomScreen','wardScreen','adminScreen','settingsScreen','createRoomScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
+const LIST_SLIDE_OVERLAYS=['roomScreen','wardScreen','adminScreen','settingsScreen','createRoomScreen','evDetailModal'];
+function openListOverlay(id){
+  ['login','pending','reset'].forEach(s=>document.getElementById(s).classList.add('hidden'));
+  document.getElementById('listScreen').classList.remove('hidden');
+  LIST_SLIDE_OVERLAYS.forEach(s=>{const el=document.getElementById(s);if(el)el.classList.toggle('hidden',s!==id);});
+  layoutChat();
+}
+function openListSlideOverlay(id){openListOverlay(id);playSlideIn(document.getElementById(id));}
+async function closeListSlideOverlay(id,force){
+  const el=document.getElementById(id);
+  if(!el||el.classList.contains('hidden'))return;
+  if(force){el.classList.add('hidden');el.classList.remove('slideout','slidein');return;}
+  await slideCloseOverlay(el);
+}
+function playSlideIn(el){
+  if(!el)return;
+  el.classList.remove('slideout');
+  void el.offsetWidth;
+  el.classList.add('slidein');
+  el.addEventListener('animationend',()=>{el.classList.remove('slidein');el.style.willChange='';},{once:true});
+}
+function slideCloseOverlay(el){
+  return new Promise(resolve=>{
+    if(!el||el.classList.contains('hidden')){resolve();return;}
+    roomSlideActive=true;
+    el.classList.remove('slidein');
+    void el.offsetWidth;
+    el.classList.add('slideout');
+    el.addEventListener('animationend',()=>{
+      el.classList.remove('slideout','slidein');
+      el.classList.add('hidden');
+      el.style.willChange='';
+      el.style.transform='';
+      roomSlideActive=false;
+      resolve();
+    },{once:true});
+  });
+}
 
 /* ====== 공용 확인/알림 대화상자 (브라우저 기본 confirm/alert 대체 → "대화상자 숨기기" 안 뜸) ====== */
 let _uiResolve=null;
@@ -1216,6 +1278,8 @@ async function loadRooms(){
 
 /* ====== 방 목록 ====== */
 function renderRoomList(){
+  const listEl=document.getElementById('roomList');
+  const scrollTop=listEl?listEl.scrollTop:0;
   document.getElementById('badge').textContent=
     me.role==='superadmin'?'전체관리자':me.role==='admin'?'관리자':(me.name+' · '+(me.member_type||''));
   // 주간 학술활동 방(default_view=week)은 목록에서 빼고 별도 바로 고정
@@ -1248,7 +1312,11 @@ function renderRoomList(){
     <div style="flex:1"><b>${esc(week.name)}</b><small>주간 학술활동 · 일정 보기</small></div>${ubadge(week.id)}<span>›</span></div>`;
   h+=`<div class="mkrow"><button class="mkbtn" onclick="openCreate()">＋ 모임방 만들기</button></div>`;
   h+=listRooms.length?listRooms.map(item).join(''):`<div style="padding:14px 18px;color:var(--sub);font-size:13px">방이 없습니다.</div>`;
-  document.getElementById('roomList').innerHTML=h;
+  if(listEl){
+    listEl.innerHTML=h;
+    listEl.scrollTop=scrollTop;
+    requestAnimationFrame(()=>{listEl.scrollTop=scrollTop;});
+  }
 }
 
 /* ====== 관리자 콘솔 (가입승인 / 회원관리) ====== */
@@ -1257,7 +1325,8 @@ async function reloadProfiles(){
   profilesById={};(data||[]).forEach(p=>profilesById[p.id]=p);
 }
 let adminTab='approval';
-function openAdmin(){ if(!isAdmin())return; adminTab='approval'; show('adminScreen'); renderAdminTabs(); renderAdmin(); }
+function openAdmin(){ if(!isAdmin())return; adminTab='approval'; openListSlideOverlay('adminScreen'); renderAdminTabs(); renderAdmin(); }
+async function closeAdmin(){ await closeListSlideOverlay('adminScreen'); }
 function renderAdminTabs(){
   const sup=me.role==='superadmin';
   const tabs=sup?[['approval','가입 승인'],['members','회원 관리']]:[['approval','가입 승인']];
@@ -1357,6 +1426,8 @@ const opensWeekCal=r=>r.default_view==='week'&&r.category!=='custom'&&r.category
 const canRename=r=>(r.category!=='custom')?(me.role==='superadmin'):(isAdmin()||(!!r.created_by&&r.created_by===me.id));
 const canManage=r=>isAdmin()||(r.category==='custom'&&(!!r.created_by&&r.created_by===me.id));
 async function openRoom(id){
+  const listEl=document.getElementById('roomList');
+  if(listEl)roomListScrollTop=listEl.scrollTop;
   active=rooms.find(r=>r.id===id);
   const isDM=active.category==='direct';
   document.getElementById('roomTitle').textContent=roomDisplayName(active);
@@ -1371,10 +1442,16 @@ async function openRoom(id){
   const isNotice=isNoticeRoom();
   const isDefault=active.category!=='custom'&&!isDM&&!isNotice;
   document.getElementById('roomTabs').style.display=isDefault?'':'none';
-  renderTopBarMembers(active);   // 상단 바에 개설자·참여자 이름 나열 (넘치면 ...)
-  show('roomScreen');
-  const rs=document.getElementById('roomScreen');         // 오른쪽→왼쪽 펼침 효과
-  rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');
+  await renderTopBarMembers(active);   // 헤더 높이 확정 후 화면 전환(떨림 방지)
+  openListOverlay('roomScreen');
+  const rs=document.getElementById('roomScreen');
+  roomSlideActive=true;
+  playSlideIn(rs);
+  rs.addEventListener('animationend',()=>{
+    roomSlideActive=false;
+    layoutChat();
+    scrollMsgsToBottom();
+  },{once:true});
   await setRoomRealtime(id);
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
   tab(isNotice?'chat':(isDefault&&opensWeekCal(active)?'cal':'chat'));
@@ -1382,7 +1459,7 @@ async function openRoom(id){
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
   setNoticeComposeMode(!!(active&&noticeTopRoom()&&noticeTopRoom().id===active.id));
-  layoutChat();
+  if(!roomSlideActive){layoutChat();scrollMsgsToBottom();}
 }
 // 상단 바 개설자·참여자 이름 나열 — 개설자 먼저, 나머지 이름순. DM·구성원없음은 숨김. (넘치면 CSS ellipsis)
 async function renderTopBarMembers(r){
@@ -1400,7 +1477,7 @@ async function renderTopBarMembers(r){
   if(!names.length)return;
   el.textContent=names.join(', '); el.style.display='';
 }
-async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);show('listScreen');loadUnreadCounts();loadLastMessages();}
+async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);await slideCloseOverlay(document.getElementById('roomScreen'));const el=document.getElementById('roomList');if(el)el.scrollTop=roomListScrollTop;loadUnreadCounts();loadLastMessages();}
 /* ====== 1:1 대화 스와이프 삭제 (왼쪽으로 밀어 확인 후 본인 참여만 제거) ====== */
 let dmStartX=null,dmEl=null,dmDx=0,dmSwiped=false;
 function dmSwipeStart(e){const t=e.touches&&e.touches[0];if(!t)return;dmStartX=t.clientX;dmEl=e.currentTarget;dmDx=0;dmSwiped=false;}
@@ -1534,25 +1611,25 @@ function tab(t){
 /* ====== 채팅 ====== */
 async function loadMsgs(){const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:true});msgs=data||[];renderMsgs();
   if(active){await markRead(active.id);loadMsgUnread();loadUnreadCounts();}}
-/** 채팅 msgs 높이 — pane.clientHeight 대신 화면 기준(내용만큼 pane이 늘어나 스크롤 안 되는 Chrome 버그 회피) */
+/** 채팅 msgs 높이 — offsetHeight 기준(슬라이드 transform 중 getBoundingClientRect 떨림 방지) */
 function layoutChat(){
   const screen=document.getElementById('roomScreen');
   const pane=document.getElementById('pane-chat');
   const el=document.getElementById('msgs');
   if(!screen||!pane||!el||screen.classList.contains('hidden')||!pane.classList.contains('on'))return;
+  if(roomSlideActive)return;
   const bar=document.getElementById('inputbar');
   const ro=document.getElementById('readonlyBar');
   const foot=bar&&!bar.classList.contains('hidden')?bar:(ro&&!ro.classList.contains('hidden')?ro:null);
   const footH=foot?foot.offsetHeight:0;
-  const phone=document.querySelector('.phone');
-  const bottom=(phone||screen).getBoundingClientRect().bottom;
+  const hdr=screen.querySelector('.hdr');
   const tabs=screen.querySelector('#roomTabs');
-  const top=tabs?tabs.getBoundingClientRect().bottom:el.getBoundingClientRect().top;
-  const h=Math.max(120,bottom-top-footH);
+  let chromeH=(hdr?.offsetHeight||0)+footH;
+  if(tabs&&tabs.offsetParent!==null)chromeH+=tabs.offsetHeight;
+  const h=Math.max(120,screen.clientHeight-chromeH);
   el.style.height=h+'px';
   el.style.maxHeight=h+'px';
   el.style.overflowY='auto';
-  if(el.scrollHeight>el.clientHeight+2)el.style.overflowY='scroll';
 }
 function scrollMsgsToBottom(){
   layoutChat();
@@ -1577,31 +1654,11 @@ function mergeNoticeMsgs(msgs){
   }
   return out;
 }
-async function downloadAttachment(url,name){
-  try{
-    const r=await fetch(url);
-    if(!r.ok)throw new Error('fetch');
-    const blob=await r.blob();
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download=name||'download';
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(a.href);
-  }catch(_){
-    window.open(url,'_blank');
-  }
-}
 function noticeAttachmentHtml(m){
-  if(m.type==='image'&&m.attachment_url){
-    const nm=esc(m.attachment_name||'photo.jpg');
-    const uEnc=encodeURIComponent(m.attachment_url);
-    return `<div class="notice-media"><img class="bimg" src="${esc(m.attachment_url)}" onclick="downloadAttachment(decodeURIComponent('${uEnc}'),'${nm.replace(/'/g,"\\'")}')" alt="사진" title="클릭하여 다운로드"><p class="notice-dl-hint">클릭하여 다운로드</p></div>`;
-  }
-  if(m.type==='file'&&m.attachment_url){
-    const nm=esc(m.attachment_name||'file');
-    const uEnc=encodeURIComponent(m.attachment_url);
-    return `<div class="notice-media"><a class="bfile" href="#" onclick="event.preventDefault();downloadAttachment(decodeURIComponent('${uEnc}'),'${nm.replace(/'/g,"\\'")}');return false;">📎 <span>${esc(m.attachment_name||'파일')}</span></a><p class="notice-dl-hint">클릭하여 다운로드</p></div>`;
-  }
+  if(m.type==='image'&&m.attachment_url)
+    return `<div class="notice-media"><img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진"></div>`;
+  if(m.type==='file'&&m.attachment_url)
+    return `<div class="notice-media"><a class="bfile" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a></div>`;
   return '';
 }
 function noticePostHtml(m,who,mine){
@@ -1855,8 +1912,16 @@ function openEventDetail(id){
   const e=events.find(x=>x.id===id); if(!e)return;
   document.getElementById('evDetailBody').innerHTML=evDetailHtml(e);
   document.getElementById('evDetailEdit').innerHTML=canEdit(e)
-    ?`<button class="ev-detail-edit" onclick="closeModal('evDetailModal');openEvent('${e.id}')">✏️ 수정</button>`:'';
-  document.getElementById('evDetailModal').classList.add('on');
+    ?`<button class="ev-detail-edit" onclick="closeEventDetail().then(()=>openEvent('${e.id}'))">✏️ 수정</button>`:'';
+  const el=document.getElementById('evDetailModal');
+  el.classList.remove('hidden');
+  playSlideIn(el);
+}
+async function closeEventDetail(force){
+  const el=document.getElementById('evDetailModal');
+  if(!el||el.classList.contains('hidden'))return;
+  if(force){el.classList.add('hidden');el.classList.remove('slideout','slidein');return;}
+  await slideCloseOverlay(el);
 }
 const selLabel=()=>`${selDate.getMonth()+1}/${selDate.getDate()}`;
 function dayEventsHtml(d,compact){
@@ -1927,7 +1992,7 @@ function calNav(mode,today){
   return `<div class="calnav"><span class="narr" onclick="${fn}(-1)">‹</span><b>${center}</b><span class="narr" onclick="${fn}(1)">›</span></div>${ret}`;
 }
 function openEvent(id){
-  closeModal('evDetailModal');
+  closeEventDetail(true);
   editEventId=id||null;
   const e=id?events.find(x=>x.id===id):null;
   document.getElementById('evModalTitle').textContent=id?'일정 수정':'일정 추가';
@@ -2027,7 +2092,8 @@ async function deleteEvent(){
 }
 
 /* ====== 잔여 병실 현황 ====== */
-async function openWard(){show('wardScreen');await loadWard();}
+async function openWard(){openListOverlay('wardScreen');playSlideIn(document.getElementById('wardScreen'));await loadWard();}
+async function closeWard(){await slideCloseOverlay(document.getElementById('wardScreen'));}
 async function loadWard(){const {data}=await sb.from('ward_status').select('*').eq('id',1).maybeSingle();
   wardText=data?data.content:'';wardUpdated=data?data.updated_at:null;renderWard(false);}
 function fmtWardPublish(iso){
@@ -2081,8 +2147,9 @@ function openCreate(){
       <div class="av" style="background:${tcolor(p.member_type)}">${ini(p.name)}</div>
       <span class="pn">${esc(p.name)}</span><span class="chk" style="visibility:hidden">✓</span></div>`).join('')
     :'<p style="color:var(--sub);font-size:13px">표시할 회원가 없습니다.</p>';
-  document.getElementById('cmodal').classList.add('on');
+  openListSlideOverlay('createRoomScreen');
 }
+async function closeCreateRoom(){ await closeListSlideOverlay('createRoomScreen'); }
 function toggleC(id){cpick.has(id)?cpick.delete(id):cpick.add(id);
   const el=document.querySelector(`#cpickList .pick[data-id="${id}"]`);
   el.classList.toggle('sel',cpick.has(id));el.querySelector('.chk').style.visibility=cpick.has(id)?'visible':'hidden';}
@@ -2115,7 +2182,7 @@ async function createRoom(){
     alert(dup?'같은 이름의 모임방이 이미 있습니다. 다른 이름을 사용하세요.':'방 생성 실패: '+error.message);return;}
   const ids=[...new Set([...cpick,me.id])];
   await sb.from('room_members').insert(ids.map(uid=>({room_id:id,user_id:uid})));
-  closeModal('cmodal');await loadRooms();
+  await closeCreateRoom();await loadRooms();
 }
 
 function closeModal(id){document.getElementById(id).classList.remove('on');}

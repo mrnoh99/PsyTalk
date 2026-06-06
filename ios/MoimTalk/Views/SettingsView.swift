@@ -8,33 +8,37 @@ import PhotosUI
 struct SettingsView: View {
     @ObservedObject var vm: MoimViewModel
     let pinRooms: [Room]
-    @Environment(\.dismiss) private var dismiss
+    let onBack: () -> Void
 
     var body: some View {
-        NavigationView {
-            VStack(spacing: 0) {
-                Picker("설정", selection: $vm.settingsTab) {
-                    Text("내 정보").tag("myInfo")
-                    Text("방 순서").tag("order")
-                    Text("회원 검색").tag("search")
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal, 16).padding(.vertical, 10)
-                .background(Moim.paper)
+        VStack(spacing: 0) {
+            HStack {
+                Button(action: onBack) { Text("‹").font(.system(size: 25)) }
+                Text("설정").font(.system(size: 18, weight: .bold))
+                Spacer()
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+            .background(Moim.paper)
+            Divider().background(Moim.line)
 
-                Group {
-                    switch vm.settingsTab {
-                    case "order":  PinOrderTab(vm: vm, rooms: pinRooms)
-                    case "search": MemberSearchTab(vm: vm) { dismiss() }
-                    default:       MyInfoTab(vm: vm) { dismiss() }
-                    }
+            Picker("설정", selection: $vm.settingsTab) {
+                Text("내 정보").tag("myInfo")
+                Text("방 순서").tag("order")
+                Text("회원 검색").tag("search")
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 16).padding(.vertical, 10)
+            .background(Moim.paper)
+
+            Group {
+                switch vm.settingsTab {
+                case "order":  PinOrderTab(vm: vm, rooms: pinRooms)
+                case "search": MemberSearchTab(vm: vm, onStartDirect: onBack)
+                default:       MyInfoTab(vm: vm, onDismiss: onBack)
                 }
             }
-            .background(Moim.paper.ignoresSafeArea())
-            .navigationTitle("설정")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("닫기") { dismiss() } } }
         }
+        .background(Moim.paper.ignoresSafeArea())
     }
 }
 

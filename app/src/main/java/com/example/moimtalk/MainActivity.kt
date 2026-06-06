@@ -5,9 +5,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -15,6 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -22,7 +25,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
+import com.example.moimtalk.ui.MoimTheme
+import com.example.moimtalk.ui.theme.PsyTalkTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.example.moimtalk.data.CalendarEvent
@@ -872,22 +876,21 @@ class MainActivity : ComponentActivity() {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
         setContent {
-            MaterialTheme {
+            PsyTalkTheme(darkTheme = MoimTheme.dark) {
                 App()
             }
         }
     }
 }
 
-/** 채팅방이 열릴 때 오른쪽 → 왼쪽으로 펼쳐 나오는 효과 */
+/** 목록 위 슬라이드 오버레이 — 진입 오른쪽→왼쪽, 복귀 오른쪽으로 */
 @Composable
-private fun SlideInFromRight(content: @Composable () -> Unit) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
+private fun SlideListOverlay(visible: Boolean, content: @Composable () -> Unit) {
     AnimatedVisibility(
         visible = visible,
-        enter = slideInHorizontally(animationSpec = tween(260)) { it },
-        exit = ExitTransition.None
+        modifier = Modifier.fillMaxSize(),
+        enter = slideInHorizontally(tween(260)) { it },
+        exit = slideOutHorizontally(tween(260)) { it },
     ) { content() }
 }
 
@@ -898,6 +901,11 @@ fun App(vm: MoimViewModel = viewModel()) {
     var showCreateRoom by remember { mutableStateOf(false) }
     var showApprovals by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    // 복귀 애니 중에도 RoomScreen 유지(AnimatedVisibility exit)
+    var overlayRoom by remember { mutableStateOf<Room?>(null) }
+    LaunchedEffect(openedRoom?.id) {
+        if (openedRoom != null) overlayRoom = openedRoom
+    }
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -942,39 +950,52 @@ fun App(vm: MoimViewModel = viewModel()) {
         !vm.loggedIn -> LoginScreen(vm)
         // 기본값 불승인: approved 가 true 가 아니면(false·미설정) 승인 대기
         vm.myProfile != null && vm.myProfile?.approved != true -> PendingApprovalScreen(vm)
-        showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
-        showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
-        showSettings -> SettingsScreen(
-            vm = vm,
-            onBack = { showSettings = false },
-            onOpenRoom = { room ->
-                showSettings = false
-                openedRoom = room
-                vm.openRoom(room)
-            }
-        )
-        showApprovals && vm.myProfile?.let { isAdminRole(it.role) } == true ->
-            AdminConsoleScreen(vm = vm, onBack = { showApprovals = false })
-        openedRoom == null -> RoomListScreen(
-            vm = vm,
-            onOpen = { room ->
-                openedRoom = room
-                vm.openRoom(room)
-            },
-            onWard = { showWard = true },
-            onCreateRoom = { showCreateRoom = true },
-            onApprovals = { showApprovals = true },
-            onSettings = { showSettings = true }
-        )
-        else -> SlideInFromRight {
-            RoomScreen(
+        else -> Box(Modifier.fillMaxSize()) {
+            // 방 진입 시에도 목록을 composition 에 유지 → 뒤로가기 시 스크롤 위치 보존
+            RoomListScreen(
                 vm = vm,
-                room = openedRoom!!,
-                onBack = {
-                    vm.closeRoom()
-                    openedRoom = null
-                }
+                onOpen = { room ->
+                    openedRoom = room
+                    vm.openRoom(room)
+                },
+                onWard = { showWard = true },
+                onCreateRoom = { showCreateRoom = true },
+                onApprovals = { showApprovals = true },
+                onSettings = { showSettings = true }
             )
+            SlideListOverlay(showSettings) {
+                SettingsScreen(
+                    vm = vm,
+                    onBack = { showSettings = false },
+                    onOpenRoom = { room ->
+                        showSettings = false
+                        openedRoom = room
+                        overlayRoom = room
+                        vm.openRoom(room)
+                    }
+                )
+            }
+            SlideListOverlay(showApprovals && vm.myProfile?.let { isAdminRole(it.role) } == true) {
+                AdminConsoleScreen(vm = vm, onBack = { showApprovals = false })
+            }
+            SlideListOverlay(showCreateRoom) {
+                CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
+            }
+            SlideListOverlay(openedRoom != null) {
+                overlayRoom?.let { room ->
+                    RoomScreen(
+                        vm = vm,
+                        room = room,
+                        onBack = {
+                            vm.closeRoom()
+                            openedRoom = null
+                        }
+                    )
+                }
+            }
+            SlideListOverlay(showWard) {
+                WardStatusScreen(vm = vm, onBack = { showWard = false })
+            }
         }
     }
 

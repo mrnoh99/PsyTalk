@@ -106,6 +106,9 @@ class MoimViewModel : ViewModel() {
     private suspend fun refetchRoomsQuiet() {
         try {
             rooms = MoimRepository.rooms()
+            // 모임방·DM 은 myRoomIds 로 홈 목록을 거름. superadmin/admin 은 rooms() 가
+            // 모든 방을 돌려주므로 myRoomIds 가 stale 하면 본인 참여 방이 사라진다(웹은 함께 갱신).
+            myRoomIds = try { MoimRepository.myRoomIds().toSet() } catch (_: Exception) { myRoomIds }
             loadRoomMemberCounts()
             unreadByRoom = MoimRepository.unreadCounts()
             lastMsgByRoom = MoimRepository.roomLastMessages()
@@ -533,6 +536,7 @@ class MoimViewModel : ViewModel() {
             try {
                 MoimRepository.createRoom(trimmed, memberIds, color, iconBytes, iconName)
                 rooms = MoimRepository.rooms()
+                myRoomIds = try { MoimRepository.myRoomIds().toSet() } catch (_: Exception) { myRoomIds }
                 onDone()
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "방 만들기")
@@ -546,6 +550,7 @@ class MoimViewModel : ViewModel() {
             try {
                 MoimRepository.deleteRoom(room.id)
                 rooms = MoimRepository.rooms()
+                myRoomIds = try { MoimRepository.myRoomIds().toSet() } catch (_: Exception) { myRoomIds }
                 onDone()
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "모임방 삭제")
@@ -560,6 +565,7 @@ class MoimViewModel : ViewModel() {
                 MoimRepository.leaveRoom(room.id)
                 activeRoom = null
                 rooms = MoimRepository.rooms()
+                myRoomIds = try { MoimRepository.myRoomIds().toSet() } catch (_: Exception) { myRoomIds }
                 onDone()
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "방 나가기")

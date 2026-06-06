@@ -79,7 +79,11 @@
   .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
   .bfile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line);position:relative}
+  .inputbar.notice-compose{align-items:flex-end;padding:10px 12px 12px}
   .inputbar input[type=text],.inputbar #msgInput{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
+  .inputbar #msgInputNotice{display:none;flex:1;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;line-height:1.55;outline:none;font-family:inherit;resize:vertical;min-height:88px;max-height:200px}
+  .inputbar.notice-compose #msgInput{display:none}
+  .inputbar.notice-compose #msgInputNotice{display:block}
   .send{background:var(--me);border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer}
   .plus{background:none;border:1px solid var(--line);color:var(--sub);width:34px;height:34px;border-radius:50%;font-size:21px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
   .attachmenu{position:absolute;bottom:52px;left:12px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:30}
@@ -290,6 +294,7 @@
         <div class="attpreview hidden" id="attachPreview"></div>
         <button class="plus" id="plusBtn" onclick="toggleAttachMenu(event)">＋</button>
         <input id="msgInput" placeholder="메시지 입력" onkeydown="onMsgKeydown(event)" onfocus="scrollMsgsToBottom()">
+        <textarea id="msgInputNotice" placeholder="공지 내용 입력 (줄바꿈 가능)" onfocus="scrollMsgsToBottom()"></textarea>
         <button class="send" onclick="sendMsg()">➤</button>
         <input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="onAttachPicked(this,'image')">
         <input type="file" id="chatFileInput" style="display:none" onchange="onAttachPicked(this,'file')">
@@ -1342,8 +1347,9 @@ async function openRoom(id){
   document.getElementById('deleteBtn').style.display=isDM?'':'none';   // 1:1 대화만 우상단 방삭제
   calMode=opensWeekCal(active)?'week':'month';
   selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
-  // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)·DM(direct)은 채팅만.
-  const isDefault=active.category!=='custom'&&!isDM;
+  // 자료실·캘린더 탭 — 주간 학술활동 등 기본 방만. 과 전체공지·모임방·DM은 채팅만.
+  const isNotice=isNoticeRoom();
+  const isDefault=active.category!=='custom'&&!isDM&&!isNotice;
   document.getElementById('roomTabs').style.display=isDefault?'':'none';
   renderTopBarMembers(active);   // 상단 바에 개설자·참여자 이름 나열 (넘치면 ...)
   show('roomScreen');
@@ -1351,10 +1357,11 @@ async function openRoom(id){
   rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');
   await setRoomRealtime(id);
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
-  tab(isDefault&&opensWeekCal(active)?'cal':'chat');
+  tab(isNotice?'chat':(isDefault&&opensWeekCal(active)?'cal':'chat'));
   const allow=canPost(active);
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
+  setNoticeComposeMode(!!(active&&noticeTopRoom()&&noticeTopRoom().id===active.id));
   layoutChat();
 }
 // 상단 바 개설자·참여자 이름 나열 — 개설자 먼저, 나머지 이름순. DM·구성원없음은 숨김. (넘치면 CSS ellipsis)
@@ -1575,11 +1582,19 @@ function renderMsgs(){
 }
 window.addEventListener('resize',layoutChat);
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize',()=>{layoutChat();if(document.activeElement===document.getElementById('msgInput'))scrollMsgsToBottom();});
+  window.visualViewport.addEventListener('resize',()=>{layoutChat();if(document.activeElement===activeMsgInput())scrollMsgsToBottom();});
+}
+function isNoticeRoom(){return active&&noticeTopRoom()&&noticeTopRoom().id===active.id;}
+function activeMsgInput(){return isNoticeRoom()?document.getElementById('msgInputNotice'):document.getElementById('msgInput');}
+function setNoticeComposeMode(on){
+  const bar=document.getElementById('inputbar');
+  if(bar)bar.classList.toggle('notice-compose',on);
+  if(!on){const ta=document.getElementById('msgInputNotice');if(ta)ta.value='';}
 }
 // 보내기(➤): 첨부가 대기 중이면 첨부를 보내고, 텍스트가 있으면 텍스트도 보낸다
 /** 한글 IME 조합 중 Enter 는 전송하지 않음 (마지막 글자만 먼저 나가는 버그 방지) */
 function onMsgKeydown(e){
+  if(e.target.id==='msgInputNotice')return;
   if(e.key!=='Enter')return;
   if(e.isComposing||e.keyCode===229)return;
   e.preventDefault();
@@ -1587,7 +1602,7 @@ function onMsgKeydown(e){
 }
 async function sendMsg(){
   if(pendingAttach){const ok=await sendPendingAttach();if(!ok)return;}
-  const i=document.getElementById('msgInput'),t=i.value.trim();
+  const i=activeMsgInput(),t=i.value.trim();
   if(t){i.value='';const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:t});
     if(error){alert('전송 실패: '+error.message);return;}}
   await loadMsgs();

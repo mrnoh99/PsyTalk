@@ -948,7 +948,13 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     val liveRoom = vm.rooms.firstOrNull { it.id == room.id } ?: room
     // 주간 학술활동(default_view=week) 방은 열자마자 캘린더(주간) 탭으로
     var tab by remember(liveRoom.id) {
-        mutableStateOf(if (opensWeekCalendar(liveRoom)) "cal" else "chat")
+        mutableStateOf(
+            when {
+                isNoticeTopRoom(liveRoom, vm.rooms) -> "chat"
+                opensWeekCalendar(liveRoom) -> "cal"
+                else -> "chat"
+            },
+        )
     }
     var input by remember { mutableStateOf("") }
     var showAttach by remember { mutableStateOf(false) }
@@ -981,6 +987,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     // 1:1 DM 은 채팅 전용 (캘린더·자료실 탭, 이름변경·설정 숨김). 제목=상대 이름. 방삭제=목록에서 제거.
     val dm = isDirect(liveRoom)
     val titleName = roomDisplayName(liveRoom, vm.profilesById)
+    val noticeCompose = isNoticeTopRoom(liveRoom, vm.rooms)
 
     if (showLeave) {
         AlertDialog(
@@ -1016,7 +1023,14 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     LaunchedEffect(vm.messages) { vm.resolveAttachments() }
 
     // 상단 바에 개설자·참여자 이름을 나열하기 위해 방 구성원 로드 (DM 제외)
-    LaunchedEffect(liveRoom.id) { if (!dm) vm.loadRoomMembers(liveRoom.id) }
+    LaunchedEffect(liveRoom.id) {
+        if (!dm) vm.loadRoomMembers(liveRoom.id)
+        tab = when {
+            isNoticeTopRoom(liveRoom, vm.rooms) -> "chat"
+            opensWeekCalendar(liveRoom) -> "cal"
+            else -> "chat"
+        }
+    }
 
     if (showSettings) {
         RoomSettingsDialog(
@@ -1147,7 +1161,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         }
                     }
                 }
-                val showSubTabs = room.category != "custom" && !dm
+                val showSubTabs = room.category != "custom" && !dm && !isNoticeTopRoom(liveRoom, vm.rooms)
                 if (showSubTabs) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         listOf("chat" to "💬 채팅", "files" to "📁 자료실", "cal" to "📅 캘린더").forEach { (id, label) ->
@@ -1215,7 +1229,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = if (noticeCompose) Alignment.Bottom else Alignment.CenterVertically,
                     ) {
                         Box {
                             Box(
@@ -1243,10 +1257,19 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         OutlinedTextField(
                             value = input,
                             onValueChange = { input = it },
-                            modifier = Modifier.weight(1f),
-                            placeholder = { Text("메시지 입력") },
-                            singleLine = true,
-                            shape = RoundedCornerShape(20.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .then(
+                                    if (noticeCompose) Modifier.heightIn(min = 88.dp, max = 160.dp)
+                                    else Modifier,
+                                ),
+                            placeholder = {
+                                Text(if (noticeCompose) "공지 내용 입력 (줄바꿈 가능)" else "메시지 입력")
+                            },
+                            singleLine = !noticeCompose,
+                            minLines = if (noticeCompose) 3 else 1,
+                            maxLines = if (noticeCompose) 8 else 1,
+                            shape = if (noticeCompose) RoundedCornerShape(14.dp) else RoundedCornerShape(20.dp),
                         )
                         Spacer(Modifier.width(8.dp))
                         Box(

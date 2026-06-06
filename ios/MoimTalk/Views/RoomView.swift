@@ -20,8 +20,11 @@ struct RoomView: View {
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
-        // default_view=week 방은 열자마자 캘린더(주간) 탭으로
-        _tab = State(initialValue: opensWeekCalendar(room) ? "cal" : "chat")
+        let startTab: String = {
+            if isNoticeTopRoom(room, vm.rooms) { return "chat" }
+            return opensWeekCalendar(room) ? "cal" : "chat"
+        }()
+        _tab = State(initialValue: startTab)
     }
 
     // 이름 변경이 반영되도록 최신 방 정보를 vm.rooms 에서 조회
@@ -47,7 +50,8 @@ struct RoomView: View {
         }
         .background(Moim.paper.ignoresSafeArea())
         .task(id: liveRoom.id) {
-            tab = opensWeekCalendar(liveRoom) ? "cal" : "chat"
+            tab = isNoticeTopRoom(liveRoom, vm.rooms) ? "chat"
+                : (opensWeekCalendar(liveRoom) ? "cal" : "chat")
             if !isDM { vm.loadRoomMembers(liveRoom.id) }
         }
     }
@@ -151,9 +155,10 @@ struct RoomView: View {
         }
     }
 
-    // 자료실·캘린더·채팅 탭은 기본 방(과전체공지·주간 학술활동)만. 모임방·1:1은 탭 없이 채팅만.
+    // 자료실·캘린더·채팅 탭 — 주간 학술활동 등 기본 방만. 과 전체공지·모임방·1:1은 채팅만.
     private var tabItems: [(String, String)] {
         if isDM || room.category == "custom" { return [] }
+        if isNoticeTopRoom(liveRoom, vm.rooms) { return [] }
         return [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
     }
 
@@ -282,7 +287,7 @@ struct ChatView: View {
                     }
                     .padding(.horizontal, 12).padding(.top, 8)
                 }
-                HStack(spacing: 8) {
+                HStack(alignment: noticeLayout ? .bottom : .center, spacing: 8) {
                     Menu {
                         Button { pickPhoto = true } label: { Label("사진", systemImage: "photo") }
                         Button { pickFile = true } label: { Label("파일", systemImage: "paperclip") }
@@ -290,8 +295,14 @@ struct ChatView: View {
                         Text("＋").font(.system(size: 20)).foregroundColor(Moim.sub)
                             .frame(width: 33, height: 33).background(Moim.white).clipShape(Circle())
                     }
-                    TextField("메시지 입력", text: $input)
-                        .textFieldStyle(.roundedBorder)
+                    if noticeLayout {
+                        TextField("공지 내용 입력 (줄바꿈 가능)", text: $input, axis: .vertical)
+                            .lineLimit(3...8)
+                            .textFieldStyle(.roundedBorder)
+                    } else {
+                        TextField("메시지 입력", text: $input)
+                            .textFieldStyle(.roundedBorder)
+                    }
                     Button {
                         if let p = pendingAttach {
                             vm.sendAttachment(fileName: p.name, data: p.data, type: p.type)

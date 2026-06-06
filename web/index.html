@@ -496,7 +496,8 @@ function memberSearchRow(p){
 }
 function renderMemberSearchList(){
   const q=memSearchQ.trim().toLowerCase();
-  let list=Object.values(profilesById).filter(p=>p.id!==me.id&&p.role!=='superadmin'&&p.approved===true&&!p.withdrawn);
+  // 회원 검색에는 전체관리자도 포함(일반 회원이 전체관리자에게 메시지 가능). 본인·미승인·탈퇴만 제외.
+  let list=Object.values(profilesById).filter(p=>p.id!==me.id&&p.approved===true&&!p.withdrawn);
   if(q)list=list.filter(p=>(p.name||'').toLowerCase().includes(q));
   const el=document.getElementById('memSearchList'); if(!el)return;
   if(!list.length){el.innerHTML=`<p style="color:var(--sub);font-size:13px;padding:10px 2px">${q?'검색 결과가 없습니다.':'표시할 회원이 없습니다.'}</p>`;return;}

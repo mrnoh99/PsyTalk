@@ -641,9 +641,10 @@ class MoimViewModel : ViewModel() {
     /** 회원 검색 목록: 본인·전체관리자 제외 + 승인·미탈퇴, 이름 부분일치(대소문자 무시) */
     fun searchableMembers(): List<Profile> {
         val q = memberSearchQuery.trim().lowercase()
+        // 회원 검색에는 전체관리자도 포함(일반 회원이 전체관리자에게 메시지 가능). 본인·미승인·탈퇴만 제외.
         return profilesById.values.filter {
             it.id != MoimRepository.currentUserId() &&
-                it.role != "superadmin" && it.approved && !it.withdrawn &&
+                it.approved && !it.withdrawn &&
                 (q.isEmpty() || it.name.lowercase().contains(q))
         }
     }

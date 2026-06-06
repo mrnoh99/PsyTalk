@@ -202,11 +202,10 @@ struct MemberSearchTab: View {
     @ObservedObject var vm: MoimViewModel
     let onStartDirect: () -> Void
 
-    // 본인·전체관리자·미승인·탈퇴 제외
+    // 회원 검색에는 전체관리자도 포함(일반 회원이 전체관리자에게 메시지 가능). 본인·미승인·탈퇴만 제외.
     private var baseList: [Profile] {
         vm.profilesById.values.filter {
             $0.id != MoimRepository.currentUserId()
-                && $0.role != "superadmin"
                 && $0.approved == true
                 && $0.withdrawn != true
         }

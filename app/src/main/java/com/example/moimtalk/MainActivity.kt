@@ -15,6 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -956,26 +959,31 @@ fun App(vm: MoimViewModel = viewModel()) {
         )
         showApprovals && vm.myProfile?.let { isAdminRole(it.role) } == true ->
             AdminConsoleScreen(vm = vm, onBack = { showApprovals = false })
-        openedRoom == null -> RoomListScreen(
-            vm = vm,
-            onOpen = { room ->
-                openedRoom = room
-                vm.openRoom(room)
-            },
-            onWard = { showWard = true },
-            onCreateRoom = { showCreateRoom = true },
-            onApprovals = { showApprovals = true },
-            onSettings = { showSettings = true }
-        )
-        else -> SlideInFromRight {
-            RoomScreen(
+        else -> Box(Modifier.fillMaxSize()) {
+            // 방 진입 시에도 목록을 composition 에 유지 → 뒤로가기 시 스크롤 위치 보존
+            RoomListScreen(
                 vm = vm,
-                room = openedRoom!!,
-                onBack = {
-                    vm.closeRoom()
-                    openedRoom = null
-                }
+                onOpen = { room ->
+                    openedRoom = room
+                    vm.openRoom(room)
+                },
+                onWard = { showWard = true },
+                onCreateRoom = { showCreateRoom = true },
+                onApprovals = { showApprovals = true },
+                onSettings = { showSettings = true }
             )
+            openedRoom?.let { room ->
+                SlideInFromRight {
+                    RoomScreen(
+                        vm = vm,
+                        room = room,
+                        onBack = {
+                            vm.closeRoom()
+                            openedRoom = null
+                        }
+                    )
+                }
+            }
         }
     }
 

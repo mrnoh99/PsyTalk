@@ -34,20 +34,24 @@ struct RootView: View {
                 WardStatusView(vm: vm, onBack: { showWard = false })
             } else if showCreateRoom {
                 CreateRoomView(vm: vm, onBack: { showCreateRoom = false })
-            } else if let room = openedRoom {
-                RoomView(vm: vm, room: room, onBack: {
-                    vm.closeRoom(); openedRoom = nil
-                })
-                // 채팅방 열릴 때 오른쪽 → 왼쪽으로 펼쳐 나오는 효과
-                .transition(.move(edge: .trailing))
             } else {
-                RoomListView(
-                    vm: vm,
-                    onOpen: { room in withAnimation(.easeOut(duration: 0.26)) { openedRoom = room }; vm.openRoom(room) },
-                    onAdmin: { showAdmin = true },
-                    onWard: { showWard = true },
-                    onCreateRoom: { showCreateRoom = true }
-                )
+                ZStack {
+                    // 방 진입 시에도 목록 뷰 유지 → 뒤로가기 시 스크롤 위치 보존
+                    RoomListView(
+                        vm: vm,
+                        onOpen: { room in withAnimation(.easeOut(duration: 0.26)) { openedRoom = room }; vm.openRoom(room) },
+                        onAdmin: { showAdmin = true },
+                        onWard: { showWard = true },
+                        onCreateRoom: { showCreateRoom = true }
+                    )
+                    if let room = openedRoom {
+                        RoomView(vm: vm, room: room, onBack: {
+                            vm.closeRoom(); openedRoom = nil
+                        })
+                        .transition(.move(edge: .trailing))
+                        .zIndex(1)
+                    }
+                }
             }
         }
         .preferredColorScheme(theme.dark ? .dark : .light)

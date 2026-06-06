@@ -533,6 +533,7 @@ function storageObjectKey(roomId,fileName){
 /* ====== 상태 ====== */
 let me=null, rooms=[], myRoomIds=new Set(), profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
 let roomSlideActive=false; // 슬라이드 진입 애니 중 layoutChat 지연(떨림 방지)
+let roomListScrollTop=0;   // 방 목록 스크롤 — 방 진입·재렌더 후 복원
 let unreadByRoom={}, unreadByMsg={}, lastMsgByRoom={};  // #1 안읽은 수, #2 메시지별 안읽은 수, 방별 마지막 메시지
 let roomPins=[], pinDraft=[];  // 개인 고정 방 순서(room id 배열, 최대 5)
 async function loadRoomPins(){
@@ -1229,6 +1230,8 @@ async function loadRooms(){
 
 /* ====== 방 목록 ====== */
 function renderRoomList(){
+  const listEl=document.getElementById('roomList');
+  const scrollTop=listEl?listEl.scrollTop:0;
   document.getElementById('badge').textContent=
     me.role==='superadmin'?'전체관리자':me.role==='admin'?'관리자':(me.name+' · '+(me.member_type||''));
   // 주간 학술활동 방(default_view=week)은 목록에서 빼고 별도 바로 고정
@@ -1261,7 +1264,11 @@ function renderRoomList(){
     <div style="flex:1"><b>${esc(week.name)}</b><small>주간 학술활동 · 일정 보기</small></div>${ubadge(week.id)}<span>›</span></div>`;
   h+=`<div class="mkrow"><button class="mkbtn" onclick="openCreate()">＋ 모임방 만들기</button></div>`;
   h+=listRooms.length?listRooms.map(item).join(''):`<div style="padding:14px 18px;color:var(--sub);font-size:13px">방이 없습니다.</div>`;
-  document.getElementById('roomList').innerHTML=h;
+  if(listEl){
+    listEl.innerHTML=h;
+    listEl.scrollTop=scrollTop;
+    requestAnimationFrame(()=>{listEl.scrollTop=scrollTop;});
+  }
 }
 
 /* ====== 관리자 콘솔 (가입승인 / 회원관리) ====== */
@@ -1369,6 +1376,8 @@ const opensWeekCal=r=>r.default_view==='week'&&r.category!=='custom'&&r.category
 const canRename=r=>isAdmin()||(!!r.created_by&&r.created_by===me.id);
 const canManage=r=>isAdmin()||(r.category==='custom'&&(!!r.created_by&&r.created_by===me.id));
 async function openRoom(id){
+  const listEl=document.getElementById('roomList');
+  if(listEl)roomListScrollTop=listEl.scrollTop;
   active=rooms.find(r=>r.id===id);
   const isDM=active.category==='direct';
   document.getElementById('roomTitle').textContent=roomDisplayName(active);
@@ -1419,7 +1428,7 @@ async function renderTopBarMembers(r){
   if(!names.length)return;
   el.textContent=names.join(', '); el.style.display='';
 }
-async function closeRoom(){roomSlideActive=false;clearAttach();active=null;await setRoomRealtime(null);show('listScreen');loadUnreadCounts();loadLastMessages();}
+async function closeRoom(){roomSlideActive=false;clearAttach();active=null;await setRoomRealtime(null);show('listScreen');const el=document.getElementById('roomList');if(el)el.scrollTop=roomListScrollTop;loadUnreadCounts();loadLastMessages();}
 /* ====== 1:1 대화 스와이프 삭제 (왼쪽으로 밀어 확인 후 본인 참여만 제거) ====== */
 let dmStartX=null,dmEl=null,dmDx=0,dmSwiped=false;
 function dmSwipeStart(e){const t=e.touches&&e.touches[0];if(!t)return;dmStartX=t.clientX;dmEl=e.currentTarget;dmDx=0;dmSwiped=false;}

@@ -198,7 +198,7 @@ struct CalendarView: View {
                     Spacer()
                 }
                 .padding(.vertical, 9).padding(.horizontal, 6)
-                .background(isToday ? Color(hex: 0xFFF8E0) : Color.clear)
+                .background(isToday ? Moim.hl : Color.clear)
                 .clipShape(RoundedRectangle(cornerRadius: 11))
                 .overlay(
                     RoundedRectangle(cornerRadius: 11).stroke(Moim.accent, lineWidth: isSelected ? 2 : 0)

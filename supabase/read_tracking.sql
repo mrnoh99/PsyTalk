@@ -33,14 +33,24 @@ CREATE POLICY "room_reads_update_own" ON public.room_reads
 CREATE OR REPLACE FUNCTION public.moim_room_member_ids(p_room uuid)
 RETURNS TABLE(user_id uuid)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT rm.user_id FROM public.room_members rm
-    JOIN public.rooms r ON r.id = rm.room_id
-   WHERE rm.room_id = p_room AND r.category::text IN ('custom', 'direct')
+  SELECT rm.user_id
+    FROM public.room_members rm
+   WHERE rm.room_id = p_room
+     AND EXISTS (
+       SELECT 1 FROM public.rooms rr
+        WHERE rr.id = p_room
+          AND rr.category::text IN ('custom', 'direct')
+     )
   UNION
-  SELECT p.id FROM public.profiles p
-   WHERE p.approved = true AND coalesce(p.withdrawn, false) = false
-     AND EXISTS (SELECT 1 FROM public.rooms r
-                 WHERE r.id = p_room AND r.category::text NOT IN ('custom', 'direct'));
+  SELECT p.id
+    FROM public.profiles p
+   WHERE p.approved = true
+     AND coalesce(p.withdrawn, false) = false
+     AND EXISTS (
+       SELECT 1 FROM public.rooms rr
+        WHERE rr.id = p_room
+          AND rr.category::text NOT IN ('custom', 'direct')
+     );
 $$;
 
 -- #1 현재 사용자의 방별 안읽은 메시지 수 (본인이 보낸 것 제외)

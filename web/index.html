@@ -130,7 +130,10 @@
   .arow .info small{display:block;color:var(--sub);font-size:11.5px}
   .tag{font-size:10px;font-weight:700;padding:3px 7px;border-radius:20px}
   .tag.super{background:var(--admin);color:#fff}.tag.admin{background:var(--notice);color:#fff}.tag.user{background:var(--line);color:var(--accent)}
+  /* 일정 편집 모달은 상세·다른 모달 위에 */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30;padding:14px}
+  #emodal{z-index:45}
+  #evDetailModal{z-index:40}
   /* 공용 확인/알림 대화상자는 다른 모달(일정 상세 등) 위에 항상 표시 */
   #uiDialog{z-index:60}
   .modal.on{display:flex}
@@ -363,9 +366,9 @@
     <div id="evExisting"></div>
     <div id="evPending"></div>
     <input class="field" id="evFile" type="file" multiple onchange="onEvFileChange()">
-    <button class="primary" onclick="saveEvent()" id="evSaveBtn">일정 등록</button>
-    <button class="ghost" id="evDeleteBtn" style="display:none;color:var(--admin)" onclick="deleteEvent()">일정 삭제</button>
-    <button class="ghost" onclick="closeModal('emodal')">취소</button>
+    <button type="button" class="primary" onclick="saveEvent()" id="evSaveBtn">일정 등록</button>
+    <button type="button" class="ghost" id="evDeleteBtn" style="display:none;color:var(--admin)" onclick="deleteEvent()">일정 삭제</button>
+    <button type="button" class="ghost" onclick="closeModal('emodal')">취소</button>
   </div></div>
 
   <!-- 사진 조절 (내 정보·방표식 — Android AvatarAdjustDialog 미러링) -->
@@ -423,28 +426,29 @@ function isJwtExpired(err){
   return /jwt expired|invalid jwt|invalid claim/i.test(m);
 }
 async function ensureFreshSession(){
-  const {data:{session}}=await sb.auth.getSession();
-  if(!session){show('login');return false;}
-  if((session.expires_at||0)*1000-Date.now()<60000){
-    const {error}=await sb.auth.refreshSession();
-    if(error){
-      await sb.auth.signOut(); me=null; show('login');
-      alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
-      return false;
+  try{
+    const {data:{session}}=await sb.auth.getSession();
+    if(!session) return false;
+    const exp=session.expires_at;
+    if(typeof exp==='number'&&exp*1000-Date.now()<60000){
+      const {error}=await sb.auth.refreshSession();
+      if(error) return false;
     }
-  }
-  return true;
+    return true;
+  }catch(_){return false;}
+}
+async function authFailAndLogin(){
+  closeModal('emodal'); closeModal('evDetailModal');
+  await sb.auth.signOut().catch(()=>{});
+  me=null; show('login');
+  alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
 }
 async function withFreshSession(fn){
-  if(!await ensureFreshSession())return{error:{message:'로그인이 만료되었습니다. 다시 로그인해 주세요.'}};
+  if(!await ensureFreshSession()){await authFailAndLogin();return{error:{message:'로그인이 만료되었습니다.'}};}
   let r=await fn();
   if(r?.error&&isJwtExpired(r.error)){
     const {error:re}=await sb.auth.refreshSession();
-    if(re){
-      await sb.auth.signOut(); me=null; show('login');
-      alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
-      return r;
-    }
+    if(re){await authFailAndLogin();return r;}
     r=await fn();
   }
   return r;
@@ -1745,6 +1749,7 @@ function calNav(mode,today){
   return `<div class="calnav"><span class="narr" onclick="${fn}(-1)">‹</span><b>${center}</b><span class="narr" onclick="${fn}(1)">›</span></div>${ret}`;
 }
 function openEvent(id){
+  closeModal('evDetailModal');
   editEventId=id||null;
   const e=id?events.find(x=>x.id===id):null;
   document.getElementById('evModalTitle').textContent=id?'일정 수정':'일정 추가';
@@ -1799,32 +1804,38 @@ async function uploadFiles(files){
   return {urls,names};
 }
 async function saveEvent(){
-  if(!await ensureFreshSession())return;
-  const g=k=>document.getElementById(k).value.trim();
-  if(!g('evTitle')){alert('제목을 입력하세요');return;}
-  const startAt=new Date(g('evDate')+'T'+(g('evTime')||'09:00')+':00').toISOString();
-  const presenter=g('evPresenter')||null;
-  let up={urls:[],names:[]};
-  if(evPending.length){
-    try{ up=await uploadFiles(evPending.map(p=>p.file)); }catch(e){ alert('첨부 업로드 실패: '+e.message); return; }
+  try{
+    const g=k=>document.getElementById(k).value.trim();
+    if(!g('evTitle')){alert('제목을 입력하세요');return;}
+    if(!g('evDate')){alert('날짜를 선택하세요.');return;}
+    const startAt=new Date(g('evDate')+'T'+(g('evTime')||'09:00')+':00');
+    if(isNaN(startAt.getTime())){alert('날짜·시간 형식이 올바르지 않습니다.');return;}
+    const startAtIso=startAt.toISOString();
+    const presenter=g('evPresenter')||null;
+    let up={urls:[],names:[]};
+    if(evPending.length){
+      try{ up=await uploadFiles(evPending.map(p=>p.file)); }catch(e){ alert('첨부 업로드 실패: '+e.message); return; }
+    }
+    if(editEventId){
+      const urls=evKept.map(a=>a.u).concat(up.urls);
+      const names=evKept.map(a=>a.n).concat(up.names);
+      const upd={title:g('evTitle'),start_at:startAtIso,place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,
+        scope:g('evScope')||null,description:g('evDesc')||null,
+        attachment_url:null,attachment_name:null,attachment_desc:null,
+        attachment_urls:urls,attachment_names:names};
+      const {error}=(await withFreshSession(async()=>await sb.from('calendar_events').update(upd).eq('id',editEventId))).error;
+      if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'수정 실패: '+error.message);return;}
+    }else{
+      const {error}=(await withFreshSession(async()=>await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAtIso,
+        place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
+        owner_id:me.id,attachment_url:null,attachment_name:null,
+        attachment_urls:up.urls,attachment_names:up.names}))).error;
+      if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'등록 실패: '+error.message);return;}
+    }
+    closeModal('emodal');await loadEvents();await loadFiles();renderCal();
+  }catch(e){
+    alert('저장 중 오류: '+(e.message||e));
   }
-  if(editEventId){
-    const urls=evKept.map(a=>a.u).concat(up.urls);
-    const names=evKept.map(a=>a.n).concat(up.names);
-    const upd={title:g('evTitle'),start_at:startAt,place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,
-      scope:g('evScope')||null,description:g('evDesc')||null,
-      attachment_url:null,attachment_name:null,attachment_desc:null,
-      attachment_urls:urls,attachment_names:names};
-    const {error}=(await withFreshSession(()=>sb.from('calendar_events').update(upd).eq('id',editEventId))).error;
-    if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'수정 실패: '+error.message);return;}
-  }else{
-    const {error}=(await withFreshSession(()=>sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAt,
-      place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
-      owner_id:me.id,attachment_url:null,attachment_name:null,
-      attachment_urls:up.urls,attachment_names:up.names}))).error;
-    if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'등록 실패: '+error.message);return;}
-  }
-  closeModal('emodal');await loadEvents();await loadFiles();renderCal();
 }
 // 일정 삭제 (작성자/관리자/교실·의국·비서·심리실)
 async function deleteEvent(){

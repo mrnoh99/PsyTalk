@@ -25,6 +25,7 @@
 | 회원 관리 — 관리자 지위/계정 비활성화 | ➖ | ✅ superadmin 전용 | ✅ | 역할토글 + `moim_admin_withdraw` |
 | 회원 검색·관리·가입승인 행에 이메일·전화번호·소개 표시 | ➖ | ✅ 작은 글씨 노출 | ✅ | 세 플랫폼 공통, `member_contact_email.sql`(profiles.email 동기화) |
 | 방 열었을 때 상단 바에 개설자·참여자 이름 나열 | ➖ | ✅ 작은 글씨, 넘치면 … | ✅ | 세 플랫폼 공통, 개설자 먼저+이름순, DM 제외 |
+| 1:1 대화 스와이프 삭제 (내 목록에서만) | ➖ | ✅ 왼쪽 스와이프 → 확인 | ✅ | 본인 room_members 만 제거(상대·이력 보존, 재오픈 복구). iOS=DragGesture, Android=SwipeToDismissBox, 웹=touch swipe |
 | 계정 비활성화/탈퇴 = 소프트(글·자료 보존) | ➖ | ✅ | ✅ | 방·고정만 정리, 메시지·자료·이름 보존, `banned_until` 로그인 차단 |
 | 방 만들기 (모임방 생성) | ✅ (관리자) | ✅ 누구나 (카톡식) | ✅ | 앱은 이름+회원선택, room_members 등록, RLS 비공개 |
 | 방 이름 수정 (생성 후) | ➖ | ✅ 방 헤더 ✏️ (생성자/관리자) | ✅ | iOS·Android·Web 공통, RLS `rooms_update_owner_admin` |

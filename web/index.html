@@ -1099,12 +1099,14 @@ function renderRoomList(){
     const avStyle=isDM?personAvatarStyle(other):roomAvatarStyle(r);
     const avText=isDM?((other&&other.avatar_url)?'':ini(other&&other.name)):(r.icon_url?'':esc(r.name));
     const nm=isDM?((other||{}).name||'(알 수 없음)'):r.name;
-    return `<div class="room" onclick="openRoom('${r.id}')">
-    <div class="av" style="${avStyle}">${avText}</div>
+    const inner=`<div class="av" style="${avStyle}">${avText}</div>
     <div class="room-mid"><div class="room-top"><span class="catdot" style="background:${c.c}">${c.l}</span>
     <span class="room-name">${esc(nm)}</span></div>
     <div class="room-msg">${prev}</div></div>
-    <div class="room-right"><div class="room-time">${time}</div>${ubadge(r.id)}</div></div>`;};
+    <div class="room-right"><div class="room-time">${time}</div>${ubadge(r.id)}</div>`;
+    // 1:1 대화: 왼쪽으로 스와이프하면 삭제(확인). 일반 방은 기존대로 클릭만.
+    if(isDM) return `<div class="room" style="touch-action:pan-y;transition:transform .15s" onclick="if(!dmSwiped)openRoom('${r.id}')" ontouchstart="dmSwipeStart(event)" ontouchmove="dmSwipeMove(event)" ontouchend="dmSwipeEnd(event,'${r.id}')">${inner}</div>`;
+    return `<div class="room" onclick="openRoom('${r.id}')">${inner}</div>`;};
   // 관리자 진입: 헤더(설정 옆) 버튼 — admin='가입승인' / superadmin='관리자모드'
   const ab=document.getElementById('adminEntryBtn');
   if(me.role==='superadmin'){ab.textContent='관리자모드';ab.style.display='';}
@@ -1279,6 +1281,17 @@ async function renderTopBarMembers(r){
   el.textContent=names.join(', '); el.style.display='';
 }
 async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);show('listScreen');loadUnreadCounts();loadLastMessages();}
+/* ====== 1:1 대화 스와이프 삭제 (왼쪽으로 밀어 확인 후 본인 참여만 제거) ====== */
+let dmStartX=null,dmEl=null,dmDx=0,dmSwiped=false;
+function dmSwipeStart(e){const t=e.touches&&e.touches[0];if(!t)return;dmStartX=t.clientX;dmEl=e.currentTarget;dmDx=0;dmSwiped=false;}
+function dmSwipeMove(e){const t=e.touches&&e.touches[0];if(!t||dmStartX===null||!dmEl)return;dmDx=t.clientX-dmStartX;if(dmDx<0){dmEl.style.transform=`translateX(${Math.max(dmDx,-100)}px)`;if(dmDx<-8)dmSwiped=true;}}
+function dmSwipeEnd(e,id){const el=dmEl;const go=dmDx<-60;if(el)el.style.transform='';dmStartX=null;dmEl=null;dmDx=0;if(go)confirmDeleteDM(id);setTimeout(()=>{dmSwiped=false;},60);}
+async function confirmDeleteDM(id){
+  if(!await uiConfirm('이 대화를 목록에서 삭제할까요?\n상대는 그대로이며, 다시 메시지하면 이전 대화가 복구됩니다.','대화 삭제'))return;
+  const {error}=await sb.from('room_members').delete().eq('room_id',id).eq('user_id',me.id);
+  if(error){alert('삭제 실패: '+error.message);return;}
+  await loadRooms();
+}
 /* ====== 방 정보 변경 (이름·방표식 색상·사진) ====== */
 function openRoomEdit(){
   if(!active)return;

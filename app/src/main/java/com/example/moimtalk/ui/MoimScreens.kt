@@ -50,6 +50,9 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -658,6 +661,18 @@ fun RoomListScreen(
     val listRooms = listOfNotNull(noticeRoom) + pinnedRooms + flatRooms.filter { it.id !in pinnedIds }
         .sortedWith(compareByDescending<Room> { vm.lastMsgByRoom[it.id]?.createdAt ?: "" }.thenBy { it.sortOrder })
 
+    // 1:1 대화(DM) 스와이프 삭제 — 확인 후 본인 참여만 제거(상대·이력 유지, 재오픈 시 복구)
+    var dmToDelete by remember { mutableStateOf<Room?>(null) }
+    dmToDelete?.let { dm ->
+        AlertDialog(
+            onDismissRequest = { dmToDelete = null },
+            title = { Text("대화 삭제") },
+            text = { Text("이 대화를 목록에서 삭제할까요?\n상대는 그대로이며, 다시 메시지하면 이전 대화가 복구됩니다.") },
+            confirmButton = { TextButton(onClick = { val r = dm; dmToDelete = null; vm.leaveRoom(r) }) { Text("삭제", color = MoimAdmin, fontWeight = FontWeight.Bold) } },
+            dismissButton = { TextButton(onClick = { dmToDelete = null }) { Text("취소") } }
+        )
+    }
+
     Scaffold(
         topBar = {
             Column(modifier = Modifier.background(MoimPaper)) {
@@ -704,7 +719,32 @@ fun RoomListScreen(
             if (listRooms.isEmpty()) {
                 item { EmptyBox("🔒", "아직 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
             } else {
-                items(listRooms) { room -> RoomRow(room, vm.unreadByRoom[room.id] ?: 0, vm.lastMsgByRoom[room.id], vm.profilesById, onOpen) }
+                items(listRooms, key = { it.id }) { room ->
+                    if (room.category == "direct") {
+                        val dismissState = rememberSwipeToDismissBoxState(
+                            confirmValueChange = { v ->
+                                if (v == SwipeToDismissBoxValue.EndToStart) dmToDelete = room
+                                false  // 실제 제거는 확인 후 leaveRoom 으로 → 항상 스냅백
+                            }
+                        )
+                        SwipeToDismissBox(
+                            state = dismissState,
+                            enableDismissFromStartToEnd = false,
+                            backgroundContent = {
+                                Box(
+                                    modifier = Modifier.fillMaxSize().background(MoimAdmin).padding(end = 24.dp),
+                                    contentAlignment = Alignment.CenterEnd
+                                ) { Text("🗑 삭제", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
+                            }
+                        ) {
+                            Box(modifier = Modifier.fillMaxWidth().background(MoimPaper)) {
+                                RoomRow(room, vm.unreadByRoom[room.id] ?: 0, vm.lastMsgByRoom[room.id], vm.profilesById, onOpen)
+                            }
+                        }
+                    } else {
+                        RoomRow(room, vm.unreadByRoom[room.id] ?: 0, vm.lastMsgByRoom[room.id], vm.profilesById, onOpen)
+                    }
+                }
             }
             vm.error?.let { err ->
                 item {

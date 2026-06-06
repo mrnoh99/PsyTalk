@@ -127,6 +127,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 27. `direct_messages.sql` — **1:1 다이렉트 채팅(카톡 DM식)**: `rooms.dm_key`(쌍 유일) + `category='direct'` +
     방 가시성 재정의(DM 은 당사자만) + `moim_open_direct(uuid)`(없으면 생성·양쪽 멤버십 보정 후 방 id 반환).
     설정 ⚙️ → **회원 검색**의 '메시지'에서 사용. 표시 이름·아바타는 dm_key 로 상대 프로필 계산.
+    **방 목록에서 DM 은 왼쪽으로 스와이프 → 확인 후 삭제**(본인 `room_members` 만 제거=내 목록에서만 삭제,
+    상대·메시지 보존, 재오픈 시 `moim_open_direct` 로 이전 대화 복구). RLS 는 leave_account.sql 의 본인 삭제 정책 사용(추가 SQL 없음).
 28. `member_contact_email.sql` — **회원 검색·관리에 이메일 표시**: `profiles.email` 컬럼을 `auth.users.email` 과
     동기화(가입 시 채움 + 변경 시 트리거 + 기존 backfill). **회원 검색·회원 관리·가입 승인** 행에 이메일·전화번호·
     자기소개를 작은 글씨로 노출(세 플랫폼 공통). 전화번호·자기소개는 signup_extra_fields.sql 의 `phone`·`intro` 사용.

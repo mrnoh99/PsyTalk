@@ -55,6 +55,33 @@ struct MemberContactLines: View {
     }
 }
 
+// 1:1 대화 행 스와이프 삭제 — 왼쪽으로 밀면 빨간 '삭제' 배경이 보이고 임계치 넘으면 onDelete 호출
+struct DMSwipeRow<Content: View>: View {
+    let onDelete: () -> Void
+    @ViewBuilder var content: Content
+    @State private var offset: CGFloat = 0
+
+    var body: some View {
+        ZStack(alignment: .trailing) {
+            HStack { Spacer(); Text("🗑 삭제").font(.system(size: 13, weight: .bold)).foregroundColor(.white).padding(.trailing, 24) }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Moim.admin)
+            content
+                .background(Moim.paper)
+                .offset(x: offset)
+                .gesture(
+                    DragGesture(minimumDistance: 12)
+                        .onChanged { v in if v.translation.width < 0 { offset = max(v.translation.width, -110) } }
+                        .onEnded { v in
+                            if v.translation.width < -70 { onDelete() }
+                            withAnimation(.easeOut(duration: 0.15)) { offset = 0 }
+                        }
+                )
+        }
+        .clipped()
+    }
+}
+
 // 방표식(색상·사진) 편집기 — 생성/이름변경 공통
 struct RoomAppearanceEditor: View {
     let name: String
@@ -107,6 +134,7 @@ struct RoomListView: View {
     let onWard: () -> Void
     let onCreateRoom: () -> Void
     @State private var showSettings = false
+    @State private var dmToDelete: Room?   // 1:1 대화 스와이프 삭제 대상
 
     private var pendingApprovalCount: Int {
         vm.profilesById.values.filter { $0.role != "superadmin" && $0.withdrawn != true && $0.approved == false }.count
@@ -145,12 +173,27 @@ struct RoomListView: View {
                         EmptyBox(emoji: "🔒", title: "아직 방이 없어요",
                                  subtitle: "전체관리자가 방에 배정하면\n여기에 표시됩니다.")
                     } else {
-                        ForEach(listRooms) { RoomRow(vm: vm, room: $0, unread: vm.unreadByRoom[$0.id] ?? 0, lastMsg: vm.lastMsgByRoom[$0.id], onOpen: onOpen) }
+                        ForEach(listRooms) { room in
+                            if room.category == "direct" {
+                                DMSwipeRow(onDelete: { dmToDelete = room }) {
+                                    RoomRow(vm: vm, room: room, unread: vm.unreadByRoom[room.id] ?? 0, lastMsg: vm.lastMsgByRoom[room.id], onOpen: onOpen)
+                                }
+                            } else {
+                                RoomRow(vm: vm, room: room, unread: vm.unreadByRoom[room.id] ?? 0, lastMsg: vm.lastMsgByRoom[room.id], onOpen: onOpen)
+                            }
+                        }
                     }
                 }
             }
         }
         .background(Moim.paper.ignoresSafeArea())
+        // 1:1 대화 삭제 — 확인 후 본인 참여만 제거(상대·이력 유지, 재오픈 시 복구)
+        .confirmationDialog("이 대화를 목록에서 삭제할까요?\n상대는 그대로이며, 다시 메시지하면 이전 대화가 복구됩니다.",
+                            isPresented: Binding(get: { dmToDelete != nil }, set: { if !$0 { dmToDelete = nil } }),
+                            titleVisibility: .visible) {
+            Button("삭제", role: .destructive) { if let r = dmToDelete { vm.leaveRoom(r) {} }; dmToDelete = nil }
+            Button("취소", role: .cancel) { dmToDelete = nil }
+        }
     }
 
     private var header: some View {

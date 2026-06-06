@@ -417,6 +417,8 @@ async function loadRoomPins(){
 // 주간 학술활동(바)을 제외한 방 목록
 // 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입(room_members)한 것만. (관리자 콘솔은 전체 rooms 사용)
 function flatRoomList(){ const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week'); return rooms.filter(r=>r!==week&&((r.category==='custom'||r.category==='direct')?myRoomIds.has(r.id):true)); }
+// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방.
+function noticeTopRoom(){ return rooms.filter(r=>r.category!=='custom'&&r.category!=='direct'&&r.default_view!=='week').sort((a,b)=>(a.sort_order||999)-(b.sort_order||999))[0]||null; }
 /* ====== 설정 화면: 내 정보 / 방 순서 / 회원 검색 ====== */
 let setTab='me';
 function mergeMeProfile(prof,user){
@@ -721,21 +723,25 @@ async function startDirect(otherId){
 // ── 방 순서(핀) 설정 (설정 화면의 '방 순서' 탭) ──
 function renderOrderTab(){
   document.getElementById('setBody').innerHTML=`
-    <p style="color:var(--sub);font-size:12.5px;margin-bottom:12px">고정할 방을 드래그(☰)해 순서를 정하세요. 최대 5개. 나머지는 새 메시지 순으로 표시됩니다.</p>
+    <p style="color:var(--sub);font-size:12.5px;margin-bottom:12px">전체공지 방은 항상 맨 위에 고정되며 변경할 수 없습니다. 그 아래로 최대 5개를 드래그(☰)해 순서를 정하세요. 나머지는 새 메시지 순으로 표시됩니다.</p>
     <div id="pinBody"></div>
     <button class="primary" style="margin-top:14px" onclick="savePins()">순서 저장</button>
     <div id="pinSaved" style="color:var(--work);font-size:12.5px;text-align:center;margin-top:8px"></div>`;
   pinDraft=[...roomPins]; renderPinSettings();
 }
 function renderPinSettings(){
-  const flat=flatRoomList(), byId=id=>flat.find(r=>r.id===id);
-  let h=`<span class="lbl">고정된 방 (${pinDraft.length}/5)</span>`;
+  const flat=flatRoomList(), notice=noticeTopRoom();
+  const usable=flat.filter(r=>!notice||r.id!==notice.id), byId=id=>usable.find(r=>r.id===id);
+  pinDraft=pinDraft.filter(id=>byId(id));   // 전체공지 등 고정 불가 방은 핀 목록에서 제외
+  let h='';
+  if(notice) h+=`<span class="lbl">항상 맨 위 (변경 불가)</span><div class="pinrow" style="opacity:.9"><span style="flex:1">📌 ${esc(roomDisplayName(notice))}</span><span style="color:var(--sub);font-size:12px">고정됨</span></div>`;
+  h+=`<span class="lbl"${notice?' style="margin-top:10px;display:block"':''}>고정된 방 (${pinDraft.length}/5)</span>`;
   h+= pinDraft.length ? pinDraft.map((id,i)=>{const r=byId(id); if(!r)return ''; return `<div class="pinrow" draggable="true" ondragstart="pinDragStart(event,${i})" ondragover="pinDragOver(event)" ondrop="pinDrop(event,${i})" ondragend="pinDragFrom=-1">
       <span class="draghandle">☰</span>
       <span style="flex:1">${i+1}. ${esc(roomDisplayName(r))}</span>
       <span class="pinbtn" style="color:var(--admin)" onclick="pinRemove('${id}')">✕</span></div>`;}).join('')
     : `<div style="color:var(--sub);font-size:13px;padding:4px 2px 8px">고정된 방 없음</div>`;
-  const rest=flat.filter(r=>!pinDraft.includes(r.id));
+  const rest=usable.filter(r=>!pinDraft.includes(r.id));
   h+=`<span class="lbl" style="margin-top:10px;display:block">방 목록</span>`;
   h+= rest.length ? rest.map(r=>`<div class="pinrow"><span style="flex:1">${esc(roomDisplayName(r))}</span>
       <span class="pinbtn" ${pinDraft.length>=5?'style="opacity:.35;pointer-events:none"':''} onclick="pinAdd('${r.id}')">📌 고정</span></div>`).join('')
@@ -755,18 +761,19 @@ async function savePins(){
   roomPins=[...pinDraft]; renderRoomList();
   const s=document.getElementById('pinSaved'); if(s){s.textContent='순서가 저장되었습니다.'; setTimeout(()=>{if(s)s.textContent='';},2000);}
 }
-// 핀 우선 + 나머지는 최근 메시지순
+// 전체공지(맨 위 고정) + 핀 우선 + 나머지는 최근 메시지순
 function orderedRooms(){
-  const flat=flatRoomList();
-  const pinned=roomPins.map(id=>flat.find(r=>r.id===id)).filter(Boolean);
+  const flat=flatRoomList(), notice=noticeTopRoom();
+  const usable=flat.filter(r=>!notice||r.id!==notice.id);
+  const pinned=roomPins.map(id=>usable.find(r=>r.id===id)).filter(Boolean);
   const pinnedIds=new Set(pinned.map(r=>r.id));
-  const rest=flat.filter(r=>!pinnedIds.has(r.id)).sort((a,b)=>{
+  const rest=usable.filter(r=>!pinnedIds.has(r.id)).sort((a,b)=>{
     const ta=lastMsgByRoom[a.id]?.created_at||'', tb=lastMsgByRoom[b.id]?.created_at||'';
     if(ta&&tb)return tb.localeCompare(ta);
     if(ta)return -1; if(tb)return 1;
     return (a.sort_order||999)-(b.sort_order||999);
   });
-  return pinned.concat(rest);
+  return (notice?[notice]:[]).concat(pinned,rest);
 }
 async function loadLastMessages(){
   const {data}=await sb.rpc('moim_room_last_messages');

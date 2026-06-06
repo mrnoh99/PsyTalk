@@ -43,6 +43,12 @@ func byName(_ a: Profile, _ b: Profile) -> Bool {
     a.name.localizedCompare(b.name) == .orderedAscending
 }
 
+/// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방.
+func noticeTopRoom(_ rooms: [Room]) -> Room? {
+    rooms.filter { $0.category != "custom" && $0.category != "direct" && $0.defaultView != "week" }
+        .min { $0.sortOrder < $1.sortOrder }
+}
+
 /// 방 구성원 이름 나열 — 개설자(createdBy)를 맨 앞에, 나머지는 이름순. 잘림(...)은 UI 가 처리.
 func roomMemberNames(_ room: Room, memberIds: [String], profiles: [String: Profile]) -> [String] {
     let creator = room.createdBy

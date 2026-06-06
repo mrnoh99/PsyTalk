@@ -116,10 +116,12 @@ struct RoomListView: View {
     private var weekRoom: Room? {
         vm.rooms.first { $0.category != "custom" && $0.defaultView == "week" }
     }
-    // 고정(핀) 우선 + 나머지는 최근 메시지순
+    // 전체공지(맨 위 고정) + 고정(핀) 우선 + 나머지는 최근 메시지순
     private var listRooms: [Room] {
+        // 과 전체공지 방은 항상 맨 위 고정(핀·정렬 대상에서 제외)
+        let notice = noticeTopRoom(vm.rooms)
         // 홈 목록: 기본 방은 항상, 모임방(custom)·DM(direct)은 내가 가입한 것만 (관리자 콘솔은 전체 vm.rooms 사용)
-        let flat = vm.rooms.filter { $0.id != weekRoom?.id && (($0.category != "custom" && $0.category != "direct") || vm.myRoomIds.contains($0.id)) }
+        let flat = vm.rooms.filter { $0.id != weekRoom?.id && $0.id != notice?.id && (($0.category != "custom" && $0.category != "direct") || vm.myRoomIds.contains($0.id)) }
         let pinned = vm.roomPins.compactMap { id in flat.first { $0.id == id } }
         let pinnedIds = Set(pinned.map { $0.id })
         let rest = flat.filter { !pinnedIds.contains($0.id) }.sorted {
@@ -128,7 +130,7 @@ struct RoomListView: View {
             if a != b { return a > b }
             return $0.sortOrder < $1.sortOrder
         }
-        return pinned + rest
+        return (notice.map { [$0] } ?? []) + pinned + rest
     }
 
     var body: some View {
@@ -174,7 +176,7 @@ struct RoomListView: View {
             Divider().background(Moim.line)
         }
         .sheet(isPresented: $showSettings) {
-            SettingsView(vm: vm, pinRooms: vm.rooms.filter { $0.id != weekRoom?.id && (($0.category != "custom" && $0.category != "direct") || vm.myRoomIds.contains($0.id)) })
+            SettingsView(vm: vm, pinRooms: vm.rooms.filter { $0.id != weekRoom?.id && $0.id != noticeTopRoom(vm.rooms)?.id && (($0.category != "custom" && $0.category != "direct") || vm.myRoomIds.contains($0.id)) })
         }
         .background(Moim.paper)
     }
@@ -375,6 +377,15 @@ struct PinOrderTab: View {
 
     var body: some View {
         List {
+            if let notice = noticeTopRoom(vm.rooms) {
+                Section("항상 맨 위 (변경 불가)") {
+                    HStack {
+                        Text("📌 \(vm.roomDisplayName(notice))").lineLimit(1)
+                        Spacer()
+                        Text("고정됨").foregroundColor(Moim.sub).font(.system(size: 12))
+                    }
+                }
+            }
             Section("고정된 방 (\(draft.count)/5) · ☰ 드래그로 순서 변경") {
                 if draft.isEmpty {
                     Text("고정된 방 없음").foregroundColor(Moim.sub).font(.system(size: 13))

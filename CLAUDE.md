@@ -103,6 +103,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
     방이름 아래 미리보기 + 우측 시간(오늘=HH:mm/이전=M/d)에 사용.
 19. `room_pins.sql` — **방 순서 개인 고정**: `room_pins`(user·room·position) + `moim_set_room_pins(uuid[])`.
     방목록 헤더 ⚙️로 최대 5개 고정·**드래그 정렬**, 나머지는 최근 메시지순.
+    **과 전체공지 방은 항상 맨 위 고정·변경 불가**(핀 대상에서 제외, 5개 한도는 전체공지 제외). 헬퍼: `noticeTopRoom`(세 클라이언트).
 20. `leave_account.sql` — **방 나가기 + 회원 탈퇴**: `room_members` DELETE 정책에 본인 추가(방 나가기) +
     `moim_delete_my_account()`. 방화면 **나가기**(본인이 만들지 않은 모임방) · ⚙️ 설정의 **회원 탈퇴**에 사용.
 21. `admin_console.sql` — **관리자 콘솔 개편 + '탈퇴=비활성(글·자료 보존)'**:

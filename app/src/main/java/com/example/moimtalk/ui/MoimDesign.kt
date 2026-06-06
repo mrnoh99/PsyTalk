@@ -70,6 +70,11 @@ fun roomDisplayName(room: Room, profiles: Map<String, Profile>): String =
 /** DM = 채팅 전용 (캘린더·자료실 탭, 이름변경·설정·나가기 모두 숨김) */
 fun isDirect(room: Room): Boolean = room.category == "direct"
 
+/** 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방. */
+fun noticeTopRoom(rooms: List<Room>): Room? =
+    rooms.filter { it.category != "custom" && it.category != "direct" && it.defaultView != "week" }
+        .minByOrNull { it.sortOrder }
+
 /** 방 구성원 이름 나열 — 개설자(created_by)를 맨 앞에, 나머지는 이름순. 표시는 ... 잘림은 UI 가 처리. */
 fun roomMemberNames(room: Room, memberIds: List<String>, profiles: Map<String, Profile>): List<String> {
     val creator = room.createdBy

@@ -644,15 +644,18 @@ fun RoomListScreen(
     val profile = vm.myProfile
     // 주간 학술활동(default_view=week)은 목록에서 빼고 별도 바로 표시. 나머지는 전체방(첫번째)+모임방 평면 목록.
     val weekRoom = vm.rooms.firstOrNull { it.category != "custom" && it.defaultView == "week" }
+    // 과 전체공지 방은 항상 맨 위 고정(핀·정렬 대상에서 제외).
+    val noticeRoom = noticeTopRoom(vm.rooms)
     // 고정(핀) 우선 + 나머지는 최근 메시지순
     // 홈 목록: 기본 방은 항상, 모임방(custom)·1:1(direct)은 내가 가입한 것만 (관리자 콘솔은 전체 vm.rooms 사용)
     val flatRooms = vm.rooms.filter {
-        it.id != weekRoom?.id &&
+        it.id != weekRoom?.id && it.id != noticeRoom?.id &&
             (if (it.category == "custom" || it.category == "direct") vm.myRoomIds.contains(it.id) else true)
     }
     val pinnedRooms = vm.roomPins.mapNotNull { id -> flatRooms.find { it.id == id } }
     val pinnedIds = pinnedRooms.map { it.id }.toSet()
-    val listRooms = pinnedRooms + flatRooms.filter { it.id !in pinnedIds }
+    // 전체공지(맨 위 고정) → 사용자 고정(핀) → 나머지(최근 메시지순)
+    val listRooms = listOfNotNull(noticeRoom) + pinnedRooms + flatRooms.filter { it.id !in pinnedIds }
         .sortedWith(compareByDescending<Room> { vm.lastMsgByRoom[it.id]?.createdAt ?: "" }.thenBy { it.sortOrder })
 
     Scaffold(
@@ -1747,10 +1750,11 @@ private fun MyInfoTab(vm: MoimViewModel) {
 // ── 방 순서(핀) 설정 — 최대 5개 고정·드래그 재정렬 (방목록 ⚙️ → 방 순서 탭) ──
 @Composable
 private fun OrderTab(vm: MoimViewModel) {
-    // 고정 가능한 방 = 방목록에 보이는 방(주간 학술활동 제외, 가입한 모임방·DM 포함)
+    // 고정 가능한 방 = 방목록에 보이는 방(주간 학술활동·전체공지 제외, 가입한 모임방·DM 포함)
     val weekRoom = vm.rooms.firstOrNull { it.category != "custom" && it.defaultView == "week" }
+    val noticeRoom = noticeTopRoom(vm.rooms)   // 항상 맨 위 고정 · 변경 불가
     val rooms = vm.rooms.filter {
-        it.id != weekRoom?.id &&
+        it.id != weekRoom?.id && it.id != noticeRoom?.id &&
             (if (it.category == "custom" || it.category == "direct") vm.myRoomIds.contains(it.id) else true)
     }
     var draft by remember(vm.roomPins) { mutableStateOf(vm.roomPins.filter { id -> rooms.any { it.id == id } }) }
@@ -1761,8 +1765,17 @@ private fun OrderTab(vm: MoimViewModel) {
     fun labelOf(r: Room) = roomDisplayName(r, vm.profilesById)
 
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
-        Text("상단에 고정할 방 최대 5개. ☰ 를 길게 눌러 드래그로 순서 변경. 나머지는 새 메시지 순.", fontSize = 12.sp, color = MoimSub)
+        Text("전체공지 방은 항상 맨 위에 고정되며 변경할 수 없습니다. 그 아래로 최대 5개를 고정할 수 있어요. ☰ 를 길게 눌러 드래그로 순서 변경, 나머지는 새 메시지 순.", fontSize = 12.sp, color = MoimSub)
         Spacer(Modifier.height(10.dp))
+        noticeRoom?.let { nr ->
+            Text("항상 맨 위 (변경 불가)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("📌", fontSize = 14.sp, modifier = Modifier.padding(end = 8.dp))
+                Text(labelOf(nr), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("고정됨", fontSize = 11.sp, color = MoimSub)
+            }
+            Spacer(Modifier.height(10.dp))
+        }
         Text("고정된 방 (${draft.size}/5)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         if (draft.isEmpty()) Text("고정된 방 없음", fontSize = 13.sp, color = MoimSub, modifier = Modifier.padding(vertical = 4.dp))
         draft.forEachIndexed { i, id ->

@@ -886,8 +886,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private val slideOverlaySpec = tween(260)
-
 @Composable
 fun App(vm: MoimViewModel = viewModel()) {
     var openedRoom by remember { mutableStateOf<Room?>(null) }
@@ -969,11 +967,14 @@ fun App(vm: MoimViewModel = viewModel()) {
                 modifier = Modifier.fillMaxSize(),
                 transitionSpec = {
                     if (targetState != null) {
-                        slideInHorizontally(slideOverlaySpec) { it } togetherWith ExitTransition.None
+                        // 진입: 오른쪽 → 왼쪽으로 덮기
+                        slideInHorizontally(tween(260)) { it } togetherWith ExitTransition.None
                     } else {
-                        EnterTransition.None togetherWith slideOutHorizontally(slideOverlaySpec) { -it }
+                        // 복귀: 왼쪽 → 오른쪽으로 밀려 나감(진입의 역방향)
+                        EnterTransition.None togetherWith slideOutHorizontally(tween(260)) { it }
                     }
                 },
+                sizeTransform = null,
                 label = "roomOverlay",
             ) { room ->
                 if (room != null) {
@@ -992,11 +993,12 @@ fun App(vm: MoimViewModel = viewModel()) {
                 modifier = Modifier.fillMaxSize(),
                 transitionSpec = {
                     if (targetState) {
-                        slideInHorizontally(slideOverlaySpec) { it } togetherWith ExitTransition.None
+                        slideInHorizontally(tween(260)) { it } togetherWith ExitTransition.None
                     } else {
-                        EnterTransition.None togetherWith slideOutHorizontally(slideOverlaySpec) { -it }
+                        EnterTransition.None togetherWith slideOutHorizontally(tween(260)) { it }
                     }
                 },
+                sizeTransform = null,
                 label = "wardOverlay",
             ) { show ->
                 if (show) {

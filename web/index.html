@@ -223,10 +223,10 @@
   .my-field .lbl{margin-top:0}
   .pinrow.dragging{opacity:.45}
   @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
-  @keyframes slideOutLeft{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+  @keyframes slideOutRight{from{transform:translateX(0)}to{transform:translateX(100%)}}
   #roomScreen.slide-overlay,#wardScreen.slide-overlay{position:absolute;inset:0;z-index:20;background:var(--paper);display:flex;flex-direction:column}
   #roomScreen.slidein,#wardScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1);will-change:transform}
-  #roomScreen.slideout,#wardScreen.slideout{animation:slideOutLeft .26s cubic-bezier(.22,.61,.36,1) forwards;will-change:transform}
+  #roomScreen.slideout,#wardScreen.slideout{animation:slideOutRight .26s cubic-bezier(.22,.61,.36,1) forwards;will-change:transform}
   .pick{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;border:1px solid var(--line);margin-bottom:7px;background:var(--surface)}
   .pick.sel{border-color:var(--accent);background:var(--hl)}.pick .av{width:32px;height:32px;border-radius:10px;font-size:11px}
   .pick .pn{flex:1;font-size:13.5px;font-weight:600}.chk{font-weight:800;color:var(--accent)}

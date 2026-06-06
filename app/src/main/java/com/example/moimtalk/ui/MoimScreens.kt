@@ -96,6 +96,7 @@ import java.util.Locale
 import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
+import com.example.moimtalk.data.Reaction
 import com.example.moimtalk.data.Room
 
 @Composable
@@ -1217,6 +1218,25 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                             .imePadding()
                             .background(MoimPaper)
                     ) {
+                        // 답장 대상 미리보기 (✕로 취소)
+                        vm.replyTarget?.let { rt ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("↩ ${vm.nameOf(rt.senderId)} 에게 답장", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MoimAccent)
+                                    Text(
+                                        rt.content?.takeIf { it.isNotBlank() } ?: when (rt.type) { "image" -> "사진" "file" -> "파일" else -> "" },
+                                        fontSize = 12.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                                Text(
+                                    "✕", fontSize = 15.sp, color = MoimAdmin, fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.clickable { vm.setReply(null) }.padding(horizontal = 6.dp)
+                                )
+                            }
+                        }
                         // 첨부 대기 미리보기 (선택 후 ➤ 누르면 전송)
                         pendingAttach?.let { (name, _, kind) ->
                             Row(
@@ -1344,6 +1364,11 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 unreadOf = { vm.unreadByMsg[it.id] ?: 0 },
                 profileOf = { vm.profilesById[it] },
                 noticeLayout = isNoticeTopRoom(liveRoom, vm.rooms),
+                reactions = vm.reactions,
+                myUserId = vm.myProfile?.id ?: "",
+                onReact = { m, e -> vm.toggleReaction(m.id, e) },
+                onReply = { vm.setReply(it) },
+                messageById = { id -> vm.messages.firstOrNull { it.id == id } },
             )
             "files" -> FilesPane(
                 vm = vm,
@@ -1371,6 +1396,11 @@ private fun ChatPane(
     unreadOf: (Message) -> Int,
     profileOf: (String) -> Profile? = { null },
     noticeLayout: Boolean = false,
+    reactions: List<Reaction> = emptyList(),
+    myUserId: String = "",
+    onReact: (Message, String) -> Unit = { _, _ -> },
+    onReply: (Message) -> Unit = {},
+    messageById: (String) -> Message? = { null },
 ) {
     var deleteTarget by remember { mutableStateOf<Message?>(null) }
     deleteTarget?.let { tgt ->
@@ -1438,7 +1468,16 @@ private fun ChatPane(
                     lastDay = day
                 }
                 item(key = m.id) {
-                    MessageBubble(m, isMine(m), nameOf(m.senderId), attachUrl, onDelete = { deleteTarget = m }, unread = unreadOf(m), sender = profileOf(m.senderId))
+                    MessageBubble(
+                        m, isMine(m), nameOf(m.senderId), attachUrl,
+                        onDelete = { deleteTarget = m }, unread = unreadOf(m), sender = profileOf(m.senderId),
+                        reactions = reactions.filter { it.messageId == m.id },
+                        myUserId = myUserId,
+                        onReact = { e -> onReact(m, e) },
+                        onReply = { onReply(m) },
+                        repliedMessage = m.replyTo?.let { messageById(it) },
+                        repliedName = m.replyTo?.let { messageById(it) }?.let { nameOf(it.senderId) },
+                    )
                 }
             }
         }
@@ -1585,14 +1624,23 @@ private fun NoticePostCard(
     }
 }
 
+// 카톡식 빠른 리액션 이모지
+val REACTION_EMOJIS = listOf("👍", "❤️", "😂", "😮", "😢", "👏")
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageBubble(
     m: Message, mine: Boolean, senderName: String,
     attachUrl: (String) -> String? = { null }, onDelete: () -> Unit = {}, unread: Int = 0,
-    sender: Profile? = null
+    sender: Profile? = null,
+    reactions: List<Reaction> = emptyList(),
+    myUserId: String = "",
+    onReact: (String) -> Unit = {},
+    onReply: () -> Unit = {},
+    repliedMessage: Message? = null,
+    repliedName: String? = null,
 ) {
-    // 텍스트 메시지 길게 누르기 → 전체 복사 / 부분 복사(선택) 메뉴
+    // 텍스트 메시지 길게 누르기 → 카톡식 메뉴(복사·선택복사·답장 + 이모지 리액션)
     var copyMenuOpen by remember(m.id) { mutableStateOf(false) }
     var selecting by remember(m.id) { mutableStateOf(false) }
     val clipboard = LocalClipboardManager.current
@@ -1645,6 +1693,22 @@ fun MessageBubble(
                     modifier = Modifier.padding(bottom = 3.dp, start = 2.dp)
                 )
             }
+            // 답장 인용 (대상 메시지 미리보기)
+            if (repliedMessage != null) {
+                val quote = repliedMessage.content?.takeIf { it.isNotBlank() }
+                    ?: when (repliedMessage.type) { "image" -> "사진" "file" -> "파일" else -> "" }
+                Column(
+                    modifier = Modifier
+                        .widthIn(max = 225.dp)
+                        .padding(bottom = 3.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MoimBg)
+                        .padding(horizontal = 8.dp, vertical = 5.dp)
+                ) {
+                    Text("↩ ${repliedName ?: "답장"}", fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, color = MoimSub)
+                    Text(quote, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
             val uriHandler = LocalUriHandler.current
             val path = m.attachmentUrl
             // 공개 URL(http)은 즉시 표시, 과거 path 는 서명 URL 캐시 사용
@@ -1695,17 +1759,56 @@ fun MessageBubble(
                         }
                     }
                     DropdownMenu(expanded = copyMenuOpen, onDismissRequest = { copyMenuOpen = false }) {
+                        // 빠른 리액션 이모지 줄
+                        Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
+                            REACTION_EMOJIS.forEach { e ->
+                                Text(
+                                    e, fontSize = 20.sp,
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .clickable { onReact(e); copyMenuOpen = false }
+                                        .padding(6.dp)
+                                )
+                            }
+                        }
+                        HorizontalDivider()
                         DropdownMenuItem(
-                            text = { Text("전체 복사") },
+                            text = { Text("복사") },
                             onClick = {
                                 clipboard.setText(AnnotatedString(m.content.orEmpty()))
                                 copyMenuOpen = false
                             }
                         )
                         DropdownMenuItem(
-                            text = { Text("부분 복사") },
+                            text = { Text("선택복사") },
                             onClick = { selecting = true; copyMenuOpen = false }
                         )
+                        DropdownMenuItem(
+                            text = { Text("답장") },
+                            onClick = { onReply(); copyMenuOpen = false }
+                        )
+                    }
+                }
+            }
+            // 이모지 리액션 칩 (탭하면 내 리액션 토글)
+            if (reactions.isNotEmpty()) {
+                Row(modifier = Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    reactions.groupBy { it.emoji }.forEach { (emoji, list) ->
+                        val mineReacted = list.any { it.userId == myUserId }
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (mineReacted) MoimAccent.copy(alpha = 0.20f) else MoimBg)
+                                .clickable { onReact(emoji) }
+                                .padding(horizontal = 7.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(emoji, fontSize = 12.sp)
+                            if (list.size > 1) {
+                                Spacer(Modifier.width(3.dp))
+                                Text("${list.size}", fontSize = 11.sp, color = MoimSub)
+                            }
+                        }
                     }
                 }
             }

@@ -35,6 +35,7 @@ import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRealtimeSync
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
+import com.example.moimtalk.data.Reaction
 import com.example.moimtalk.data.Room
 import com.example.moimtalk.data.RoomFile
 import com.example.moimtalk.data.friendlySupabaseError
@@ -61,6 +62,8 @@ class MoimViewModel : ViewModel() {
     var myProfile by mutableStateOf<Profile?>(null)
     var rooms by mutableStateOf<List<Room>>(emptyList())
     var messages by mutableStateOf<List<Message>>(emptyList())
+    var reactions by mutableStateOf<List<Reaction>>(emptyList())   // 활성 방 이모지 리액션
+    var replyTarget by mutableStateOf<Message?>(null)              // 답장 대상(작성 중)
     var events by mutableStateOf<List<CalendarEvent>>(emptyList())
     var files by mutableStateOf<List<RoomFile>>(emptyList())
     var profilesById by mutableStateOf<Map<String, Profile>>(emptyMap())
@@ -190,6 +193,7 @@ class MoimViewModel : ViewModel() {
             try {
                 messages = MoimRepository.messages(roomId)
                 resolveAttachments()
+                reactions = MoimRepository.roomReactions(roomId)
             } catch (_: Exception) {
             }
             loadRoomData(roomId)
@@ -298,12 +302,15 @@ class MoimViewModel : ViewModel() {
         activeRoom = room.id
         MoimRealtimeSync.setActiveRoom(viewModelScope, room.id)
         startMessagePolling()
+        replyTarget = null
+        reactions = emptyList()
         viewModelScope.launch {
             messages = emptyList()
             events = emptyList()
             files = emptyList()
             try {
                 messages = MoimRepository.messages(room.id)
+                reactions = MoimRepository.roomReactions(room.id)
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "메시지 불러오기")
             }
@@ -332,6 +339,8 @@ class MoimViewModel : ViewModel() {
         activeRoom = null
         MoimRealtimeSync.setActiveRoom(viewModelScope, null)
         messages = emptyList()
+        reactions = emptyList()
+        replyTarget = null
         events = emptyList()
         files = emptyList()
     }
@@ -769,12 +778,30 @@ class MoimViewModel : ViewModel() {
     fun send(text: String) {
         val rid = activeRoom
         if (rid == null) return
+        val replyId = replyTarget?.id
+        replyTarget = null
         viewModelScope.launch {
             try {
-                MoimRepository.sendMessage(rid, text)
+                MoimRepository.sendMessage(rid, text, replyId)
                 messages = MoimRepository.messages(rid)
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "전송")
+            }
+        }
+    }
+
+    /** 답장 대상 설정/해제 (작성 중 입력창 위에 미리보기) */
+    fun setReply(m: Message?) { replyTarget = m }
+
+    /** 이모지 리액션 토글 (내 같은 이모지 있으면 취소) */
+    fun toggleReaction(messageId: String, emoji: String) {
+        val rid = activeRoom ?: return
+        viewModelScope.launch {
+            try {
+                MoimRepository.toggleReaction(messageId, emoji)
+                reactions = MoimRepository.roomReactions(rid)
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "리액션")
             }
         }
     }

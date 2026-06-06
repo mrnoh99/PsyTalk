@@ -296,10 +296,30 @@ enum MoimRepository {
         try await supabase.rpc("moim_set_room_pins", params: ["p_rooms": Array(ids.prefix(5))]).execute()
     }
 
-    static func sendMessage(roomId: String, text: String) async throws {
+    static func sendMessage(roomId: String, text: String, replyTo: String? = nil) async throws {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
-        let payload = MessageInsert(roomId: roomId, senderId: uid, content: text)
+        let payload = MessageInsert(roomId: roomId, senderId: uid, content: text, replyTo: replyTo)
         try await supabase.from("messages").insert(payload).execute()
+    }
+
+    // ── 이모지 리액션 ──
+    static func roomReactions(roomId: String) async throws -> [Reaction] {
+        try await supabase.rpc("moim_room_reactions", params: ["p_room": roomId]).execute().value
+    }
+
+    /// 리액션 토글: 내 같은 이모지가 있으면 취소, 없으면 추가
+    static func toggleReaction(messageId: String, emoji: String) async throws {
+        guard let uid = currentUserId() else { throw AppError.notLoggedIn }
+        let mine: [Reaction] = try await supabase.from("message_reactions")
+            .select().eq("message_id", value: messageId).eq("user_id", value: uid).eq("emoji", value: emoji)
+            .execute().value
+        if mine.isEmpty {
+            try await supabase.from("message_reactions")
+                .insert(ReactionInsert(messageId: messageId, userId: uid, emoji: emoji)).execute()
+        } else {
+            try await supabase.from("message_reactions").delete()
+                .eq("message_id", value: messageId).eq("user_id", value: uid).eq("emoji", value: emoji).execute()
+        }
     }
 
     /// 카톡식 첨부 전송: 공개 room-files 업로드 후 공개 URL 을 담아 메시지 삽입 (type = image | file)

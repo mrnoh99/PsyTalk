@@ -240,7 +240,13 @@ struct ChatView: View {
                                         },
                                         onDelete: { deleteTarget = m },
                                         unread: vm.unreadByMsg[m.id] ?? 0,
-                                        sender: vm.profilesById[m.senderId]
+                                        sender: vm.profilesById[m.senderId],
+                                        reactions: vm.reactions.filter { $0.messageId == m.id },
+                                        myUserId: vm.myProfile?.id ?? "",
+                                        onReact: { e in vm.toggleReaction(m.id, e) },
+                                        onReply: { vm.setReply(m) },
+                                        repliedMessage: m.replyTo.flatMap { vm.message(by: $0) },
+                                        repliedName: m.replyTo.flatMap { vm.message(by: $0) }.map { vm.name(of: $0.senderId) }
                                     )
                                     .id(m.id)
                                 }
@@ -277,6 +283,21 @@ struct ChatView: View {
     @ViewBuilder private var chatInputBar: some View {
         if canPost {
             VStack(spacing: 0) {
+                // 답장 대상 미리보기 (✕로 취소)
+                if let rt = vm.replyTarget {
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("↩ \(vm.name(of: rt.senderId)) 에게 답장").font(.system(size: 11, weight: .semibold)).foregroundColor(Moim.accent)
+                            Text((rt.content?.isEmpty == false) ? (rt.content ?? "") : (rt.type == "image" ? "사진" : (rt.type == "file" ? "파일" : "")))
+                                .font(.system(size: 12)).foregroundColor(Moim.sub).lineLimit(1)
+                        }
+                        Spacer()
+                        Button { vm.setReply(nil) } label: {
+                            Text("✕").font(.system(size: 15, weight: .bold)).foregroundColor(Moim.admin)
+                        }
+                    }
+                    .padding(.horizontal, 12).padding(.top, 8)
+                }
                 if let p = pendingAttach {
                     HStack(spacing: 8) {
                         Text("\(p.type == "image" ? "🖼" : "📎")  \(p.name)")
@@ -389,6 +410,9 @@ struct DateDividerView: View {
     }
 }
 
+// 카톡식 빠른 리액션 이모지
+let REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "👏"]
+
 struct MessageBubble: View {
     let message: Message
     let mine: Bool
@@ -397,7 +421,13 @@ struct MessageBubble: View {
     var onDelete: () -> Void = {}
     var unread: Int = 0
     var sender: Profile? = nil     // 보낸이 프로필(사진/색)
-    @State private var selecting = false   // 부분 복사(텍스트 선택) 모드
+    var reactions: [Reaction] = []
+    var myUserId: String = ""
+    var onReact: (String) -> Void = { _ in }
+    var onReply: () -> Void = {}
+    var repliedMessage: Message? = nil
+    var repliedName: String? = nil
+    @State private var selecting = false   // 선택복사(텍스트 선택) 모드
 
     private var unreadText: some View {
         Text(unread > 99 ? "99+" : "\(unread)")
@@ -432,6 +462,18 @@ struct MessageBubble: View {
             VStack(alignment: mine ? .trailing : .leading, spacing: 3) {
                 if !mine {
                     Text(senderName).font(.system(size: 12, weight: .semibold)).foregroundColor(Color(hex: 0x6B635C))
+                }
+                // 답장 인용 (대상 메시지 미리보기)
+                if let r = repliedMessage {
+                    let quote = (r.content?.isEmpty == false) ? (r.content ?? "")
+                        : (r.type == "image" ? "사진" : (r.type == "file" ? "파일" : ""))
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("↩ \(repliedName ?? "답장")").font(.system(size: 10.5, weight: .semibold)).foregroundColor(Moim.sub)
+                        Text(quote).font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1)
+                    }
+                    .padding(.horizontal, 8).padding(.vertical, 5)
+                    .background(Moim.bg).clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(maxWidth: 230, alignment: .leading)
                 }
                 if message.type == "image", message.attachmentUrl != nil {
                     // 서명 URL 해석 전이면 placeholder
@@ -473,7 +515,7 @@ struct MessageBubble: View {
                         chip
                     }
                 } else {
-                    // 길게 누르기 → 전체 복사 / 부분 복사(텍스트 선택) 모드
+                    // 길게 누르기 → 카톡식 메뉴(이모지 리액션 + 복사·선택복사·답장)
                     let bubble = Text(message.content ?? "")
                         .font(.system(size: 14.5)).foregroundColor(mine ? .white : Moim.ink)
                         .padding(.horizontal, 12).padding(.vertical, 9)
@@ -483,8 +525,33 @@ struct MessageBubble: View {
                         bubble.textSelection(.enabled)
                     } else {
                         bubble.contextMenu {
-                            Button { UIPasteboard.general.string = message.content ?? "" } label: { Label("전체 복사", systemImage: "doc.on.doc") }
-                            Button { selecting = true } label: { Label("부분 복사", systemImage: "selection.pin.in.out") }
+                            ForEach(REACTION_EMOJIS, id: \.self) { e in
+                                Button(e) { onReact(e) }
+                            }
+                            Divider()
+                            Button { UIPasteboard.general.string = message.content ?? "" } label: { Label("복사", systemImage: "doc.on.doc") }
+                            Button { selecting = true } label: { Label("선택복사", systemImage: "selection.pin.in.out") }
+                            Button { onReply() } label: { Label("답장", systemImage: "arrowshape.turn.up.left") }
+                        }
+                    }
+                }
+                // 이모지 리액션 칩 (탭하면 내 리액션 토글)
+                if !reactions.isEmpty {
+                    let grouped = Dictionary(grouping: reactions, by: { $0.emoji })
+                    HStack(spacing: 4) {
+                        ForEach(grouped.keys.sorted(), id: \.self) { emoji in
+                            let list = grouped[emoji] ?? []
+                            let mineReacted = list.contains { $0.userId == myUserId }
+                            Button { onReact(emoji) } label: {
+                                HStack(spacing: 3) {
+                                    Text(emoji).font(.system(size: 12))
+                                    if list.count > 1 { Text("\(list.count)").font(.system(size: 11)).foregroundColor(Moim.sub) }
+                                }
+                                .padding(.horizontal, 7).padding(.vertical, 2)
+                                .background(mineReacted ? Moim.accent.opacity(0.20) : Moim.bg)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }

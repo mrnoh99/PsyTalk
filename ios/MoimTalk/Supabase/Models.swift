@@ -96,6 +96,7 @@ struct Message: Codable, Identifiable, Hashable {
     var type: String = "text"                 // text | image | file
     var attachmentUrl: String?
     var attachmentName: String?
+    var replyTo: String?                      // 답장 대상 메시지 id
     let createdAt: String
 
     enum CodingKeys: String, CodingKey {
@@ -104,7 +105,21 @@ struct Message: Codable, Identifiable, Hashable {
         case senderId = "sender_id"
         case attachmentUrl = "attachment_url"
         case attachmentName = "attachment_name"
+        case replyTo = "reply_to"
         case createdAt = "created_at"
+    }
+}
+
+// 이모지 리액션
+struct Reaction: Codable, Identifiable, Hashable {
+    var id: String?
+    let messageId: String
+    let userId: String
+    let emoji: String
+    enum CodingKeys: String, CodingKey {
+        case id, emoji
+        case messageId = "message_id"
+        case userId = "user_id"
     }
 }
 
@@ -148,6 +163,7 @@ struct MessageInsert: Encodable {
     var type: String = "text"                 // text | image | file
     var attachmentUrl: String?
     var attachmentName: String?
+    var replyTo: String?
 
     enum CodingKeys: String, CodingKey {
         case content, type
@@ -155,6 +171,18 @@ struct MessageInsert: Encodable {
         case senderId = "sender_id"
         case attachmentUrl = "attachment_url"
         case attachmentName = "attachment_name"
+        case replyTo = "reply_to"
+    }
+}
+
+struct ReactionInsert: Encodable {
+    let messageId: String
+    let userId: String
+    let emoji: String
+    enum CodingKeys: String, CodingKey {
+        case emoji
+        case messageId = "message_id"
+        case userId = "user_id"
     }
 }
 

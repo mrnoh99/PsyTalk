@@ -96,7 +96,24 @@ data class Message(
     val type: String = "text",                          // text | image | file
     @SerialName("attachment_url") val attachmentUrl: String? = null,
     @SerialName("attachment_name") val attachmentName: String? = null,
+    @SerialName("reply_to") val replyTo: String? = null,   // 답장 대상 메시지 id
     @SerialName("created_at") val createdAt: String,
+)
+
+// 이모지 리액션
+@Serializable
+data class Reaction(
+    val id: String? = null,
+    @SerialName("message_id") val messageId: String,
+    @SerialName("user_id") val userId: String,
+    val emoji: String,
+)
+
+@Serializable
+data class ReactionInsert(
+    @SerialName("message_id") val messageId: String,
+    @SerialName("user_id") val userId: String,
+    val emoji: String,
 )
 
 // 방별 마지막 메시지 (방 목록 미리보기)
@@ -129,6 +146,7 @@ data class MessageInsert(
     val type: String = "text",                          // text | image | file
     @SerialName("attachment_url") val attachmentUrl: String? = null,
     @SerialName("attachment_name") val attachmentName: String? = null,
+    @SerialName("reply_to") val replyTo: String? = null,
 )
 
 @Serializable

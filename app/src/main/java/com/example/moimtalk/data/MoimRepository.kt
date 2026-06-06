@@ -249,11 +249,31 @@ object MoimRepository {
         supabase.postgrest.rpc("moim_message_unread_counts", buildJsonObject { put("p_room", roomId) })
             .decodeList<UnreadMsgRow>().associate { it.messageId to it.unread }
 
-    suspend fun sendMessage(roomId: String, text: String) {
+    suspend fun sendMessage(roomId: String, text: String, replyTo: String? = null) {
         val uid = currentUserId() ?: error("Not logged in")
         supabase.from("messages").insert(
-            MessageInsert(roomId = roomId, senderId = uid, content = text)
+            MessageInsert(roomId = roomId, senderId = uid, content = text, replyTo = replyTo)
         )
+    }
+
+    /** 방의 모든 이모지 리액션 (메시지와 함께 로드) */
+    suspend fun roomReactions(roomId: String): List<Reaction> =
+        supabase.postgrest.rpc("moim_room_reactions", buildJsonObject { put("p_room", roomId) })
+            .decodeList()
+
+    /** 리액션 토글: 내 같은 이모지가 있으면 취소, 없으면 추가 */
+    suspend fun toggleReaction(messageId: String, emoji: String) {
+        val uid = currentUserId() ?: error("Not logged in")
+        val mine = supabase.from("message_reactions")
+            .select { filter { eq("message_id", messageId); eq("user_id", uid); eq("emoji", emoji) } }
+            .decodeList<Reaction>()
+        if (mine.isNotEmpty()) {
+            supabase.from("message_reactions").delete {
+                filter { eq("message_id", messageId); eq("user_id", uid); eq("emoji", emoji) }
+            }
+        } else {
+            supabase.from("message_reactions").insert(ReactionInsert(messageId = messageId, userId = uid, emoji = emoji))
+        }
     }
 
     /** 카톡식 첨부 전송: 공개 room-files 업로드 후 공개 URL 을 담아 메시지 삽입 (type = image | file) */

@@ -11,6 +11,8 @@ final class MoimViewModel: ObservableObject {
     @Published var myProfile: Profile?
     @Published var rooms: [Room] = []
     @Published var messages: [Message] = []
+    @Published var reactions: [Reaction] = []        // 활성 방 이모지 리액션
+    @Published var replyTarget: Message?             // 답장 대상(작성 중)
     @Published var events: [CalendarEvent] = []
     @Published var files: [RoomFile] = []
     @Published var profilesById: [String: Profile] = [:]
@@ -121,6 +123,7 @@ final class MoimViewModel: ObservableObject {
     private func refreshActiveRoom(_ roomId: String) async {
         guard activeRoom == roomId else { return }
         do { messages = try await MoimRepository.messages(roomId: roomId) } catch { }
+        reactions = (try? await MoimRepository.roomReactions(roomId: roomId)) ?? []
         markActiveRead()
         await loadRoomData(roomId)
         resolveAttachments()
@@ -203,10 +206,13 @@ final class MoimViewModel: ObservableObject {
 
     func openRoom(_ room: Room) {
         activeRoom = room.id
-        messages = []; events = []; files = []
+        messages = []; events = []; files = []; reactions = []; replyTarget = nil
         Task {
             await MoimRealtimeSync.shared.setActiveRoom(room.id)
-            do { messages = try await MoimRepository.messages(roomId: room.id) }
+            do {
+                messages = try await MoimRepository.messages(roomId: room.id)
+                reactions = (try? await MoimRepository.roomReactions(roomId: room.id)) ?? []
+            }
             catch { self.error = "메시지 불러오기: \(error.localizedDescription)" }
             await loadRoomData(room.id)
             resolveAttachments()
@@ -231,13 +237,32 @@ final class MoimViewModel: ObservableObject {
 
     func send(_ text: String) {
         guard let rid = activeRoom else { return }
+        let replyId = replyTarget?.id
+        replyTarget = nil
         Task {
             do {
-                try await MoimRepository.sendMessage(roomId: rid, text: text)
+                try await MoimRepository.sendMessage(roomId: rid, text: text, replyTo: replyId)
                 messages = try await MoimRepository.messages(roomId: rid)
             } catch { self.error = "전송: \(error.localizedDescription)" }
         }
     }
+
+    /// 답장 대상 설정/해제
+    func setReply(_ m: Message?) { replyTarget = m }
+
+    /// 이모지 리액션 토글 (내 같은 이모지 있으면 취소)
+    func toggleReaction(_ messageId: String, _ emoji: String) {
+        guard let rid = activeRoom else { return }
+        Task {
+            do {
+                try await MoimRepository.toggleReaction(messageId: messageId, emoji: emoji)
+                reactions = (try? await MoimRepository.roomReactions(roomId: rid)) ?? reactions
+            } catch { self.error = "리액션: \(error.localizedDescription)" }
+        }
+    }
+
+    /// 메시지 id 로 조회 (답장 인용 표시용)
+    func message(by id: String) -> Message? { messages.first { $0.id == id } }
 
     /// 방별 안읽은 수 갱신 (방 목록)
     func loadUnreadCounts() {

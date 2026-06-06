@@ -132,11 +132,9 @@ struct RoomView: View {
     private var tabItems: [(String, String)] {
         // DM: 채팅만, 라벨 '💬 <상대 이름>'
         if isDM { return [("chat", "💬 \(vm.roomDisplayName(liveRoom))")] }
-        // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시
-        let chatLabel = liveRoom.createdBy.map { "개설자: \(vm.name(of: $0))" } ?? "💬 채팅"
         return room.category != "custom"
             ? [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
-            : [("chat", chatLabel)]
+            : [("chat", "💬 채팅")]
     }
 
     private var tabBar: some View {

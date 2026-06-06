@@ -1241,9 +1241,8 @@ async function openRoom(id){
   const isDefault=active.category!=='custom'&&!isDM;
   document.querySelector('.tab[data-t="files"]').style.display=isDefault?'':'none';
   document.querySelector('.tab[data-t="cal"]').style.display=isDefault?'':'none';
-  // 모임방 채팅 탭은 '채팅' 대신 '개설자: <방개설자 이름>' 표시. DM 은 상대 이름.
-  const creatorName=active.created_by?(profilesById[active.created_by]||{}).name:null;
-  document.getElementById('chatTab').textContent=isDM?('💬 '+roomDisplayName(active)):((active.category==='custom'&&creatorName)?('개설자: '+creatorName):'💬 채팅');
+  // DM 은 상대 이름, 그 외에는 '💬 채팅' (개설자는 상단 바 구성원 줄에 표시).
+  document.getElementById('chatTab').textContent=isDM?('💬 '+roomDisplayName(active)):'💬 채팅';
   renderTopBarMembers(active);   // 상단 바에 개설자·참여자 이름 나열 (넘치면 ...)
   show('roomScreen');
   const rs=document.getElementById('roomScreen');         // 오른쪽→왼쪽 펼침 효과

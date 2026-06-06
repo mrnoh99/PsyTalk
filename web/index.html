@@ -1193,7 +1193,9 @@ function renderMsgs(){
     const mine=m.sender_id===me.id, who=profilesById[m.sender_id]||{};
     const un=(unreadByMsg[m.id]||0)>0?`<span class="munread">${unreadByMsg[m.id]}</span>`:'';
     const del=mine?`<span class="mdel" onclick="delMsg('${m.id}')" title="삭제">🗑</span>`:'';
-    html+=`<div class="mrow ${mine?'me':'you'}">${!mine?`<div class="mav" style="background:${tcolor(who.member_type)}">${ini(who.name)}</div>`:''}
+    const avStyle=personAvatarStyle(who), avText=who.avatar_url?'':ini(who.name);
+    const avClick=who.avatar_url?` onclick="openImageView('${esc(who.avatar_url)}')" title="사진 보기" style="cursor:pointer;${avStyle}"`:` style="${avStyle}"`;
+    html+=`<div class="mrow ${mine?'me':'you'}">${!mine?`<div class="mav"${avClick}>${avText}</div>`:''}
     <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleHtml(m)}</div><span class="mtime">${fmtMsgTime(m.created_at)}</span>${un}${del}</div>`;
   });
   el.innerHTML=html;

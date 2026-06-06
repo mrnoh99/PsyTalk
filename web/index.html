@@ -1823,13 +1823,13 @@ async function saveEvent(){
         scope:g('evScope')||null,description:g('evDesc')||null,
         attachment_url:null,attachment_name:null,attachment_desc:null,
         attachment_urls:urls,attachment_names:names};
-      const {error}=(await withFreshSession(async()=>await sb.from('calendar_events').update(upd).eq('id',editEventId))).error;
+      const {error}=await withFreshSession(async()=>await sb.from('calendar_events').update(upd).eq('id',editEventId));
       if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'수정 실패: '+error.message);return;}
     }else{
-      const {error}=(await withFreshSession(async()=>await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAtIso,
+      const {error}=await withFreshSession(async()=>await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAtIso,
         place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
         owner_id:me.id,attachment_url:null,attachment_name:null,
-        attachment_urls:up.urls,attachment_names:up.names}))).error;
+        attachment_urls:up.urls,attachment_names:up.names}));
       if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'등록 실패: '+error.message);return;}
     }
     closeModal('emodal');await loadEvents();await loadFiles();renderCal();

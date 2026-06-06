@@ -397,6 +397,7 @@ struct MessageBubble: View {
     var onDelete: () -> Void = {}
     var unread: Int = 0
     var sender: Profile? = nil     // 보낸이 프로필(사진/색)
+    @State private var selecting = false   // 부분 복사(텍스트 선택) 모드
 
     private var unreadText: some View {
         Text(unread > 99 ? "99+" : "\(unread)")
@@ -472,11 +473,20 @@ struct MessageBubble: View {
                         chip
                     }
                 } else {
-                    Text(message.content ?? "")
+                    // 길게 누르기 → 전체 복사 / 부분 복사(텍스트 선택) 모드
+                    let bubble = Text(message.content ?? "")
                         .font(.system(size: 14.5)).foregroundColor(mine ? .white : Moim.ink)
                         .padding(.horizontal, 12).padding(.vertical, 9)
                         .background(mine ? Moim.accent : Moim.white)   // 내 버블=Primary(파랑), 받은=Surface
                         .clipShape(RoundedRectangle(cornerRadius: 16))
+                    if selecting {
+                        bubble.textSelection(.enabled)
+                    } else {
+                        bubble.contextMenu {
+                            Button { UIPasteboard.general.string = message.content ?? "" } label: { Label("전체 복사", systemImage: "doc.on.doc") }
+                            Button { selecting = true } label: { Label("부분 복사", systemImage: "selection.pin.in.out") }
+                        }
+                    }
                 }
             }
             if !mine { timeText }

@@ -6,6 +6,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -76,6 +79,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -1580,12 +1585,17 @@ private fun NoticePostCard(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageBubble(
     m: Message, mine: Boolean, senderName: String,
     attachUrl: (String) -> String? = { null }, onDelete: () -> Unit = {}, unread: Int = 0,
     sender: Profile? = null
 ) {
+    // 텍스트 메시지 길게 누르기 → 전체 복사 / 부분 복사(선택) 메뉴
+    var copyMenuOpen by remember(m.id) { mutableStateOf(false) }
+    var selecting by remember(m.id) { mutableStateOf(false) }
+    val clipboard = LocalClipboardManager.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1668,13 +1678,35 @@ fun MessageBubble(
                         fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
                 }
-                else -> Box(
-                    modifier = Modifier
-                        .widthIn(max = 225.dp)
-                        .background(bg, shape)
-                        .padding(horizontal = 12.dp, vertical = 9.dp)
-                ) {
-                    Text(m.content.orEmpty(), color = bubbleTextColor, fontSize = 14.5.sp, lineHeight = 20.sp)
+                else -> Box {
+                    Box(
+                        modifier = Modifier
+                            .widthIn(max = 225.dp)
+                            .background(bg, shape)
+                            .combinedClickable(onClick = {}, onLongClick = { copyMenuOpen = true })
+                            .padding(horizontal = 12.dp, vertical = 9.dp)
+                    ) {
+                        if (selecting) {
+                            SelectionContainer {
+                                Text(m.content.orEmpty(), color = bubbleTextColor, fontSize = 14.5.sp, lineHeight = 20.sp)
+                            }
+                        } else {
+                            Text(m.content.orEmpty(), color = bubbleTextColor, fontSize = 14.5.sp, lineHeight = 20.sp)
+                        }
+                    }
+                    DropdownMenu(expanded = copyMenuOpen, onDismissRequest = { copyMenuOpen = false }) {
+                        DropdownMenuItem(
+                            text = { Text("전체 복사") },
+                            onClick = {
+                                clipboard.setText(AnnotatedString(m.content.orEmpty()))
+                                copyMenuOpen = false
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("부분 복사") },
+                            onClick = { selecting = true; copyMenuOpen = false }
+                        )
+                    }
                 }
             }
         }

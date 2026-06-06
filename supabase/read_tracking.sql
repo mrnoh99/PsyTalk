@@ -27,17 +27,20 @@ DROP POLICY IF EXISTS "room_reads_update_own" ON public.room_reads;
 CREATE POLICY "room_reads_update_own" ON public.room_reads
   FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 
--- 방 회원 집합: 모임방(custom)=room_members, 기본방=승인된 전원
+-- 방 회원 집합: 모임방(custom)·1:1(direct)=room_members, 기본방=승인된 전원(탈퇴 제외)
+--   ※ DM(direct)을 기본방으로 취급하면 '승인 전원'이 잡혀 안읽은 수가 부풀려짐 → 멤버십 기준으로.
+--   ※ category 가 enum 이어도 안전하도록 ::text 비교.
 CREATE OR REPLACE FUNCTION public.moim_room_member_ids(p_room uuid)
 RETURNS TABLE(user_id uuid)
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
   SELECT rm.user_id FROM public.room_members rm
     JOIN public.rooms r ON r.id = rm.room_id
-   WHERE rm.room_id = p_room AND r.category = 'custom'
+   WHERE rm.room_id = p_room AND r.category::text IN ('custom', 'direct')
   UNION
   SELECT p.id FROM public.profiles p
-   WHERE p.approved = true
-     AND EXISTS (SELECT 1 FROM public.rooms r WHERE r.id = p_room AND r.category <> 'custom');
+   WHERE p.approved = true AND coalesce(p.withdrawn, false) = false
+     AND EXISTS (SELECT 1 FROM public.rooms r
+                 WHERE r.id = p_room AND r.category::text NOT IN ('custom', 'direct'));
 $$;
 
 -- #1 현재 사용자의 방별 안읽은 메시지 수 (본인이 보낸 것 제외)

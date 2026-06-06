@@ -26,6 +26,28 @@ object MoimRepository {
         supabase.auth.awaitInitialization()
     }
 
+    /** JWT 만료 직전·만료 후 refresh token 으로 access token 갱신 */
+    suspend fun ensureFreshSession() {
+        ensureAuthReady()
+        if (supabase.auth.currentSessionOrNull() == null) return
+        try {
+            supabase.auth.refreshCurrentSession()
+        } catch (_: Exception) {
+            // refresh 실패 시 다음 API 호출에서 withFreshSession 이 재시도
+        }
+    }
+
+    private suspend fun <T> withFreshSession(block: suspend () -> T): T {
+        ensureAuthReady()
+        return try {
+            block()
+        } catch (e: Exception) {
+            if (!isJwtExpiredError(e)) throw e
+            supabase.auth.refreshCurrentSession()
+            block()
+        }
+    }
+
     suspend fun signIn(email: String, password: String) {
         supabase.auth.signInWith(Email) {
             this.email = email
@@ -319,7 +341,7 @@ object MoimRepository {
         presenter: String?,
         keywords: List<String>,
         attachments: List<Pair<String, ByteArray>>,
-    ) {
+    ) = withFreshSession {
         val uid = currentUserId() ?: error("Not logged in")
         val urls = mutableListOf<String>()
         val names = mutableListOf<String>()
@@ -349,7 +371,7 @@ object MoimRepository {
     }
 
     /** 일정 삭제 (작성자/관리자/교실·의국·비서·심리실 — RLS 로 강제) */
-    suspend fun deleteEvent(eventId: String) {
+    suspend fun deleteEvent(eventId: String) = withFreshSession {
         supabase.from("calendar_events").delete { filter { eq("id", eventId) } }
     }
 
@@ -368,7 +390,7 @@ object MoimRepository {
         keptUrls: List<String>,
         keptNames: List<String>,
         newAttachments: List<Pair<String, ByteArray>>,
-    ) {
+    ) = withFreshSession {
         // 유지할 기존 첨부 + 새로 올린 첨부를 합쳐서 배열로 저장
         val urls = keptUrls.toMutableList()
         val names = keptNames.toMutableList()

@@ -237,6 +237,26 @@ enum MoimRepository {
         return m.contains("23505") || m.contains("duplicate key")
     }
 
+    private static func isJwtExpired(_ error: Error) -> Bool {
+        let m = error.localizedDescription.lowercased()
+        return m.contains("jwt expired") || m.contains("invalid jwt") || m.contains("invalid claim")
+    }
+
+    private static func withFreshSession<T>(_ block: () async throws -> T) async throws -> T {
+        do {
+            return try await block()
+        } catch {
+            guard isJwtExpired(error) else { throw error }
+            try await supabase.auth.refreshSession()
+            return try await block()
+        }
+    }
+
+    static func ensureFreshSession() async {
+        guard currentUserId() != nil else { return }
+        try? await supabase.auth.refreshSession()
+    }
+
     // ── 채팅 ──
     static func messages(roomId: String) async throws -> [Message] {
         try await supabase.from("messages")
@@ -306,26 +326,30 @@ enum MoimRepository {
         presenter: String?, keywords: [String],
         attachments: [(name: String, data: Data)]
     ) async throws {
-        guard let uid = currentUserId() else { throw AppError.notLoggedIn }
-        var urls = [String]()
-        var names = [String]()
-        for a in attachments {
-            urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
-            names.append(a.name)
+        try await withFreshSession {
+            guard let uid = currentUserId() else { throw AppError.notLoggedIn }
+            var urls = [String]()
+            var names = [String]()
+            for a in attachments {
+                urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
+                names.append(a.name)
+            }
+            let payload = CalendarEventInsert(
+                roomId: roomId, title: title, startAt: startAt,
+                place: place, link: link, scope: scope, description: description,
+                presenter: (presenter?.isEmpty == false) ? presenter : nil,
+                keywords: keywords, ownerId: uid,
+                attachmentUrls: urls, attachmentNames: names
+            )
+            try await supabase.from("calendar_events").insert(payload).execute()
         }
-        let payload = CalendarEventInsert(
-            roomId: roomId, title: title, startAt: startAt,
-            place: place, link: link, scope: scope, description: description,
-            presenter: (presenter?.isEmpty == false) ? presenter : nil,
-            keywords: keywords, ownerId: uid,
-            attachmentUrls: urls, attachmentNames: names
-        )
-        try await supabase.from("calendar_events").insert(payload).execute()
     }
 
     /// 일정 삭제 (작성자/관리자/교실·의국·비서·심리실 — RLS 로 강제)
     static func deleteEvent(id: String) async throws {
-        try await supabase.from("calendar_events").delete().eq("id", value: id).execute()
+        try await withFreshSession {
+            try await supabase.from("calendar_events").delete().eq("id", value: id).execute()
+        }
     }
 
     static func updateEvent(
@@ -334,29 +358,31 @@ enum MoimRepository {
         presenter: String?, keywords: [String],
         keptUrls: [String], keptNames: [String], newAttachments: [(name: String, data: Data)]
     ) async throws {
-        // 유지할 기존 첨부 + 새로 올린 첨부를 합쳐 배열로 저장
-        var urls = keptUrls
-        var names = keptNames
-        for a in newAttachments {
-            urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
-            names.append(a.name)
+        try await withFreshSession {
+            // 유지할 기존 첨부 + 새로 올린 첨부를 합쳐 배열로 저장
+            var urls = keptUrls
+            var names = keptNames
+            for a in newAttachments {
+                urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
+                names.append(a.name)
+            }
+            let fields: [String: AnyJSON] = [
+                "title": .string(title),
+                "start_at": .string(startAt),
+                "place": place.map { AnyJSON.string($0) } ?? .null,
+                "link": link.map { AnyJSON.string($0) } ?? .null,
+                "scope": scope.map { AnyJSON.string($0) } ?? .null,
+                "description": description.map { AnyJSON.string($0) } ?? .null,
+                "presenter": presenter.map { AnyJSON.string($0) } ?? .null,
+                "keywords": .array(keywords.map { AnyJSON.string($0) }),
+                "attachment_url": .null,
+                "attachment_name": .null,
+                "attachment_desc": .null,
+                "attachment_urls": .array(urls.map { AnyJSON.string($0) }),
+                "attachment_names": .array(names.map { AnyJSON.string($0) }),
+            ]
+            try await supabase.from("calendar_events").update(fields).eq("id", value: eventId).execute()
         }
-        let fields: [String: AnyJSON] = [
-            "title": .string(title),
-            "start_at": .string(startAt),
-            "place": place.map { AnyJSON.string($0) } ?? .null,
-            "link": link.map { AnyJSON.string($0) } ?? .null,
-            "scope": scope.map { AnyJSON.string($0) } ?? .null,
-            "description": description.map { AnyJSON.string($0) } ?? .null,
-            "presenter": presenter.map { AnyJSON.string($0) } ?? .null,
-            "keywords": .array(keywords.map { AnyJSON.string($0) }),
-            "attachment_url": .null,
-            "attachment_name": .null,
-            "attachment_desc": .null,
-            "attachment_urls": .array(urls.map { AnyJSON.string($0) }),
-            "attachment_names": .array(names.map { AnyJSON.string($0) }),
-        ]
-        try await supabase.from("calendar_events").update(fields).eq("id", value: eventId).execute()
     }
 
     // ── 자료실 ──

@@ -410,12 +410,48 @@ if(!window.supabase||!window.supabase.createClient){
     '네트워크·방화벽 설정을 확인하거나 페이지를 새로고침하세요.</p></div>';
   throw new Error('Supabase library failed to load');
 }
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
+});
 // 전체관리자(고정): 비밀번호 변경/재설정 불가 — 계정 보호
 const SUPERADMIN_EMAIL = "jsnoh@ajou.ac.kr";
 // 비밀번호 재설정 링크로 진입했는지 (해시는 supabase 가 비우기 전에 동기적으로 확인)
 let recovering = location.hash.includes('type=recovery');
 sb.auth.onAuthStateChange((event)=>{ if(event==='PASSWORD_RECOVERY'){ recovering=true; show('reset'); } });
+function isJwtExpired(err){
+  const m=(err&&err.message)||String(err||'');
+  return /jwt expired|invalid jwt|invalid claim/i.test(m);
+}
+async function ensureFreshSession(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){show('login');return false;}
+  if((session.expires_at||0)*1000-Date.now()<60000){
+    const {error}=await sb.auth.refreshSession();
+    if(error){
+      await sb.auth.signOut(); me=null; show('login');
+      alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
+      return false;
+    }
+  }
+  return true;
+}
+async function withFreshSession(fn){
+  if(!await ensureFreshSession())return{error:{message:'로그인이 만료되었습니다. 다시 로그인해 주세요.'}};
+  let r=await fn();
+  if(r?.error&&isJwtExpired(r.error)){
+    const {error:re}=await sb.auth.refreshSession();
+    if(re){
+      await sb.auth.signOut(); me=null; show('login');
+      alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
+      return r;
+    }
+    r=await fn();
+  }
+  return r;
+}
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&me) ensureFreshSession().catch(()=>{});
+});
 const BUCKET = "room-files";
 
 /* ====== 상태 ====== */
@@ -1763,6 +1799,7 @@ async function uploadFiles(files){
   return {urls,names};
 }
 async function saveEvent(){
+  if(!await ensureFreshSession())return;
   const g=k=>document.getElementById(k).value.trim();
   if(!g('evTitle')){alert('제목을 입력하세요');return;}
   const startAt=new Date(g('evDate')+'T'+(g('evTime')||'09:00')+':00').toISOString();
@@ -1778,14 +1815,14 @@ async function saveEvent(){
       scope:g('evScope')||null,description:g('evDesc')||null,
       attachment_url:null,attachment_name:null,attachment_desc:null,
       attachment_urls:urls,attachment_names:names};
-    const {error}=await sb.from('calendar_events').update(upd).eq('id',editEventId);
-    if(error){alert('수정 실패: '+error.message);return;}
+    const {error}=(await withFreshSession(()=>sb.from('calendar_events').update(upd).eq('id',editEventId))).error;
+    if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'수정 실패: '+error.message);return;}
   }else{
-    const {error}=await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAt,
+    const {error}=(await withFreshSession(()=>sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAt,
       place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
       owner_id:me.id,attachment_url:null,attachment_name:null,
-      attachment_urls:up.urls,attachment_names:up.names});
-    if(error){alert('등록 실패: '+error.message);return;}
+      attachment_urls:up.urls,attachment_names:up.names}))).error;
+    if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'등록 실패: '+error.message);return;}
   }
   closeModal('emodal');await loadEvents();await loadFiles();renderCal();
 }

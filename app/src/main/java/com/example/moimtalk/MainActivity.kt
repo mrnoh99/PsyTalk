@@ -155,6 +155,7 @@ class MoimViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 MoimRepository.ensureAuthReady()
+                MoimRepository.ensureFreshSession()
                 if (MoimRepository.currentUserId() == null) return@launch
                 refetchRoomsQuiet()
                 reloadProfiles()

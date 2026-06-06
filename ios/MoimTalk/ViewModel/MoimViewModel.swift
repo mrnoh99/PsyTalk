@@ -86,6 +86,7 @@ final class MoimViewModel: ObservableObject {
         guard loggedIn else { return }
         loadRooms()
         Task {
+            await MoimRepository.ensureFreshSession()
             await rebindRealtime()
             if let rid = activeRoom { await refreshActiveRoom(rid) }
         }

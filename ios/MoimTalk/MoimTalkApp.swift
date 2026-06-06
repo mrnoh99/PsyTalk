@@ -30,8 +30,6 @@ struct RootView: View {
                 PendingApprovalView(vm: vm)
             } else if showAdmin {
                 AdminPlaceholderView(vm: vm, onBack: { showAdmin = false })
-            } else if showWard {
-                WardStatusView(vm: vm, onBack: { showWard = false })
             } else if showCreateRoom {
                 CreateRoomView(vm: vm, onBack: { showCreateRoom = false })
             } else {
@@ -41,15 +39,29 @@ struct RootView: View {
                         vm: vm,
                         onOpen: { room in withAnimation(.easeOut(duration: 0.26)) { openedRoom = room }; vm.openRoom(room) },
                         onAdmin: { showAdmin = true },
-                        onWard: { showWard = true },
+                        onWard: { withAnimation(.easeOut(duration: 0.26)) { showWard = true } },
                         onCreateRoom: { showCreateRoom = true }
                     )
                     if let room = openedRoom {
                         RoomView(vm: vm, room: room, onBack: {
-                            vm.closeRoom(); openedRoom = nil
+                            withAnimation(.easeOut(duration: 0.26)) { openedRoom = nil }
+                            vm.closeRoom()
                         })
-                        .transition(.move(edge: .trailing))
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing),
+                            removal: .move(edge: .leading)
+                        ))
                         .zIndex(1)
+                    }
+                    if showWard {
+                        WardStatusView(vm: vm, onBack: {
+                            withAnimation(.easeOut(duration: 0.26)) { showWard = false }
+                        })
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .trailing),
+                            removal: .move(edge: .leading)
+                        ))
+                        .zIndex(2)
                     }
                 }
             }
@@ -88,8 +100,8 @@ struct RootView: View {
         }
         .onChange(of: vm.rooms) { _ in
             if let r = openedRoom, !vm.rooms.contains(where: { $0.id == r.id }) {
+                withAnimation(.easeOut(duration: 0.26)) { openedRoom = nil }
                 vm.closeRoom()
-                openedRoom = nil
             }
         }
     }

@@ -4,10 +4,13 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -883,17 +886,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-/** 채팅방이 열릴 때 오른쪽 → 왼쪽으로 펼쳐 나오는 효과 */
-@Composable
-private fun SlideInFromRight(content: @Composable () -> Unit) {
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-    AnimatedVisibility(
-        visible = visible,
-        enter = slideInHorizontally(animationSpec = tween(260)) { it },
-        exit = ExitTransition.None
-    ) { content() }
-}
+private val slideOverlaySpec = tween(260)
 
 @Composable
 fun App(vm: MoimViewModel = viewModel()) {
@@ -946,7 +939,6 @@ fun App(vm: MoimViewModel = viewModel()) {
         !vm.loggedIn -> LoginScreen(vm)
         // 기본값 불승인: approved 가 true 가 아니면(false·미설정) 승인 대기
         vm.myProfile != null && vm.myProfile?.approved != true -> PendingApprovalScreen(vm)
-        showWard -> WardStatusScreen(vm = vm, onBack = { showWard = false })
         showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
         showSettings -> SettingsScreen(
             vm = vm,
@@ -972,8 +964,19 @@ fun App(vm: MoimViewModel = viewModel()) {
                 onApprovals = { showApprovals = true },
                 onSettings = { showSettings = true }
             )
-            openedRoom?.let { room ->
-                SlideInFromRight {
+            AnimatedContent(
+                targetState = openedRoom,
+                modifier = Modifier.fillMaxSize(),
+                transitionSpec = {
+                    if (targetState != null) {
+                        slideInHorizontally(slideOverlaySpec) { it } togetherWith ExitTransition.None
+                    } else {
+                        EnterTransition.None togetherWith slideOutHorizontally(slideOverlaySpec) { -it }
+                    }
+                },
+                label = "roomOverlay",
+            ) { room ->
+                if (room != null) {
                     RoomScreen(
                         vm = vm,
                         room = room,
@@ -982,6 +985,22 @@ fun App(vm: MoimViewModel = viewModel()) {
                             openedRoom = null
                         }
                     )
+                }
+            }
+            AnimatedContent(
+                targetState = showWard,
+                modifier = Modifier.fillMaxSize(),
+                transitionSpec = {
+                    if (targetState) {
+                        slideInHorizontally(slideOverlaySpec) { it } togetherWith ExitTransition.None
+                    } else {
+                        EnterTransition.None togetherWith slideOutHorizontally(slideOverlaySpec) { -it }
+                    }
+                },
+                label = "wardOverlay",
+            ) { show ->
+                if (show) {
+                    WardStatusScreen(vm = vm, onBack = { showWard = false })
                 }
             }
         }

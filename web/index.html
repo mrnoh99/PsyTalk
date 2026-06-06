@@ -223,7 +223,10 @@
   .my-field .lbl{margin-top:0}
   .pinrow.dragging{opacity:.45}
   @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
-  #roomScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1);will-change:transform}
+  @keyframes slideOutLeft{from{transform:translateX(0)}to{transform:translateX(-100%)}}
+  #roomScreen.slide-overlay,#wardScreen.slide-overlay{position:absolute;inset:0;z-index:20;background:var(--paper);display:flex;flex-direction:column}
+  #roomScreen.slidein,#wardScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1);will-change:transform}
+  #roomScreen.slideout,#wardScreen.slideout{animation:slideOutLeft .26s cubic-bezier(.22,.61,.36,1) forwards;will-change:transform}
   .pick{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;border:1px solid var(--line);margin-bottom:7px;background:var(--surface)}
   .pick.sel{border-color:var(--accent);background:var(--hl)}.pick .av{width:32px;height:32px;border-radius:10px;font-size:11px}
   .pick .pn{flex:1;font-size:13.5px;font-weight:600}.chk{font-weight:800;color:var(--accent)}
@@ -296,7 +299,7 @@
   </section>
 
   <!-- ROOM -->
-  <section id="roomScreen" class="hidden app-screen">
+  <section id="roomScreen" class="hidden app-screen slide-overlay">
     <div class="hdr"><button class="back" onclick="closeRoom()">‹</button>
       <div style="flex:1;min-width:0;display:flex;flex-direction:column">
         <h1 id="roomTitle" style="font-size:16px"></h1>
@@ -331,8 +334,8 @@
   </section>
 
   <!-- WARD -->
-  <section id="wardScreen" class="hidden app-screen">
-    <div class="hdr"><button class="back" onclick="show('listScreen')">‹</button>
+  <section id="wardScreen" class="hidden app-screen slide-overlay">
+    <div class="hdr"><button class="back" onclick="closeWard()">‹</button>
       <h1 style="font-size:16px">잔여 병실 현황</h1><span class="spacer"></span>
       <button class="lk" id="wardEditBtn" onclick="wardEdit()">편집</button></div>
     <div class="wardbody" id="wardBody" style="flex:1;overflow-y:auto"></div>
@@ -1050,6 +1053,37 @@ const canEditWard=()=>!!me&&(isAdmin()||['교실','의국','간호사'].includes
 // 일정 삭제: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 const canDeleteEvent=ev=>!!me&&((ev&&ev.owner_id===me.id)||isAdmin()||['교실','의국','비서','심리실'].includes(me.member_type));
 function show(id){['login','pending','reset','listScreen','roomScreen','wardScreen','adminScreen','settingsScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
+const SLIDE_OVERLAYS=['roomScreen','wardScreen'];
+function openListOverlay(id){
+  ['login','pending','reset','adminScreen','settingsScreen'].forEach(s=>document.getElementById(s).classList.add('hidden'));
+  document.getElementById('listScreen').classList.remove('hidden');
+  SLIDE_OVERLAYS.forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));
+  layoutChat();
+}
+function playSlideIn(el){
+  if(!el)return;
+  el.classList.remove('slideout');
+  void el.offsetWidth;
+  el.classList.add('slidein');
+  el.addEventListener('animationend',()=>{el.classList.remove('slidein');el.style.willChange='';},{once:true});
+}
+function slideCloseOverlay(el){
+  return new Promise(resolve=>{
+    if(!el||el.classList.contains('hidden')){resolve();return;}
+    roomSlideActive=true;
+    el.classList.remove('slidein');
+    void el.offsetWidth;
+    el.classList.add('slideout');
+    el.addEventListener('animationend',()=>{
+      el.classList.remove('slideout','slidein');
+      el.classList.add('hidden');
+      el.style.willChange='';
+      el.style.transform='';
+      roomSlideActive=false;
+      resolve();
+    },{once:true});
+  });
+}
 
 /* ====== 공용 확인/알림 대화상자 (브라우저 기본 confirm/alert 대체 → "대화상자 숨기기" 안 뜸) ====== */
 let _uiResolve=null;
@@ -1393,13 +1427,12 @@ async function openRoom(id){
   const isDefault=active.category!=='custom'&&!isDM&&!isNotice;
   document.getElementById('roomTabs').style.display=isDefault?'':'none';
   await renderTopBarMembers(active);   // 헤더 높이 확정 후 화면 전환(떨림 방지)
-  show('roomScreen');
+  openListOverlay('roomScreen');
   const rs=document.getElementById('roomScreen');
-  rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');
   roomSlideActive=true;
+  playSlideIn(rs);
   rs.addEventListener('animationend',()=>{
     roomSlideActive=false;
-    rs.style.willChange='';
     layoutChat();
     scrollMsgsToBottom();
   },{once:true});
@@ -1428,7 +1461,7 @@ async function renderTopBarMembers(r){
   if(!names.length)return;
   el.textContent=names.join(', '); el.style.display='';
 }
-async function closeRoom(){roomSlideActive=false;clearAttach();active=null;await setRoomRealtime(null);show('listScreen');const el=document.getElementById('roomList');if(el)el.scrollTop=roomListScrollTop;loadUnreadCounts();loadLastMessages();}
+async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);await slideCloseOverlay(document.getElementById('roomScreen'));const el=document.getElementById('roomList');if(el)el.scrollTop=roomListScrollTop;loadUnreadCounts();loadLastMessages();}
 /* ====== 1:1 대화 스와이프 삭제 (왼쪽으로 밀어 확인 후 본인 참여만 제거) ====== */
 let dmStartX=null,dmEl=null,dmDx=0,dmSwiped=false;
 function dmSwipeStart(e){const t=e.touches&&e.touches[0];if(!t)return;dmStartX=t.clientX;dmEl=e.currentTarget;dmDx=0;dmSwiped=false;}
@@ -2055,7 +2088,8 @@ async function deleteEvent(){
 }
 
 /* ====== 잔여 병실 현황 ====== */
-async function openWard(){show('wardScreen');await loadWard();}
+async function openWard(){openListOverlay('wardScreen');playSlideIn(document.getElementById('wardScreen'));await loadWard();}
+async function closeWard(){await slideCloseOverlay(document.getElementById('wardScreen'));}
 async function loadWard(){const {data}=await sb.from('ward_status').select('*').eq('id',1).maybeSingle();
   wardText=data?data.content:'';wardUpdated=data?data.updated_at:null;renderWard(false);}
 function fmtWardPublish(iso){

@@ -335,7 +335,7 @@ private fun FileUploadDialog(fileName: String, onDismiss: () -> Unit, onConfirm:
 @Composable
 fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modifier = Modifier) {
     val today = remember { LocalDate.now(KST) }
-    var mode by remember { mutableStateOf(if (room.defaultView == "week") "week" else "month") }
+    var mode by remember(room.id) { mutableStateOf(if (opensWeekCalendar(room)) "week" else "month") }
     var ym by remember { mutableStateOf(YearMonth.from(today)) }
     // 선택한 날짜 — 기본은 오늘. 날짜를 누르면 그날로 포커스가 옮겨가고, 일정 추가·아래 목록이 이 날짜를 따른다.
     var selected by remember { mutableStateOf(today) }

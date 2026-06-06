@@ -14,7 +14,7 @@ struct CalendarView: View {
 
     init(vm: MoimViewModel, room: Room, canPost: Bool) {
         self.vm = vm; self.room = room; self.canPost = canPost
-        _mode = State(initialValue: room.defaultView == "week" ? "week" : "month")
+        _mode = State(initialValue: opensWeekCalendar(room) ? "week" : "month")
     }
 
     var body: some View {

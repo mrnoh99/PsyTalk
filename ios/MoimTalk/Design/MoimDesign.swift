@@ -43,6 +43,11 @@ func byName(_ a: Profile, _ b: Profile) -> Bool {
     a.name.localizedCompare(b.name) == .orderedAscending
 }
 
+/// 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본
+func opensWeekCalendar(_ room: Room) -> Bool {
+    room.category != "custom" && room.category != "direct" && room.defaultView == "week"
+}
+
 /// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방.
 func noticeTopRoom(_ rooms: [Room]) -> Room? {
     rooms.filter { $0.category != "custom" && $0.category != "direct" && $0.defaultView != "week" }

@@ -21,8 +21,8 @@ struct RoomView: View {
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
-        // default_view='week' 방은 열자마자 캘린더(주간) 탭으로 (기본 방만; 모임방은 채팅)
-        _tab = State(initialValue: (room.category != "custom" && room.defaultView == "week") ? "cal" : "chat")
+        // default_view=week 방은 열자마자 캘린더(주간) 탭으로
+        _tab = State(initialValue: opensWeekCalendar(room) ? "cal" : "chat")
     }
 
     // 이름 변경이 반영되도록 최신 방 정보를 vm.rooms 에서 조회
@@ -33,35 +33,48 @@ struct RoomView: View {
     var body: some View {
         VStack(spacing: 0) {
             topBar
-            tabBar
+            if !tabItems.isEmpty {
+                tabBar
+            }
             Divider().background(Moim.line)
 
             switch tab {
             case "chat": ChatView(vm: vm, canPost: canPost, input: $input)
             case "files": FilesView(vm: vm, canUpload: canPost)
-            default: CalendarView(vm: vm, room: room, canPost: canPost)
+            default: CalendarView(vm: vm, room: liveRoom, canPost: canPost)
+                .id(liveRoom.id)
             }
         }
         .background(Moim.paper.ignoresSafeArea())
-        // 상단 바에 개설자·참여자 이름을 나열하기 위해 방 구성원 로드 (DM 제외)
-        .task(id: liveRoom.id) { if !isDM { vm.loadRoomMembers(liveRoom.id) } }
+        .task(id: liveRoom.id) {
+            tab = opensWeekCalendar(liveRoom) ? "cal" : "chat"
+            if !isDM { vm.loadRoomMembers(liveRoom.id) }
+        }
     }
 
     private var topBar: some View {
-        HStack {
+        HStack(alignment: .center, spacing: 10) {
             Button(action: onBack) { Text("‹").font(.system(size: 25)) }
             VStack(alignment: .leading, spacing: 2) {
-                Text(vm.roomDisplayName(liveRoom)).font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
-                Text(isDM ? "1:1 대화" : catLabel(liveRoom.category)).font(.system(size: 12)).foregroundColor(Moim.sub)
+                Text(vm.roomDisplayName(liveRoom))
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(Moim.ink)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
                 // 개설자·참여자 이름 나열 (작은 글씨, 넘치면 ... — DM 제외)
                 if !isDM, vm.memberListRoomId == liveRoom.id {
                     let line = roomMemberNames(liveRoom, memberIds: vm.roomMemberIds, profiles: vm.profilesById).joined(separator: ", ")
                     if !line.isEmpty {
-                        Text(line).font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1).truncationMode(.tail)
+                        Text(line)
+                            .font(.system(size: 11))
+                            .foregroundColor(Moim.sub)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                     }
                 }
             }
-            Spacer()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .layoutPriority(1)
             if !isDM, canRenameRoom(vm.myProfile, liveRoom) {
                 Button("이름변경") {
                     renameText = liveRoom.name
@@ -84,13 +97,13 @@ struct RoomView: View {
                 Button("나가기") { showLeave = true }
                     .font(.system(size: 13)).foregroundColor(Moim.admin)
             }
-            // 방 삭제 (모임방 생성자·전체관리자) — 우상단
-            if !isDM, vm.canDeleteRoom(liveRoom) {
+            // 1:1 대화: 목록에서 삭제 — 우상단
+            if isDM {
                 Button("방삭제") { showDeleteRoom = true }
                     .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.admin)
             }
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
+        .padding(.horizontal, 18).padding(.vertical, 13)
         .background(Moim.paper)
         .sheet(isPresented: $showRename) {
             NavigationView {
@@ -127,11 +140,11 @@ struct RoomView: View {
         } message: {
             Text("'\(liveRoom.name)' 방에서 나갈까요?")
         }
-        .alert("방 삭제", isPresented: $showDeleteRoom) {
+        .alert("대화 삭제", isPresented: $showDeleteRoom) {
             Button("취소", role: .cancel) {}
-            Button("삭제", role: .destructive) { vm.deleteRoom(liveRoom) { onBack() } }
+            Button("삭제", role: .destructive) { vm.leaveRoom(liveRoom) { onBack() } }
         } message: {
-            Text("'\(liveRoom.name)' 방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.")
+            Text("이 대화를 목록에서 삭제할까요?\n상대는 그대로이며, 다시 메시지하면 이전 대화가 복구됩니다.")
         }
         .sheet(isPresented: $showSettings) {
             RoomSettingsView(vm: vm, room: liveRoom,
@@ -140,13 +153,10 @@ struct RoomView: View {
         }
     }
 
-    // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)은 채팅만.
+    // 자료실·캘린더·채팅 탭은 기본 방(과전체공지·주간 학술활동)만. 모임방·1:1은 탭 없이 채팅만.
     private var tabItems: [(String, String)] {
-        // DM: 채팅만, 라벨 '💬 <상대 이름>'
-        if isDM { return [("chat", "💬 \(vm.roomDisplayName(liveRoom))")] }
-        return room.category != "custom"
-            ? [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
-            : [("chat", "💬 채팅")]
+        if isDM || room.category == "custom" { return [] }
+        return [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
     }
 
     private var tabBar: some View {

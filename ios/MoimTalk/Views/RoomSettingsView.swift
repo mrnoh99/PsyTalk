@@ -66,13 +66,13 @@ struct RoomSettingsView: View {
                 }
             }
             // 모임방 삭제 확인
-            .confirmationDialog("‘\(room.name)’ 모임방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.",
+            .confirmationDialog("'\(room.name)' 모임방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.",
                                 isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("삭제", role: .destructive) { vm.deleteRoom(room) { onDeleted() } }
                 Button("취소", role: .cancel) {}
             }
             // 회원 내보내기 확인
-            .confirmationDialog("‘\(kickTarget.map { vm.name(of: $0) } ?? "")’ 님을 내보낼까요?",
+            .confirmationDialog("'\(kickTarget.map { vm.name(of: $0) } ?? "")' 님을 내보낼까요?",
                                 isPresented: Binding(get: { kickTarget != nil },
                                                      set: { if !$0 { kickTarget = nil } }),
                                 titleVisibility: .visible) {

@@ -239,8 +239,8 @@
       <button id="settingsBtn" class="back" style="display:none;font-size:17px" onclick="openRoomSettings()">⚙️</button>
       <button id="leaveBtn" class="lk" style="display:none" onclick="leaveRoom()">나가기</button>
       <button id="deleteBtn" class="lk" style="display:none;color:var(--admin);font-weight:700" onclick="deleteRoom()">방삭제</button></div>
-    <div class="tabs">
-      <div class="tab on" data-t="chat" id="chatTab" onclick="tab('chat')">💬 채팅</div>
+    <div class="tabs" id="roomTabs">
+      <div class="tab on" data-t="chat" onclick="tab('chat')">💬 채팅</div>
       <div class="tab" data-t="files" onclick="tab('files')">📁 자료실</div>
       <div class="tab" data-t="cal" onclick="tab('cal')">📅 캘린더</div></div>
     <div class="pane on" id="pane-chat">
@@ -1234,6 +1234,7 @@ async function reactivateUser(id){
 
 /* ====== 방 열기 ====== */
 const canPost=r=>isAdmin()||r.post_policy!=='restricted';
+const opensWeekCal=r=>r.default_view==='week'&&r.category!=='custom'&&r.category!=='direct';
 // 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
 const canRename=r=>isAdmin()||(!!r.created_by&&r.created_by===me.id);
 const canManage=r=>isAdmin()||(r.category==='custom'&&(!!r.created_by&&r.created_by===me.id));
@@ -1245,22 +1246,19 @@ async function openRoom(id){
   document.getElementById('settingsBtn').style.display=(!isDM&&canManage(active))?'':'none';
   // 본인이 만들지 않은 모임방: 나가기 (DM 은 표시 안 함)
   document.getElementById('leaveBtn').style.display=(!isDM&&active.category==='custom'&&!canManage(active))?'':'none';
-  document.getElementById('deleteBtn').style.display=(!isDM&&canDeleteRoom(active))?'':'none';   // 방삭제(생성자·전체관리자) 우상단
-  calMode=active.default_view==='week'?'week':'month';
+  document.getElementById('deleteBtn').style.display=isDM?'':'none';   // 1:1 대화만 우상단 방삭제
+  calMode=opensWeekCal(active)?'week':'month';
   selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
   // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)·DM(direct)은 채팅만.
   const isDefault=active.category!=='custom'&&!isDM;
-  document.querySelector('.tab[data-t="files"]').style.display=isDefault?'':'none';
-  document.querySelector('.tab[data-t="cal"]').style.display=isDefault?'':'none';
-  // DM 은 상대 이름, 그 외에는 '💬 채팅' (개설자는 상단 바 구성원 줄에 표시).
-  document.getElementById('chatTab').textContent=isDM?('💬 '+roomDisplayName(active)):'💬 채팅';
+  document.getElementById('roomTabs').style.display=isDefault?'':'none';
   renderTopBarMembers(active);   // 상단 바에 개설자·참여자 이름 나열 (넘치면 ...)
   show('roomScreen');
   const rs=document.getElementById('roomScreen');         // 오른쪽→왼쪽 펼침 효과
   rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');
   await setRoomRealtime(id);
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
-  tab(isDefault&&active.default_view==='week'?'cal':'chat');
+  tab(isDefault&&opensWeekCal(active)?'cal':'chat');
   const allow=canPost(active);
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
@@ -1381,12 +1379,21 @@ async function inviteMember(uid){
 }
 async function deleteRoom(){
   if(!active)return;
+  if(active.category==='direct'){
+    if(!await uiConfirm('이 대화를 목록에서 삭제할까요?\n상대는 그대로이며, 다시 메시지하면 이전 대화가 복구됩니다.','대화 삭제'))return;
+    const {error}=await sb.from('room_members').delete().eq('room_id',active.id).eq('user_id',me.id);
+    if(error){alert('삭제 실패: '+error.message);return;}
+    await closeRoom();await loadRooms();
+    return;
+  }
   if(!await uiConfirm(`'${active.name}' 모임방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.`,'모임방 삭제'))return;
   const {error}=await sb.from('rooms').delete().eq('id',active.id);
   if(error){alert('모임방 삭제 실패: '+error.message);return;}
   closeModal('smodal');active=null;await loadRooms();show('listScreen');
 }
-function tab(t){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('on',e.dataset.t===t));
+function tab(t){
+  const tabs=document.querySelectorAll('#roomScreen .tabs .tab[data-t]');
+  tabs.forEach(e=>e.classList.toggle('on',e.dataset.t===t));
   document.querySelectorAll('#roomScreen .pane').forEach(e=>e.classList.toggle('on',e.id==='pane-'+t));
   if(t==='chat'){layoutChat();renderMsgs();}
   if(t==='files')renderFiles();if(t==='cal')renderCal();}
@@ -1406,7 +1413,7 @@ function layoutChat(){
   const footH=foot?foot.offsetHeight:0;
   const phone=document.querySelector('.phone');
   const bottom=(phone||screen).getBoundingClientRect().bottom;
-  const tabs=screen.querySelector('.tabs');
+  const tabs=screen.querySelector('#roomTabs');
   const top=tabs?tabs.getBoundingClientRect().bottom:el.getBoundingClientRect().top;
   const h=Math.max(120,bottom-top-footH);
   el.style.height=h+'px';

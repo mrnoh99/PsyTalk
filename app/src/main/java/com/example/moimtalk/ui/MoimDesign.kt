@@ -70,6 +70,10 @@ fun roomDisplayName(room: Room, profiles: Map<String, Profile>): String =
 /** DM = 채팅 전용 (캘린더·자료실 탭, 이름변경·설정·나가기 모두 숨김) */
 fun isDirect(room: Room): Boolean = room.category == "direct"
 
+/** 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본 */
+fun opensWeekCalendar(room: Room): Boolean =
+    room.category != "custom" && room.category != "direct" && room.defaultView == "week"
+
 /** 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방. */
 fun noticeTopRoom(rooms: List<Room>): Room? =
     rooms.filter { it.category != "custom" && it.category != "direct" && it.defaultView != "week" }

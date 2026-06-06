@@ -979,8 +979,10 @@ private fun UnreadBadge(n: Int) {
 fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     // 이름 변경이 반영되도록 최신 방 정보를 vm.rooms 에서 조회
     val liveRoom = vm.rooms.firstOrNull { it.id == room.id } ?: room
-    // 주간 학술활동 등 default_view='week' 방은 열자마자 캘린더(주간 목록)로 (프로토타입과 동일)
-    var tab by remember { mutableStateOf(if (room.category != "custom" && room.defaultView == "week") "cal" else "chat") }
+    // 주간 학술활동(default_view=week) 방은 열자마자 캘린더(주간) 탭으로
+    var tab by remember(liveRoom.id) {
+        mutableStateOf(if (opensWeekCalendar(liveRoom)) "cal" else "chat")
+    }
     var input by remember { mutableStateOf("") }
     var showAttach by remember { mutableStateOf(false) }
     val context = LocalContext.current
@@ -1008,7 +1010,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     var showDeleteRoom by remember { mutableStateOf(false) }
     val profile = vm.myProfile
     val canPost = canPostInRoom(profile, room)
-    // 1:1 DM 은 채팅 전용 (캘린더·자료실 탭, 이름변경·설정·나가기 모두 숨김). 제목=상대 이름.
+    // 1:1 DM 은 채팅 전용 (캘린더·자료실 탭, 이름변경·설정 숨김). 제목=상대 이름. 방삭제=목록에서 제거.
     val dm = isDirect(liveRoom)
     val titleName = roomDisplayName(liveRoom, vm.profilesById)
 
@@ -1030,12 +1032,12 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     if (showDeleteRoom) {
         AlertDialog(
             onDismissRequest = { showDeleteRoom = false },
-            title = { Text("방 삭제") },
-            text = { Text("'${liveRoom.name}' 방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.") },
+            title = { Text("대화 삭제") },
+            text = { Text("이 대화를 목록에서 삭제할까요?\n상대는 그대로이며, 다시 메시지하면 이전 대화가 복구됩니다.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDeleteRoom = false
-                    vm.deleteRoom(liveRoom) { onBack() }
+                    vm.leaveRoom(liveRoom) { onBack() }
                 }) { Text("삭제", color = MoimAdmin, fontWeight = FontWeight.Bold) }
             },
             dismissButton = { TextButton(onClick = { showDeleteRoom = false }) { Text("취소") } }
@@ -1095,82 +1097,99 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             Column(modifier = Modifier.background(MoimPaper)) {
-                TopAppBar(
-                    title = {
-                        Column {
-                            Text(titleName, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                            Text(catLabel(liveRoom.category), fontSize = 12.sp, color = MoimSub)
-                            // 개설자·참여자 이름 나열 (작은 글씨, 넘치면 ... — DM 제외)
-                            if (!dm && vm.memberListRoomId == liveRoom.id) {
-                                val memberLine = roomMemberNames(liveRoom, vm.roomMemberIds, vm.profilesById).joinToString(", ")
-                                if (memberLine.isNotBlank()) {
-                                    Text(memberLine, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                                }
+                // 웹 .hdr 와 동일: 뒤로 · 방이름+구성원(ellipsis) · 액션 버튼
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 4.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onBack, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                        Text("‹", fontSize = 25.sp)
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth(),
+                    ) {
+                        Text(
+                            titleName,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        // 개설자·참여자 이름 나열 (작은 글씨, 넘치면 ... — DM 제외)
+                        if (!dm && vm.memberListRoomId == liveRoom.id) {
+                            val memberLine = roomMemberNames(liveRoom, vm.roomMemberIds, vm.profilesById).joinToString(", ")
+                            if (memberLine.isNotBlank()) {
+                                Text(
+                                    memberLine,
+                                    fontSize = 11.sp,
+                                    color = MoimSub,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
                             }
                         }
-                    },
-                    navigationIcon = {
-                        TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
-                    },
-                    actions = {
-                        if (!dm && canRenameRoom(profile, liveRoom)) {
-                            TextButton(onClick = {
+                    }
+                    if (!dm && canRenameRoom(profile, liveRoom)) {
+                        TextButton(
+                            onClick = {
                                 renameText = liveRoom.name
                                 editColor = liveRoom.color ?: ROOM_COLORS[1]
                                 editIconUri = null; editIconBytes = null; editIconName = null; editIconCleared = false
                                 showRename = true
-                            }) { Text("이름변경", fontSize = 13.sp, color = MoimAccent, fontWeight = FontWeight.Bold) }
-                        }
-                        if (!dm && canManageRoom(profile, liveRoom)) {
-                            TextButton(onClick = {
+                            },
+                            contentPadding = PaddingValues(horizontal = 6.dp),
+                        ) { Text("이름변경", fontSize = 13.sp, color = MoimAccent, fontWeight = FontWeight.Bold) }
+                    }
+                    if (!dm && canManageRoom(profile, liveRoom)) {
+                        TextButton(
+                            onClick = {
                                 vm.loadRoomMembers(liveRoom.id)
                                 showSettings = true
-                            }) { Text("⚙️", fontSize = 17.sp) }
+                            },
+                            contentPadding = PaddingValues(horizontal = 6.dp),
+                        ) { Text("⚙️", fontSize = 17.sp) }
+                    }
+                    if (!dm && canLeaveRoom(profile, liveRoom)) {
+                        TextButton(onClick = { showLeave = true }, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                            Text("나가기", fontSize = 13.sp, color = MoimAdmin)
                         }
-                        // 본인이 만들지 않은 모임방: 나가기
-                        if (!dm && canLeaveRoom(profile, liveRoom)) {
-                            TextButton(onClick = { showLeave = true }) {
-                                Text("나가기", fontSize = 13.sp, color = MoimAdmin)
-                            }
+                    }
+                    if (dm) {
+                        TextButton(onClick = { showDeleteRoom = true }, contentPadding = PaddingValues(horizontal = 6.dp)) {
+                            Text("방삭제", fontSize = 13.sp, color = MoimAdmin, fontWeight = FontWeight.Bold)
                         }
-                        // 방 삭제 (모임방 생성자·전체관리자) — 우상단
-                        if (!dm && canDeleteRoom(profile, liveRoom)) {
-                            TextButton(onClick = { showDeleteRoom = true }) {
-                                Text("방삭제", fontSize = 13.sp, color = MoimAdmin, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MoimPaper)
-                )
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    // 자료실·캘린더는 기본 방(과전체공지·주간 학술활동)만. 모임방(custom)·1:1(direct)은 채팅만.
-                    // DM 은 '💬 상대이름', 그 외에는 '💬 채팅' (개설자는 상단 바 구성원 줄에 표시).
-                    val chatLabel = if (dm) "💬 $titleName" else "💬 채팅"
-                    val tabs = if (room.category != "custom" && !dm)
-                        listOf("chat" to "💬 채팅", "files" to "📁 자료실", "cal" to "📅 캘린더")
-                    else listOf("chat" to chatLabel)
-                    tabs.forEach { (id, label) ->
-                        val on = tab == id
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { tab = id }
-                                .padding(vertical = 12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                label,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (on) MoimInk else MoimSub
-                            )
-                            Spacer(Modifier.height(8.dp))
-                            Box(
+                    }
+                }
+                val showSubTabs = room.category != "custom" && !dm
+                if (showSubTabs) {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        listOf("chat" to "💬 채팅", "files" to "📁 자료실", "cal" to "📅 캘린더").forEach { (id, label) ->
+                            val on = tab == id
+                            Column(
                                 modifier = Modifier
-                                    .fillMaxWidth(0.6f)
-                                    .height(2.5.dp)
-                                    .background(if (on) MoimYellow else Color.Transparent)
-                            )
+                                    .weight(1f)
+                                    .clickable { tab = id }
+                                    .padding(vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    label,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (on) MoimInk else MoimSub
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth(0.6f)
+                                        .height(2.5.dp)
+                                        .background(if (on) MoimYellow else Color.Transparent)
+                                )
+                            }
                         }
                     }
                 }
@@ -1307,7 +1326,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
             )
             else -> CalendarPane(
                 vm = vm,
-                room = room,
+                room = liveRoom,
                 canPost = canPost,
                 modifier = Modifier.padding(pad)
             )

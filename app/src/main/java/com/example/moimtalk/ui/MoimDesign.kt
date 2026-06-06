@@ -1,14 +1,19 @@
 package com.example.moimtalk.ui
 
+import android.app.Activity
 import android.content.Context
 import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import com.example.moimtalk.data.CalendarEvent
 import com.example.moimtalk.data.LastMsg
 import com.example.moimtalk.data.Message
@@ -23,17 +28,20 @@ data class MoimPalette(
     val bg: Color, val paper: Color, val surface: Color,
     val ink: Color, val sub: Color, val accent: Color, val secondary: Color,
     val yellow: Color, val line: Color, val admin: Color, val success: Color, val hint: Color,
+    val hl: Color,
 )
 
 private val DarkPalette = MoimPalette(
     bg = Color(0xFF161616), paper = Color(0xFF121212), surface = Color(0xFF1E1E1E),
     ink = Color(0xFFFFFFFF), sub = Color(0xFFBDBDBD), accent = Color(0xFF1E88E5), secondary = Color(0xFF00BCD4),
     yellow = Color(0xFFFFCA28), line = Color(0xFF2C2C2C), admin = Color(0xFFF44336), success = Color(0xFF4CAF50), hint = Color(0xFF6E6E6E),
+    hl = Color(0xFF33301F),
 )
 private val LightPalette = MoimPalette(
     bg = Color(0xFFECECEC), paper = Color(0xFFFFFFFF), surface = Color(0xFFF5F5F5),
     ink = Color(0xFF212121), sub = Color(0xFF757575), accent = Color(0xFF1976D2), secondary = Color(0xFF0097A7),
     yellow = Color(0xFFFFE45C), line = Color(0xFFE0E0E0), admin = Color(0xFFD32F2F), success = Color(0xFF388E3C), hint = Color(0xFFBDBDBD),
+    hl = Color(0xFFFFF8E0),
 )
 
 object MoimTheme {
@@ -65,6 +73,26 @@ val MoimAdmin: Color get() = MoimTheme.palette.admin
 val MoimSuccess: Color get() = MoimTheme.palette.success
 val MoimWhite: Color get() = MoimTheme.palette.surface   // 카드/표면(다크에선 어두운 surface)
 val MoimHint: Color get() = MoimTheme.palette.hint
+val MoimHl: Color get() = MoimTheme.palette.hl
+
+/** 상태바·네비게이션 바 — MoimTheme 다크/라이트와 동기화 */
+@Composable
+fun MoimSystemBars(darkTheme: Boolean = MoimTheme.dark) {
+    val view = LocalView.current
+    val paper = MoimTheme.palette.paper
+    SideEffect {
+        val window = (view.context as? Activity)?.window ?: return@SideEffect
+        WindowCompat.setDecorFitsSystemWindows(window, true)
+        @Suppress("DEPRECATION")
+        window.statusBarColor = paper.toArgb()
+        @Suppress("DEPRECATION")
+        window.navigationBarColor = paper.toArgb()
+        WindowCompat.getInsetsController(window, view).apply {
+            isAppearanceLightStatusBars = !darkTheme
+            isAppearanceLightNavigationBars = !darkTheme
+        }
+    }
+}
 
 /** OutlinedTextField — Moim 팔레트와 동기화(다크에서 검은 글자·보라 커서 방지) */
 @Composable

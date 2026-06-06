@@ -540,7 +540,7 @@ private fun weekContent(
             Row(
                 modifier = Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(11.dp))
-                    .background(if (isToday) Color(0xFFFFF8E0) else Color.Transparent, RoundedCornerShape(11.dp))
+                    .background(if (isToday) MoimHl else Color.Transparent, RoundedCornerShape(11.dp))
                     .then(if (isSelected) Modifier.border(2.dp, MoimAccent, RoundedCornerShape(11.dp)) else Modifier)
                     .clickable { onSelect(date) }
                     .padding(vertical = 9.dp, horizontal = 6.dp)

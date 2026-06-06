@@ -83,7 +83,7 @@
   #pane-files,#pane-cal{overflow-y:auto;-webkit-overflow-scrolling:touch}
   /* 채팅: grid로 msgs 높이 고정(Chrome flex 스크롤 버그 회피) */
   #pane-chat.pane.on{display:grid;grid-template-rows:minmax(0,1fr) auto;overflow:hidden}
-  .msgs{grid-row:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px 12px;background:var(--bg)}
+  .msgs{grid-row:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px 12px;background:var(--bg);scrollbar-gutter:stable}
   .inputbar,.readonly{grid-row:2;flex-shrink:0}
   .mrow{display:flex;gap:8px;max-width:86%;margin-top:9px}
   .mrow.me{margin-left:auto;flex-direction:row-reverse}
@@ -223,7 +223,7 @@
   .my-field .lbl{margin-top:0}
   .pinrow.dragging{opacity:.45}
   @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
-  #roomScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1)}
+  #roomScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1);will-change:transform}
   .pick{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;border:1px solid var(--line);margin-bottom:7px;background:var(--surface)}
   .pick.sel{border-color:var(--accent);background:var(--hl)}.pick .av{width:32px;height:32px;border-radius:10px;font-size:11px}
   .pick .pn{flex:1;font-size:13.5px;font-weight:600}.chk{font-weight:800;color:var(--accent)}
@@ -532,6 +532,7 @@ function storageObjectKey(roomId,fileName){
 
 /* ====== 상태 ====== */
 let me=null, rooms=[], myRoomIds=new Set(), profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
+let roomSlideActive=false; // 슬라이드 진입 애니 중 layoutChat 지연(떨림 방지)
 let unreadByRoom={}, unreadByMsg={}, lastMsgByRoom={};  // #1 안읽은 수, #2 메시지별 안읽은 수, 방별 마지막 메시지
 let roomPins=[], pinDraft=[];  // 개인 고정 방 순서(room id 배열, 최대 5)
 async function loadRoomPins(){
@@ -1382,10 +1383,17 @@ async function openRoom(id){
   const isNotice=isNoticeRoom();
   const isDefault=active.category!=='custom'&&!isDM&&!isNotice;
   document.getElementById('roomTabs').style.display=isDefault?'':'none';
-  renderTopBarMembers(active);   // 상단 바에 개설자·참여자 이름 나열 (넘치면 ...)
+  await renderTopBarMembers(active);   // 헤더 높이 확정 후 화면 전환(떨림 방지)
   show('roomScreen');
-  const rs=document.getElementById('roomScreen');         // 오른쪽→왼쪽 펼침 효과
+  const rs=document.getElementById('roomScreen');
   rs.classList.remove('slidein');void rs.offsetWidth;rs.classList.add('slidein');
+  roomSlideActive=true;
+  rs.addEventListener('animationend',()=>{
+    roomSlideActive=false;
+    rs.style.willChange='';
+    layoutChat();
+    scrollMsgsToBottom();
+  },{once:true});
   await setRoomRealtime(id);
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
   tab(isNotice?'chat':(isDefault&&opensWeekCal(active)?'cal':'chat'));
@@ -1393,7 +1401,7 @@ async function openRoom(id){
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
   setNoticeComposeMode(!!(active&&noticeTopRoom()&&noticeTopRoom().id===active.id));
-  layoutChat();
+  if(!roomSlideActive){layoutChat();scrollMsgsToBottom();}
 }
 // 상단 바 개설자·참여자 이름 나열 — 개설자 먼저, 나머지 이름순. DM·구성원없음은 숨김. (넘치면 CSS ellipsis)
 async function renderTopBarMembers(r){
@@ -1411,7 +1419,7 @@ async function renderTopBarMembers(r){
   if(!names.length)return;
   el.textContent=names.join(', '); el.style.display='';
 }
-async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);show('listScreen');loadUnreadCounts();loadLastMessages();}
+async function closeRoom(){roomSlideActive=false;clearAttach();active=null;await setRoomRealtime(null);show('listScreen');loadUnreadCounts();loadLastMessages();}
 /* ====== 1:1 대화 스와이프 삭제 (왼쪽으로 밀어 확인 후 본인 참여만 제거) ====== */
 let dmStartX=null,dmEl=null,dmDx=0,dmSwiped=false;
 function dmSwipeStart(e){const t=e.touches&&e.touches[0];if(!t)return;dmStartX=t.clientX;dmEl=e.currentTarget;dmDx=0;dmSwiped=false;}
@@ -1545,25 +1553,25 @@ function tab(t){
 /* ====== 채팅 ====== */
 async function loadMsgs(){const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:true});msgs=data||[];renderMsgs();
   if(active){await markRead(active.id);loadMsgUnread();loadUnreadCounts();}}
-/** 채팅 msgs 높이 — pane.clientHeight 대신 화면 기준(내용만큼 pane이 늘어나 스크롤 안 되는 Chrome 버그 회피) */
+/** 채팅 msgs 높이 — offsetHeight 기준(슬라이드 transform 중 getBoundingClientRect 떨림 방지) */
 function layoutChat(){
   const screen=document.getElementById('roomScreen');
   const pane=document.getElementById('pane-chat');
   const el=document.getElementById('msgs');
   if(!screen||!pane||!el||screen.classList.contains('hidden')||!pane.classList.contains('on'))return;
+  if(roomSlideActive)return;
   const bar=document.getElementById('inputbar');
   const ro=document.getElementById('readonlyBar');
   const foot=bar&&!bar.classList.contains('hidden')?bar:(ro&&!ro.classList.contains('hidden')?ro:null);
   const footH=foot?foot.offsetHeight:0;
-  const phone=document.querySelector('.phone');
-  const bottom=(phone||screen).getBoundingClientRect().bottom;
+  const hdr=screen.querySelector('.hdr');
   const tabs=screen.querySelector('#roomTabs');
-  const top=tabs?tabs.getBoundingClientRect().bottom:el.getBoundingClientRect().top;
-  const h=Math.max(120,bottom-top-footH);
+  let chromeH=(hdr?.offsetHeight||0)+footH;
+  if(tabs&&tabs.offsetParent!==null)chromeH+=tabs.offsetHeight;
+  const h=Math.max(120,screen.clientHeight-chromeH);
   el.style.height=h+'px';
   el.style.maxHeight=h+'px';
   el.style.overflowY='auto';
-  if(el.scrollHeight>el.clientHeight+2)el.style.overflowY='scroll';
 }
 function scrollMsgsToBottom(){
   layoutChat();

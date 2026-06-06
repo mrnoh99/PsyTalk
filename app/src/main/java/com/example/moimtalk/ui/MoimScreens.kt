@@ -2597,7 +2597,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                             .padding(bottom = 7.dp)
                             .clip(RoundedCornerShape(11.dp))
                             .clickable { selected = if (on) selected - p.id else selected + p.id }
-                            .background(if (on) Color(0xFFFFF8E0) else MoimWhite)
+                            .background(if (on) MoimHl else MoimWhite)
                             .padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

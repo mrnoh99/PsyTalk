@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.PsyTalk" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- 기본=다크(MoimTheme). Compose MoimSystemBars 가 토글 시 갱신 -->
+    <style name="Theme.PsyTalk" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#121212</item>
+        <item name="android:navigationBarColor">#121212</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:windowLightNavigationBar">false</item>
+    </style>
 </resources>

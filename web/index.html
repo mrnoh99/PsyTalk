@@ -491,6 +491,13 @@ document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'&&me) ensureFreshSession().catch(()=>{});
 });
 const BUCKET = "room-files";
+/** Storage object key — ASCII only (한글 파일명은 DB attachment_name/file_name 에만 저장) */
+function storageObjectKey(roomId,fileName){
+  const m=(fileName||'').match(/\.([A-Za-z0-9]{1,16})$/i);
+  const ext=(m?m[1]:'bin').toLowerCase();
+  const token=Math.random().toString(36).slice(2,10);
+  return roomId+'/'+Date.now()+'_'+token+'.'+ext;
+}
 
 /* ====== 상태 ====== */
 let me=null, rooms=[], myRoomIds=new Set(), profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
@@ -1624,7 +1631,7 @@ async function delMsg(id){
 }
 async function sendPendingAttach(){
   const {file,kind}=pendingAttach;
-  const path=active.id+'/'+Date.now()+'_'+file.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+  const path=storageObjectKey(active.id,file.name);
   const {error:upErr}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
   if(upErr){alert('업로드 실패: '+upErr.message);return false;}
   const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
@@ -1673,7 +1680,7 @@ function pickUpload(input){const f=input.files[0];if(!f)return;pendingFile=f;
   document.getElementById('umodal').classList.add('on');}
 async function confirmUpload(){
   if(!pendingFile)return;
-  const path=active.id+'/'+Date.now()+'_'+pendingFile.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+  const path=storageObjectKey(active.id,pendingFile.name);
   const {error:upErr}=await sb.storage.from(BUCKET).upload(path,pendingFile,{upsert:true});
   if(upErr){alert('업로드 실패: '+upErr.message);return;}
   const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
@@ -1882,7 +1889,7 @@ function removeEvPending(i){ evPending.splice(i,1); renderEvPending(); }
 async function uploadFiles(files){
   const urls=[],names=[];
   for(const file of files){
-    const path=active.id+'/'+Date.now()+'_'+Math.random().toString(36).slice(2)+'_'+file.name.replace(/[^A-Za-z0-9._가-힣-]/g,'_');
+    const path=storageObjectKey(active.id,file.name);
     const {error}=await sb.storage.from(BUCKET).upload(path,file,{upsert:true});
     if(error)throw error;
     urls.push(sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl);names.push(file.name);

@@ -431,11 +431,19 @@ enum MoimRepository {
         try await supabase.from("ward_status").update(payload).eq("id", value: 1).execute()
     }
 
+    /// Storage object key — ASCII only (Supabase/S3 rejects non-ASCII in key). DB에는 원본 파일명 저장.
+    private static func storageObjectKey(roomId: String, fileName: String) -> String {
+        let rawExt = (fileName as NSString).pathExtension
+        let ext = rawExt.replacingOccurrences(of: "[^A-Za-z0-9]", with: "", options: .regularExpression)
+            .lowercased()
+        let e = ext.isEmpty ? "bin" : String(ext.prefix(16))
+        let token = UUID().uuidString.lowercased().prefix(8)
+        return "\(roomId)/\(Int(Date().timeIntervalSince1970 * 1000))_\(token).\(e)"
+    }
+
     /// Storage('room-files' 버킷) 업로드 후 공개 URL 반환
     static func uploadToStorage(roomId: String, fileName: String, data: Data) async throws -> String {
-        let safe = fileName.replacingOccurrences(
-            of: "[^A-Za-z0-9._가-힣-]", with: "_", options: .regularExpression)
-        let path = "\(roomId)/\(Int(Date().timeIntervalSince1970 * 1000))_\(safe)"
+        let path = storageObjectKey(roomId: roomId, fileName: fileName)
         let bucket = supabase.storage.from(filesBucket)
         try await bucket.upload(path, data: data, options: FileOptions(upsert: true))
         return try bucket.getPublicURL(path: path).absoluteString

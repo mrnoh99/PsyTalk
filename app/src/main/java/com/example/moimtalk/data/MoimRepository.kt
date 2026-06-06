@@ -472,10 +472,17 @@ object MoimRepository {
         ) { filter { eq("id", 1) } }
     }
 
+    /** Storage object key — ASCII only (Supabase/S3 rejects non-ASCII in key). DB에는 원본 파일명 저장. */
+    private fun storageObjectKey(roomId: String, fileName: String): String {
+        val rawExt = fileName.substringAfterLast('.', "")
+        val ext = rawExt.replace(Regex("[^A-Za-z0-9]"), "").lowercase().take(16).ifBlank { "bin" }
+        val token = java.util.UUID.randomUUID().toString().substring(0, 8)
+        return "$roomId/${System.currentTimeMillis()}_${token}.$ext"
+    }
+
     /** 파일을 Storage('room-files' 버킷)에 올리고 공개 URL 을 반환 */
     private suspend fun uploadToStorage(roomId: String, fileName: String, bytes: ByteArray): String {
-        val safe = fileName.replace(Regex("[^A-Za-z0-9._가-힣-]"), "_")
-        val path = "$roomId/${System.currentTimeMillis()}_$safe"
+        val path = storageObjectKey(roomId, fileName)
         val bucket = supabase.storage.from(FILES_BUCKET)
         bucket.upload(path, bytes) { upsert = true }
         return bucket.publicUrl(path)

@@ -883,6 +883,17 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/** 목록 위 슬라이드 오버레이 — 진입 오른쪽→왼쪽, 복귀 오른쪽으로 */
+@Composable
+private fun SlideListOverlay(visible: Boolean, content: @Composable () -> Unit) {
+    AnimatedVisibility(
+        visible = visible,
+        modifier = Modifier.fillMaxSize(),
+        enter = slideInHorizontally(tween(260)) { it },
+        exit = slideOutHorizontally(tween(260)) { it },
+    ) { content() }
+}
+
 @Composable
 fun App(vm: MoimViewModel = viewModel()) {
     var openedRoom by remember { mutableStateOf<Room?>(null) }
@@ -939,18 +950,6 @@ fun App(vm: MoimViewModel = viewModel()) {
         !vm.loggedIn -> LoginScreen(vm)
         // 기본값 불승인: approved 가 true 가 아니면(false·미설정) 승인 대기
         vm.myProfile != null && vm.myProfile?.approved != true -> PendingApprovalScreen(vm)
-        showCreateRoom -> CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
-        showSettings -> SettingsScreen(
-            vm = vm,
-            onBack = { showSettings = false },
-            onOpenRoom = { room ->
-                showSettings = false
-                openedRoom = room
-                vm.openRoom(room)
-            }
-        )
-        showApprovals && vm.myProfile?.let { isAdminRole(it.role) } == true ->
-            AdminConsoleScreen(vm = vm, onBack = { showApprovals = false })
         else -> Box(Modifier.fillMaxSize()) {
             // 방 진입 시에도 목록을 composition 에 유지 → 뒤로가기 시 스크롤 위치 보존
             RoomListScreen(
@@ -964,12 +963,25 @@ fun App(vm: MoimViewModel = viewModel()) {
                 onApprovals = { showApprovals = true },
                 onSettings = { showSettings = true }
             )
-            AnimatedVisibility(
-                visible = openedRoom != null,
-                modifier = Modifier.fillMaxSize(),
-                enter = slideInHorizontally(tween(260)) { it },
-                exit = slideOutHorizontally(tween(260)) { it },
-            ) {
+            SlideListOverlay(showSettings) {
+                SettingsScreen(
+                    vm = vm,
+                    onBack = { showSettings = false },
+                    onOpenRoom = { room ->
+                        showSettings = false
+                        openedRoom = room
+                        overlayRoom = room
+                        vm.openRoom(room)
+                    }
+                )
+            }
+            SlideListOverlay(showApprovals && vm.myProfile?.let { isAdminRole(it.role) } == true) {
+                AdminConsoleScreen(vm = vm, onBack = { showApprovals = false })
+            }
+            SlideListOverlay(showCreateRoom) {
+                CreateRoomScreen(vm = vm, onBack = { showCreateRoom = false })
+            }
+            SlideListOverlay(openedRoom != null) {
                 overlayRoom?.let { room ->
                     RoomScreen(
                         vm = vm,
@@ -981,12 +993,7 @@ fun App(vm: MoimViewModel = viewModel()) {
                     )
                 }
             }
-            AnimatedVisibility(
-                visible = showWard,
-                modifier = Modifier.fillMaxSize(),
-                enter = slideInHorizontally(tween(260)) { it },
-                exit = slideOutHorizontally(tween(260)) { it },
-            ) {
+            SlideListOverlay(showWard) {
                 WardStatusScreen(vm = vm, onBack = { showWard = false })
             }
         }

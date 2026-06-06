@@ -166,7 +166,7 @@ struct RoomListView: View {
     let onAdmin: () -> Void
     let onWard: () -> Void
     let onCreateRoom: () -> Void
-    @State private var showSettings = false
+    let onSettings: () -> Void
     @State private var dmToDelete: Room?   // 1:1 대화 스와이프 삭제 대상
 
     private var pendingApprovalCount: Int {
@@ -245,14 +245,11 @@ struct RoomListView: View {
                     Button("가입승인") { onAdmin() }.font(.system(size: 12, weight: .bold)).foregroundColor(Moim.admin)
                 }
                 // 설정(⚙️): 내 정보 / 방 순서 / 회원 검색 + 회원 탈퇴
-                Button { showSettings = true } label: { Text("⚙️").font(.system(size: 16)) }
+                Button(action: onSettings) { Text("⚙️").font(.system(size: 16)) }
                 Button("로그아웃") { vm.logout() }.font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
             }
             .padding(.horizontal, 18).padding(.vertical, 14)
             Divider().background(Moim.line)
-        }
-        .sheet(isPresented: $showSettings) {
-            SettingsView(vm: vm, pinRooms: vm.rooms.filter { $0.id != weekRoom?.id && $0.id != noticeTopRoom(vm.rooms)?.id && (($0.category != "custom" && $0.category != "direct") || vm.myRoomIds.contains($0.id)) })
         }
         .background(Moim.paper)
     }

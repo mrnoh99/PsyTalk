@@ -190,7 +190,8 @@ struct ChatView: View {
                                         vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
                                     },
                                     onDelete: { deleteTarget = m },
-                                    unread: vm.unreadByMsg[m.id] ?? 0
+                                    unread: vm.unreadByMsg[m.id] ?? 0,
+                                    sender: vm.profilesById[m.senderId]
                                 )
                                 .id(m.id)
                             }
@@ -336,6 +337,7 @@ struct MessageBubble: View {
     var attachUrl: String? = nil   // path 에서 해석된 서명 URL (방 구성원만)
     var onDelete: () -> Void = {}
     var unread: Int = 0
+    var sender: Profile? = nil     // 보낸이 프로필(사진/색)
 
     private var unreadText: some View {
         Text(unread > 99 ? "99+" : "\(unread)")
@@ -357,10 +359,15 @@ struct MessageBubble: View {
             if mine && unread > 0 { unreadText }
             if mine { timeText }
             if !mine {
-                Text(String(senderName.prefix(3)))
-                    .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
-                    .frame(width: 36, height: 36).background(Moim.sub)
-                    .clipShape(RoundedRectangle(cornerRadius: 13))
+                // 보낸이 썸네일: 사진 있으면 사진, 없으면 색/이니셜
+                if let s = sender {
+                    PersonAvatarView(profile: s, size: 36, corner: 13, font: 13)
+                } else {
+                    Text(String(senderName.prefix(3)))
+                        .font(.system(size: 13, weight: .bold)).foregroundColor(.white)
+                        .frame(width: 36, height: 36).background(Moim.sub)
+                        .clipShape(RoundedRectangle(cornerRadius: 13))
+                }
             }
             VStack(alignment: mine ? .trailing : .leading, spacing: 3) {
                 if !mine {

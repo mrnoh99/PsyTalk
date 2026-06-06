@@ -1219,7 +1219,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 nameOf = vm::nameOf,
                 attachUrl = { vm.attachmentUrls[it] },
                 onDelete = { vm.deleteMessage(it.id) },
-                unreadOf = { vm.unreadByMsg[it.id] ?: 0 }
+                unreadOf = { vm.unreadByMsg[it.id] ?: 0 },
+                profileOf = { vm.profilesById[it] }
             )
             "files" -> FilesPane(
                 vm = vm,
@@ -1244,7 +1245,8 @@ private fun ChatPane(
     nameOf: (String) -> String,
     attachUrl: (String) -> String?,
     onDelete: (Message) -> Unit,
-    unreadOf: (Message) -> Int
+    unreadOf: (Message) -> Int,
+    profileOf: (String) -> Profile? = { null }
 ) {
     var deleteTarget by remember { mutableStateOf<Message?>(null) }
     deleteTarget?.let { tgt ->
@@ -1299,7 +1301,7 @@ private fun ChatPane(
                     lastDay = day
                 }
                 item(key = m.id) {
-                    MessageBubble(m, isMine(m), nameOf(m.senderId), attachUrl, onDelete = { deleteTarget = m }, unread = unreadOf(m))
+                    MessageBubble(m, isMine(m), nameOf(m.senderId), attachUrl, onDelete = { deleteTarget = m }, unread = unreadOf(m), sender = profileOf(m.senderId))
                 }
             }
         }
@@ -1325,7 +1327,8 @@ private fun DateDivider(text: String) {
 @Composable
 fun MessageBubble(
     m: Message, mine: Boolean, senderName: String,
-    attachUrl: (String) -> String? = { null }, onDelete: () -> Unit = {}, unread: Int = 0
+    attachUrl: (String) -> String? = { null }, onDelete: () -> Unit = {}, unread: Int = 0,
+    sender: Profile? = null
 ) {
     Row(
         modifier = Modifier
@@ -1344,14 +1347,8 @@ fun MessageBubble(
             )
         }
         if (!mine) {
-            Box(
-                modifier = Modifier
-                    .size(36.dp)
-                    .background(MoimSub, RoundedCornerShape(13.dp)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(senderName.take(3), color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            }
+            // 보낸이 썸네일: 사진 있으면 사진, 없으면 색/이니셜
+            PersonAvatar(sender ?: Profile(id = m.senderId, name = senderName, memberType = "", role = "user"), 36, 13, 13.0)
             Spacer(Modifier.width(8.dp))
         }
         if (mine && unread > 0) {

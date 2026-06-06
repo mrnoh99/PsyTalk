@@ -186,6 +186,14 @@ func dayKey(_ createdAt: String?) -> String {
     guard let d = parseISO(createdAt) else { return "" }
     return kstFormatter("yyyy-MM-dd").string(from: d)
 }
+/// 공지·게시 카드용 — "6/7 (토) 오후 2:30"
+func fmtPublishTime(_ createdAt: String?) -> String {
+    guard let iso = createdAt else { return "" }
+    return CalDate.detailTimeLabel(iso)
+}
+func isNoticeTopRoom(_ room: Room, rooms: [Room]) -> Bool {
+    noticeTopRoom(rooms)?.id == room.id
+}
 /// 마지막 메시지 미리보기
 func msgPreview(_ lm: LastMsg?) -> String {
     guard let lm = lm else { return "" }

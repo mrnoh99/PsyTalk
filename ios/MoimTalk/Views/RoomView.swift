@@ -38,7 +38,8 @@ struct RoomView: View {
             Divider().background(Moim.line)
 
             switch tab {
-            case "chat": ChatView(vm: vm, canPost: canPost, input: $input)
+            case "chat": ChatView(vm: vm, canPost: canPost, input: $input,
+                                  noticeLayout: isNoticeTopRoom(liveRoom, vm.rooms))
             case "files": FilesView(vm: vm, canUpload: canPost)
             default: CalendarView(vm: vm, room: liveRoom, canPost: canPost)
                 .id(liveRoom.id)
@@ -179,6 +180,7 @@ struct ChatView: View {
     @ObservedObject var vm: MoimViewModel
     let canPost: Bool
     @Binding var input: String
+    var noticeLayout: Bool = false
     @State private var pickPhoto = false
     @State private var pickFile = false
     @State private var photoItem: PhotosPickerItem?
@@ -186,9 +188,13 @@ struct ChatView: View {
     @State private var pendingAttach: (name: String, data: Data, type: String)?
     @State private var deleteTarget: Message?
 
-    // 메시지 + 날짜 구분선 (날짜 바뀌면 divider 삽입)
+    // 메시지 + 날짜 구분선 (날짜 바뀌면 divider 삽입) — 전체공지는 카드마다 일시 표시
     private var chatItems: [ChatRowItem] {
         var out: [ChatRowItem] = []
+        if noticeLayout {
+            for m in vm.messages { out.append(.message(m)) }
+            return out
+        }
         var lastDay = ""
         for m in vm.messages {
             let d = dayKey(m.createdAt)
@@ -210,16 +216,28 @@ struct ChatView: View {
                             case .divider(_, let label):
                                 DateDividerView(text: label)
                             case .message(let m):
-                                MessageBubble(
-                                    message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
-                                    attachUrl: m.attachmentUrl.flatMap { url in
-                                        vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
-                                    },
-                                    onDelete: { deleteTarget = m },
-                                    unread: vm.unreadByMsg[m.id] ?? 0,
-                                    sender: vm.profilesById[m.senderId]
-                                )
-                                .id(m.id)
+                                if noticeLayout {
+                                    NoticePostCard(
+                                        message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
+                                        attachUrl: m.attachmentUrl.flatMap { url in
+                                            vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
+                                        },
+                                        onDelete: { deleteTarget = m },
+                                        sender: vm.profilesById[m.senderId]
+                                    )
+                                    .id(m.id)
+                                } else {
+                                    MessageBubble(
+                                        message: m, mine: vm.isMine(m), senderName: vm.name(of: m.senderId),
+                                        attachUrl: m.attachmentUrl.flatMap { url in
+                                            vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
+                                        },
+                                        onDelete: { deleteTarget = m },
+                                        unread: vm.unreadByMsg[m.id] ?? 0,
+                                        sender: vm.profilesById[m.senderId]
+                                    )
+                                    .id(m.id)
+                                }
                             }
                         }
                     }
@@ -449,6 +467,97 @@ struct MessageBubble: View {
             if !mine { timeText }
             if !mine && unread > 0 { unreadText }
             if !mine { Spacer(minLength: 40) }
+        }
+    }
+}
+
+struct NoticePostCard: View {
+    let message: Message
+    let mine: Bool
+    let senderName: String
+    var attachUrl: String? = nil
+    var onDelete: () -> Void = {}
+    var sender: Profile? = nil
+
+    private var authorLine: String {
+        let mt = sender?.memberType ?? ""
+        return mt.isEmpty ? senderName : "\(senderName) · \(mt)"
+    }
+
+    var body: some View {
+        HStack {
+            Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 0) {
+                RoundedRectangle(cornerRadius: 2).fill(Color(hex: 0xB5651D)).frame(height: 3)
+                Text(fmtPublishTime(message.createdAt))
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundColor(Moim.ink)
+                    .lineSpacing(4)
+                    .padding(.top, 14)
+                Text(authorLine)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Moim.sub)
+                    .padding(.top, 6)
+                Divider().background(Moim.line).padding(.vertical, 14)
+                noticeBody
+                if mine {
+                    Button(action: onDelete) {
+                        Text("🗑 삭제").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.admin)
+                    }
+                    .buttonStyle(.plain)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.top, 10)
+                }
+            }
+            .padding(.horizontal, 20).padding(.vertical, 18)
+            .frame(maxWidth: 400)
+            .background(Moim.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Moim.line, lineWidth: 1))
+            .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 6)
+    }
+
+    @ViewBuilder private var noticeBody: some View {
+        if message.type == "image", message.attachmentUrl != nil {
+            let u = attachUrl.flatMap { URL(string: $0) }
+            Group {
+                if let u {
+                    Link(destination: u) {
+                        AsyncImage(url: u) { phase in
+                            if let img = phase.image { img.resizable().scaledToFit() }
+                            else if phase.error != nil { Color.gray.opacity(0.15) }
+                            else { ProgressView() }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                } else {
+                    ProgressView().frame(maxWidth: .infinity).padding(.vertical, 24)
+                }
+            }
+        } else if message.type == "file", message.attachmentUrl != nil {
+            let chip = HStack(spacing: 8) {
+                Text("📎").font(.system(size: 16))
+                Text(message.attachmentName ?? "파일")
+                    .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink).lineLimit(2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .background(Moim.paper)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Moim.line, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            if let u = attachUrl.flatMap({ URL(string: $0) }) {
+                Link(destination: u) { chip }
+            } else { chip }
+        } else {
+            Text(message.content ?? "")
+                .font(.system(size: 15))
+                .foregroundColor(Moim.ink)
+                .lineSpacing(6)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

@@ -146,6 +146,17 @@
   .warddoc-empty .eb{font-size:36px;margin-bottom:8px}
   .warddoc-empty b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
   .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical;background:#fff}
+  /* 과 전체공지 — 가운데 정렬 게시 카드 */
+  .notice-post{width:94%;max-width:400px;margin:12px auto 18px}
+  .notice-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  .notice-accent{height:3px;border-radius:2px;background:var(--notice);margin-bottom:14px}
+  .notice-time{font-size:20px;font-weight:800;line-height:1.35;color:var(--ink);margin:0}
+  .notice-author{font-size:13px;font-weight:600;color:var(--sub);margin:6px 0 0}
+  .notice-hr{border:none;border-top:1px solid var(--line);margin:14px 0}
+  .notice-body{white-space:pre-wrap;font-size:15px;line-height:1.65;color:var(--ink);word-break:break-word}
+  .notice-card .bimg{max-width:100%;border-radius:12px;display:block;margin:0 auto}
+  .notice-card .bfile{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600;margin-top:4px}
+  .notice-del{display:block;margin-top:10px;text-align:right;font-size:12px;color:var(--admin);cursor:pointer;font-weight:700}
   .card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;margin-bottom:13px}
   .card h3{font-size:11.5px;color:var(--sub);font-weight:800;text-transform:uppercase;margin-bottom:11px}
   .arow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(220,213,204,.5)}
@@ -1516,14 +1527,34 @@ function scrollMsgsToBottom(){
   const go=()=>{el.scrollTop=el.scrollHeight;};
   requestAnimationFrame(()=>requestAnimationFrame(go));
 }
+function noticePostHtml(m,who,mine){
+  const author=(who.name||'?')+(who.member_type?' · '+esc(who.member_type):'');
+  let body='';
+  if(m.type==='image'&&m.attachment_url)
+    body=`<img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진">`;
+  else if(m.type==='file'&&m.attachment_url)
+    body=`<a class="bfile" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a>`;
+  else body=`<div class="notice-body">${esc(m.content||'')}</div>`;
+  const del=mine?`<span class="notice-del" onclick="delMsg('${m.id}')">🗑 삭제</span>`:'';
+  return `<div class="notice-post"><article class="notice-card">
+    <div class="notice-accent"></div>
+    <p class="notice-time">${fmtDetailTime(m.created_at)}</p>
+    <p class="notice-author">${author}</p>
+    <hr class="notice-hr">${body}${del}</article></div>`;
+}
 function renderMsgs(){
   const el=document.getElementById('msgs');
   if(!msgs.length){ el.innerHTML=`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`; scrollMsgsToBottom(); resolveAttachments(); return; }
+  const noticeLayout=active&&noticeTopRoom()&&noticeTopRoom().id===active.id;
   let html='', lastDate='';
   msgs.forEach(m=>{
+    const mine=m.sender_id===me.id, who=profilesById[m.sender_id]||{};
+    if(noticeLayout){
+      html+=noticePostHtml(m,who,mine);
+      return;
+    }
     const dk=new Date(m.created_at).toDateString();
     if(dk!==lastDate){ html+=`<div class="datediv"><span>${fmtDateDivider(m.created_at)}</span></div>`; lastDate=dk; }
-    const mine=m.sender_id===me.id, who=profilesById[m.sender_id]||{};
     const un=(unreadByMsg[m.id]||0)>0?`<span class="munread">${unreadByMsg[m.id]}</span>`:'';
     const del=mine?`<span class="mdel" onclick="delMsg('${m.id}')" title="삭제">🗑</span>`:'';
     const avStyle=personAvatarStyle(who), avText=who.avatar_url?'':ini(who.name);

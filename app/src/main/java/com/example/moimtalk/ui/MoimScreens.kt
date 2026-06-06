@@ -1300,7 +1300,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 attachUrl = { vm.attachmentUrls[it] },
                 onDelete = { vm.deleteMessage(it.id) },
                 unreadOf = { vm.unreadByMsg[it.id] ?: 0 },
-                profileOf = { vm.profilesById[it] }
+                profileOf = { vm.profilesById[it] },
+                noticeLayout = isNoticeTopRoom(liveRoom, vm.rooms),
             )
             "files" -> FilesPane(
                 vm = vm,
@@ -1326,7 +1327,8 @@ private fun ChatPane(
     attachUrl: (String) -> String?,
     onDelete: (Message) -> Unit,
     unreadOf: (Message) -> Int,
-    profileOf: (String) -> Profile? = { null }
+    profileOf: (String) -> Profile? = { null },
+    noticeLayout: Boolean = false,
 ) {
     var deleteTarget by remember { mutableStateOf<Message?>(null) }
     deleteTarget?.let { tgt ->
@@ -1371,6 +1373,19 @@ private fun ChatPane(
                     fontSize = 14.sp
                 )
             }
+        } else if (noticeLayout) {
+            messages.forEach { m ->
+                item(key = m.id) {
+                    NoticePostCard(
+                        m = m,
+                        senderName = nameOf(m.senderId),
+                        sender = profileOf(m.senderId),
+                        mine = isMine(m),
+                        attachUrl = attachUrl,
+                        onDelete = { deleteTarget = m },
+                    )
+                }
+            }
         } else {
             // 날짜가 바뀌면 가운데 날짜 구분선 삽입
             var lastDay = ""
@@ -1401,6 +1416,114 @@ private fun DateDivider(text: String) {
                 .background(Color(0x33000000), RoundedCornerShape(20.dp))
                 .padding(horizontal = 12.dp, vertical = 4.dp)
         )
+    }
+}
+
+private val NOTICE_ACCENT = Color(0xFFB5651D)
+
+@Composable
+private fun NoticePostCard(
+    m: Message,
+    senderName: String,
+    sender: Profile?,
+    mine: Boolean,
+    attachUrl: (String) -> String?,
+    onDelete: () -> Unit,
+) {
+    val uriHandler = LocalUriHandler.current
+    val path = m.attachmentUrl
+    val resolved = path?.let { p -> attachUrl(p) ?: if (p.startsWith("http")) p else null }
+    val authorLine = buildString {
+        append(senderName)
+        sender?.memberType?.takeIf { it.isNotBlank() }?.let { append(" · $it") }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(0.94f)
+                .shadow(3.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.08f))
+                .clip(RoundedCornerShape(16.dp))
+                .background(MoimWhite)
+                .border(1.dp, MoimLine, RoundedCornerShape(16.dp))
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .background(NOTICE_ACCENT, RoundedCornerShape(2.dp)),
+            )
+            Spacer(Modifier.height(14.dp))
+            Text(
+                fmtPublishTime(m.createdAt),
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = MoimInk,
+                lineHeight = 28.sp,
+            )
+            Text(authorLine, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MoimSub, modifier = Modifier.padding(top = 6.dp))
+            Spacer(Modifier.height(14.dp))
+            HorizontalDivider(color = MoimLine)
+            Spacer(Modifier.height(14.dp))
+            when {
+                m.type == "image" && path != null -> AsyncImage(
+                    model = resolved,
+                    contentDescription = "사진",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 320.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MoimBg, RoundedCornerShape(12.dp))
+                        .clickable { resolved?.let { uriHandler.openUri(it) } },
+                    contentScale = ContentScale.Fit,
+                )
+                m.type == "file" && path != null -> Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MoimPaper)
+                        .border(1.dp, MoimLine, RoundedCornerShape(10.dp))
+                        .clickable { resolved?.let { uriHandler.openUri(it) } }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("📎", fontSize = 16.sp)
+                    Text(
+                        m.attachmentName ?: "파일",
+                        color = MoimInk,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                else -> Text(
+                    m.content.orEmpty(),
+                    color = MoimInk,
+                    fontSize = 15.sp,
+                    lineHeight = 24.sp,
+                )
+            }
+            if (mine) {
+                Text(
+                    "🗑 삭제",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MoimAdmin,
+                    modifier = Modifier
+                        .align(Alignment.End)
+                        .padding(top = 10.dp)
+                        .clickable { onDelete() },
+                )
+            }
+        }
     }
 }
 

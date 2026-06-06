@@ -193,6 +193,20 @@ fun dayKey(createdAt: String?): String = runCatching {
     zdt(createdAt).toLocalDate().toString()
 }.getOrDefault("")
 
+private val PUBLISH_DOW = listOf("월", "화", "수", "목", "금", "토", "일")
+
+/** 공지·게시 카드용 — "6/7 (토) 오후 2:30" */
+fun fmtPublishTime(createdAt: String?): String = runCatching {
+    val z = zdt(createdAt)
+    val dow = PUBLISH_DOW[z.dayOfWeek.value - 1]
+    val d = "${z.monthValue}/${z.dayOfMonth}"
+    val t = z.format(java.time.format.DateTimeFormatter.ofPattern("a h:mm", java.util.Locale.KOREAN))
+    "$d ($dow) $t"
+}.getOrDefault("")
+
+fun isNoticeTopRoom(room: Room, rooms: List<Room>): Boolean =
+    noticeTopRoom(rooms)?.id == room.id
+
 /** 마지막 메시지 미리보기 */
 fun msgPreview(lm: LastMsg?): String {
     if (lm == null) return ""

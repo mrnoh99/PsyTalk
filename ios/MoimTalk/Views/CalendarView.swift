@@ -10,8 +10,18 @@ struct CalendarView: View {
     // 선택한 날짜 — 기본은 오늘. 날짜를 누르면 그날로 포커스가 옮겨가고 일정 추가·아래 목록이 이 날짜를 따른다.
     @State private var selected: Date = CalDate.today()
     @State private var editing: CalendarEvent?
-    @State private var viewing: CalendarEvent?
+    @State private var showEventDetail = false
+    @State private var overlayEvent: CalendarEvent?
     @State private var creating = false
+
+    private func openEventDetail(_ event: CalendarEvent) {
+        overlayEvent = event
+        withAnimation(MoimOverlayAnim.anim) { showEventDetail = true }
+    }
+
+    private func closeEventDetail() {
+        withAnimation(MoimOverlayAnim.anim) { showEventDetail = false }
+    }
 
     private var compactEvents: Bool { opensWeekCalendar(room) }
 
@@ -48,10 +58,15 @@ struct CalendarView: View {
             }
             .background(Moim.paper)
 
-            if let ev = viewing {
+            if showEventDetail, let ev = overlayEvent {
                 EventDetailView(event: ev, vm: vm,
-                                onBack: { viewing = nil },
-                                onEdit: { viewing = nil; editing = $0 })
+                                onBack: { closeEventDetail() },
+                                onEdit: { closeEventDetail(); editing = $0 })
+                    .transition(MoimOverlayAnim.transition)
+                    .zIndex(1)
+                    .onDisappear {
+                        if !showEventDetail { overlayEvent = nil }
+                    }
             }
         }
         .sheet(isPresented: $creating) {
@@ -120,7 +135,7 @@ struct CalendarView: View {
             Text(CalDate.sameDay(selected, CalDate.today()) ? "오늘 · \(CalDate.dayLabel(selected))" : "\(CalDate.dayLabel(selected)) 일정")
                 .font(.system(size: 11, weight: .heavy)).foregroundColor(Moim.sub).padding(.bottom, 10)
             if dayEvents.isEmpty { noEvents } else {
-                ForEach(dayEvents) { EventCard(event: $0, vm: vm, compact: compactEvents, onView: { viewing = $0 }, onEdit: { editing = $0 }) }
+                ForEach(dayEvents) { EventCard(event: $0, vm: vm, compact: compactEvents, onView: { openEventDetail($0) }, onEdit: { editing = $0 }) }
             }
         }
     }
@@ -192,7 +207,7 @@ struct CalendarView: View {
                         if dayEvents.isEmpty {
                             Text("— 일정 없음").font(.system(size: 12)).foregroundColor(Color(hex: 0xC4BCB2)).padding(.vertical, 7)
                         } else {
-                            ForEach(dayEvents) { EventCard(event: $0, vm: vm, compact: compactEvents, onView: { viewing = $0 }, onEdit: { editing = $0 }) }
+                            ForEach(dayEvents) { EventCard(event: $0, vm: vm, compact: compactEvents, onView: { openEventDetail($0) }, onEdit: { editing = $0 }) }
                         }
                     }
                     Spacer()
@@ -223,7 +238,7 @@ struct CalendarView: View {
                 onNext: { selected = CalDate.cal.date(byAdding: .day, value: 1, to: selected)! }
             )
             if dayEvents.isEmpty { noEvents } else {
-                ForEach(dayEvents) { EventCard(event: $0, vm: vm, compact: compactEvents, onView: { viewing = $0 }, onEdit: { editing = $0 }) }
+                ForEach(dayEvents) { EventCard(event: $0, vm: vm, compact: compactEvents, onView: { openEventDetail($0) }, onEdit: { editing = $0 }) }
             }
         }
     }

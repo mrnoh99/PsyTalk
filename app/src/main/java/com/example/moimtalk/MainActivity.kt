@@ -4,13 +4,10 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -893,6 +890,11 @@ fun App(vm: MoimViewModel = viewModel()) {
     var showCreateRoom by remember { mutableStateOf(false) }
     var showApprovals by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
+    // 복귀 애니 중에도 RoomScreen 유지(AnimatedVisibility exit)
+    var overlayRoom by remember { mutableStateOf<Room?>(null) }
+    LaunchedEffect(openedRoom?.id) {
+        if (openedRoom != null) overlayRoom = openedRoom
+    }
 
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -962,22 +964,13 @@ fun App(vm: MoimViewModel = viewModel()) {
                 onApprovals = { showApprovals = true },
                 onSettings = { showSettings = true }
             )
-            AnimatedContent(
-                targetState = openedRoom,
+            AnimatedVisibility(
+                visible = openedRoom != null,
                 modifier = Modifier.fillMaxSize(),
-                transitionSpec = {
-                    if (targetState != null) {
-                        // 진입: 오른쪽 → 왼쪽으로 덮기
-                        slideInHorizontally(tween(260)) { it } togetherWith ExitTransition.None
-                    } else {
-                        // 복귀: 왼쪽 → 오른쪽으로 밀려 나감(진입의 역방향)
-                        EnterTransition.None togetherWith slideOutHorizontally(tween(260)) { it }
-                    }
-                },
-                sizeTransform = null,
-                label = "roomOverlay",
-            ) { room ->
-                if (room != null) {
+                enter = slideInHorizontally(tween(260)) { it },
+                exit = slideOutHorizontally(tween(260)) { it },
+            ) {
+                overlayRoom?.let { room ->
                     RoomScreen(
                         vm = vm,
                         room = room,
@@ -988,22 +981,13 @@ fun App(vm: MoimViewModel = viewModel()) {
                     )
                 }
             }
-            AnimatedContent(
-                targetState = showWard,
+            AnimatedVisibility(
+                visible = showWard,
                 modifier = Modifier.fillMaxSize(),
-                transitionSpec = {
-                    if (targetState) {
-                        slideInHorizontally(tween(260)) { it } togetherWith ExitTransition.None
-                    } else {
-                        EnterTransition.None togetherWith slideOutHorizontally(tween(260)) { it }
-                    }
-                },
-                sizeTransform = null,
-                label = "wardOverlay",
-            ) { show ->
-                if (show) {
-                    WardStatusScreen(vm = vm, onBack = { showWard = false })
-                }
+                enter = slideInHorizontally(tween(260)) { it },
+                exit = slideOutHorizontally(tween(260)) { it },
+            ) {
+                WardStatusScreen(vm = vm, onBack = { showWard = false })
             }
         }
     }

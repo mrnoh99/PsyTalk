@@ -93,6 +93,16 @@ enum Moim {
     static let orange = Color(hex: 0xEA7317)
 }
 
+/// 방·일정 상세 등 오버레이 슬라이드 — Android/Web 과 동일(진입 trailing, 복귀 trailing)
+enum MoimOverlayAnim {
+    static let duration = 0.26
+    static let anim = Animation.easeOut(duration: duration)
+    static let transition = AnyTransition.asymmetric(
+        insertion: .move(edge: .trailing),
+        removal: .move(edge: .trailing)
+    )
+}
+
 func catColor(_ category: String) -> Color {
     switch category {
     case "notice": return Color(hex: 0xB5651D)

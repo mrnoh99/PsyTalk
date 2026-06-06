@@ -194,6 +194,8 @@
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30;padding:14px}
   #emodal{z-index:45}
   #evDetailModal{z-index:40}
+  #evDetailModal .ev-detail-scroll{flex:1;overflow-y:auto;min-height:0;background:var(--bg);padding:12px 16px}
+  #evDetailModal .ev-detail-foot{padding:12px 16px;border-top:1px solid var(--line);background:var(--paper)}
   /* 공용 확인/알림 대화상자는 다른 모달(일정 상세 등) 위에 항상 표시 */
   #uiDialog{z-index:60}
   .modal.on{display:flex}
@@ -224,9 +226,9 @@
   .pinrow.dragging{opacity:.45}
   @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
   @keyframes slideOutRight{from{transform:translateX(0)}to{transform:translateX(100%)}}
-  #roomScreen.slide-overlay,#wardScreen.slide-overlay{position:absolute;inset:0;z-index:20;background:var(--paper);display:flex;flex-direction:column}
-  #roomScreen.slidein,#wardScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1);will-change:transform}
-  #roomScreen.slideout,#wardScreen.slideout{animation:slideOutRight .26s cubic-bezier(.22,.61,.36,1) forwards;will-change:transform}
+  #roomScreen.slide-overlay,#wardScreen.slide-overlay,#evDetailModal.slide-overlay{position:absolute;inset:0;z-index:20;background:var(--paper);display:flex;flex-direction:column}
+  #roomScreen.slidein,#wardScreen.slidein,#evDetailModal.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1);will-change:transform}
+  #roomScreen.slideout,#wardScreen.slideout,#evDetailModal.slideout{animation:slideOutRight .26s cubic-bezier(.22,.61,.36,1) forwards;will-change:transform}
   .pick{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;border:1px solid var(--line);margin-bottom:7px;background:var(--surface)}
   .pick.sel{border-color:var(--accent);background:var(--hl)}.pick .av{width:32px;height:32px;border-radius:10px;font-size:11px}
   .pick .pn{flex:1;font-size:13.5px;font-weight:600}.chk{font-weight:800;color:var(--accent)}
@@ -407,13 +409,13 @@
     <button class="ghost" id="uiDialogCancel" onclick="uiDialogResolve(false)">취소</button>
   </div></div>
 
-  <!-- EVENT DETAIL (주간 학술활동 — 4줄 미리보기 후 전체 보기) -->
-  <div class="modal" id="evDetailModal"><div class="sheet" style="max-height:90vh;display:flex;flex-direction:column">
-    <h2>일정 상세</h2>
-    <div id="evDetailBody" class="ev-detail-body" style="flex:1;overflow-y:auto;min-height:0"></div>
-    <div id="evDetailEdit"></div>
-    <button class="ghost" onclick="closeModal('evDetailModal')">닫기</button>
-  </div></div>
+  <!-- EVENT DETAIL (캘린더 위 슬라이드 오버레이) -->
+  <div id="evDetailModal" class="hidden slide-overlay app-screen">
+    <div class="hdr"><button class="back" onclick="closeEventDetail()">‹</button>
+      <h1 style="font-size:16px">일정 상세</h1><span class="spacer"></span></div>
+    <div id="evDetailBody" class="ev-detail-body ev-detail-scroll"></div>
+    <div id="evDetailEdit" class="ev-detail-foot"></div>
+  </div>
 
   <!-- EVENT MODAL -->
   <div class="modal" id="emodal"><div class="sheet">
@@ -506,7 +508,7 @@ async function ensureFreshSession(){
   }catch(_){return false;}
 }
 async function authFailAndLogin(){
-  closeModal('emodal'); closeModal('evDetailModal');
+  closeModal('emodal'); closeEventDetail(true);
   await sb.auth.signOut().catch(()=>{});
   me=null; show('login');
   alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
@@ -1916,8 +1918,16 @@ function openEventDetail(id){
   const e=events.find(x=>x.id===id); if(!e)return;
   document.getElementById('evDetailBody').innerHTML=evDetailHtml(e);
   document.getElementById('evDetailEdit').innerHTML=canEdit(e)
-    ?`<button class="ev-detail-edit" onclick="closeModal('evDetailModal');openEvent('${e.id}')">✏️ 수정</button>`:'';
-  document.getElementById('evDetailModal').classList.add('on');
+    ?`<button class="ev-detail-edit" onclick="closeEventDetail().then(()=>openEvent('${e.id}'))">✏️ 수정</button>`:'';
+  const el=document.getElementById('evDetailModal');
+  el.classList.remove('hidden');
+  playSlideIn(el);
+}
+async function closeEventDetail(force){
+  const el=document.getElementById('evDetailModal');
+  if(!el||el.classList.contains('hidden'))return;
+  if(force){el.classList.add('hidden');el.classList.remove('slideout','slidein');return;}
+  await slideCloseOverlay(el);
 }
 const selLabel=()=>`${selDate.getMonth()+1}/${selDate.getDate()}`;
 function dayEventsHtml(d,compact){
@@ -1988,7 +1998,7 @@ function calNav(mode,today){
   return `<div class="calnav"><span class="narr" onclick="${fn}(-1)">‹</span><b>${center}</b><span class="narr" onclick="${fn}(1)">›</span></div>${ret}`;
 }
 function openEvent(id){
-  closeModal('evDetailModal');
+  closeEventDetail(true);
   editEventId=id||null;
   const e=id?events.find(x=>x.id===id):null;
   document.getElementById('evModalTitle').textContent=id?'일정 수정':'일정 추가';

@@ -17,9 +17,24 @@ struct RootView: View {
     @StateObject private var vm = MoimViewModel()
     @ObservedObject private var theme = ThemeManager.shared   // 다크/라이트 전환 시 전체 재렌더
     @State private var openedRoom: Room?
+    @State private var showRoomOverlay = false   // 복귀 애니 중 RoomView 유지
+    @State private var overlayRoom: Room?
     @State private var showAdmin = false
     @State private var showWard = false
     @State private var showCreateRoom = false
+
+    private func openRoomOverlay(_ room: Room) {
+        overlayRoom = room
+        openedRoom = room
+        withAnimation(MoimOverlayAnim.anim) { showRoomOverlay = true }
+        vm.openRoom(room)
+    }
+
+    private func closeRoomOverlay() {
+        withAnimation(MoimOverlayAnim.anim) { showRoomOverlay = false }
+        vm.closeRoom()
+        openedRoom = nil
+    }
 
     var body: some View {
         Group {
@@ -37,30 +52,24 @@ struct RootView: View {
                     // 방 진입 시에도 목록 뷰 유지 → 뒤로가기 시 스크롤 위치 보존
                     RoomListView(
                         vm: vm,
-                        onOpen: { room in withAnimation(.easeOut(duration: 0.26)) { openedRoom = room }; vm.openRoom(room) },
+                        onOpen: { openRoomOverlay($0) },
                         onAdmin: { showAdmin = true },
-                        onWard: { withAnimation(.easeOut(duration: 0.26)) { showWard = true } },
+                        onWard: { withAnimation(MoimOverlayAnim.anim) { showWard = true } },
                         onCreateRoom: { showCreateRoom = true }
                     )
-                    if let room = openedRoom {
-                        RoomView(vm: vm, room: room, onBack: {
-                            withAnimation(.easeOut(duration: 0.26)) { openedRoom = nil }
-                            vm.closeRoom()
-                        })
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing),
-                            removal: .move(edge: .leading)
-                        ))
-                        .zIndex(1)
+                    if showRoomOverlay, let room = overlayRoom {
+                        RoomView(vm: vm, room: room, onBack: { closeRoomOverlay() })
+                            .transition(MoimOverlayAnim.transition)
+                            .zIndex(1)
+                            .onDisappear {
+                                if !showRoomOverlay { overlayRoom = nil }
+                            }
                     }
                     if showWard {
                         WardStatusView(vm: vm, onBack: {
-                            withAnimation(.easeOut(duration: 0.26)) { showWard = false }
+                            withAnimation(MoimOverlayAnim.anim) { showWard = false }
                         })
-                        .transition(.asymmetric(
-                            insertion: .move(edge: .trailing),
-                            removal: .move(edge: .leading)
-                        ))
+                        .transition(MoimOverlayAnim.transition)
                         .zIndex(2)
                     }
                 }
@@ -86,8 +95,7 @@ struct RootView: View {
         // 회원 검색에서 1:1 DM 열기 → 해당 방으로 전환
         .onChange(of: vm.pendingOpenRoom) { room in
             if let room = room {
-                withAnimation(.easeOut(duration: 0.26)) { openedRoom = room }
-                vm.openRoom(room)
+                openRoomOverlay(room)
                 vm.pendingOpenRoom = nil
             }
         }
@@ -100,8 +108,7 @@ struct RootView: View {
         }
         .onChange(of: vm.rooms) { _ in
             if let r = openedRoom, !vm.rooms.contains(where: { $0.id == r.id }) {
-                withAnimation(.easeOut(duration: 0.26)) { openedRoom = nil }
-                vm.closeRoom()
+                closeRoomOverlay()
             }
         }
     }

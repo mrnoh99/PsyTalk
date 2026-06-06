@@ -6,6 +6,10 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -349,8 +353,13 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
     // 선택한 날짜 — 기본은 오늘. 날짜를 누르면 그날로 포커스가 옮겨가고, 일정 추가·아래 목록이 이 날짜를 따른다.
     var selected by remember { mutableStateOf(today) }
     var editing by remember { mutableStateOf<CalendarEvent?>(null) }
-    var viewing by remember { mutableStateOf<CalendarEvent?>(null) }
+    var showEventDetail by remember { mutableStateOf(false) }
+    var overlayEvent by remember { mutableStateOf<CalendarEvent?>(null) }
     var creating by remember { mutableStateOf(false) }
+    val openEventDetail: (CalendarEvent) -> Unit = { ev ->
+        overlayEvent = ev
+        showEventDetail = true
+    }
     val compactEvents = opensWeekCalendar(room)
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -374,20 +383,27 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
             }
 
             when (mode) {
-                "month" -> monthContent(this, vm, ym, today, selected, compactEvents, { ym = it }, { selected = it }, { viewing = it }, { editing = it })
-                "week" -> weekContent(this, vm, today, selected, compactEvents, { selected = it }, { viewing = it }, { editing = it })
-                else -> dayContent(this, vm, today, selected, compactEvents, { selected = it }, { viewing = it }, { editing = it })
+                "month" -> monthContent(this, vm, ym, today, selected, compactEvents, { ym = it }, { selected = it }, openEventDetail, { editing = it })
+                "week" -> weekContent(this, vm, today, selected, compactEvents, { selected = it }, openEventDetail, { editing = it })
+                else -> dayContent(this, vm, today, selected, compactEvents, { selected = it }, openEventDetail, { editing = it })
             }
         }
 
-        viewing?.let { ev ->
-            EventDetailPane(
-                event = ev,
-                vm = vm,
-                onBack = { viewing = null },
-                onEdit = { viewing = null; editing = it },
-                modifier = Modifier.fillMaxSize(),
-            )
+        AnimatedVisibility(
+            visible = showEventDetail,
+            modifier = Modifier.fillMaxSize(),
+            enter = slideInHorizontally(tween(260)) { it },
+            exit = slideOutHorizontally(tween(260)) { it },
+        ) {
+            overlayEvent?.let { ev ->
+                EventDetailPane(
+                    event = ev,
+                    vm = vm,
+                    onBack = { showEventDetail = false },
+                    onEdit = { showEventDetail = false; editing = it },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
         }
     }
 

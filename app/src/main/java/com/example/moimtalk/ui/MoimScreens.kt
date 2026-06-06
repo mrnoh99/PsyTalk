@@ -490,6 +490,7 @@ private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
                 )
             }
             Text("${p.memberType} · ${roleLabel(p.role)}", fontSize = 11.5.sp, color = MoimSub)
+            MemberContactLines(p)
         }
         Text(
             "승인", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,

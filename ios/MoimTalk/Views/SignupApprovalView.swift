@@ -80,6 +80,7 @@ struct SignupApprovalView: View {
                         .background(Moim.admin.opacity(0.12)).clipShape(Capsule())
                 }
                 Text("\(p.memberType) · \(roleLabel(p.role))").font(.system(size: 11.5)).foregroundColor(Moim.sub)
+                MemberContactLines(profile: p)
             }
             Spacer()
             Button { approveTarget = p } label: {

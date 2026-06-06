@@ -629,8 +629,8 @@ fun RoomListScreen(
     }
     val pinnedRooms = vm.roomPins.mapNotNull { id -> flatRooms.find { it.id == id } }
     val pinnedIds = pinnedRooms.map { it.id }.toSet()
-    // 전체공지(맨 위 고정) → 사용자 고정(핀) → 나머지(최근 메시지순)
-    val listRooms = listOfNotNull(noticeRoom) + pinnedRooms + flatRooms.filter { it.id !in pinnedIds }
+    // 과 전체공지는 맨 위 고정 바로 별도 표시(목록 행에서 제외). 사용자 고정(핀) → 나머지(최근 메시지순)
+    val listRooms = pinnedRooms + flatRooms.filter { it.id !in pinnedIds }
         .sortedWith(compareByDescending<Room> { vm.lastMsgByRoom[it.id]?.createdAt ?: "" }.thenBy { it.sortOrder })
 
     // 1:1 대화(DM) 스와이프 삭제 — 확인 후 본인 참여만 제거(상대·이력 유지, 재오픈 시 복구)
@@ -685,6 +685,7 @@ fun RoomListScreen(
                 .padding(pad)
                 .fillMaxSize()
         ) {
+            noticeRoom?.let { nr -> item { NoticeRoomBar(nr, vm.unreadByRoom[nr.id] ?: 0, onOpen) } }
             item { WardStatusBanner(onWard) }
             weekRoom?.let { wr -> item { WeekRoomBar(wr, vm.unreadByRoom[wr.id] ?: 0, onOpen) } }
             item { CreateRoomButton(onCreateRoom) }
@@ -1733,6 +1734,34 @@ private fun WeekRoomBar(room: Room, unread: Int = 0, onOpen: (Room) -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(room.name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
             Text("주간 학술활동 · 일정 보기", color = Color(0xFFDDE6F3), fontSize = 11.5.sp)
+        }
+        if (unread > 0) {
+            UnreadBadge(unread)
+            Spacer(Modifier.width(6.dp))
+        }
+        Text("›", color = Color.White, fontSize = 20.sp)
+    }
+}
+
+// 과 전체공지 고정 바 (맨 위, 잔여병실현황·주간학술활동과 동일한 색 바 형식)
+@Composable
+private fun NoticeRoomBar(room: Room, unread: Int = 0, onOpen: (Room) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp)
+            .padding(bottom = 10.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color(0xFFB5651D))
+            .clickable { onOpen(room) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text("📢", fontSize = 20.sp)
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(room.name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
+            Text("과 전체공지", color = Color(0xFFF3E2D2), fontSize = 11.5.sp)
         }
         if (unread > 0) {
             UnreadBadge(unread)

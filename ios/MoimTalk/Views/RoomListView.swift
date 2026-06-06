@@ -191,14 +191,16 @@ struct RoomListView: View {
             if a != b { return a > b }
             return $0.sortOrder < $1.sortOrder
         }
-        return (notice.map { [$0] } ?? []) + pinned + rest
+        return pinned + rest   // 과 전체공지는 맨 위 고정 바로 별도 표시(목록 행에서 제외)
     }
+    private var noticeRoom: Room? { noticeTopRoom(vm.rooms) }
 
     var body: some View {
         VStack(spacing: 0) {
             header
             ScrollView {
                 LazyVStack(spacing: 0) {
+                    if let nr = noticeRoom { NoticeRoomBar(room: nr, unread: vm.unreadByRoom[nr.id] ?? 0, onOpen: onOpen) }
                     WardStatusBanner(onTap: onWard)
                     if let wr = weekRoom { WeekRoomBar(room: wr, unread: vm.unreadByRoom[wr.id] ?? 0, onOpen: onOpen) }
                     createButton
@@ -334,6 +336,31 @@ struct WeekRoomBar: View {
             }
             .padding(.horizontal, 16).padding(.vertical, 14)
             .background(Color(hex: 0x4A6FA5))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .padding(.horizontal, 14).padding(.bottom, 10)
+        }
+    }
+}
+
+// 과 전체공지 고정 바 (맨 위, 잔여병실현황·주간학술활동과 동일한 색 바 형식)
+struct NoticeRoomBar: View {
+    let room: Room
+    var unread: Int = 0
+    let onOpen: (Room) -> Void
+    var body: some View {
+        Button(action: { onOpen(room) }) {
+            HStack {
+                Text("📢").font(.system(size: 20))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(room.name).font(.system(size: 16, weight: .heavy)).foregroundColor(.white)
+                    Text("과 전체공지").font(.system(size: 11.5)).foregroundColor(Color(hex: 0xF3E2D2))
+                }
+                Spacer()
+                if unread > 0 { UnreadBadge(count: unread) }
+                Text("›").font(.system(size: 20)).foregroundColor(.white)
+            }
+            .padding(.horizontal, 16).padding(.vertical, 14)
+            .background(Color(hex: 0xB5651D))
             .clipShape(RoundedRectangle(cornerRadius: 14))
             .padding(.horizontal, 14).padding(.bottom, 10)
         }

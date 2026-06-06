@@ -927,7 +927,7 @@ function orderedRooms(){
     if(ta)return -1; if(tb)return 1;
     return (a.sort_order||999)-(b.sort_order||999);
   });
-  return (notice?[notice]:[]).concat(pinned,rest);
+  return pinned.concat(rest);   // 과 전체공지는 맨 위 고정 바로 별도 표시
 }
 async function loadLastMessages(){
   const {data}=await sb.rpc('moim_room_last_messages');
@@ -1306,7 +1306,11 @@ function renderRoomList(){
   if(me.role==='superadmin'){ab.textContent='관리자모드';ab.style.display='';}
   else if(me.role==='admin'){ab.textContent='가입승인';ab.style.display='';}
   else ab.style.display='none';
-  let h=`<div class="banner" onclick="openWard()"><span style="font-size:20px">🛏</span>
+  const notice=noticeTopRoom();
+  let h='';
+  if(notice)h+=`<div class="wkbar" style="background:#b5651d" onclick="openRoom('${notice.id}')"><span style="font-size:20px">📢</span>
+    <div style="flex:1"><b>${esc(notice.name)}</b><small style="color:#f3e2d2">과 전체공지</small></div>${ubadge(notice.id)}<span>›</span></div>`;
+  h+=`<div class="banner" onclick="openWard()"><span style="font-size:20px">🛏</span>
     <div style="flex:1"><b>잔여 병실 현황</b><small>남 · 여 잔여 병상 보기</small></div><span>›</span></div>`;
   if(week)h+=`<div class="wkbar" onclick="openRoom('${week.id}')"><span style="font-size:20px">📅</span>
     <div style="flex:1"><b>${esc(week.name)}</b><small>주간 학술활동 · 일정 보기</small></div>${ubadge(week.id)}<span>›</span></div>`;

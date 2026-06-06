@@ -1288,7 +1288,7 @@ function clearEditIcon(){editIconFile=null;editIconPreview=null;editIconCleared=
 function renderEditIconPreview(){
   const el=document.getElementById('eIconPrev');const nm=document.getElementById('editRoomName').value.trim()||'방';
   const img=editIconPreview||(!editIconCleared&&active&&active.icon_url);
-  if(img){el.style.backgroundImage=`url('${img}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';}
+  if(img){el.style.background='';el.style.backgroundImage=`url('${img}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';}
   else{el.style.backgroundImage='';el.style.background=editColor;el.textContent=nm;}
   document.getElementById('eIconClear').style.display=img?'':'none';
 }
@@ -1767,7 +1767,7 @@ function onCreateIconPicked(input){const f=input.files&&input.files[0];if(!f)ret
 function clearCreateIcon(){createIconFile=null;createIconPreview=null;renderCreateIconPreview();}
 function renderCreateIconPreview(){
   const el=document.getElementById('cIconPrev');const nm=document.getElementById('newRoomName').value.trim()||'방';
-  if(createIconPreview){el.style.backgroundImage=`url('${createIconPreview}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';}
+  if(createIconPreview){el.style.background='';el.style.backgroundImage=`url('${createIconPreview}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';}
   else{el.style.backgroundImage='';el.style.background=createColor;el.textContent=nm;}
   document.getElementById('cIconClear').style.display=createIconPreview?'':'none';
 }

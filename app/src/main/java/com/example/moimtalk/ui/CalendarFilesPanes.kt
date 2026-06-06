@@ -328,9 +328,11 @@ private fun FileUploadDialog(fileName: String, onDismiss: () -> Unit, onConfirm:
     var kw by remember { mutableStateOf("") }
     SheetDialog(title = "자료 올리기", subtitle = fileName, onDismiss = onDismiss) {
         FieldLabel("설명문")
-        OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 발표 슬라이드 초안", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+desc, { desc = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 발표 슬라이드 초안", color = MoimHint) }, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("키워드 (쉼표로 구분)")
-        OutlinedTextField(kw, { kw = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("코호트, 우울증", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+kw, { kw = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("코호트, 우울증", color = MoimHint) }, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         Spacer(Modifier.height(18.dp))
         PrimaryButton("업로드") { onConfirm(desc.trim(), parseKeywords(kw)) }
     }
@@ -959,22 +961,30 @@ private fun EventDialog(
 
     SheetDialog(title = title, subtitle = "참석범위·첨부자료까지 등록할 수 있습니다.", onDismiss = onDismiss) {
         FieldLabel("제목")
-        OutlinedTextField(evTitle, { evTitle = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 증례 컨퍼런스", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+evTitle, { evTitle = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 증례 컨퍼런스", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("날짜 · 시간")
         Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-            OutlinedTextField(dateStr, { dateStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("2026-06-05", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
-            OutlinedTextField(timeStr, { timeStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("14:00", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+            OutlinedTextField(
+dateStr, { dateStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("2026-06-05", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
+            OutlinedTextField(
+timeStr, { timeStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("14:00", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         }
         FieldLabel("장소")
-        OutlinedTextField(place, { place = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("의국 회의실", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+place, { place = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("의국 회의실", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("링크 (선택)")
-        OutlinedTextField(link, { link = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("https://zoom.us/...", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+link, { link = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("https://zoom.us/...", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("발표자 (이름·직위, 여러 명은 쉼표로)")
-        OutlinedTextField(presenter, { presenter = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("예: 김철수 교수, 박영희 전공의 3년차", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+presenter, { presenter = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("예: 김철수 교수, 박영희 전공의 3년차", color = MoimHint) }, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("참석 범위")
-        OutlinedTextField(scope, { scope = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 의국 전공의 전원", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+scope, { scope = it }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("예: 의국 전공의 전원", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
         FieldLabel("설명")
-        OutlinedTextField(desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("안건 / 준비사항", color = MoimHint) }, shape = RoundedCornerShape(11.dp))
+        OutlinedTextField(
+desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), placeholder = { Text("안건 / 준비사항", color = MoimHint) }, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
 
         FieldLabel("첨부 자료 (여러 개 가능)")
         Box(

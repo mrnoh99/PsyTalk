@@ -131,6 +131,7 @@ fun LoginScreen(vm: MoimViewModel) {
         Text("정신건강의학과", fontSize = 15.sp, color = MoimSub)
         Spacer(Modifier.height(32.dp))
         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
             value = email,
             onValueChange = { email = it },
             label = { Text(if (signup) "이메일" else "이메일 또는 핸드폰번호") },
@@ -139,6 +140,7 @@ fun LoginScreen(vm: MoimViewModel) {
         )
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
             value = pw,
             onValueChange = { pw = it },
             label = { Text("비밀번호") },
@@ -149,6 +151,7 @@ fun LoginScreen(vm: MoimViewModel) {
         if (signup) {
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = pwConfirm,
                 onValueChange = { pwConfirm = it },
                 label = { Text("비밀번호 확인") },
@@ -166,6 +169,7 @@ fun LoginScreen(vm: MoimViewModel) {
             }
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("이름") },
@@ -174,6 +178,7 @@ fun LoginScreen(vm: MoimViewModel) {
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = phone,
                 onValueChange = { phone = it },
                 label = { Text("핸드폰번호 (예: 010-1234-5678)") },
@@ -182,6 +187,7 @@ fun LoginScreen(vm: MoimViewModel) {
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = intro,
                 onValueChange = { intro = it },
                 label = { Text("간단한 소개 (예: 3년차 전공의)") },
@@ -1066,6 +1072,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
             text = {
                 Column {
                     OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                         value = renameText,
                         onValueChange = { renameText = it },
                         singleLine = true,
@@ -1259,6 +1266,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         }
                         Spacer(Modifier.width(8.dp))
                         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                             value = input,
                             onValueChange = { input = it },
                             modifier = Modifier
@@ -1886,7 +1894,7 @@ private fun MyInfoTab(vm: MoimViewModel) {
                 fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimAccent,
                 modifier = Modifier
                     .clip(RoundedCornerShape(20.dp))
-                    .clickable { MoimTheme.setDark(!MoimTheme.dark) }
+                    .clickable { MoimTheme.dark = !MoimTheme.dark }
                     .background(MoimBg, RoundedCornerShape(20.dp))
                     .padding(horizontal = 14.dp, vertical = 7.dp)
             )
@@ -1915,10 +1923,12 @@ private fun MyInfoTab(vm: MoimViewModel) {
         }
         Spacer(Modifier.height(16.dp))
         Text("이름 (변경 불가)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-        OutlinedTextField(value = me?.name ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = me?.name ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = moimOutlinedTextFieldColors())
         Spacer(Modifier.height(10.dp))
         Text("이메일 (변경 불가)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
             value = MoimRepository.currentUserEmail() ?: "",
             onValueChange = {},
             enabled = false,
@@ -1927,7 +1937,8 @@ private fun MyInfoTab(vm: MoimViewModel) {
         )
         Spacer(Modifier.height(10.dp))
         Text("전화번호 (변경 불가)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-        OutlinedTextField(value = me?.phone ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            value = me?.phone ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = moimOutlinedTextFieldColors())
         Spacer(Modifier.height(10.dp))
         Text("직군", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         ExposedDropdownMenuBox(
@@ -1936,6 +1947,7 @@ private fun MyInfoTab(vm: MoimViewModel) {
             modifier = Modifier.fillMaxWidth(),
         ) {
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = memberType,
                 onValueChange = {},
                 readOnly = true,
@@ -1963,6 +1975,7 @@ private fun MyInfoTab(vm: MoimViewModel) {
         Spacer(Modifier.height(10.dp))
         Text("자기소개", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
             value = intro, onValueChange = { intro = it; savedMsg = false },
             placeholder = { Text("자기소개를 입력하세요") }, modifier = Modifier.fillMaxWidth()
         )
@@ -1989,12 +2002,14 @@ private fun MyInfoTab(vm: MoimViewModel) {
             Text("전체관리자 계정의 비밀번호는 변경할 수 없습니다.", color = MoimSub, fontSize = 12.5.sp)
         } else {
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = pw, onValueChange = { pw = it; pwMsg = null },
                 placeholder = { Text("새 비밀번호 (6자 이상)") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(8.dp))
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = pw2, onValueChange = { pw2 = it; pwMsg = null },
                 placeholder = { Text("새 비밀번호 확인") }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(), modifier = Modifier.fillMaxWidth()
@@ -2146,6 +2161,7 @@ private fun MemberSearchTab(vm: MoimViewModel, onOpenRoom: (Room) -> Unit) {
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
             value = vm.memberSearchQuery,
             onValueChange = { vm.memberSearchQuery = it },
             placeholder = { Text("🔍 이름으로 검색") },
@@ -2330,6 +2346,7 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
                     .padding(16.dp),
             ) {
                 OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier
@@ -2544,6 +2561,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 .padding(16.dp)
         ) {
             OutlinedTextField(
+            colors = moimOutlinedTextFieldColors(),
                 value = name,
                 onValueChange = { name = it },
                 modifier = Modifier.fillMaxWidth(),

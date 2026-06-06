@@ -1,6 +1,10 @@
 package com.example.moimtalk.ui
 
 import android.content.Context
+import androidx.compose.foundation.text.selection.TextSelectionColors
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.TextFieldColors
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -33,16 +37,18 @@ private val LightPalette = MoimPalette(
 )
 
 object MoimTheme {
-    var dark by mutableStateOf(true)             // 기본=다크
+    private var _dark by mutableStateOf(true)    // 기본=다크
+    var dark: Boolean
+        get() = _dark
+        set(value) {
+            _dark = value
+            prefs?.edit()?.putBoolean("dark", value)?.apply()
+        }
     private var prefs: android.content.SharedPreferences? = null
     val palette: MoimPalette get() = if (dark) DarkPalette else LightPalette
     fun init(ctx: Context) {
         prefs = ctx.getSharedPreferences("moim_theme", Context.MODE_PRIVATE)
-        dark = prefs?.getBoolean("dark", true) ?: true
-    }
-    fun setDark(value: Boolean) {
-        dark = value
-        prefs?.edit()?.putBoolean("dark", value)?.apply()
+        _dark = prefs?.getBoolean("dark", true) ?: true
     }
 }
 
@@ -59,6 +65,32 @@ val MoimAdmin: Color get() = MoimTheme.palette.admin
 val MoimSuccess: Color get() = MoimTheme.palette.success
 val MoimWhite: Color get() = MoimTheme.palette.surface   // 카드/표면(다크에선 어두운 surface)
 val MoimHint: Color get() = MoimTheme.palette.hint
+
+/** OutlinedTextField — Moim 팔레트와 동기화(다크에서 검은 글자·보라 커서 방지) */
+@Composable
+fun moimOutlinedTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.colors(
+    focusedTextColor = MoimInk,
+    unfocusedTextColor = MoimInk,
+    disabledTextColor = MoimSub,
+    errorTextColor = MoimAdmin,
+    cursorColor = MoimAccent,
+    focusedBorderColor = MoimAccent,
+    unfocusedBorderColor = MoimLine,
+    disabledBorderColor = MoimLine,
+    errorBorderColor = MoimAdmin,
+    focusedPlaceholderColor = MoimHint,
+    unfocusedPlaceholderColor = MoimHint,
+    focusedLabelColor = MoimSub,
+    unfocusedLabelColor = MoimSub,
+    disabledLabelColor = MoimHint,
+    focusedContainerColor = MoimWhite,
+    unfocusedContainerColor = MoimWhite,
+    disabledContainerColor = MoimWhite,
+    selectionColors = TextSelectionColors(
+        handleColor = MoimAccent,
+        backgroundColor = MoimAccent.copy(alpha = 0.28f),
+    ),
+)
 
 fun catColor(category: String): Color = when (category) {
     "notice" -> Color(0xFFB5651D)

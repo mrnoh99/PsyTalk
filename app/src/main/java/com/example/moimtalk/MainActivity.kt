@@ -22,7 +22,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
+import com.example.moimtalk.ui.MoimTheme
+import com.example.moimtalk.ui.theme.PsyTalkTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import com.example.moimtalk.data.CalendarEvent
@@ -872,7 +873,7 @@ class MainActivity : ComponentActivity() {
             requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
         }
         setContent {
-            MaterialTheme {
+            PsyTalkTheme(darkTheme = MoimTheme.dark) {
                 App()
             }
         }

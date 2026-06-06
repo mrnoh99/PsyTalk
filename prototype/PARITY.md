@@ -39,6 +39,7 @@
 | 방 나가기 (본인이 만들지 않은 모임방) | ➖ | ✅ 방 헤더 나가기 | ✅ | 확인 후 `room_members` 본인 삭제, `leave_account.sql` RLS |
 | 회원 탈퇴 (계정·내 데이터 삭제) | ➖ | ✅ ⚙️ 설정 회원 탈퇴 | ✅ | `moim_delete_my_account()`(전체관리자 불가). 웹=핀 모달 상단, 앱=설정에 로그아웃 동거 |
 | 메시지 길게누르기 — 복사·선택복사·답장 + 이모지 리액션 | ➖ | ✅ 카톡식 메뉴 | ✅(Android·iOS) | `message_reactions.sql`(reply_to + 리액션 테이블). 답장 인용·리액션 칩 표시. 웹은 DB만 공유(UI 추후) |
+| (웹) 가입 시 핸드폰 종류·연결 이메일 + 회원 명단 엑셀 다운로드 | ➖ | ✅ 웹 전용 | ➖ | `signup_device.sql`(device_type·device_email). 전체관리자 콘솔에서 CSV 내보내기(TestFlight/내부테스터용) |
 | 채팅방 열기 슬라이드(우→좌) | ➖ | ✅ slideInRight | ✅ | 웹=CSS keyframe, Android=`slideInHorizontally`, iOS=`.move(edge:.trailing)` |
 
 **범례:** ✅ 일치 · ❌ 불일치(앱 미구현) · ➖ 의도된 차이/부분

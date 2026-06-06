@@ -262,6 +262,9 @@
       <div id="pwMatch" style="font-size:12px;margin:-6px 0 6px"></div>
       <input id="suName" type="text" placeholder="이름" style="margin-top:6px">
       <input id="suPhone" type="tel" placeholder="핸드폰번호 (예: 010-1234-5678)" style="margin-top:10px">
+      <div style="font-size:12px;font-weight:700;color:var(--sub);margin:10px 0 6px">사용 핸드폰 종류 (필수)</div>
+      <div id="suDevice" style="display:flex;gap:7px"></div>
+      <input id="suDeviceEmail" type="email" placeholder="핸드폰 연결 이메일 (앱 설치용 · 애플ID/구글계정)" style="margin-top:10px">
       <textarea id="suIntro" placeholder="간단한 소개 (예: 3년차 전공의)" style="margin-top:10px;min-height:54px;resize:vertical"></textarea>
       <div style="font-size:12px;font-weight:700;color:var(--sub);margin:10px 0 6px">직군</div>
       <div id="suTypes" style="display:flex;flex-wrap:wrap;gap:7px"></div>
@@ -1127,11 +1130,18 @@ function uiAlert(msg,title){
 window.alert=function(m){ uiAlert(m); };
 
 /* ====== 로그인 / 회원가입 ====== */
-let signupMode=false, suType='의국';
+let signupMode=false, suType='의국', suDeviceType=null;
 function renderSuTypes(){
   document.getElementById('suTypes').innerHTML=MEMBER_TYPES.map(t=>{
     const on=t===suType;
-    return `<span onclick="suType='${t}';renderSuTypes()" style="cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:20px;background:${on?tcolor(t):'#fff'};color:${on?'#fff':'var(--ink)'};border:1px solid var(--line)">${t}</span>`;
+    return `<span onclick="suType='${t}';renderSuTypes()" style="cursor:pointer;font-size:12px;font-weight:700;padding:7px 12px;border-radius:20px;background:${on?tcolor(t):'var(--surface)'};color:${on?'#fff':'var(--ink)'};border:1px solid var(--line)">${t}</span>`;
+  }).join('');
+}
+function renderSuDevice(){
+  const el=document.getElementById('suDevice'); if(!el)return;
+  el.innerHTML=[['iphone','🍎 아이폰'],['android','🤖 안드로이드']].map(([k,l])=>{
+    const on=k===suDeviceType;
+    return `<span onclick="suDeviceType='${k}';renderSuDevice()" style="cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:20px;background:${on?'var(--accent)':'var(--surface)'};color:${on?'#fff':'var(--ink)'};border:1px solid var(--line)">${l}</span>`;
   }).join('');
 }
 function toggleSignup(){
@@ -1143,7 +1153,7 @@ function toggleSignup(){
   document.getElementById('authToggle').textContent=signupMode?'이미 계정이 있나요?  로그인':'계정이 없나요?  회원가입';
   document.getElementById('loginErr').textContent='';document.getElementById('loginNotice').textContent='';
   document.getElementById('pwConfirm').value='';
-  if(signupMode)renderSuTypes();
+  if(signupMode){renderSuTypes();renderSuDevice();}
   updateSignupBtn();
 }
 // 가입 시 비밀번호 2개가 일치할 때만 '회원가입' 버튼 활성화
@@ -1167,14 +1177,17 @@ async function submitAuth(){
     const name=document.getElementById('suName').value.trim();
     const phone=document.getElementById('suPhone').value.trim();
     const intro=document.getElementById('suIntro').value.trim();
+    const deviceEmail=document.getElementById('suDeviceEmail').value.trim();
     const pwConfirm=document.getElementById('pwConfirm').value;
     if(!email.includes('@')){errEl.textContent='올바른 이메일을 입력하세요';return;}
     if(!password){errEl.textContent='비밀번호를 입력하세요';return;}
     if(password!==pwConfirm){errEl.textContent='비밀번호가 일치하지 않습니다';return;}
     if(!name){errEl.textContent='이름을 입력하세요';return;}
     if(!phone){errEl.textContent='핸드폰번호를 입력하세요';return;}
+    if(!suDeviceType){errEl.textContent='사용 핸드폰 종류(아이폰/안드로이드)를 선택하세요';return;}
+    if(!deviceEmail.includes('@')){errEl.textContent='핸드폰 연결 이메일을 입력하세요';return;}
     btn.textContent='가입 중...';
-    const {data,error}=await sb.auth.signUp({email,password,options:{data:{name,member_type:suType,phone,intro}}});
+    const {data,error}=await sb.auth.signUp({email,password,options:{data:{name,member_type:suType,phone,intro,device_type:suDeviceType,device_email:deviceEmail}}});
     btn.textContent='회원가입';
     if(error){errEl.textContent='회원가입 실패: '+error.message;return;}
     if(data.session){await loadApp();}
@@ -1371,9 +1384,27 @@ function memberMgmtRow(p){const isAd=p.role==='admin';
   const deact=`<button onclick="adminDeactivate('${p.id}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(192,69,47,.12);color:var(--admin);margin-left:6px">계정 비활성화</button>`;
   return adminRow(p, roleBtn+deact, `${p.member_type||''} · ${isAd?'관리자':'회원'}`);
 }
+// 회원 명단 엑셀(CSV·UTF-8 BOM, Excel 에서 바로 열림) 다운로드 — TestFlight/내부테스터 초대용
+function downloadMembersExcel(){
+  if(me.role!=='superadmin'){alert('전체관리자만 사용할 수 있습니다.');return;}
+  const rows=Object.values(profilesById).filter(p=>!p.withdrawn).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  const devLabel=t=>t==='iphone'?'아이폰':(t==='android'?'안드로이드':'');
+  const roleLbl=r=>r==='superadmin'?'전체관리자':(r==='admin'?'관리자':'회원');
+  const cq=v=>{const s=(v==null?'':String(v));return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
+  const header=['이름','직군','역할','로그인 이메일','핸드폰번호','핸드폰 종류','연결 이메일(앱설치)','자기소개','승인'];
+  const lines=[header.join(',')];
+  rows.forEach(p=>lines.push([p.name,p.member_type,roleLbl(p.role),p.email,p.phone,devLabel(p.device_type),p.device_email,p.intro,(p.approved===true?'승인':'대기')].map(cq).join(',')));
+  const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  const d=new Date(), ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+  a.href=url; a.download=`아주정신_회원명단_${ymd}.csv`; document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},500);
+}
 function renderMembers(){
   const mem=Object.values(profilesById).filter(p=>p.role!=='superadmin'&&!p.withdrawn&&p.approved===true);
   let h=`<p style="color:var(--sub);font-size:12px;margin-bottom:10px">관리자 지위 지정 / 계정 비활성화. (전체관리자 제외)</p>`;
+  // 회원 명단 엑셀(CSV) 다운로드 — TestFlight/내부테스터 초대용 (전체관리자 전용)
+  h+=`<button onclick="downloadMembersExcel()" style="width:100%;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--accent);margin-bottom:12px">📥 회원 명단 엑셀 다운로드 (앱 배포용)</button>`;
   h+=`<div style="display:flex;gap:7px;margin-bottom:12px">
     <button class="sortbtn ${memAdminSort==='name'?'on':''}" onclick="memAdminSortGo('name')">이름순</button>
     <button class="sortbtn ${memAdminSort==='type'?'on':''}" onclick="memAdminSortGo('type')">직종별</button></div>`;

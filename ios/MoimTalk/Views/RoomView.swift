@@ -433,9 +433,9 @@ struct MessageBubble: View {
                     }
                 } else {
                     Text(message.content ?? "")
-                        .font(.system(size: 14.5)).foregroundColor(Moim.ink)
+                        .font(.system(size: 14.5)).foregroundColor(mine ? .white : Moim.ink)
                         .padding(.horizontal, 12).padding(.vertical, 9)
-                        .background(mine ? Moim.yellow : Moim.white)
+                        .background(mine ? Moim.accent : Moim.white)   // 내 버블=Primary(파랑), 받은=Surface
                         .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
             }

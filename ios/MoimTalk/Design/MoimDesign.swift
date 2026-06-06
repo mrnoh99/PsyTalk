@@ -59,16 +59,26 @@ func roomMemberNames(_ room: Room, memberIds: [String], profiles: [String: Profi
     return ordered.compactMap { profiles[$0]?.name }
 }
 
+// 화면 테마 — 🌙 다크(기본) / ☀️ 라이트 전환. UserDefaults 에 저장, 루트 뷰가 관찰해 재렌더.
+final class ThemeManager: ObservableObject {
+    static let shared = ThemeManager()
+    @Published var dark: Bool = (UserDefaults.standard.object(forKey: "moim_dark") as? Bool) ?? true
+    func setDark(_ v: Bool) { dark = v; UserDefaults.standard.set(v, forKey: "moim_dark") }
+}
+private var moimDark: Bool { ThemeManager.shared.dark }
+
 enum Moim {
-    static let bg = Color(hex: 0xE9E4DD)
-    static let paper = Color(hex: 0xF5F1EA)
-    static let ink = Color(hex: 0x231F1C)
-    static let sub = Color(hex: 0x8A817A)
-    static let accent = Color(hex: 0x2B2825)
-    static let yellow = Color(hex: 0xFFE45C)
-    static let line = Color(hex: 0xDCD5CC)
-    static let admin = Color(hex: 0xC0452F)
-    static let white = Color.white
+    static var bg: Color { moimDark ? Color(hex: 0x161616) : Color(hex: 0xECECEC) }
+    static var paper: Color { moimDark ? Color(hex: 0x121212) : Color(hex: 0xFFFFFF) }
+    static var ink: Color { moimDark ? Color(hex: 0xFFFFFF) : Color(hex: 0x212121) }
+    static var sub: Color { moimDark ? Color(hex: 0xBDBDBD) : Color(hex: 0x757575) }
+    static var accent: Color { moimDark ? Color(hex: 0x1E88E5) : Color(hex: 0x1976D2) }
+    static var secondary: Color { moimDark ? Color(hex: 0x00BCD4) : Color(hex: 0x0097A7) }
+    static var yellow: Color { moimDark ? Color(hex: 0xFFCA28) : Color(hex: 0xFFE45C) }
+    static var line: Color { moimDark ? Color(hex: 0x2C2C2C) : Color(hex: 0xE0E0E0) }
+    static var admin: Color { moimDark ? Color(hex: 0xF44336) : Color(hex: 0xD32F2F) }
+    static var success: Color { moimDark ? Color(hex: 0x4CAF50) : Color(hex: 0x388E3C) }
+    static var white: Color { moimDark ? Color(hex: 0x1E1E1E) : Color(hex: 0xFFFFFF) }   // 카드/표면
     static let orange = Color(hex: 0xEA7317)
 }
 

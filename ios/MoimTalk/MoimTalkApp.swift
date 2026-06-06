@@ -15,6 +15,7 @@ struct MoimTalkApp: App {
 // Android App() 네비게이션과 동일한 화면 전환
 struct RootView: View {
     @StateObject private var vm = MoimViewModel()
+    @ObservedObject private var theme = ThemeManager.shared   // 다크/라이트 전환 시 전체 재렌더
     @State private var openedRoom: Room?
     @State private var showAdmin = false
     @State private var showWard = false
@@ -49,7 +50,7 @@ struct RootView: View {
                 )
             }
         }
-        .preferredColorScheme(.light)
+        .preferredColorScheme(theme.dark ? .dark : .light)
         .alert("오류", isPresented: Binding(
             get: { vm.error != nil },
             set: { if !$0 { vm.error = nil } }

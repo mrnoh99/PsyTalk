@@ -1440,7 +1440,8 @@ fun MessageBubble(
             Text(fmtMsgTime(m.createdAt), fontSize = 10.sp, color = MoimSub,
                 modifier = Modifier.align(Alignment.Bottom).padding(horizontal = 3.dp))
         }
-        val bg = if (mine) MoimYellow else MoimWhite
+        val bg = if (mine) MoimAccent else MoimWhite     // 내 버블=Primary(파랑), 받은=Surface
+        val bubbleTextColor = if (mine) Color.White else MoimInk
         val shape = if (mine) {
             RoundedCornerShape(topStart = 16.dp, topEnd = 5.dp, bottomEnd = 16.dp, bottomStart = 16.dp)
         } else {
@@ -1495,7 +1496,7 @@ fun MessageBubble(
                         .background(bg, shape)
                         .padding(horizontal = 12.dp, vertical = 9.dp)
                 ) {
-                    Text(m.content.orEmpty(), color = MoimInk, fontSize = 14.5.sp, lineHeight = 20.sp)
+                    Text(m.content.orEmpty(), color = bubbleTextColor, fontSize = 14.5.sp, lineHeight = 20.sp)
                 }
             }
         }
@@ -1670,6 +1671,27 @@ private fun MyInfoTab(vm: MoimViewModel) {
     Column(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)
     ) {
+        // 화면 테마 (🌙 다크 / ☀️ 라이트) 전환
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(MoimWhite, RoundedCornerShape(12.dp))
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(if (MoimTheme.dark) "🌙 화면 테마" else "☀️ 화면 테마", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk, modifier = Modifier.weight(1f))
+            Text(
+                if (MoimTheme.dark) "다크 모드 · 전환" else "라이트 모드 · 전환",
+                fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimAccent,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .clickable { MoimTheme.setDark(!MoimTheme.dark) }
+                    .background(MoimBg, RoundedCornerShape(20.dp))
+                    .padding(horizontal = 14.dp, vertical = 7.dp)
+            )
+        }
+        Spacer(Modifier.height(14.dp))
         // 아바타 미리보기 + 사진 선택/제거 + 색상 팔레트
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             val shape = RoundedCornerShape(26.dp)

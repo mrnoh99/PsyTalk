@@ -57,6 +57,7 @@ struct MyInfoTab: View {
     @State private var pwMsgIsError = true
     @State private var showDelete = false
 
+    @ObservedObject private var theme = ThemeManager.shared
     private var me: Profile? { vm.myProfile }
     private var isSuper: Bool { me?.role == "superadmin" }
 
@@ -68,6 +69,14 @@ struct MyInfoTab: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
+                // 화면 테마 (🌙 다크 / ☀️ 라이트)
+                Toggle(isOn: Binding(get: { theme.dark }, set: { theme.setDark($0) })) {
+                    Text(theme.dark ? "🌙 다크 모드" : "☀️ 라이트 모드").font(.system(size: 14, weight: .bold)).foregroundColor(Moim.ink)
+                }
+                .tint(Moim.accent)
+                .padding(.horizontal, 12).padding(.vertical, 10)
+                .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 12))
+
                 // 아바타 + 색상 팔레트 + 사진 선택/제거
                 VStack(spacing: 9) {
                     Group {

@@ -13,9 +13,17 @@
 </script>
 <style>
   :root{
-    --bg:#e9e4dd;--paper:#f5f1ea;--ink:#231f1c;--sub:#8a817a;
-    --accent:#2b2825;--me:#ffe45c;--you:#fff;--line:#dcd5cc;--admin:#c0452f;
+    /* 🌙 다크 모드 (기본) */
+    --bg:#161616;--paper:#121212;--surface:#1e1e1e;--you:#1e1e1e;--hl:#33301f;
+    --ink:#ffffff;--sub:#bdbdbd;--accent:#1e88e5;--secondary:#00bcd4;
+    --me:#ffca28;--line:#2c2c2c;--admin:#f44336;
     --notice:#b5651d;--group:#4a6fa5;--work:#3d8361;--research:#6d597a;--orange:#ea7317;
+  }
+  html.light{
+    /* ☀️ 라이트 모드 */
+    --bg:#ececec;--paper:#ffffff;--surface:#f5f5f5;--you:#f5f5f5;--hl:#fff8e0;
+    --ink:#212121;--sub:#757575;--accent:#1976d2;--secondary:#0097a7;
+    --me:#ffe45c;--line:#e0e0e0;--admin:#d32f2f;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;overflow:hidden}
@@ -37,10 +45,10 @@
   .wkbar{display:flex;align-items:center;gap:12px;margin:0 14px 10px;padding:14px 16px;border-radius:14px;background:#4a6fa5;color:#fff;cursor:pointer}
   .wkbar b{font-size:16px}.wkbar small{display:block;font-size:11.5px;color:#dde6f3}
   .mkrow{padding:2px 14px 10px;text-align:right}
-  .mkbtn{background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--accent);cursor:pointer}
+  .mkbtn{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--accent);cursor:pointer}
   .sechead{font-size:11px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;
     padding:16px 18px 8px;display:flex;justify-content:space-between;align-items:center}
-  .sechead button{background:#fff;border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer}
+  .sechead button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer}
   .room{display:flex;gap:12px;align-items:center;padding:12px 18px;cursor:pointer;border-bottom:1px solid rgba(220,213,204,.4)}
   .room:hover{background:#ece6dd}
   .av{width:48px;height:48px;border-radius:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px}
@@ -74,15 +82,15 @@
   .munread{align-self:flex-end;font-size:11px;color:#e0922f;font-weight:800;margin:0 4px;white-space:nowrap}
   .unread{background:var(--admin);color:#fff;font-size:11px;font-weight:800;min-width:19px;height:19px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0}
   .bubble{padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.42;word-break:break-word;max-width:260px}
-  .mrow.you .bubble{background:var(--you)}.mrow.me .bubble{background:var(--me)}
+  .mrow.you .bubble{background:var(--you);color:var(--ink)}.mrow.me .bubble{background:var(--accent);color:#fff}
   .bimg{max-width:200px;max-height:240px;border-radius:14px;cursor:pointer;display:block;object-fit:cover}
-  .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
+  .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
   .bfile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line);position:relative}
   .inputbar input[type=text],.inputbar #msgInput{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
-  .send{background:var(--me);border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer}
+  .send{background:var(--accent);border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer}
   .plus{background:none;border:1px solid var(--line);color:var(--sub);width:34px;height:34px;border-radius:50%;font-size:21px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
-  .attachmenu{position:absolute;bottom:52px;left:12px;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:30}
+  .attachmenu{position:absolute;bottom:52px;left:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:30}
   .attachmenu.on{display:flex}
   .ami{padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;border-radius:10px;white-space:nowrap}
   .ami:active,.ami:hover{background:var(--bg)}
@@ -91,16 +99,16 @@
   .readonly{padding:14px;background:#f3ede3;border-top:1px solid var(--line);text-align:center;font-size:12.5px;color:var(--sub);font-weight:600}
   .files,.cal,.wardbody{padding:13px}
   .sortrow,.calmode{display:flex;gap:8px;margin-bottom:12px}
-  .sb,.cm{flex:1;text-align:center;padding:8px;border-radius:10px;font-size:12.5px;font-weight:700;background:#fff;border:1px solid var(--line);color:var(--sub);cursor:pointer}
+  .sb,.cm{flex:1;text-align:center;padding:8px;border-radius:10px;font-size:12.5px;font-weight:700;background:var(--surface);border:1px solid var(--line);color:var(--sub);cursor:pointer}
   .sb.on{background:var(--accent);color:#fff;border-color:var(--accent)}.cm.on{background:var(--me);color:var(--ink);border-color:var(--me)}
   .upbtn,.addev{width:100%;border-radius:12px;padding:13px;text-align:center;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:13px}
-  .upbtn{border:2px dashed var(--line);background:#fff;color:var(--sub)}
+  .upbtn{border:2px dashed var(--line);background:var(--surface);color:var(--sub)}
   .addev{background:var(--accent);color:#fff;border:none}
   .calnav{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
   .calnav b{font-size:14px;color:var(--ink)}
   .narr{cursor:pointer;font-size:22px;color:var(--sub);padding:0 10px;user-select:none}
   .calret{cursor:pointer;background:var(--accent);color:#fff;font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px}
-  .file,.ev{display:flex;gap:11px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px}
+  .file,.ev{display:flex;gap:11px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:9px}
   .ficon{width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#fff}
   .finfo{flex:1;min-width:0}.finfo b{font-size:13.5px;display:block}.finfo .desc{font-size:12px;opacity:.75;margin-top:2px}
   .finfo small{font-size:11px;color:var(--sub);display:block;margin-top:3px}
@@ -114,12 +122,12 @@
   .evkept{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;background:#f3efe9;border-radius:8px;padding:6px 10px;margin-bottom:5px}
   .evkeptx{color:#c0392b;font-weight:800;cursor:pointer;padding:0 4px}
   .wday{display:flex;gap:10px;padding:9px 6px;border-bottom:1px solid rgba(220,213,204,.5)}
-  .wday.wtoday{background:#fff8e0;border-radius:11px}.wdate{width:42px;text-align:center;flex-shrink:0}
+  .wday.wtoday{background:var(--hl);border-radius:11px}.wdate{width:42px;text-align:center;flex-shrink:0}
   .wdate b{display:block;font-size:15px;font-weight:800}.wdate span{font-size:10.5px;color:var(--sub)}
   .wevents{flex:1;min-width:0}.noev{font-size:12px;color:#c4bcb2;padding:7px 2px}
-  .wardmemo{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;font-size:15px;line-height:1.7;min-height:120px}
+  .wardmemo{white-space:pre-wrap;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;font-size:15px;line-height:1.7;min-height:120px}
   .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical}
-  .card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;margin-bottom:13px}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:15px;padding:15px;margin-bottom:13px}
   .card h3{font-size:11.5px;color:var(--sub);font-weight:800;text-transform:uppercase;margin-bottom:11px}
   .arow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(220,213,204,.5)}
   .arow .av{width:36px;height:36px;border-radius:11px;font-size:13px}.arow .info{flex:1}.arow .info b{font-size:13.5px}
@@ -133,21 +141,21 @@
   .sheet{background:var(--paper);width:100%;max-width:430px;border-radius:18px;padding:20px;max-height:88vh;overflow-y:auto}
   .sheet h2{font-size:18px;font-weight:800;margin-bottom:4px}.sheet p{font-size:13px;color:var(--sub);margin-bottom:14px}
   .lbl{font-size:11.5px;font-weight:700;color:var(--sub);margin:13px 0 6px;display:block}
-  .field{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:#fff;outline:none}
+  .field{width:100%;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:var(--surface);outline:none}
   textarea.field{resize:vertical;min-height:60px}.twocol{display:flex;gap:9px}.twocol .field{flex:1}
-  .pinrow{display:flex;align-items:center;gap:6px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin-bottom:7px;background:#fff;font-size:14px}
+  .pinrow{display:flex;align-items:center;gap:6px;padding:9px 11px;border:1px solid var(--line);border-radius:11px;margin-bottom:7px;background:var(--surface);font-size:14px}
   .pinbtn{cursor:pointer;font-size:13px;font-weight:700;padding:4px 9px;border-radius:8px;background:var(--bg);color:var(--accent);user-select:none}
   .draghandle{cursor:grab;color:var(--sub);font-size:16px;padding:0 2px;user-select:none}
   .swatches{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px}
   .swatch{width:30px;height:30px;border-radius:8px;cursor:pointer;border:3px solid transparent;box-sizing:border-box}
   .swatch.sel{border-color:var(--ink)}
-  .sortbtn{border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:14px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer}
+  .sortbtn{border:1px solid var(--line);background:var(--surface);color:var(--sub);border-radius:14px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer}
   .sortbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
   .pulldown{position:relative}
-  .pulldown-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;cursor:pointer;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:#fff;outline:none}
+  .pulldown-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;cursor:pointer;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:var(--surface);outline:none}
   .pulldown-btn:focus{border-color:var(--accent)}
   .pulldown-arrow{color:var(--sub);font-size:11px;flex-shrink:0}
-  .pulldown-menu{position:fixed;background:#fff;border:1px solid var(--line);border-radius:11px;max-height:240px;overflow-y:auto;z-index:90;box-shadow:0 10px 28px rgba(35,31,28,.14)}
+  .pulldown-menu{position:fixed;background:var(--surface);border:1px solid var(--line);border-radius:11px;max-height:240px;overflow-y:auto;z-index:90;box-shadow:0 10px 28px rgba(35,31,28,.14)}
   .pulldown-menu.hidden{display:none}
   .pulldown-opt{padding:11px 14px;font-size:14.5px;cursor:pointer}
   .pulldown-opt:hover{background:var(--bg)}
@@ -157,8 +165,8 @@
   .pinrow.dragging{opacity:.45}
   @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
   #roomScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1)}
-  .pick{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;border:1px solid var(--line);margin-bottom:7px;background:#fff}
-  .pick.sel{border-color:var(--accent);background:#fff8e0}.pick .av{width:32px;height:32px;border-radius:10px;font-size:11px}
+  .pick{display:flex;align-items:center;gap:10px;padding:9px;border-radius:11px;cursor:pointer;border:1px solid var(--line);margin-bottom:7px;background:var(--surface)}
+  .pick.sel{border-color:var(--accent);background:var(--hl)}.pick .av{width:32px;height:32px;border-radius:10px;font-size:11px}
   .pick .pn{flex:1;font-size:13.5px;font-weight:600}.chk{font-weight:800;color:var(--accent)}
   .primary{width:100%;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px}
   .ghost{width:100%;background:var(--line);color:var(--ink);border:none;border-radius:13px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
@@ -399,6 +407,10 @@ if(!window.supabase||!window.supabase.createClient){
   throw new Error('Supabase library failed to load');
 }
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+/* ====== 화면 테마 (다크 기본 / 라이트 전환) — localStorage 저장 ====== */
+function applyTheme(){ document.documentElement.classList.toggle('light', localStorage.getItem('moim_theme')==='light'); }
+function toggleTheme(){ const light=!document.documentElement.classList.contains('light'); localStorage.setItem('moim_theme', light?'light':'dark'); document.documentElement.classList.toggle('light',light); if(typeof setTab!=='undefined'&&setTab==='me')renderSet(); }
+applyTheme();
 // 전체관리자(고정): 비밀번호 변경/재설정 불가 — 계정 보호
 const SUPERADMIN_EMAIL = "jsnoh@ajou.ac.kr";
 // 비밀번호 재설정 링크로 진입했는지 (해시는 supabase 가 비우기 전에 동기적으로 확인)
@@ -451,7 +463,12 @@ function renderMyInfo(){
   meColor=me.color||tcolor(me.member_type); meAvatarFile=null; meAvatarPreview=null; meAvatarUrl=me.avatar_url||null; meClearAvatar=false;
   const sup=(me.email||'').toLowerCase()===SUPERADMIN_EMAIL;
   const myPhone=me.phone||'';
+  const isLight=document.documentElement.classList.contains('light');
   document.getElementById('setBody').innerHTML=`
+    <div class="my-field" style="flex-direction:row;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <span class="lbl" style="margin:0">${isLight?'☀️ 화면 테마':'🌙 화면 테마'}</span>
+      <button class="lk" style="background:var(--bg);padding:8px 16px;border-radius:20px;font-weight:700;color:var(--accent)" onclick="toggleTheme()">${isLight?'라이트 모드':'다크 모드'} · 전환</button>
+    </div>
     <div style="display:flex;flex-direction:column;align-items:center;gap:9px;margin-bottom:14px">
       <div id="meAvPrev" class="av" style="width:84px;height:84px;border-radius:26px;font-size:24px"></div>
       <div style="display:flex;gap:8px">
@@ -690,7 +707,7 @@ function contactLines(p){
 }
 function memberSearchRow(p){
   const st=personAvatarStyle(p);
-  return `<div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:11px;margin-bottom:8px">
+  return `<div style="display:flex;align-items:center;gap:11px;background:var(--surface);border-radius:12px;padding:11px;margin-bottom:8px">
     <div class="av" style="width:42px;height:42px;border-radius:13px;font-size:13px;cursor:${p.avatar_url?'pointer':'default'};${st}" ${p.avatar_url?`onclick="openImageView('${esc(p.avatar_url)}')"`:''}>${p.avatar_url?'':ini(p.name)}</div>
     <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(p.name||'?')}</div>
       <div style="color:var(--sub);font-size:11.5px">${esc(p.member_type||'')}</div>
@@ -1146,7 +1163,7 @@ function adminAvatar(p){
   return `<div class="av" style="width:40px;height:40px;border-radius:12px;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:${p.avatar_url?'pointer':'default'};${st}" ${p.avatar_url?`onclick="openImageView('${esc(p.avatar_url)}')"`:''}>${p.avatar_url?'':esc((p.name||'?').slice(0,3))}</div>`;
 }
 function adminRow(p,right,sub){
-  return `<div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:12px;margin-bottom:9px">
+  return `<div style="display:flex;align-items:center;gap:11px;background:var(--surface);border-radius:12px;padding:12px;margin-bottom:9px">
     ${adminAvatar(p)}
     <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(p.name||'?')}</div>
     <div style="color:var(--sub);font-size:11.5px">${esc(sub||p.member_type||'')}</div>
@@ -1200,7 +1217,7 @@ function renderRoomsAdmin(){
   if(!adminRooms.length) return `<p style="color:var(--sub);font-size:13px">방이 없습니다.</p>`;
   let h=`<p style="color:var(--sub);font-size:12px;margin-bottom:10px">방을 눌러 구성원을 편집하거나 삭제하세요.</p>`;
   return h+adminRooms.map(r=>{const c=CAT[r.category]||CAT.custom;
-    return `<div onclick="adminManageRoom('${r.id}')" style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer">
+    return `<div onclick="adminManageRoom('${r.id}')" style="display:flex;align-items:center;gap:11px;background:var(--surface);border-radius:12px;padding:12px;margin-bottom:9px;cursor:pointer">
       <div class="av" style="width:40px;height:40px;border-radius:12px;color:#fff;display:flex;align-items:center;justify-content:center;${roomAvatarStyle(r)}">${r.icon_url?'':esc(r.name)}</div>
       <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(r.name)}</div>
       <div style="color:var(--sub);font-size:11.5px">${c.l} · ${esc(r.post_policy)}</div></div><span style="color:var(--sub)">›</span></div>`;

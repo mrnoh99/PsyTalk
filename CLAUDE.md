@@ -25,7 +25,7 @@
 - **user** (회원): 소속 방에서 정책에 따라 읽기/쓰기
 
 ### 공지 방 작성 정책 (`post_policy`)
-- `restricted`: superadmin + admin + **방별 지정 작성자(writers)**만 작성 (예: 과 전체공지)
+- `restricted`: superadmin + admin 만 작성 (예: 과 전체공지)
 - `members`: 방 참석 회원 누구나 작성
 
 ### 기본 방 2개 (`sort_order` 1~2) — 항상 상단 고정
@@ -164,7 +164,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 - **각 모임방 ⚙️ 설정**(콘솔과 별개): 방 생성자(비관리자 포함)가 **구성원 초대·제거 + 자신이 만든 방 삭제** 가능 (`room_manage.sql`).
 
 ## 아직 앱에 없는 것 (우선순위 참고)
-멀티 방 게시 · `room_writers`(방 작성자 지정) 연동
+멀티 방 게시 · `room_writers` 연동(예정)
 (안 읽음 배지 ✅ · 메시지별 안읽은 수 ✅ · 캘린더 이동/복귀 ✅)
 
 ## 푸시 알림 (OneSignal)

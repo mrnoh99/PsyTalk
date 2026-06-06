@@ -10,7 +10,10 @@ struct CalendarView: View {
     // 선택한 날짜 — 기본은 오늘. 날짜를 누르면 그날로 포커스가 옮겨가고 일정 추가·아래 목록이 이 날짜를 따른다.
     @State private var selected: Date = CalDate.today()
     @State private var editing: CalendarEvent?
+    @State private var viewing: CalendarEvent?
     @State private var creating = false
+
+    private var compactEvents: Bool { opensWeekCalendar(room) }
 
     init(vm: MoimViewModel, room: Room, canPost: Bool) {
         self.vm = vm; self.room = room; self.canPost = canPost
@@ -18,31 +21,39 @@ struct CalendarView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                HStack(spacing: 7) {
-                    modeButton("금일", "day"); modeButton("주간", "week"); modeButton("월간", "month")
-                }
-                .padding(.bottom, 13)
-
-                if canPost {
-                    Button { creating = true } label: {
-                        Text("＋ 일정 추가").font(.system(size: 14, weight: .bold)).foregroundColor(.white)
-                            .frame(maxWidth: .infinity).frame(height: 48)
-                            .background(Moim.accent).clipShape(RoundedRectangle(cornerRadius: 12))
+        ZStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: 7) {
+                        modeButton("금일", "day"); modeButton("주간", "week"); modeButton("월간", "month")
                     }
-                    .padding(.bottom, 14)
-                }
+                    .padding(.bottom, 13)
 
-                switch mode {
-                case "month": monthView
-                case "week": weekView
-                default: dayView
+                    if canPost {
+                        Button { creating = true } label: {
+                            Text("＋ 일정 추가").font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                                .frame(maxWidth: .infinity).frame(height: 48)
+                                .background(Moim.accent).clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .padding(.bottom, 14)
+                    }
+
+                    switch mode {
+                    case "month": monthView
+                    case "week": weekView
+                    default: dayView
+                    }
                 }
+                .padding(13)
             }
-            .padding(13)
+            .background(Moim.paper)
+
+            if let ev = viewing {
+                EventDetailView(event: ev, vm: vm,
+                                onBack: { viewing = nil },
+                                onEdit: { viewing = nil; editing = $0 })
+            }
         }
-        .background(Moim.paper)
         .sheet(isPresented: $creating) {
             EventEditView(title: "일정 추가", initial: nil, allowAttachment: true, defaultDate: selected) { form in
                 vm.createEvent(title: form.title, startAt: form.startAt, place: form.place, link: form.link,
@@ -109,7 +120,7 @@ struct CalendarView: View {
             Text(CalDate.sameDay(selected, CalDate.today()) ? "오늘 · \(CalDate.dayLabel(selected))" : "\(CalDate.dayLabel(selected)) 일정")
                 .font(.system(size: 11, weight: .heavy)).foregroundColor(Moim.sub).padding(.bottom, 10)
             if dayEvents.isEmpty { noEvents } else {
-                ForEach(dayEvents) { EventCard(event: $0, vm: vm, onEdit: { editing = $0 }) }
+                ForEach(dayEvents) { EventCard(event: $0, vm: vm, compact: compactEvents, onView: { viewing = $0 }, onEdit: { editing = $0 }) }
             }
         }
     }
@@ -181,7 +192,7 @@ struct CalendarView: View {
                         if dayEvents.isEmpty {
                             Text("— 일정 없음").font(.system(size: 12)).foregroundColor(Color(hex: 0xC4BCB2)).padding(.vertical, 7)
                         } else {
-                            ForEach(dayEvents) { EventCard(event: $0, vm: vm, onEdit: { editing = $0 }) }
+                            ForEach(dayEvents) { EventCard(event: $0, vm: vm, compact: compactEvents, onView: { viewing = $0 }, onEdit: { editing = $0 }) }
                         }
                     }
                     Spacer()
@@ -212,7 +223,7 @@ struct CalendarView: View {
                 onNext: { selected = CalDate.cal.date(byAdding: .day, value: 1, to: selected)! }
             )
             if dayEvents.isEmpty { noEvents } else {
-                ForEach(dayEvents) { EventCard(event: $0, vm: vm, onEdit: { editing = $0 }) }
+                ForEach(dayEvents) { EventCard(event: $0, vm: vm, compact: compactEvents, onView: { viewing = $0 }, onEdit: { editing = $0 }) }
             }
         }
     }
@@ -248,6 +259,49 @@ struct CalendarView: View {
 struct EventCard: View {
     let event: CalendarEvent
     @ObservedObject var vm: MoimViewModel
+    var compact: Bool = false
+    let onView: (CalendarEvent) -> Void
+    let onEdit: (CalendarEvent) -> Void
+
+    var body: some View {
+        if compact {
+            HStack(alignment: .top, spacing: 11) {
+                RoundedRectangle(cornerRadius: 4).fill(catColor("notice")).frame(width: 4, height: 56)
+                Text(eventPreviewText(event, vm: vm))
+                    .font(.system(size: 12.5))
+                    .foregroundColor(Moim.ink)
+                    .lineSpacing(3)
+                    .lineLimit(4)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(12).background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.bottom, 9)
+            .contentShape(Rectangle())
+            .onTapGesture { onView(event) }
+        } else {
+            EventCardBody(event: event, vm: vm, showEdit: true, onEdit: onEdit)
+        }
+    }
+}
+
+private func eventPreviewText(_ event: CalendarEvent, vm: MoimViewModel) -> String {
+    var lines: [String] = [event.title, "📅 \(CalDate.timeLabel(event.startAt))"]
+    if let p = event.place, !p.isEmpty { lines[1] += " · 📍 \(p)" }
+    lines.append("👤 발표자 \((event.presenter?.isEmpty == false) ? event.presenter! : vm.name(of: event.ownerId))")
+    if let s = event.scope, !s.isEmpty { lines.append("참석 \(s)") }
+    if let d = event.description, !d.isEmpty { lines.append(d) }
+    let atts = event.attachmentList
+    if !atts.isEmpty {
+        let extra = atts.count > 1 ? " 외 \(atts.count - 1)건" : ""
+        lines.append("📎 \(atts[0].name)\(extra)")
+    }
+    return lines.joined(separator: "\n")
+}
+
+struct EventCardBody: View {
+    let event: CalendarEvent
+    @ObservedObject var vm: MoimViewModel
+    var showEdit: Bool
     let onEdit: (CalendarEvent) -> Void
 
     var body: some View {
@@ -280,7 +334,7 @@ struct EventCard: View {
                                 .background(Color(hex: 0xEEF2F8)).clipShape(Capsule())
                         }
                     }
-                    if vm.canEditEvent(event) {
+                    if showEdit && vm.canEditEvent(event) {
                         Text("✏️ 수정").font(.system(size: 11.5, weight: .bold)).foregroundColor(Moim.sub)
                             .padding(.horizontal, 10).padding(.vertical, 4)
                             .background(Moim.bg).clipShape(Capsule())
@@ -293,5 +347,41 @@ struct EventCard: View {
         }
         .padding(12).background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 12))
         .padding(.bottom, 9)
+    }
+}
+
+struct EventDetailView: View {
+    let event: CalendarEvent
+    @ObservedObject var vm: MoimViewModel
+    let onBack: () -> Void
+    let onEdit: (CalendarEvent) -> Void
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button(action: onBack) { Text("‹").font(.system(size: 25)) }
+                Text("일정 상세").font(.system(size: 16, weight: .bold))
+                Spacer()
+            }
+            .padding(.horizontal, 12).padding(.vertical, 10)
+            .background(Moim.paper)
+            Divider().background(Moim.line)
+
+            ScrollView {
+                EventCardBody(event: event, vm: vm, showEdit: false, onEdit: onEdit)
+                    .padding(.horizontal, 13).padding(.top, 8)
+            }
+
+            if vm.canEditEvent(event) {
+                Divider().background(Moim.line)
+                Button { onEdit(event) } label: {
+                    Text("✏️ 수정").font(.system(size: 15, weight: .bold)).foregroundColor(.white)
+                        .frame(maxWidth: .infinity).frame(height: 48)
+                        .background(Moim.accent).clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .padding(.horizontal, 16).padding(.vertical, 12)
+            }
+        }
+        .background(Moim.paper.ignoresSafeArea())
     }
 }

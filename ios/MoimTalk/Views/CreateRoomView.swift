@@ -1,5 +1,4 @@
 import SwiftUI
-import PhotosUI
 
 // 모임방 만들기 (카톡처럼 누구나) — 이름 + 방표식(색상·사진) + 참여 회원 선택
 struct CreateRoomView: View {
@@ -9,7 +8,6 @@ struct CreateRoomView: View {
     @State private var name = ""
     @State private var selected: Set<String> = []
     @State private var color = ROOM_COLORS[1]
-    @State private var photoItem: PhotosPickerItem?
     @State private var iconData: Data?
 
     var body: some View {
@@ -29,9 +27,9 @@ struct CreateRoomView: View {
                     .padding(.bottom, 14)
 
                 RoomAppearanceEditor(
-                    name: name, color: $color, photoItem: $photoItem,
-                    previewData: iconData, existingIconUrl: nil,
-                    onClear: { photoItem = nil; iconData = nil }
+                    name: name, color: $color,
+                    previewData: $iconData, existingIconUrl: nil,
+                    onClear: { iconData = nil }
                 )
                 .padding(.bottom, 14)
 
@@ -83,8 +81,5 @@ struct CreateRoomView: View {
             .padding(16)
         }
         .background(Moim.paper.ignoresSafeArea())
-        .onChange(of: photoItem) { _ in
-            Task { if let item = photoItem, let data = try? await item.loadTransferable(type: Data.self) { iconData = data } }
-        }
     }
 }

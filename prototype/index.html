@@ -218,7 +218,7 @@
         <div class="inwrap"><input id="msgInput" placeholder="메시지 입력" autocomplete="off"
           onkeydown="onMsgKeydown(event)"></div>
         <button class="send" onclick="sendMsg()">➤</button></div>
-      <div class="readonly" id="readonlyBar">🔒 공지 전용 방 · 관리자와 지정 작성자만 글을 쓸 수 있어요</div>
+      <div class="readonly" id="readonlyBar">🔒 공지 전용 방 · 관리자만 글을 쓸 수 있어요</div>
     </div>
     <div class="pane" id="pane-files"><div class="files" id="fileList"></div></div>
     <div class="pane" id="pane-cal"><div class="cal" id="calBody"></div></div>
@@ -329,7 +329,7 @@ const rooms=[
 let active=null,currentUser='u0',xpostSel=new Set(),calMode='month';
 const isAdmin=()=>['superadmin','admin'].includes((pool.find(p=>p.id===currentUser)||{}).role);
 const isSuper=()=>(pool.find(p=>p.id===currentUser)||{}).role==='superadmin';
-// 작성 정책: restricted=관리자+지정작성자 / members=방 회원 누구나
+// 작성 정책: restricted=관리자 / members=방 회원 누구나
 function canPost(r){
   if(r.post==='restricted')return isAdmin()||(r.writers||[]).includes(currentUser);
   return isAdmin()||r.members.includes(currentUser);

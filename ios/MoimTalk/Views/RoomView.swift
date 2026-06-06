@@ -12,7 +12,6 @@ struct RoomView: View {
     @State private var showRename = false
     @State private var renameText = ""
     @State private var editColor = ROOM_COLORS[1]
-    @State private var editPhotoItem: PhotosPickerItem?
     @State private var editIconData: Data?
     @State private var editIconCleared = false
     @State private var showSettings = false
@@ -79,7 +78,7 @@ struct RoomView: View {
                 Button("이름변경") {
                     renameText = liveRoom.name
                     editColor = liveRoom.color ?? ROOM_COLORS[1]
-                    editPhotoItem = nil; editIconData = nil; editIconCleared = false
+                    editIconData = nil; editIconCleared = false
                     showRename = true
                 }
                 .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
@@ -110,10 +109,11 @@ struct RoomView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     TextField("방 이름", text: $renameText).textFieldStyle(.roundedBorder)
                     RoomAppearanceEditor(
-                        name: renameText, color: $editColor, photoItem: $editPhotoItem,
-                        previewData: editIconData,
+                        name: renameText, color: $editColor,
+                        previewData: $editIconData,
                         existingIconUrl: editIconCleared ? nil : liveRoom.iconUrl,
-                        onClear: { editPhotoItem = nil; editIconData = nil; editIconCleared = true }
+                        onClear: { editIconData = nil; editIconCleared = true },
+                        onPhotoConfirmed: { editIconCleared = false }
                     )
                     Spacer()
                 }
@@ -128,9 +128,6 @@ struct RoomView: View {
                             showRename = false
                         }
                     }
-                }
-                .onChange(of: editPhotoItem) { _ in
-                    Task { if let item = editPhotoItem, let data = try? await item.loadTransferable(type: Data.self) { editIconData = data; editIconCleared = false } }
                 }
             }
         }
@@ -312,7 +309,7 @@ struct ChatView: View {
                 }
             }
         } else {
-            Text("🔒 공지 전용 방 · 관리자와 지정 작성자만 글을 쓸 수 있어요")
+            Text("🔒 공지 전용 방 · 관리자만 글을 쓸 수 있어요")
                 .font(.system(size: 12.5, weight: .semibold)).foregroundColor(Moim.sub)
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity).padding(14)

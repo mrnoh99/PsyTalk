@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.room_members (
   PRIMARY KEY (room_id, user_id)
 );
 
--- 공지방 지정 작성자 (restricted 방)
+-- 공지방 추가 작성자 (restricted 방, room_writers — 앱 미연동)
 CREATE TABLE IF NOT EXISTS public.room_writers (
   room_id uuid NOT NULL REFERENCES public.rooms(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,

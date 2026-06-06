@@ -47,6 +47,7 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -523,7 +524,7 @@ private fun MemberManageRow(p: Profile, vm: MoimViewModel) {
             Text("${p.memberType} · ${roleLabel(p.role)}", fontSize = 11.5.sp, color = MoimSub)
             MemberContactLines(p)
             if (!p.intro.isNullOrBlank()) {
-                Text(p.intro!!, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(p.intro, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         val isAdmin = p.role == "admin"
@@ -591,13 +592,6 @@ private fun MemberWithdrawnRow(p: Profile, vm: MoimViewModel) {
             modifier = Modifier.clip(RoundedCornerShape(20.dp)).clickable { confirm = true }.background(catColor("work")).padding(horizontal = 14.dp, vertical = 7.dp)
         )
     }
-}
-
-@Composable
-private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    "superadmin" -> "전체관리자"
-    "admin" -> "관리자"
-    else -> "회원"
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -803,8 +797,9 @@ fun RoomAppearancePicker(
     name: String,
     color: String,
     onColor: (String) -> Unit,
-    iconUri: Uri?,
-    existingIconUrl: String?,
+    iconBytes: ByteArray? = null,
+    iconUri: Uri? = null,
+    existingIconUrl: String? = null,
     onPickPhoto: () -> Unit,
     onClearPhoto: () -> Unit,
 ) {
@@ -816,7 +811,7 @@ fun RoomAppearancePicker(
     Spacer(Modifier.height(6.dp))
     Row(verticalAlignment = Alignment.CenterVertically) {
         val shape = RoundedCornerShape(12.dp)
-        val img: Any? = iconUri ?: existingIconUrl
+        val img: Any? = iconBytes ?: iconUri ?: existingIconUrl
         if (img != null) {
             AsyncImage(model = img, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(44.dp).clip(shape))
         } else {
@@ -858,10 +853,11 @@ fun RoomAvatar(room: Room, sizeDp: Int, cornerDp: Int, fontSp: Double) {
 @Composable
 fun PersonAvatar(profile: Profile?, sizeDp: Int, cornerDp: Int, fontSp: Double) {
     val shape = RoundedCornerShape(cornerDp.dp)
-    if (!profile?.avatarUrl.isNullOrBlank()) {
+    val avatarUrl = profile?.avatarUrl
+    if (profile != null && !avatarUrl.isNullOrBlank()) {
         AsyncImage(
-            model = profile?.avatarUrl,
-            contentDescription = profile?.name,
+            model = avatarUrl,
+            contentDescription = profile.name,
             contentScale = ContentScale.Crop,
             modifier = Modifier.size(sizeDp.dp).clip(shape)
         )
@@ -913,7 +909,7 @@ fun RoomRow(
             val desc = msgPreview(lastMsg).ifBlank {
                 when {
                     isDM -> other?.memberType.orEmpty()
-                    room.postPolicy == "restricted" -> "공지 · 관리자/지정작성자"
+                    room.postPolicy == "restricted" -> "공지 · 관리자"
                     else -> ""
                 }
             }
@@ -968,8 +964,9 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     var editIconBytes by remember { mutableStateOf<ByteArray?>(null) }
     var editIconName by remember { mutableStateOf<String?>(null) }
     var editIconCleared by remember { mutableStateOf(false) }
+    var pendingIconAdjustUri by remember { mutableStateOf<Uri?>(null) }
     val iconPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) { editIconUri = uri; editIconCleared = false; readUri(context, uri)?.let { (n, b) -> editIconName = n; editIconBytes = b } }
+        if (uri != null) pendingIconAdjustUri = uri
     }
     var showSettings by remember { mutableStateOf(false) }
     var showLeave by remember { mutableStateOf(false) }
@@ -1025,6 +1022,20 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
         )
     }
 
+    pendingIconAdjustUri?.let { uri ->
+        AvatarAdjustDialog(
+            sourceUri = uri,
+            onDismiss = { pendingIconAdjustUri = null },
+            onConfirm = { bytes, name ->
+                editIconBytes = bytes
+                editIconName = name
+                editIconUri = null
+                editIconCleared = false
+                pendingIconAdjustUri = null
+            },
+        )
+    }
+
     if (showRename) {
         AlertDialog(
             onDismissRequest = { showRename = false },
@@ -1041,6 +1052,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                     Spacer(Modifier.height(14.dp))
                     RoomAppearancePicker(
                         name = renameText, color = editColor, onColor = { editColor = it },
+                        iconBytes = editIconBytes,
                         iconUri = editIconUri,
                         existingIconUrl = if (editIconCleared) null else liveRoom.iconUrl,
                         onPickPhoto = { iconPicker.launch("image/*") },
@@ -1262,7 +1274,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "🔒 공지 전용 방 · 관리자와 지정 작성자만 글을 쓸 수 있어요",
+                            "🔒 공지 전용 방 · 관리자만 글을 쓸 수 있어요",
                             fontSize = 12.5.sp,
                             color = MoimSub,
                             fontWeight = FontWeight.SemiBold,
@@ -1703,7 +1715,9 @@ private fun MyInfoTab(vm: MoimViewModel) {
                 onValueChange = {},
                 readOnly = true,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = memberTypeExpanded) },
-                modifier = Modifier.menuAnchor().fillMaxWidth(),
+                modifier = Modifier
+                    .menuAnchor(type = MenuAnchorType.PrimaryNotEditable, enabled = true)
+                    .fillMaxWidth(),
             )
             ExposedDropdownMenu(
                 expanded = memberTypeExpanded,
@@ -1971,7 +1985,7 @@ private fun MemberSearchRow(p: Profile, onMessage: () -> Unit) {
             Text(p.memberType, fontSize = 11.5.sp, color = MoimSub)
             MemberContactLines(p)
             if (!p.intro.isNullOrBlank()) {
-                Text(p.intro!!, fontSize = 11.5.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(p.intro, fontSize = 11.5.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
         Spacer(Modifier.width(8.dp))
@@ -2224,11 +2238,24 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
     var iconUri by remember { mutableStateOf<Uri?>(null) }
     var iconBytes by remember { mutableStateOf<ByteArray?>(null) }
     var iconName by remember { mutableStateOf<String?>(null) }
-    val context = LocalContext.current
+    var pendingIconAdjustUri by remember { mutableStateOf<Uri?>(null) }
     val iconPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) { iconUri = uri; readUri(context, uri)?.let { (n, b) -> iconName = n; iconBytes = b } }
+        if (uri != null) pendingIconAdjustUri = uri
     }
     val people = vm.otherProfiles()
+
+    pendingIconAdjustUri?.let { uri ->
+        AvatarAdjustDialog(
+            sourceUri = uri,
+            onDismiss = { pendingIconAdjustUri = null },
+            onConfirm = { bytes, name ->
+                iconBytes = bytes
+                iconName = name
+                iconUri = null
+                pendingIconAdjustUri = null
+            },
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -2259,7 +2286,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
             Spacer(Modifier.height(14.dp))
             RoomAppearancePicker(
                 name = name, color = color, onColor = { color = it },
-                iconUri = iconUri, existingIconUrl = null,
+                iconBytes = iconBytes, iconUri = iconUri, existingIconUrl = null,
                 onPickPhoto = { iconPicker.launch("image/*") },
                 onClearPhoto = { iconUri = null; iconBytes = null; iconName = null }
             )

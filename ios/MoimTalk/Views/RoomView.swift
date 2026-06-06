@@ -566,36 +566,26 @@ struct NoticePostCard: View {
         let u = attachUrl.flatMap { URL(string: $0) }
         Group {
             if let u {
-                AsyncImage(url: u) { phase in
-                    if let img = phase.image { img.resizable().scaledToFit() }
-                    else if phase.error != nil { Color.gray.opacity(0.15) }
-                    else { ProgressView() }
-                }
-                .frame(maxWidth: .infinity)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .contentShape(RoundedRectangle(cornerRadius: 12))
-                .onTapGesture {
-                    noticeDownloadAttachment(from: u.absoluteString, fileName: message.attachmentName ?? "photo.jpg")
+                Link(destination: u) {
+                    AsyncImage(url: u) { phase in
+                        if let img = phase.image { img.resizable().scaledToFit() }
+                        else if phase.error != nil { Color.gray.opacity(0.15) }
+                        else { ProgressView() }
+                    }
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             } else {
                 ProgressView().frame(maxWidth: .infinity).padding(.vertical, 24)
             }
         }
-        Text("탭하여 다운로드")
-            .font(.system(size: 11))
-            .foregroundColor(Moim.sub)
-            .frame(maxWidth: .infinity)
-            .padding(.top, 6)
     }
 
     @ViewBuilder private var noticeFileBlock: some View {
         let chip = HStack(spacing: 8) {
             Text("📎").font(.system(size: 16))
-            VStack(alignment: .leading, spacing: 2) {
-                Text(message.attachmentName ?? "파일")
-                    .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink).lineLimit(2)
-                Text("탭하여 다운로드").font(.system(size: 11)).foregroundColor(Moim.sub)
-            }
+            Text(message.attachmentName ?? "파일")
+                .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink).lineLimit(2)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 12).padding(.vertical, 10)
@@ -603,28 +593,7 @@ struct NoticePostCard: View {
         .overlay(RoundedRectangle(cornerRadius: 10).stroke(Moim.line, lineWidth: 1))
         .clipShape(RoundedRectangle(cornerRadius: 10))
         if let u = attachUrl.flatMap({ URL(string: $0) }) {
-            chip.onTapGesture { noticeDownloadAttachment(from: u.absoluteString, fileName: message.attachmentName ?? "file") }
+            Link(destination: u) { chip }
         } else { chip }
-    }
-}
-
-private func noticeDownloadAttachment(from urlString: String, fileName: String) {
-    guard let url = URL(string: urlString) else { return }
-    Task {
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let dest = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
-            try data.write(to: dest)
-            await MainActor.run {
-                guard let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first,
-                      let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return }
-                let vc = UIActivityViewController(activityItems: [dest], applicationActivities: nil)
-                if let pop = vc.popoverPresentationController {
-                    pop.sourceView = root.view
-                    pop.sourceRect = CGRect(x: root.view.bounds.midX, y: root.view.bounds.midY, width: 0, height: 0)
-                }
-                root.present(vc, animated: true)
-            }
-        } catch {}
     }
 }

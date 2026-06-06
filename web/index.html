@@ -1653,31 +1653,11 @@ function mergeNoticeMsgs(msgs){
   }
   return out;
 }
-async function downloadAttachment(url,name){
-  try{
-    const r=await fetch(url);
-    if(!r.ok)throw new Error('fetch');
-    const blob=await r.blob();
-    const a=document.createElement('a');
-    a.href=URL.createObjectURL(blob);
-    a.download=name||'download';
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(a.href);
-  }catch(_){
-    window.open(url,'_blank');
-  }
-}
 function noticeAttachmentHtml(m){
-  if(m.type==='image'&&m.attachment_url){
-    const nm=esc(m.attachment_name||'photo.jpg');
-    const uEnc=encodeURIComponent(m.attachment_url);
-    return `<div class="notice-media"><img class="bimg" src="${esc(m.attachment_url)}" onclick="downloadAttachment(decodeURIComponent('${uEnc}'),'${nm.replace(/'/g,"\\'")}')" alt="사진" title="클릭하여 다운로드"><p class="notice-dl-hint">클릭하여 다운로드</p></div>`;
-  }
-  if(m.type==='file'&&m.attachment_url){
-    const nm=esc(m.attachment_name||'file');
-    const uEnc=encodeURIComponent(m.attachment_url);
-    return `<div class="notice-media"><a class="bfile" href="#" onclick="event.preventDefault();downloadAttachment(decodeURIComponent('${uEnc}'),'${nm.replace(/'/g,"\\'")}');return false;">📎 <span>${esc(m.attachment_name||'파일')}</span></a><p class="notice-dl-hint">클릭하여 다운로드</p></div>`;
-  }
+  if(m.type==='image'&&m.attachment_url)
+    return `<div class="notice-media"><img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진"></div>`;
+  if(m.type==='file'&&m.attachment_url)
+    return `<div class="notice-media"><a class="bfile" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a></div>`;
   return '';
 }
 function noticePostHtml(m,who,mine){

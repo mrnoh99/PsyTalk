@@ -1,10 +1,7 @@
 package com.example.moimtalk.ui
 
-import android.app.DownloadManager
 import android.content.Context
 import android.net.Uri
-import android.os.Environment
-import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -1460,21 +1457,6 @@ private fun DateDivider(text: String) {
 
 private val NOTICE_ACCENT = Color(0xFFB5651D)
 
-private fun downloadAttachment(context: Context, url: String, fileName: String) {
-    runCatching {
-        val dm = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val req = DownloadManager.Request(Uri.parse(url))
-            .setTitle(fileName)
-            .setDescription("다운로드 중…")
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            .setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName)
-        dm.enqueue(req)
-        Toast.makeText(context, "다운로드 시작", Toast.LENGTH_SHORT).show()
-    }.onFailure {
-        Toast.makeText(context, "다운로드 실패", Toast.LENGTH_SHORT).show()
-    }
-}
-
 @Composable
 private fun NoticePostCard(
     m: Message,
@@ -1484,7 +1466,7 @@ private fun NoticePostCard(
     attachUrl: (String) -> String?,
     onDelete: () -> Unit,
 ) {
-    val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val path = m.attachmentUrl
     val resolved = path?.let { p -> attachUrl(p) ?: if (p.startsWith("http")) p else null }
     val caption = m.content?.trim()?.takeIf { it.isNotEmpty() }
@@ -1545,17 +1527,8 @@ private fun NoticePostCard(
                             .heightIn(max = 320.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(MoimBg, RoundedCornerShape(12.dp))
-                            .clickable {
-                                resolved?.let { downloadAttachment(context, it, m.attachmentName ?: "photo.jpg") }
-                            },
+                            .clickable { resolved?.let { uriHandler.openUri(it) } },
                         contentScale = ContentScale.Fit,
-                    )
-                    Text(
-                        "탭하여 다운로드",
-                        fontSize = 11.sp,
-                        color = MoimSub,
-                        modifier = Modifier.padding(top = 6.dp).fillMaxWidth(),
-                        textAlign = TextAlign.Center,
                     )
                 }
                 m.type == "file" && path != null -> {
@@ -1566,25 +1539,21 @@ private fun NoticePostCard(
                             .clip(RoundedCornerShape(10.dp))
                             .background(MoimPaper)
                             .border(1.dp, MoimLine, RoundedCornerShape(10.dp))
-                            .clickable {
-                                resolved?.let { downloadAttachment(context, it, m.attachmentName ?: "file") }
-                            }
+                            .clickable { resolved?.let { uriHandler.openUri(it) } }
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text("📎", fontSize = 16.sp)
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                m.attachmentName ?: "파일",
-                                color = MoimInk,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
-                            )
-                            Text("탭하여 다운로드", fontSize = 11.sp, color = MoimSub)
-                        }
+                        Text(
+                            m.attachmentName ?: "파일",
+                            color = MoimInk,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
                     }
                 }
                 caption == null -> Text(

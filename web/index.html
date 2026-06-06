@@ -350,6 +350,11 @@
     <button class="ghost" onclick="closeModal('umodal')">취소</button>
   </div></div>
 
+  <!-- 사진 원본 보기 (탭하면 닫힘) -->
+  <div id="imgViewer" onclick="closeImageView()" style="position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:80;padding:18px">
+    <img id="imgViewerImg" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px" alt="사진">
+  </div>
+
 </div>
 
 <script>
@@ -429,8 +434,8 @@ function renderMyInfo(){
 function renderMyAvatarPreview(){
   const el=document.getElementById('meAvPrev'); if(!el)return;
   const url=meAvatarPreview||(meClearAvatar?null:meAvatarUrl);
-  if(url){el.style.background='';el.style.backgroundImage=`url('${url}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';}
-  else{el.style.backgroundImage='';el.style.background=meColor;el.textContent=ini(me.name);}
+  if(url){el.style.background='';el.style.backgroundImage=`url('${url}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';el.textContent='';el.style.cursor='pointer';el.title='탭하면 원본 보기';el.onclick=()=>openImageView(url);}
+  else{el.style.backgroundImage='';el.style.background=meColor;el.textContent=ini(me.name);el.style.cursor='';el.onclick=null;}
   const clr=document.getElementById('meAvClear'); if(clr)clr.style.display=(meAvatarPreview||(!meClearAvatar&&meAvatarUrl))?'':'none';
 }
 function pickMyColor(c){meColor=c;renderSwatches('meColors',meColor,'pickMyColor');renderMyAvatarPreview();}
@@ -483,7 +488,7 @@ function renderMemberSearch(){
 function memberSearchRow(p){
   const st=personAvatarStyle(p);
   return `<div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:11px;margin-bottom:8px">
-    <div class="av" style="width:42px;height:42px;border-radius:13px;font-size:13px;${st}">${p.avatar_url?'':ini(p.name)}</div>
+    <div class="av" style="width:42px;height:42px;border-radius:13px;font-size:13px;cursor:${p.avatar_url?'pointer':'default'};${st}" ${p.avatar_url?`onclick="openImageView('${esc(p.avatar_url)}')"`:''}>${p.avatar_url?'':ini(p.name)}</div>
     <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(p.name||'?')}</div>
       <div style="color:var(--sub);font-size:11.5px">${esc(p.member_type||'')}</div>
       ${p.intro?`<div style="color:var(--sub);font-size:11.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.intro)}</div>`:''}</div>
@@ -651,6 +656,9 @@ function roomAvatarStyle(r){
     ? `background-image:url('${esc(r.icon_url)}');background-size:cover;background-position:center`
     : `background:${roomColorOf(r)};font-size:9px;line-height:1.05;text-align:center;padding:2px;word-break:break-word`;
 }
+// 사진 원본(큰 사진) 보기 오버레이
+function openImageView(url){ if(!url)return; document.getElementById('imgViewerImg').src=url; document.getElementById('imgViewer').style.display='flex'; }
+function closeImageView(){ const v=document.getElementById('imgViewer'); v.style.display='none'; document.getElementById('imgViewerImg').src=''; }
 // 사람(프로필) 아바타 스타일: 사진 > 색상 > 직군색
 function personAvatarStyle(p){
   return p&&p.avatar_url
@@ -925,7 +933,7 @@ function adminAvatar(p){
   const st=p.avatar_url
     ? `background-image:url('${esc(p.avatar_url)}');background-size:cover;background-position:center`
     : `background:${p.color||'var(--accent)'}`;
-  return `<div class="av" style="width:40px;height:40px;border-radius:12px;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;${st}">${p.avatar_url?'':esc((p.name||'?').slice(0,3))}</div>`;
+  return `<div class="av" style="width:40px;height:40px;border-radius:12px;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:${p.avatar_url?'pointer':'default'};${st}" ${p.avatar_url?`onclick="openImageView('${esc(p.avatar_url)}')"`:''}>${p.avatar_url?'':esc((p.name||'?').slice(0,3))}</div>`;
 }
 function adminRow(p,right,sub){
   return `<div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:12px;margin-bottom:9px">
@@ -1215,7 +1223,7 @@ async function sendMsg(){
 // 첨부는 누구나 다운로드 가능한 공개 URL 로 저장(BUCKET='room-files').
 function bubbleHtml(m){
   if(m.type==='image'&&m.attachment_url)
-    return `<img class="bimg" src="${esc(m.attachment_url)}" onclick="window.open(this.src,'_blank')" alt="사진">`;
+    return `<img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진">`;
   if(m.type==='file'&&m.attachment_url)
     return `<a class="bfile" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a>`;
   return `<div class="bubble">${esc(m.content||'')}</div>`;

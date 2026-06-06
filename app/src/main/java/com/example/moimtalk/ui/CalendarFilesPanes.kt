@@ -44,6 +44,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -89,6 +90,11 @@ private fun parseZdt(iso: String?): ZonedDateTime? {
 
 private fun eventDate(iso: String?): LocalDate? = parseZdt(iso)?.toLocalDate()
 private fun timeLabel(iso: String): String = parseZdt(iso)?.format(FMT_DISPLAY) ?: iso
+private fun detailTimeLabel(iso: String): String {
+    val z = parseZdt(iso) ?: return iso
+    val dow = DOW_KO[z.dayOfWeek.value - 1]
+    return "${z.format(FMT_DAY)} ($dow) ${z.format(DateTimeFormatter.ofPattern("a h:mm", Locale.KOREAN))}"
+}
 private fun dayLabel(iso: String?): String = parseZdt(iso)?.format(FMT_DAY) ?: ""
 
 private fun buildStartAt(date: LocalDate, time: LocalTime): String =
@@ -744,6 +750,109 @@ private fun eventPreviewText(e: CalendarEvent, vm: MoimViewModel): String = buil
 }
 
 @Composable
+private fun EventDocRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Text(label, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub, modifier = Modifier.width(52.dp))
+        Text(value, fontSize = 13.5.sp, color = MoimInk, lineHeight = 20.sp, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun EventDetailDocument(
+    event: CalendarEvent,
+    vm: MoimViewModel,
+) {
+    val context = LocalContext.current
+    val atts = event.attachmentPairs()
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+            .shadow(3.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.08f))
+            .clip(RoundedCornerShape(16.dp))
+            .background(MoimWhite)
+            .border(1.dp, MoimLine, RoundedCornerShape(16.dp))
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .background(catColor("notice"), RoundedCornerShape(2.dp)),
+        )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            event.title,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = MoimInk,
+            lineHeight = 28.sp,
+        )
+        Spacer(Modifier.height(14.dp))
+        HorizontalDivider(color = MoimLine)
+        Spacer(Modifier.height(10.dp))
+        EventDocRow("일시", detailTimeLabel(event.startAt))
+        event.place?.takeIf { it.isNotBlank() }?.let { EventDocRow("장소", it) }
+        EventDocRow(
+            "발표자",
+            event.presenter?.takeIf { it.isNotBlank() } ?: vm.nameOf(event.ownerId),
+        )
+        event.scope?.takeIf { it.isNotBlank() }?.let { EventDocRow("참석", it) }
+        event.description?.takeIf { it.isNotBlank() }?.let { desc ->
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = MoimLine)
+            Spacer(Modifier.height(14.dp))
+            Text("설명", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(8.dp))
+            Text(desc, fontSize = 14.sp, color = MoimInk, lineHeight = 22.sp)
+        }
+        if (atts.isNotEmpty() || !event.link.isNullOrBlank()) {
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = MoimLine)
+            Spacer(Modifier.height(14.dp))
+        }
+        if (atts.isNotEmpty()) {
+            Text("첨부", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(8.dp))
+            atts.forEach { (n, url) ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(MoimPaper)
+                        .border(1.dp, MoimLine, RoundedCornerShape(10.dp))
+                        .clickable { openUrl(context, url) }
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text("📎", fontSize = 16.sp)
+                    Text(n, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MoimInk, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+        event.link?.takeIf { it.isNotBlank() }?.let { link ->
+            if (atts.isNotEmpty()) Spacer(Modifier.height(4.dp))
+            Text(
+                "🔗 링크 열기",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = catColor("group"),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFFEEF2F8))
+                    .clickable { openUrl(context, link) }
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            )
+        }
+    }
+}
+
+@Composable
 private fun EventDetailPane(
     event: CalendarEvent,
     vm: MoimViewModel,
@@ -765,9 +874,13 @@ private fun EventDetailPane(
         }
         HorizontalDivider(color = MoimLine)
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 13.dp, vertical = 8.dp),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .background(MoimBg)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         ) {
-            item { EventCardBody(event, vm, showEdit = false, onEdit = onEdit) }
+            item { EventDetailDocument(event, vm) }
         }
         if (vm.canEditEvent(event)) {
             HorizontalDivider(color = MoimLine)

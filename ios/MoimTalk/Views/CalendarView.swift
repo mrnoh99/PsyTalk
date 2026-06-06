@@ -350,6 +350,82 @@ struct EventCardBody: View {
     }
 }
 
+struct EventDetailDocument: View {
+    let event: CalendarEvent
+    @ObservedObject var vm: MoimViewModel
+
+    var body: some View {
+        let atts = event.attachmentList
+        VStack(alignment: .leading, spacing: 0) {
+            RoundedRectangle(cornerRadius: 2).fill(catColor("notice")).frame(height: 3)
+            Text(event.title)
+                .font(.system(size: 20, weight: .bold))
+                .foregroundColor(Moim.ink)
+                .lineSpacing(4)
+                .padding(.top, 16)
+            Divider().background(Moim.line).padding(.vertical, 14)
+            EventDocRow(label: "일시", value: CalDate.detailTimeLabel(event.startAt))
+            if let p = event.place, !p.isEmpty { EventDocRow(label: "장소", value: p) }
+            EventDocRow(label: "발표자", value: (event.presenter?.isEmpty == false) ? event.presenter! : vm.name(of: event.ownerId))
+            if let s = event.scope, !s.isEmpty { EventDocRow(label: "참석", value: s) }
+            if let d = event.description, !d.isEmpty {
+                Divider().background(Moim.line).padding(.vertical, 14)
+                Text("설명").font(.system(size: 11, weight: .bold)).foregroundColor(Moim.sub)
+                Text(d).font(.system(size: 14)).foregroundColor(Moim.ink).lineSpacing(6).padding(.top, 8)
+            }
+            if !atts.isEmpty || (event.link?.isEmpty == false) {
+                Divider().background(Moim.line).padding(.vertical, 14)
+            }
+            if !atts.isEmpty {
+                Text("첨부").font(.system(size: 11, weight: .bold)).foregroundColor(Moim.sub)
+                ForEach(Array(atts.enumerated()), id: \.offset) { _, att in
+                    if let u = URL(string: att.url) {
+                        Link(destination: u) {
+                            HStack(spacing: 8) {
+                                Text("📎").font(.system(size: 16))
+                                Text(att.name).font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink).lineLimit(2)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, 12).padding(.vertical, 10)
+                            .background(Moim.paper)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Moim.line, lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .padding(.top, 8)
+                    }
+                }
+            }
+            if let l = event.link, !l.isEmpty, let u = URL(string: l) {
+                Link(destination: u) {
+                    Text("🔗 링크 열기").font(.system(size: 13, weight: .bold)).foregroundColor(catColor("group"))
+                        .padding(.horizontal, 14).padding(.vertical, 10)
+                        .background(Color(hex: 0xEEF2F8)).clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .padding(.top, atts.isEmpty ? 0 : 4)
+            }
+        }
+        .padding(20)
+        .background(Moim.white)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Moim.line, lineWidth: 1))
+        .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
+        .padding(.bottom, 16)
+    }
+}
+
+private struct EventDocRow: View {
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Text(label).font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub).frame(width: 52, alignment: .leading)
+            Text(value).font(.system(size: 13.5)).foregroundColor(Moim.ink).lineSpacing(3).frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 5)
+    }
+}
+
 struct EventDetailView: View {
     let event: CalendarEvent
     @ObservedObject var vm: MoimViewModel
@@ -368,9 +444,10 @@ struct EventDetailView: View {
             Divider().background(Moim.line)
 
             ScrollView {
-                EventCardBody(event: event, vm: vm, showEdit: false, onEdit: onEdit)
-                    .padding(.horizontal, 13).padding(.top, 8)
+                EventDetailDocument(event: event, vm: vm)
+                    .padding(.horizontal, 16).padding(.top, 12)
             }
+            .background(Moim.bg)
 
             if vm.canEditEvent(event) {
                 Divider().background(Moim.line)

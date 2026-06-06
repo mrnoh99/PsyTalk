@@ -114,6 +114,20 @@
   .ev-compact{cursor:pointer}
   .ev-compact .evpreview{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;line-height:1.45;font-size:12.5px;color:var(--ink);white-space:pre-line}
   .ev-detail-body .ev{margin-bottom:0;border:none;padding:0}
+  .ev-detail-body{background:var(--bg);padding:4px 0 8px;margin:0 -4px}
+  .evdoc{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  .evdoc-accent{height:3px;border-radius:2px;margin-bottom:16px}
+  .evdoc-title{font-size:20px;font-weight:800;line-height:1.35;color:var(--ink);margin:0 0 14px}
+  .evdoc-hr{border:none;border-top:1px solid var(--line);margin:14px 0}
+  .evdoc-meta{margin:0}
+  .evdoc-row{display:flex;gap:10px;padding:5px 0;font-size:13.5px;line-height:1.45}
+  .evdoc-row dt{width:52px;flex-shrink:0;font-size:12px;font-weight:700;color:var(--sub);margin:0}
+  .evdoc-row dd{flex:1;margin:0;color:var(--ink)}
+  .evdoc-sec{font-size:11px;font-weight:800;color:var(--sub);margin:0 0 8px}
+  .evdoc-body{font-size:14px;line-height:1.65;color:var(--ink);white-space:pre-wrap;margin:0}
+  .evdoc-att{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:10px;margin-bottom:6px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600}
+  .evdoc-att:hover{background:#f3efe9}
+  .evdoc-link{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:10px 14px;background:#eef2f8;color:var(--group);border-radius:10px;font-size:13px;font-weight:700;text-decoration:none}
   .ev-detail-edit{width:100%;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;background:var(--accent);color:#fff;cursor:pointer;margin-top:12px}
   .evkept{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;background:#f3efe9;border-radius:8px;padding:6px 10px;margin-bottom:5px}
   .evkeptx{color:#c0392b;font-weight:800;cursor:pointer;padding:0 4px}
@@ -1644,6 +1658,38 @@ function evAtts(e){
   if(e.attachment_url) return [{n:e.attachment_name||'첨부파일',u:e.attachment_url}];
   return [];
 }
+function fmtDetailTime(iso){
+  const d=new Date(iso);
+  const dow=['일','월','화','수','목','금','토'][d.getDay()];
+  const time=d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});
+  return `${d.getMonth()+1}/${d.getDate()} (${dow}) ${time}`;
+}
+function evDetailHtml(e){
+  const c=(CAT[active.category]||CAT.custom).c;
+  const presenter=(e.presenter&&e.presenter.trim())?esc(e.presenter):esc(nameOf(e.owner_id));
+  let h=`<article class="evdoc"><div class="evdoc-accent" style="background:${c}"></div>`;
+  h+=`<h3 class="evdoc-title">${esc(e.title)}</h3><hr class="evdoc-hr">`;
+  h+=`<dl class="evdoc-meta">`;
+  h+=`<div class="evdoc-row"><dt>일시</dt><dd>${fmtDetailTime(e.start_at)}</dd></div>`;
+  if(e.place)h+=`<div class="evdoc-row"><dt>장소</dt><dd>${esc(e.place)}</dd></div>`;
+  h+=`<div class="evdoc-row"><dt>발표자</dt><dd>${presenter}</dd></div>`;
+  if(e.scope)h+=`<div class="evdoc-row"><dt>참석</dt><dd>${esc(e.scope)}</dd></div>`;
+  h+=`</dl>`;
+  if(e.description){
+    h+=`<hr class="evdoc-hr"><p class="evdoc-sec">설명</p><p class="evdoc-body">${esc(e.description)}</p>`;
+  }
+  const atts=evAtts(e);
+  if(atts.length||e.link){
+    h+=`<hr class="evdoc-hr">`;
+    if(atts.length){
+      h+=`<p class="evdoc-sec">첨부</p>`;
+      h+=atts.map(a=>`<a class="evdoc-att" href="${esc(a.u)}" target="_blank" onclick="event.stopPropagation()"><span>📎</span><span>${esc(a.n)}</span></a>`).join('');
+    }
+    if(e.link)h+=`<a class="evdoc-link" href="${esc(e.link)}" target="_blank" onclick="event.stopPropagation()">🔗 링크 열기</a>`;
+  }
+  h+=`</article>`;
+  return h;
+}
 function evCardBody(e,extra=''){
   const c=(CAT[active.category]||CAT.custom).c;
   const presenter=(e.presenter&&e.presenter.trim())?esc(e.presenter):esc(nameOf(e.owner_id));
@@ -1675,7 +1721,7 @@ function evPreviewText(e){
 }
 function openEventDetail(id){
   const e=events.find(x=>x.id===id); if(!e)return;
-  document.getElementById('evDetailBody').innerHTML=`<div class="ev">${evCardBody(e)}</div>`;
+  document.getElementById('evDetailBody').innerHTML=evDetailHtml(e);
   document.getElementById('evDetailEdit').innerHTML=canEdit(e)
     ?`<button class="ev-detail-edit" onclick="closeModal('evDetailModal');openEvent('${e.id}')">✏️ 수정</button>`:'';
   document.getElementById('evDetailModal').classList.add('on');

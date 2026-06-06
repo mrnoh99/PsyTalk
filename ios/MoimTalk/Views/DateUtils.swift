@@ -35,6 +35,13 @@ enum CalDate {
         return fmt("M/d a h:mm").string(from: d)
     }
 
+    /// "6/7 (토) 오후 2:00" — 일정 상세 문서형
+    static func detailTimeLabel(_ iso: String) -> String {
+        guard let d = parse(iso) else { return iso }
+        let dow = ["일", "월", "화", "수", "목", "금", "토"][cal.component(.weekday, from: d) - 1]
+        return "\(fmt("M/d").string(from: d)) (\(dow)) \(fmt("a h:mm").string(from: d))"
+    }
+
     /// "6/5"
     static func dayLabel(_ iso: String?) -> String {
         guard let iso = iso, let d = parse(iso) else { return "" }

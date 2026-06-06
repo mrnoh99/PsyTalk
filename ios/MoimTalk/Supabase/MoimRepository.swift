@@ -13,6 +13,10 @@ enum MoimRepository {
         supabase.auth.currentUser?.id.uuidString.lowercased()
     }
 
+    static func currentUserEmail() -> String? {
+        supabase.auth.currentUser?.email
+    }
+
     static func signIn(email: String, password: String) async throws {
         try await supabase.auth.signIn(email: email, password: password)
     }
@@ -53,10 +57,11 @@ enum MoimRepository {
         try await supabase.from("profiles").select().execute().value
     }
 
-    /// 내 정보 변경: 자기소개(intro)·아바타 사진(avatar_url)·색상(color) — RPC(본인 안전 컬럼만)
-    static func updateMyProfile(intro: String?, avatarUrl: String?, color: String?) async throws {
+    /// 내 정보 변경: 자기소개(intro)·직군(member_type)·아바타(avatar_url)·색상(color) — RPC(본인 안전 컬럼만)
+    static func updateMyProfile(intro: String?, memberType: String?, avatarUrl: String?, color: String?) async throws {
         let params: [String: AnyJSON] = [
             "p_intro": intro.map { AnyJSON.string($0) } ?? .null,
+            "p_member_type": memberType.map { AnyJSON.string($0) } ?? .null,
             "p_avatar_url": avatarUrl.map { AnyJSON.string($0) } ?? .null,
             "p_color": color.map { AnyJSON.string($0) } ?? .null,
         ]

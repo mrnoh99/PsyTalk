@@ -521,8 +521,8 @@ final class MoimViewModel: ObservableObject {
     /// 설정 화면에서 startDirect 등으로 열 방을 RootView 가 관찰해 화면 전환
     @Published var pendingOpenRoom: Room?
 
-    /// 내 정보 저장: 새 사진이 있으면 먼저 업로드 후 intro/avatar_url/color 갱신
-    func saveMyInfo(intro: String, color: String?, avatarData: Data?, avatarExt: String?, clearAvatar: Bool, onDone: @escaping () -> Void) {
+    /// 내 정보 저장: 새 사진이 있으면 먼저 업로드 후 intro/member_type/avatar_url/color 갱신
+    func saveMyInfo(intro: String, memberType: String, color: String?, avatarData: Data?, avatarExt: String?, clearAvatar: Bool, onDone: @escaping () -> Void) {
         Task {
             do {
                 var avatarUrl: String? = clearAvatar ? nil : myProfile?.avatarUrl
@@ -530,7 +530,13 @@ final class MoimViewModel: ObservableObject {
                     avatarUrl = try await MoimRepository.uploadProfileAvatar(data: d, ext: avatarExt ?? "jpg")
                 }
                 let trimmed = intro.trimmingCharacters(in: .whitespaces)
-                try await MoimRepository.updateMyProfile(intro: trimmed.isEmpty ? nil : trimmed, avatarUrl: avatarUrl, color: color)
+                let mt = memberType.trimmingCharacters(in: .whitespaces)
+                try await MoimRepository.updateMyProfile(
+                    intro: trimmed.isEmpty ? nil : trimmed,
+                    memberType: mt.isEmpty ? nil : mt,
+                    avatarUrl: avatarUrl,
+                    color: color
+                )
                 if let list = try? await MoimRepository.allProfiles() {
                     profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                     if let uid = MoimRepository.currentUserId() { myProfile = profilesById[uid] }

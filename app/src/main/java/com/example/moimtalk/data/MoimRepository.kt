@@ -250,10 +250,11 @@ object MoimRepository {
     suspend fun allProfiles(): List<Profile> =
         supabase.from("profiles").select().decodeList()
 
-    /** 내 정보 변경: 자기소개·아바타 사진 URL·색상 (본인 안전 컬럼만, RPC SECURITY DEFINER) */
-    suspend fun updateMyProfile(intro: String?, avatarUrl: String?, color: String?) {
+    /** 내 정보 변경: 자기소개·직군·아바타 사진 URL·색상 (본인 안전 컬럼만, RPC SECURITY DEFINER) */
+    suspend fun updateMyProfile(intro: String?, memberType: String?, avatarUrl: String?, color: String?) {
         supabase.postgrest.rpc("moim_update_my_profile", buildJsonObject {
             put("p_intro", intro)
+            put("p_member_type", memberType)
             put("p_avatar_url", avatarUrl)
             put("p_color", color)
         })

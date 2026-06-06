@@ -143,6 +143,17 @@
   .swatch.sel{border-color:var(--ink)}
   .sortbtn{border:1px solid var(--line);background:#fff;color:var(--sub);border-radius:14px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer}
   .sortbtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .pulldown{position:relative}
+  .pulldown-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;cursor:pointer;border:1px solid var(--line);border-radius:11px;padding:11px;font-size:14.5px;font-family:inherit;background:#fff;outline:none}
+  .pulldown-btn:focus{border-color:var(--accent)}
+  .pulldown-arrow{color:var(--sub);font-size:11px;flex-shrink:0}
+  .pulldown-menu{position:fixed;background:#fff;border:1px solid var(--line);border-radius:11px;max-height:240px;overflow-y:auto;z-index:90;box-shadow:0 10px 28px rgba(35,31,28,.14)}
+  .pulldown-menu.hidden{display:none}
+  .pulldown-opt{padding:11px 14px;font-size:14.5px;cursor:pointer}
+  .pulldown-opt:hover{background:var(--bg)}
+  .pulldown-opt.sel{background:var(--bg);font-weight:700;color:var(--accent)}
+  .my-field{margin-bottom:10px}
+  .my-field .lbl{margin-top:0}
   .pinrow.dragging{opacity:.45}
   @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
   #roomScreen.slidein{animation:slideInRight .26s cubic-bezier(.22,.61,.36,1)}
@@ -341,6 +352,21 @@
     <button class="ghost" onclick="closeModal('emodal')">취소</button>
   </div></div>
 
+  <!-- 프로필 사진 조절 (내 정보 — Android AvatarAdjustDialog 미러링) -->
+  <div class="modal" id="avAdjustModal" style="z-index:50;background:rgba(0,0,0,.9)">
+    <div class="sheet" style="max-width:420px;background:var(--ink);color:#fff">
+      <h2 style="color:#fff">사진 조절</h2>
+      <p style="color:#ccc;font-size:12.5px;margin-bottom:14px">사진을 확대·이동해 원하는 영역을 맞춘 뒤 확인하세요.</p>
+      <div id="avAdjustWrap" style="width:100%;aspect-ratio:1;background:#000;border-radius:8px;overflow:hidden;touch-action:none;cursor:grab">
+        <canvas id="avAdjustCanvas" style="width:100%;height:100%;display:block"></canvas>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:14px">
+        <button class="ghost" style="color:#fff;flex:1" onclick="closeAvatarAdjust()">취소</button>
+        <button class="primary" style="flex:1" onclick="confirmAvatarAdjust()">확인</button>
+      </div>
+    </div>
+  </div>
+
   <!-- FILE UPLOAD MODAL -->
   <div class="modal" id="umodal"><div class="sheet">
     <h2>자료 올리기</h2><p id="upName"></p>
@@ -390,23 +416,37 @@ async function loadRoomPins(){
 function flatRoomList(){ const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week'); return rooms.filter(r=>r!==week&&((r.category==='custom'||r.category==='direct')?myRoomIds.has(r.id):true)); }
 /* ====== 설정 화면: 내 정보 / 방 순서 / 회원 검색 ====== */
 let setTab='me';
-function openSettings(){ setTab='me'; show('settingsScreen'); renderSetTabs(); renderSet(); }
+function mergeMeProfile(prof,user){
+  const base=prof||{id:user?.id,name:user?.email||'',member_type:'',role:'user',approved:false};
+  const meta=user?.user_metadata||{};
+  return {...base,email:user?.email||base.email||'',phone:base.phone||meta.phone||meta.phone_number||''};
+}
+async function refreshMeProfile(){
+  if(!me?.id)return;
+  const {data:{user}}=await sb.auth.getUser();
+  const {data:prof}=await sb.from('profiles').select('*').eq('id',me.id).maybeSingle();
+  if(user) me=mergeMeProfile(prof||me,user);
+}
+async function openSettings(){ setTab='me'; show('settingsScreen'); await refreshMeProfile(); renderSetTabs(); renderSet(); }
 function renderSetTabs(){ const tabs=[['me','내 정보'],['order','방 순서'],['search','회원 검색']];
   document.getElementById('setTabs').innerHTML=tabs.map(([k,l])=>`<div class="tab ${setTab===k?'on':''}" onclick="setGo('${k}')">${l}</div>`).join(''); }
-function setGo(k){ setTab=k; renderSetTabs(); renderSet(); }
+async function setGo(k){ setTab=k; if(k==='me')await refreshMeProfile(); renderSetTabs(); renderSet(); }
 function renderSet(){
   if(setTab==='order') return renderOrderTab();
   if(setTab==='search') return renderMemberSearch();
   return renderMyInfo();
 }
 
-// ── 내 정보 변경 (이름·이메일 읽기전용 / 자기소개·비밀번호·아바타 변경) ──
-let meColor=null, meAvatarFile=null, meAvatarPreview=null, meAvatarUrl=null, meClearAvatar=false;
+// ── 내 정보 변경 (이름·이메일·전화번호 읽기전용 / 직군·자기소개·아바타 변경) ──
+const MEMBER_TYPES=['교실','의국','심리실','연구실','PA','간호사','SW','보조원','생명사랑','비서','의국동문','심리실 동문','기타'];
+let meColor=null, meMtypeSel=null, meAvatarFile=null, meAvatarPreview=null, meAvatarUrl=null, meClearAvatar=false;
+let avAdjustImg=null, avAdjustScale=1, avAdjustOx=0, avAdjustOy=0, avAdjustCropPx=0, avAdjustDragging=false, avAdjustLast=null, avAdjustPinchDist=null;
 function renderMyInfo(){
   meColor=me.color||tcolor(me.member_type); meAvatarFile=null; meAvatarPreview=null; meAvatarUrl=me.avatar_url||null; meClearAvatar=false;
   const sup=(me.email||'').toLowerCase()===SUPERADMIN_EMAIL;
+  const myPhone=me.phone||'';
   document.getElementById('setBody').innerHTML=`
-    <div style="display:flex;flex-direction:column;align-items:center;gap:9px;margin-bottom:6px">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:9px;margin-bottom:14px">
       <div id="meAvPrev" class="av" style="width:84px;height:84px;border-radius:26px;font-size:24px"></div>
       <div style="display:flex;gap:8px">
         <button class="lk" style="background:var(--bg);padding:7px 12px;border-radius:10px" onclick="document.getElementById('meAvInput').click()">사진 선택</button>
@@ -415,10 +455,32 @@ function renderMyInfo(){
       <input type="file" id="meAvInput" accept="image/*" style="display:none" onchange="onMyAvatarPicked(this)">
       <div class="swatches" id="meColors" style="justify-content:center"></div>
     </div>
-    <span class="lbl">이름 (변경 불가)</span><input class="field" value="${esc(me.name||'')}" disabled style="opacity:.65">
-    <span class="lbl">이메일 (변경 불가)</span><input class="field" value="${esc(me.email||'')}" disabled style="opacity:.65">
-    <span class="lbl">직군</span><input class="field" value="${esc(me.member_type||'')}" disabled style="opacity:.65">
-    <span class="lbl">자기소개</span><textarea id="meIntro" class="field" placeholder="자기소개를 입력하세요">${esc(me.intro||'')}</textarea>
+    <div class="my-field">
+      <span class="lbl">이름 (변경 불가)</span>
+      <input id="meName" class="field" value="${esc(me.name||'')}" disabled style="opacity:.65">
+    </div>
+    <div class="my-field">
+      <span class="lbl">이메일 (변경 불가)</span>
+      <input id="meEmail" class="field" value="${esc(me.email||'')}" disabled style="opacity:.65">
+    </div>
+    <div class="my-field">
+      <span class="lbl">전화번호 (변경 불가)</span>
+      <input id="mePhone" class="field" type="tel" value="${esc(myPhone)}" disabled style="opacity:.65" placeholder="등록된 번호 없음">
+    </div>
+    <div class="my-field">
+    <span class="lbl">직군</span>
+    <div class="pulldown" id="meMtypeWrap">
+      <button type="button" class="pulldown-btn" id="meMtypeBtn" onclick="toggleMeMtype(event)">
+        <span id="meMtypeLabel">${esc(me.member_type||'의국')}</span><span class="pulldown-arrow">▾</span>
+      </button>
+      <input type="hidden" id="meMtypeVal" value="${esc(me.member_type||'의국')}">
+      <div class="pulldown-menu hidden" id="meMtypeMenu"></div>
+    </div>
+    </div>
+    <div class="my-field">
+      <span class="lbl">자기소개</span>
+      <textarea id="meIntro" class="field" placeholder="자기소개를 입력하세요">${esc(me.intro||'')}</textarea>
+    </div>
     <button class="primary" style="margin-top:12px" onclick="saveMyInfo()">내 정보 저장</button>
     <div style="height:1px;background:var(--line);margin:20px 0"></div>
     <span class="lbl">비밀번호 변경</span>
@@ -430,7 +492,48 @@ function renderMyInfo(){
     <div style="height:1px;background:var(--line);margin:20px 0"></div>
     <div style="text-align:center"><button class="lk" style="color:var(--admin);font-weight:700" onclick="deleteAccount()">회원 탈퇴</button></div>`;
   renderSwatches('meColors',meColor,'pickMyColor'); renderMyAvatarPreview();
+  initMeMtypePulldown(me.member_type||'의국');
 }
+function initMeMtypePulldown(selected){
+  meMtypeSel=selected||'의국';
+  const lbl=document.getElementById('meMtypeLabel'), hid=document.getElementById('meMtypeVal'), menu=document.getElementById('meMtypeMenu');
+  if(lbl)lbl.textContent=meMtypeSel;
+  if(hid)hid.value=meMtypeSel;
+  if(menu){
+    menu.innerHTML=MEMBER_TYPES.map((t,i)=>`<div class="pulldown-opt${t===meMtypeSel?' sel':''}" onclick="pickMeMtypeByIdx(${i},event)">${esc(t)}</div>`).join('');
+    menu.classList.add('hidden');
+  }
+}
+function toggleMeMtype(ev){
+  ev.stopPropagation();
+  const menu=document.getElementById('meMtypeMenu'), btn=document.getElementById('meMtypeBtn');
+  if(!menu||!btn)return;
+  const willOpen=menu.classList.contains('hidden');
+  closeMeMtypeMenu();
+  if(willOpen){
+    const r=btn.getBoundingClientRect();
+    menu.style.left=r.left+'px';
+    menu.style.top=(r.bottom+4)+'px';
+    menu.style.width=r.width+'px';
+    menu.classList.remove('hidden');
+  }
+}
+function closeMeMtypeMenu(){
+  document.getElementById('meMtypeMenu')?.classList.add('hidden');
+}
+function pickMeMtypeByIdx(i,ev){
+  ev.stopPropagation();
+  const t=MEMBER_TYPES[i]; if(!t)return;
+  meMtypeSel=t;
+  const lbl=document.getElementById('meMtypeLabel'), hid=document.getElementById('meMtypeVal');
+  if(lbl)lbl.textContent=t;
+  if(hid)hid.value=t;
+  document.querySelectorAll('#meMtypeMenu .pulldown-opt').forEach((el,idx)=>{
+    el.classList.toggle('sel',idx===i);
+  });
+  closeMeMtypeMenu();
+}
+document.addEventListener('click',closeMeMtypeMenu);
 function renderMyAvatarPreview(){
   const el=document.getElementById('meAvPrev'); if(!el)return;
   const url=meAvatarPreview||(meClearAvatar?null:meAvatarUrl);
@@ -439,22 +542,109 @@ function renderMyAvatarPreview(){
   const clr=document.getElementById('meAvClear'); if(clr)clr.style.display=(meAvatarPreview||(!meClearAvatar&&meAvatarUrl))?'':'none';
 }
 function pickMyColor(c){meColor=c;renderSwatches('meColors',meColor,'pickMyColor');renderMyAvatarPreview();}
-function onMyAvatarPicked(input){const f=input.files&&input.files[0];if(!f)return;meAvatarFile=f;meAvatarPreview=URL.createObjectURL(f);meClearAvatar=false;renderMyAvatarPreview();input.value='';}
+function onMyAvatarPicked(input){
+  const f=input.files&&input.files[0]; if(!f)return; input.value='';
+  const img=new Image();
+  img.onload=()=>{ avAdjustImg=img; avAdjustScale=1; avAdjustOx=0; avAdjustOy=0; openAvatarAdjust(); };
+  img.src=URL.createObjectURL(f);
+}
 function clearMyAvatar(){meAvatarFile=null;meAvatarPreview=null;meAvatarUrl=null;meClearAvatar=true;renderMyAvatarPreview();}
+function avatarAdjustLayout(){
+  const wrap=document.getElementById('avAdjustWrap'), canvas=document.getElementById('avAdjustCanvas');
+  if(!wrap||!canvas)return 0;
+  const cropPx=wrap.clientWidth; avAdjustCropPx=cropPx;
+  canvas.width=cropPx; canvas.height=cropPx; return cropPx;
+}
+function drawAvatarAdjust(){
+  const cropPx=avatarAdjustLayout(), canvas=document.getElementById('avAdjustCanvas');
+  if(!canvas||!cropPx||!avAdjustImg)return;
+  const ctx=canvas.getContext('2d'); ctx.fillStyle='#000'; ctx.fillRect(0,0,cropPx,cropPx);
+  const img=avAdjustImg, bmpW=img.naturalWidth, bmpH=img.naturalHeight;
+  const baseScale=Math.max(cropPx/bmpW,cropPx/bmpH), totalScale=baseScale*avAdjustScale;
+  const scaledW=bmpW*totalScale, scaledH=bmpH*totalScale;
+  const left=cropPx/2-scaledW/2+avAdjustOx, top=cropPx/2-scaledH/2+avAdjustOy;
+  ctx.drawImage(img,left,top,scaledW,scaledH);
+}
+function openAvatarAdjust(){
+  document.getElementById('avAdjustModal').classList.add('on');
+  bindAvatarAdjustGestures();
+  requestAnimationFrame(drawAvatarAdjust);
+}
+function closeAvatarAdjust(){
+  document.getElementById('avAdjustModal').classList.remove('on');
+  avAdjustImg=null; avAdjustDragging=false; avAdjustPinchDist=null;
+}
+function confirmAvatarAdjust(){
+  if(!avAdjustImg||!avAdjustCropPx)return;
+  const out=document.createElement('canvas'), outPx=512; out.width=outPx; out.height=outPx;
+  const ctx=out.getContext('2d');
+  const img=avAdjustImg, bmpW=img.naturalWidth, bmpH=img.naturalHeight, cropPx=avAdjustCropPx;
+  const baseScale=Math.max(cropPx/bmpW,cropPx/bmpH), totalScale=baseScale*avAdjustScale;
+  const scaledW=bmpW*totalScale, scaledH=bmpH*totalScale;
+  const left=cropPx/2-scaledW/2+avAdjustOx, top=cropPx/2-scaledH/2+avAdjustOy;
+  const ratio=outPx/cropPx;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,outPx,outPx);
+  ctx.drawImage(img,left*ratio,top*ratio,scaledW*ratio,scaledH*ratio);
+  out.toBlob(blob=>{
+    if(!blob)return;
+    meAvatarFile=new File([blob],'avatar.jpg',{type:'image/jpeg'});
+    meAvatarPreview=URL.createObjectURL(blob); meClearAvatar=false;
+    closeAvatarAdjust(); renderMyAvatarPreview();
+  },'image/jpeg',0.9);
+}
+function bindAvatarAdjustGestures(){
+  const wrap=document.getElementById('avAdjustWrap'); if(!wrap||wrap._avBound)return;
+  wrap._avBound=true;
+  wrap.addEventListener('wheel',e=>{
+    e.preventDefault();
+    avAdjustScale=Math.min(4,Math.max(1,avAdjustScale*(e.deltaY<0?1.06:0.94)));
+    drawAvatarAdjust();
+  },{passive:false});
+  wrap.addEventListener('mousedown',e=>{avAdjustDragging=true;avAdjustLast={x:e.clientX,y:e.clientY};wrap.style.cursor='grabbing';});
+  window.addEventListener('mousemove',e=>{
+    if(!avAdjustDragging)return;
+    avAdjustOx+=e.clientX-avAdjustLast.x; avAdjustOy+=e.clientY-avAdjustLast.y;
+    avAdjustLast={x:e.clientX,y:e.clientY}; drawAvatarAdjust();
+  });
+  window.addEventListener('mouseup',()=>{avAdjustDragging=false; if(wrap)wrap.style.cursor='grab';});
+  wrap.addEventListener('touchstart',e=>{
+    if(e.touches.length===1){avAdjustDragging=true;avAdjustLast={x:e.touches[0].clientX,y:e.touches[0].clientY};}
+    else if(e.touches.length===2){avAdjustDragging=false;avAdjustPinchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
+  },{passive:true});
+  wrap.addEventListener('touchmove',e=>{
+    if(e.touches.length===2&&avAdjustPinchDist!=null){
+      const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      avAdjustScale=Math.min(4,Math.max(1,avAdjustScale*(d/avAdjustPinchDist)));
+      avAdjustPinchDist=d; drawAvatarAdjust(); e.preventDefault();
+    }else if(e.touches.length===1&&avAdjustDragging&&avAdjustLast){
+      avAdjustOx+=e.touches[0].clientX-avAdjustLast.x; avAdjustOy+=e.touches[0].clientY-avAdjustLast.y;
+      avAdjustLast={x:e.touches[0].clientX,y:e.touches[0].clientY}; drawAvatarAdjust(); e.preventDefault();
+    }
+  },{passive:false});
+  wrap.addEventListener('touchend',()=>{avAdjustDragging=false;avAdjustPinchDist=null;});
+}
 // Supabase 오류 상세 포맷터 (message·details·hint·code)
 function sbErr(e){ if(!e)return''; return [e.message,e.details,e.hint,e.code?('['+e.code+']'):''].filter(Boolean).join(' · '); }
 // 새 RPC/컬럼이 아직 없을 때(스키마 미적용·캐시) 안내
 function needSqlHint(e){ const s=((e&&e.message)||'')+((e&&e.code)||'')+((e&&e.details)||'');
   return /schema cache|PGRST202|42883|42703|does not exist|could not find|function .* does not exist/i.test(s)
-    ? '\n\n※ Supabase SQL Editor 에서 profile_edit.sql · direct_messages.sql 을 실행했는지 확인하세요.\n이미 실행했다면 대시보드 Settings → API → "Reload schema" 후 다시 시도하세요.' : ''; }
+    ? '\n\n※ Supabase SQL Editor 에서 profile_edit.sql · profile_member_type.sql · direct_messages.sql 을 실행했는지 확인하세요.\n이미 실행했다면 대시보드 Settings → API → "Reload schema" 후 다시 시도하세요.' : ''; }
 async function saveMyInfo(){
   const intro=document.getElementById('meIntro').value.trim();
+  const mtype=(document.getElementById('meMtypeVal')?.value||meMtypeSel||me.member_type||'의국').trim();
   let avatarUrl=meClearAvatar?null:meAvatarUrl;
   if(meAvatarFile){try{avatarUrl=await uploadProfileAvatar(meAvatarFile);}catch(e){alert('사진 업로드 실패: '+(e.message||e));return;}}
-  const {error}=await sb.rpc('moim_update_my_profile',{p_intro:intro||null,p_avatar_url:avatarUrl,p_color:meColor});
+  const {error}=await sb.rpc('moim_update_my_profile',{p_intro:intro||null,p_member_type:mtype,p_avatar_url:avatarUrl,p_color:meColor});
   if(error){alert('저장 실패: '+sbErr(error)+needSqlHint(error));return;}
-  me.intro=intro; me.avatar_url=avatarUrl; me.color=meColor;
-  if(profilesById[me.id]){Object.assign(profilesById[me.id],{intro,avatar_url:avatarUrl,color:meColor});}
+  const {data:prof,error:pErr}=await sb.from('profiles').select('*').eq('id',me.id).maybeSingle();
+  if(!pErr&&prof){
+    const {data:{user}}=await sb.auth.getUser();
+    me=mergeMeProfile(prof,user);
+    profilesById[me.id]=me;
+  }else{
+    me.intro=intro; me.member_type=mtype; me.avatar_url=avatarUrl; me.color=meColor;
+    if(profilesById[me.id]){Object.assign(profilesById[me.id],{intro,member_type:mtype,avatar_url:avatarUrl,color:meColor});}
+  }
   renderRoomList(); alert('내 정보가 저장되었습니다.'); renderMyInfo();
 }
 async function changeMyPassword(){
@@ -728,7 +918,6 @@ window.alert=function(m){ uiAlert(m); };
 
 /* ====== 로그인 / 회원가입 ====== */
 let signupMode=false, suType='의국';
-const MEMBER_TYPES=['교실','의국','심리실','연구실','PA','간호사','SW','보조원','생명사랑','비서','의국동문','심리실 동문','기타'];
 function renderSuTypes(){
   document.getElementById('suTypes').innerHTML=MEMBER_TYPES.map(t=>{
     const on=t===suType;
@@ -856,8 +1045,7 @@ async function loadApp(){
   const {data:{user}}=await sb.auth.getUser();
   if(!user){show('login');return;}
   const {data:prof}=await sb.from('profiles').select('*').eq('id',user.id).maybeSingle();
-  me=prof||{id:user.id,name:user.email,member_type:'',role:'user',approved:false};
-  me.email=user.email;
+  me=mergeMeProfile(prof,user);
   // 기본값 불승인: approved 가 명시적으로 true 가 아니면(미설정·null·false) 승인 대기
   if(me.approved!==true){
     document.getElementById('pendingWho').textContent=(me.name||'')+(me.member_type?' · '+me.member_type:'');

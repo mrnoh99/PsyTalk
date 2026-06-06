@@ -38,14 +38,17 @@ struct SettingsView: View {
     }
 }
 
-// ── 내 정보 변경 (이름·이메일·직군 읽기전용 / 자기소개·아바타·비밀번호 변경 + 회원 탈퇴) ──
+// ── 내 정보 변경 (이름·이메일·전화번호 읽기전용 / 직군·자기소개·아바타 변경 + 회원 탈퇴) ──
 struct MyInfoTab: View {
     @ObservedObject var vm: MoimViewModel
     let onDismiss: () -> Void
 
     @State private var intro = ""
+    @State private var memberType = ""
     @State private var color = ""
     @State private var photoItem: PhotosPickerItem?
+    @State private var pendingAdjustImage: UIImage?
+    @State private var showAvatarAdjust = false
     @State private var avatarData: Data?
     @State private var avatarCleared = false
     @State private var newPw = ""
@@ -106,7 +109,20 @@ struct MyInfoTab: View {
                 .frame(maxWidth: .infinity)
 
                 field("이름 (변경 불가)", me?.name ?? "")
-                field("직군", me?.memberType ?? "")
+                field("이메일 (변경 불가)", MoimRepository.currentUserEmail() ?? "")
+                field("전화번호 (변경 불가)", me?.phone ?? "")
+
+                Text("직군").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
+                Picker("직군", selection: $memberType) {
+                    ForEach(MTYPE_ORDER, id: \.self) { t in
+                        Text(t).tag(t)
+                    }
+                }
+                .pickerStyle(.menu)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Moim.line, lineWidth: 1))
 
                 Text("자기소개").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
                 TextEditor(text: $intro)
@@ -115,7 +131,7 @@ struct MyInfoTab: View {
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(Moim.line, lineWidth: 1))
 
                 Button {
-                    vm.saveMyInfo(intro: intro, color: color, avatarData: avatarData,
+                    vm.saveMyInfo(intro: intro, memberType: memberType, color: color, avatarData: avatarData,
                                   avatarExt: "jpg", clearAvatar: avatarCleared) {
                         avatarData = nil; avatarCleared = false
                     }
@@ -156,14 +172,36 @@ struct MyInfoTab: View {
         }
         .onAppear {
             intro = me?.intro ?? ""
+            memberType = me?.memberType ?? MTYPE_ORDER.first ?? "의국"
             color = me?.color ?? ""
             if color.isEmpty, let m = me { color = typeHex(m.memberType) }
         }
         .onChange(of: photoItem) { _ in
             Task {
-                if let item = photoItem, let data = try? await item.loadTransferable(type: Data.self) {
-                    avatarData = data; avatarCleared = false
+                guard let item = photoItem else { return }
+                if let data = try? await item.loadTransferable(type: Data.self),
+                   let ui = UIImage(data: data) {
+                    pendingAdjustImage = ui
+                    showAvatarAdjust = true
                 }
+                photoItem = nil
+            }
+        }
+        .fullScreenCover(isPresented: $showAvatarAdjust) {
+            if let img = pendingAdjustImage {
+                AvatarAdjustView(
+                    sourceImage: img,
+                    onDismiss: {
+                        showAvatarAdjust = false
+                        pendingAdjustImage = nil
+                    },
+                    onConfirm: { data in
+                        avatarData = data
+                        avatarCleared = false
+                        showAvatarAdjust = false
+                        pendingAdjustImage = nil
+                    }
+                )
             }
         }
         .alert("회원 탈퇴", isPresented: $showDelete) {

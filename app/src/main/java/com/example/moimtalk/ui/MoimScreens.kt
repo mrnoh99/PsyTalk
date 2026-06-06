@@ -43,6 +43,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.AlertDialog
@@ -1541,26 +1543,42 @@ fun SettingsScreen(vm: MoimViewModel, onBack: () -> Unit, onOpenRoom: (Room) -> 
     }
 }
 
-// ── 내 정보 변경 (이름·이메일·직군 읽기전용 / 자기소개·비밀번호·아바타 변경 + 회원 탈퇴) ──
+// ── 내 정보 변경 (이름·이메일·전화번호 읽기전용 / 직군·자기소개·아바타 변경 + 회원 탈퇴) ──
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MyInfoTab(vm: MoimViewModel) {
     val me = vm.myProfile
     val context = LocalContext.current
     var intro by remember(me?.id) { mutableStateOf(me?.intro ?: "") }
+    var memberType by remember(me?.id) { mutableStateOf(me?.memberType ?: "의국") }
     var color by remember(me?.id) { mutableStateOf(me?.color ?: "") }
-    var avatarUri by remember(me?.id) { mutableStateOf<Uri?>(null) }
+    var memberTypeExpanded by remember { mutableStateOf(false) }
     var avatarBytes by remember(me?.id) { mutableStateOf<ByteArray?>(null) }
     var avatarName by remember(me?.id) { mutableStateOf<String?>(null) }
     var clearAvatar by remember(me?.id) { mutableStateOf(false) }
+    var pendingAdjustUri by remember { mutableStateOf<Uri?>(null) }
     var pw by remember { mutableStateOf("") }
     var pw2 by remember { mutableStateOf("") }
     var pwMsg by remember { mutableStateOf<Pair<Boolean, String>?>(null) }   // (성공 여부, 메시지)
     var savedMsg by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
     val avatarPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        if (uri != null) { avatarUri = uri; clearAvatar = false; readUri(context, uri)?.let { (n, b) -> avatarName = n; avatarBytes = b } }
+        if (uri != null) pendingAdjustUri = uri
     }
     val isSuper = (MoimRepository.currentUserEmail() ?: "").equals("jsnoh@ajou.ac.kr", ignoreCase = true)
+
+    pendingAdjustUri?.let { uri ->
+        AvatarAdjustDialog(
+            sourceUri = uri,
+            onDismiss = { pendingAdjustUri = null },
+            onConfirm = { bytes, name ->
+                avatarBytes = bytes
+                avatarName = name
+                clearAvatar = false
+                pendingAdjustUri = null
+            },
+        )
+    }
 
     if (showDelete) {
         AlertDialog(
@@ -1578,7 +1596,7 @@ private fun MyInfoTab(vm: MoimViewModel) {
         // 아바타 미리보기 + 사진 선택/제거 + 색상 팔레트
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             val shape = RoundedCornerShape(26.dp)
-            val img: Any? = avatarUri ?: (if (clearAvatar) null else me?.avatarUrl)
+            val img: Any? = avatarBytes ?: (if (clearAvatar) null else me?.avatarUrl)
             if (img != null) {
                 AsyncImage(model = img, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.size(84.dp).clip(shape))
             } else {
@@ -1589,7 +1607,7 @@ private fun MyInfoTab(vm: MoimViewModel) {
             Spacer(Modifier.height(9.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = { avatarPicker.launch("image/*") }) { Text("사진 선택") }
-                if (img != null) TextButton(onClick = { avatarUri = null; avatarBytes = null; avatarName = null; clearAvatar = true }) {
+                if (img != null) TextButton(onClick = { avatarBytes = null; avatarName = null; clearAvatar = true }) {
                     Text("사진 제거", color = MoimAdmin)
                 }
             }
@@ -1600,8 +1618,47 @@ private fun MyInfoTab(vm: MoimViewModel) {
         Text("이름 (변경 불가)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         OutlinedTextField(value = me?.name ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth())
         Spacer(Modifier.height(10.dp))
+        Text("이메일 (변경 불가)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+        OutlinedTextField(
+            value = MoimRepository.currentUserEmail() ?: "",
+            onValueChange = {},
+            enabled = false,
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(Modifier.height(10.dp))
+        Text("전화번호 (변경 불가)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+        OutlinedTextField(value = me?.phone ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(10.dp))
         Text("직군", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-        OutlinedTextField(value = me?.memberType ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth())
+        ExposedDropdownMenuBox(
+            expanded = memberTypeExpanded,
+            onExpandedChange = { memberTypeExpanded = it },
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            OutlinedTextField(
+                value = memberType,
+                onValueChange = {},
+                readOnly = true,
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = memberTypeExpanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth(),
+            )
+            ExposedDropdownMenu(
+                expanded = memberTypeExpanded,
+                onDismissRequest = { memberTypeExpanded = false },
+            ) {
+                MTYPE_ORDER.forEach { t ->
+                    DropdownMenuItem(
+                        text = { Text(t) },
+                        onClick = {
+                            memberType = t
+                            memberTypeExpanded = false
+                            savedMsg = false
+                        },
+                    )
+                }
+            }
+        }
         Spacer(Modifier.height(10.dp))
         Text("자기소개", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         OutlinedTextField(
@@ -1611,8 +1668,8 @@ private fun MyInfoTab(vm: MoimViewModel) {
         Spacer(Modifier.height(14.dp))
         Button(
             onClick = {
-                vm.saveMyInfo(intro, color.ifBlank { null }, avatarBytes, avatarName, clearAvatar) {
-                    avatarUri = null; avatarBytes = null; avatarName = null; clearAvatar = false; savedMsg = true
+                vm.saveMyInfo(intro, memberType, color.ifBlank { null }, avatarBytes, avatarName, clearAvatar) {
+                    avatarBytes = null; avatarName = null; clearAvatar = false; savedMsg = true
                 }
             },
             modifier = Modifier.fillMaxWidth().height(48.dp),

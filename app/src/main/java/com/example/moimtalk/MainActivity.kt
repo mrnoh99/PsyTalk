@@ -582,9 +582,10 @@ class MoimViewModel : ViewModel() {
 
     // ── 내 정보 변경 / 회원 검색(1:1 DM) ──
 
-    /** 내 정보 저장: 새 사진이 있으면 먼저 업로드 후 intro/avatar_url/color 갱신 */
+    /** 내 정보 저장: 새 사진이 있으면 먼저 업로드 후 intro/member_type/avatar_url/color 갱신 */
     fun saveMyInfo(
         intro: String,
+        memberType: String,
         color: String?,
         avatarBytes: ByteArray?,
         avatarName: String?,
@@ -598,7 +599,7 @@ class MoimViewModel : ViewModel() {
                     avatarUrl = MoimRepository.uploadProfileAvatar(avatarName ?: "avatar.png", avatarBytes)
                 }
                 val trimmed = intro.trim().takeIf { it.isNotBlank() }
-                MoimRepository.updateMyProfile(trimmed, avatarUrl, color)
+                MoimRepository.updateMyProfile(trimmed, memberType.ifBlank { null }, avatarUrl, color)
                 profilesById = MoimRepository.allProfiles().associateBy { it.id }
                 MoimRepository.currentUserId()?.let { uid -> profilesById[uid]?.let { myProfile = it } }
                 onDone()

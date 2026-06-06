@@ -89,7 +89,7 @@
   .attpreview{position:absolute;left:0;right:0;bottom:100%;background:var(--paper);border-top:1px solid var(--line);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
   .attpreview.hidden{display:none}
   .readonly{padding:14px;background:#f3ede3;border-top:1px solid var(--line);text-align:center;font-size:12.5px;color:var(--sub);font-weight:600}
-  .files,.cal,.wardbody{padding:13px}
+  .files,.cal{padding:13px}
   .sortrow,.calmode{display:flex;gap:8px;margin-bottom:12px}
   .sb,.cm{flex:1;text-align:center;padding:8px;border-radius:10px;font-size:12.5px;font-weight:700;background:#fff;border:1px solid var(--line);color:var(--sub);cursor:pointer}
   .sb.on{background:var(--accent);color:#fff;border-color:var(--accent)}.cm.on{background:var(--me);color:var(--ink);border-color:var(--me)}
@@ -135,8 +135,17 @@
   .wday.wtoday{background:#fff8e0;border-radius:11px}.wdate{width:42px;text-align:center;flex-shrink:0}
   .wdate b{display:block;font-size:15px;font-weight:800}.wdate span{font-size:10.5px;color:var(--sub)}
   .wevents{flex:1;min-width:0}.noev{font-size:12px;color:#c4bcb2;padding:7px 2px}
-  .wardmemo{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;font-size:15px;line-height:1.7;min-height:120px}
-  .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical}
+  .wardbody{padding:13px;background:var(--bg)}
+  .warddoc{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+  .warddoc-accent{height:3px;border-radius:2px;background:#ea7317;margin-bottom:16px}
+  .warddoc-lbl{font-size:11px;font-weight:800;color:var(--sub);margin:0 0 4px}
+  .warddoc-time{font-size:20px;font-weight:800;line-height:1.35;color:var(--ink);margin:0 0 14px}
+  .warddoc-hr{border:none;border-top:1px solid var(--line);margin:0 0 14px}
+  .warddoc-body{white-space:pre-wrap;font-size:15px;line-height:1.7;color:var(--ink);margin:0}
+  .warddoc-empty{text-align:center;padding:24px 8px;color:var(--sub)}
+  .warddoc-empty .eb{font-size:36px;margin-bottom:8px}
+  .warddoc-empty b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
+  .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical;background:#fff}
   .card{background:#fff;border:1px solid var(--line);border-radius:15px;padding:15px;margin-bottom:13px}
   .card h3{font-size:11.5px;color:var(--sub);font-weight:800;text-transform:uppercase;margin-bottom:11px}
   .arow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(220,213,204,.5)}
@@ -1898,6 +1907,25 @@ async function deleteEvent(){
 async function openWard(){show('wardScreen');await loadWard();}
 async function loadWard(){const {data}=await sb.from('ward_status').select('*').eq('id',1).maybeSingle();
   wardText=data?data.content:'';wardUpdated=data?data.updated_at:null;renderWard(false);}
+function fmtWardPublish(iso){
+  const d=new Date(iso);
+  const dow=['일','월','화','수','목','금','토'][d.getDay()];
+  const time=d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});
+  return `${d.getMonth()+1}/${d.getDate()} (${dow}) ${time}`;
+}
+function wardViewHtml(){
+  let h=`<article class="warddoc"><div class="warddoc-accent"></div>`;
+  if(wardUpdated){
+    h+=`<p class="warddoc-lbl">게시</p><p class="warddoc-time">${fmtWardPublish(wardUpdated)}</p><hr class="warddoc-hr">`;
+  }
+  if(wardText.trim()){
+    h+=`<div class="warddoc-body">${esc(wardText)}</div>`;
+  }else{
+    h+=`<div class="warddoc-empty"><div class="eb">🛏</div><b>작성된 내용이 없습니다</b><div style="font-size:13px;line-height:1.5">우측 상단 ‘편집’을 눌러<br>잔여 병실 현황을 작성하세요.</div></div>`;
+  }
+  h+=`</article>`;
+  return h;
+}
 function renderWard(editing){
   const el=document.getElementById('wardBody');
   document.getElementById('wardEditBtn').textContent='편집';
@@ -1907,9 +1935,7 @@ function renderWard(editing){
       <button class="primary" onclick="wardSave()">게시</button>
       <button class="ghost" onclick="renderWard(false)">취소</button>`;
   }else{
-    const upd=wardUpdated?new Date(wardUpdated).toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):'';
-    el.innerHTML=(upd?`<div style="font-size:11px;color:var(--sub);margin-bottom:8px">최종 수정: ${upd}</div>`:'')
-      +(wardText.trim()?`<div class="wardmemo">${esc(wardText)}</div>`:`<div class="emptybox"><div class="eb">🛏</div><b>작성된 내용이 없습니다</b><div style="font-size:13px">‘편집’으로 작성하세요.</div></div>`);
+    el.innerHTML=wardViewHtml();
   }
 }
 function wardEdit(){renderWard(true);}

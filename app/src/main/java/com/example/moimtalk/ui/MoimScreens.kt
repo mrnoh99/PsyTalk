@@ -71,6 +71,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -82,6 +83,10 @@ import androidx.compose.ui.unit.sp
 import com.example.moimtalk.MoimViewModel
 import com.example.moimtalk.R
 import com.example.moimtalk.data.LastMsg
+import java.time.OffsetDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 import com.example.moimtalk.data.Message
 import com.example.moimtalk.data.MoimRepository
 import com.example.moimtalk.data.Profile
@@ -2005,6 +2010,70 @@ private fun PinIcon(t: String, color: Color = MoimAccent, onClick: () -> Unit) {
 }
 
 // 잔여 병실 현황 — 메모 형식 자유 텍스트 (편집 → 게시, 모두에게 공유)
+private val WARD_ACCENT = Color(0xFFEA7317)
+private val WARD_KST = ZoneId.of("Asia/Seoul")
+private val WARD_DOW = arrayOf("월", "화", "수", "목", "금", "토", "일")
+
+private fun wardPublishLabel(iso: String?): String? {
+    if (iso.isNullOrBlank()) return null
+    return runCatching {
+        val z = OffsetDateTime.parse(iso).atZoneSameInstant(WARD_KST)
+        val dow = WARD_DOW[z.dayOfWeek.value - 1]
+        val d = z.format(DateTimeFormatter.ofPattern("M/d", Locale.KOREAN))
+        val t = z.format(DateTimeFormatter.ofPattern("a h:mm", Locale.KOREAN))
+        "$d ($dow) $t"
+    }.getOrNull()
+}
+
+@Composable
+private fun WardStatusDocument(content: String, publishLabel: String?) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(3.dp, RoundedCornerShape(16.dp), ambientColor = Color.Black.copy(alpha = 0.08f))
+            .clip(RoundedCornerShape(16.dp))
+            .background(MoimWhite)
+            .border(1.dp, MoimLine, RoundedCornerShape(16.dp))
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(3.dp)
+                .background(WARD_ACCENT, RoundedCornerShape(2.dp)),
+        )
+        Spacer(Modifier.height(16.dp))
+        if (publishLabel != null) {
+            Text("게시", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(4.dp))
+            Text(publishLabel, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 28.sp)
+            Spacer(Modifier.height(14.dp))
+            HorizontalDivider(color = MoimLine)
+            Spacer(Modifier.height(14.dp))
+        }
+        if (content.isBlank()) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("🛏", fontSize = 36.sp)
+                Spacer(Modifier.height(8.dp))
+                Text("작성된 내용이 없습니다", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MoimInk)
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "우측 상단 ‘편집’을 눌러\n잔여 병실 현황을 작성하세요.",
+                    fontSize = 13.sp,
+                    color = MoimSub,
+                    textAlign = TextAlign.Center,
+                    lineHeight = 20.sp,
+                )
+            }
+        } else {
+            Text(content, fontSize = 15.sp, color = MoimInk, lineHeight = 24.sp)
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
@@ -2012,13 +2081,7 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
     var draft by remember { mutableStateOf("") }
     LaunchedEffect(Unit) { vm.loadWardStatus() }
 
-    val updatedLabel = vm.wardStatusUpdatedAt?.let {
-        runCatching {
-            java.time.OffsetDateTime.parse(it)
-                .atZoneSameInstant(java.time.ZoneId.of("Asia/Seoul"))
-                .format(java.time.format.DateTimeFormatter.ofPattern("M/d HH:mm"))
-        }.getOrNull()
-    }
+    val publishLabel = wardPublishLabel(vm.wardStatusUpdatedAt)
 
     Scaffold(
         topBar = {
@@ -2039,13 +2102,13 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
         },
         containerColor = MoimPaper
     ) { pad ->
-        Column(
-            modifier = Modifier
-                .padding(pad)
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            if (editing) {
+        if (editing) {
+            Column(
+                modifier = Modifier
+                    .padding(pad)
+                    .fillMaxSize()
+                    .padding(16.dp),
+            ) {
                 OutlinedTextField(
                     value = draft,
                     onValueChange = { draft = it },
@@ -2054,47 +2117,32 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
                         .weight(1f),
                     placeholder = {
                         Text("예:\n- 남자\n다인실: 0자리 (1자리 EICU 전과예정)\n3인실(APICU): 0자리")
-                    }
+                    },
                 )
                 Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Button(
                         onClick = { editing = false },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MoimLine, contentColor = MoimInk)
+                        colors = ButtonDefaults.buttonColors(containerColor = MoimLine, contentColor = MoimInk),
                     ) { Text("취소") }
                     Button(
                         onClick = { vm.saveWardStatus(draft) { editing = false } },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MoimAccent)
+                        colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
                     ) { Text("게시") }
                 }
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🛏", fontSize = 22.sp)
-                    Spacer(Modifier.width(8.dp))
-                    Text("잔여 병실 현황", fontWeight = FontWeight.ExtraBold, fontSize = 18.sp, color = MoimInk)
-                }
-                updatedLabel?.let {
-                    Spacer(Modifier.height(4.dp))
-                    Text("최종 수정: $it", fontSize = 11.sp, color = MoimSub)
-                }
-                Spacer(Modifier.height(14.dp))
-                if (vm.wardStatus.isBlank()) {
-                    EmptyBox("🛏", "작성된 내용이 없습니다", "우측 상단 ‘편집’을 눌러\n잔여 병실 현황을 작성하세요.")
-                } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                            .clip(RoundedCornerShape(15.dp))
-                            .background(MoimWhite)
-                            .padding(16.dp)
-                            .verticalScroll(rememberScrollState())
-                    ) {
-                        Text(vm.wardStatus, fontSize = 15.sp, color = MoimInk, lineHeight = 24.sp)
-                    }
-                }
+            }
+        } else {
+            Column(
+                modifier = Modifier
+                    .padding(pad)
+                    .fillMaxSize()
+                    .background(MoimBg)
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+            ) {
+                WardStatusDocument(content = vm.wardStatus, publishLabel = publishLabel)
             }
         }
     }

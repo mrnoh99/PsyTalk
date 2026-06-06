@@ -248,6 +248,8 @@ func msgPreview(_ lm: LastMsg?) -> String {
 /// 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
 func canRenameRoom(_ profile: Profile?, _ room: Room) -> Bool {
     guard let p = profile else { return false }
+    // 기본 방(과 전체공지·주간 학술활동 등 비-모임방)은 전체관리자만
+    if room.category != "custom" { return isSuperAdmin(p.role) }
     if isAdminRole(p.role) { return true }
     return room.createdBy != nil && room.createdBy == MoimRepository.currentUserId()
 }

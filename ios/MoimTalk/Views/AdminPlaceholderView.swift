@@ -177,6 +177,7 @@ struct AdminPlaceholderView: View {
             VStack(alignment: .leading, spacing: 1) {
                 Text(p.name).font(.system(size: 13.5, weight: .bold)).foregroundColor(Moim.ink)
                 Text("\(p.memberType) · 비활성").font(.system(size: 11.5)).foregroundColor(Moim.sub)
+                MemberContactLines(profile: p)
             }
             Spacer()
             Button { reactivateTarget = p } label: {
@@ -240,6 +241,7 @@ struct AdminPlaceholderView: View {
                     }
                 }
                 Text(p.memberType).font(.system(size: 11.5)).foregroundColor(Moim.sub)
+                MemberContactLines(profile: p)
                 if let intro = p.intro, !intro.isEmpty {
                     Text(intro).font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1)
                 }

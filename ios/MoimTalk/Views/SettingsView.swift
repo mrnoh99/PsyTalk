@@ -311,6 +311,7 @@ struct MemberSearchTab: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(p.name).font(.system(size: 14, weight: .bold)).foregroundColor(Moim.ink)
                 Text(p.memberType).font(.system(size: 11.5)).foregroundColor(Moim.sub)
+                MemberContactLines(profile: p)
                 if let intro = p.intro, !intro.isEmpty {
                     Text(intro).font(.system(size: 11.5)).foregroundColor(Moim.sub).lineLimit(1)
                 }

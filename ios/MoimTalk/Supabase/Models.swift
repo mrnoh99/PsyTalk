@@ -14,11 +14,12 @@ struct Profile: Codable, Identifiable, Hashable {
     var withdrawn: Bool?          // 탈퇴(비활성). true=글·자료는 남기되 활동·로그인 불가
     var phone: String?            // 전화번호
     var intro: String?            // 자기소개
+    var email: String?            // 이메일 (auth.users 와 동기화 — 회원 검색·관리 표시용)
     var avatarUrl: String?        // 프로필 사진(공개 URL)
     var color: String?            // 프로필 아바타 색상(hex)
 
     enum CodingKeys: String, CodingKey {
-        case id, name, role, approved, withdrawn, phone, intro, color
+        case id, name, role, approved, withdrawn, phone, intro, email, color
         case memberType = "member_type"
         case avatarUrl = "avatar_url"
     }

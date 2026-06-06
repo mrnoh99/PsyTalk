@@ -529,6 +529,7 @@ private fun MemberManageRow(p: Profile, vm: MoimViewModel) {
         Column(modifier = Modifier.weight(1f)) {
             Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
             Text("${p.memberType} · ${roleLabel(p.role)}", fontSize = 11.5.sp, color = MoimSub)
+            MemberContactLines(p)
             if (!p.intro.isNullOrBlank()) {
                 Text(p.intro!!, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
@@ -591,6 +592,7 @@ private fun MemberWithdrawnRow(p: Profile, vm: MoimViewModel) {
         Column(modifier = Modifier.weight(1f)) {
             Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
             Text("${p.memberType} · 비활성", fontSize = 11.5.sp, color = MoimSub)
+            MemberContactLines(p)
         }
         Text(
             "복구", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold,
@@ -1870,6 +1872,17 @@ private fun MemberSearchTab(vm: MoimViewModel, onOpenRoom: (Room) -> Unit) {
     }
 }
 
+// 회원 검색·관리 행의 연락처 줄 — 이메일·전화번호를 작은 글씨로 (있는 것만)
+@Composable
+private fun MemberContactLines(p: Profile) {
+    if (!p.email.isNullOrBlank()) {
+        Text("✉ ${p.email}", fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+    if (!p.phone.isNullOrBlank()) {
+        Text("☎ ${p.phone}", fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
 @Composable
 private fun MemberSearchRow(p: Profile, onMessage: () -> Unit) {
     Row(
@@ -1886,6 +1899,7 @@ private fun MemberSearchRow(p: Profile, onMessage: () -> Unit) {
         Column(modifier = Modifier.weight(1f)) {
             Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
             Text(p.memberType, fontSize = 11.5.sp, color = MoimSub)
+            MemberContactLines(p)
             if (!p.intro.isNullOrBlank()) {
                 Text(p.intro!!, fontSize = 11.5.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }

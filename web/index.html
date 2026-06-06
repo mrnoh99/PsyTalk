@@ -675,12 +675,20 @@ function renderMemberSearch(){
   const inp=document.getElementById('memSearchInput'); if(inp){inp.focus();inp.setSelectionRange(inp.value.length,inp.value.length);}
   renderMemberSearchList();
 }
+// 회원 검색·관리 행의 연락처 줄 — 이메일·전화번호를 작은 글씨로 (있는 것만)
+function contactLines(p){
+  let h='';
+  if(p.email)h+=`<div style="color:var(--sub);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">✉ ${esc(p.email)}</div>`;
+  if(p.phone)h+=`<div style="color:var(--sub);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">☎ ${esc(p.phone)}</div>`;
+  return h;
+}
 function memberSearchRow(p){
   const st=personAvatarStyle(p);
   return `<div style="display:flex;align-items:center;gap:11px;background:#fff;border-radius:12px;padding:11px;margin-bottom:8px">
     <div class="av" style="width:42px;height:42px;border-radius:13px;font-size:13px;cursor:${p.avatar_url?'pointer':'default'};${st}" ${p.avatar_url?`onclick="openImageView('${esc(p.avatar_url)}')"`:''}>${p.avatar_url?'':ini(p.name)}</div>
     <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(p.name||'?')}</div>
       <div style="color:var(--sub);font-size:11.5px">${esc(p.member_type||'')}</div>
+      ${contactLines(p)}
       ${p.intro?`<div style="color:var(--sub);font-size:11.5px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.intro)}</div>`:''}</div>
     <button onclick="startDirect('${p.id}')" style="background:var(--accent);color:#fff;border:none;border-radius:14px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0">메시지</button></div>`;
 }
@@ -1129,6 +1137,7 @@ function adminRow(p,right,sub){
     ${adminAvatar(p)}
     <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">${esc(p.name||'?')}</div>
     <div style="color:var(--sub);font-size:11.5px">${esc(sub||p.member_type||'')}</div>
+    ${contactLines(p)}
     ${p.intro?`<div style="color:var(--sub);font-size:11px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.intro)}</div>`:''}</div>${right||''}</div>`;
 }
 function renderApproval(){

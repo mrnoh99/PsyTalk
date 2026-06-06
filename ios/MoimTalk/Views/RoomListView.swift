@@ -42,6 +42,19 @@ struct PersonAvatarView: View {
     }
 }
 
+// 회원 검색·관리 행의 연락처 줄 — 이메일·전화번호를 작은 글씨로 (있는 것만)
+struct MemberContactLines: View {
+    let profile: Profile
+    var body: some View {
+        if let email = profile.email, !email.isEmpty {
+            Text("✉ \(email)").font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1)
+        }
+        if let phone = profile.phone, !phone.isEmpty {
+            Text("☎ \(phone)").font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1)
+        }
+    }
+}
+
 // 방표식(색상·사진) 편집기 — 생성/이름변경 공통
 struct RoomAppearanceEditor: View {
     let name: String

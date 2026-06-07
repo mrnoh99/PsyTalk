@@ -233,7 +233,7 @@
   .inputbar.notice-compose #msgInputNotice{display:block}
   .send{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0}
   .plus{background:none;border:1px solid var(--line);color:var(--sub);width:34px;height:34px;border-radius:50%;font-size:21px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
-  .attachmenu{position:absolute;bottom:52px;left:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:30}
+  .attachmenu{position:fixed;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:90}
   .attachmenu.on{display:flex}
   .ami{padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;border-radius:10px;white-space:nowrap}
   .ami:active,.ami:hover{background:var(--bg)}
@@ -2299,7 +2299,16 @@ async function sendMsg(){
 
 /* ====== 카톡식 + 첨부(사진/파일) — 공개 room-files 버킷, 선택 후 ➤ 로 전송 ====== */
 function resolveAttachments(){/* 공개 URL 이라 별도 처리 불필요 */}
-function toggleAttachMenu(e){if(e)e.stopPropagation();document.getElementById('attachMenu').classList.toggle('on');}
+function toggleAttachMenu(e){
+  if(e)e.stopPropagation();
+  const m=document.getElementById('attachMenu');
+  if(!m.classList.contains('on')){               // 열 때: + 버튼 바로 위에 고정 위치(부모 overflow 클리핑 회피)
+    const r=document.getElementById('plusBtn').getBoundingClientRect();
+    m.style.left=r.left+'px';
+    m.style.bottom=(window.innerHeight-r.top+8)+'px';
+  }
+  m.classList.toggle('on');
+}
 function pickAttach(kind){document.getElementById('attachMenu').classList.remove('on');document.getElementById(kind==='image'?'chatImgInput':'chatFileInput').click();}
 document.addEventListener('click',e=>{const m=document.getElementById('attachMenu');if(m&&m.classList.contains('on')&&!e.target.closest('#attachMenu')&&e.target.id!=='plusBtn')m.classList.remove('on');});
 // 선택 시 바로 보내지 않고 '대기'에 담는다 → ➤ 누르면 전송

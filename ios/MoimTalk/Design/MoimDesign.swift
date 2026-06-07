@@ -47,11 +47,11 @@ func byName(_ a: Profile, _ b: Profile) -> Bool {
 let BUG_REPORT_ROOM_ID = "11111111-1111-1111-1111-111111110013"
 
 func bugReportRoom(_ rooms: [Room]) -> Room? {
-    rooms.first { $0.id == BUG_REPORT_ROOM_ID } ?? rooms.first { $0.category == "bugreport" }
+    rooms.first { $0.id == BUG_REPORT_ROOM_ID }
 }
 
 func isBugReportRoom(_ room: Room) -> Bool {
-    room.id == BUG_REPORT_ROOM_ID || room.category == "bugreport"
+    room.id == BUG_REPORT_ROOM_ID
 }
 
 /// 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본

@@ -595,8 +595,8 @@ async function loadRoomPins(){
 }
 // 주간 학술활동(바)을 제외한 방 목록
 // 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입(room_members)한 것만. (관리자 콘솔은 전체 rooms 사용)
-function bugReportRoom(){ return rooms.find(r=>r.id===BUG_REPORT_ROOM_ID)||rooms.find(r=>r.category==='bugreport')||null; }
-function isBugReportRoom(r){ return r&&(r.id===BUG_REPORT_ROOM_ID||r.category==='bugreport'); }
+function bugReportRoom(){ return rooms.find(r=>r.id===BUG_REPORT_ROOM_ID)||null; }
+function isBugReportRoom(r){ return r&&r.id===BUG_REPORT_ROOM_ID; }
 function flatRoomList(){
   const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week');
   const br=bugReportRoom();

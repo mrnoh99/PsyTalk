@@ -179,10 +179,10 @@ fun isDirect(room: Room): Boolean = room.category == "direct"
 const val BUG_REPORT_ROOM_ID = "11111111-1111-1111-1111-111111110013"
 
 fun bugReportRoom(rooms: List<Room>): Room? =
-    rooms.find { it.id == BUG_REPORT_ROOM_ID } ?: rooms.find { it.category == "bugreport" }
+    rooms.find { it.id == BUG_REPORT_ROOM_ID }
 
 fun isBugReportRoom(room: Room): Boolean =
-    room.id == BUG_REPORT_ROOM_ID || room.category == "bugreport"
+    room.id == BUG_REPORT_ROOM_ID
 
 /** 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본 */
 fun opensWeekCalendar(room: Room): Boolean =

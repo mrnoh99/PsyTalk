@@ -254,10 +254,10 @@ struct RoomListView: View {
                     .clipShape(Capsule())
                     .overlay(Capsule().stroke(theme.dark ? Moim.line : Color.clear, lineWidth: 1))
                 Spacer()
-                // 관리자 진입: admin='가입승인' / superadmin='관리자모드'
+                // 관리자 진입: admin·비서='가입승인' / superadmin='관리자모드'
                 if vm.myProfile?.role == "superadmin" {
                     Button("관리자모드") { onAdmin() }.font(.system(size: 12, weight: .bold)).foregroundColor(Moim.admin)
-                } else if vm.myProfile?.role == "admin" {
+                } else if vm.myProfile?.role == "admin" || vm.myProfile?.memberType == "비서" {
                     Button("가입승인") { onAdmin() }.font(.system(size: 12, weight: .bold)).foregroundColor(Moim.admin)
                 }
                 // 설정(⚙️): 내 정보 / 방 순서 / 회원 검색 + 회원 탈퇴

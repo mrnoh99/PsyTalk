@@ -296,9 +296,15 @@ fun isAdminRole(role: String): Boolean = role == "superadmin" || role == "admin"
 
 fun isSuperAdmin(role: String): Boolean = role == "superadmin"
 
+/** 비서 직군: 가입 승인 + 전체공지 작성 가능(관리자에 준함) */
+fun canApprove(profile: Profile?): Boolean {
+    if (profile == null) return false
+    return isAdminRole(profile.role) || profile.memberType == "비서"
+}
+
 fun canPostInRoom(profile: Profile?, room: Room): Boolean {
     if (profile == null) return false
-    if (isAdminRole(profile.role)) return true
+    if (isAdminRole(profile.role) || profile.memberType == "비서") return true
     return room.postPolicy != "restricted"
 }
 

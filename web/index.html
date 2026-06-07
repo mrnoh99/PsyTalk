@@ -1365,6 +1365,9 @@ const tcolor=t=>TYPE_COLOR[t]||'#888';
 const nameOf=id=>(profilesById[id]||{}).name||'?';
 const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const isAdmin=()=>me&&(me.role==='superadmin'||me.role==='admin');
+// 비서 직군: 가입 승인 + 전체공지 작성 가능(관리자에 준함)
+const isSecretary=()=>!!me&&me.member_type==='비서';
+const canApprove=()=>isAdmin()||isSecretary();
 // ward 편집: 관리자 또는 직군 교실·의국·간호사("병동")
 const canEditWard=()=>!!me&&(isAdmin()||['교실','의국','간호사'].includes(me.member_type));
 const canEditWardDuty=()=>!!me&&(isAdmin()||['교실','의국','비서'].includes(me.member_type));
@@ -1634,7 +1637,7 @@ function renderRoomList(){
   // 관리자 진입: 헤더(설정 옆) 버튼 — admin='가입승인' / superadmin='관리자모드'
   const ab=document.getElementById('adminEntryBtn');
   if(me.role==='superadmin'){ab.textContent='관리자모드';ab.style.display='';}
-  else if(me.role==='admin'){ab.textContent='가입승인';ab.style.display='';}
+  else if(me.role==='admin'||isSecretary()){ab.textContent='가입승인';ab.style.display='';}
   else ab.style.display='none';
   const notice=noticeTopRoom();
   let h='';
@@ -1665,7 +1668,7 @@ async function reloadProfiles(){
   profilesById={};(data||[]).forEach(p=>profilesById[p.id]=p);
 }
 let adminTab='approval';
-function openAdmin(){ if(!isAdmin())return; adminTab='approval'; openListSlideOverlay('adminScreen'); renderAdminTabs(); renderAdmin(); }
+function openAdmin(){ if(!canApprove())return; adminTab='approval'; openListSlideOverlay('adminScreen'); renderAdminTabs(); renderAdmin(); }
 async function closeAdmin(){ await closeListSlideOverlay('adminScreen'); }
 function renderAdminTabs(){
   const sup=me.role==='superadmin';
@@ -1782,7 +1785,7 @@ async function reactivateUser(id){
 }
 
 /* ====== 방 열기 ====== */
-const canPost=r=>isAdmin()||r.post_policy!=='restricted';
+const canPost=r=>isAdmin()||isSecretary()||r.post_policy!=='restricted';
 const opensWeekCal=r=>r.default_view==='week'&&r.category!=='custom'&&r.category!=='direct'&&!isBugReportRoom(r);
 // 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
 // 기본 방(과 전체공지·주간 학술활동 등 비-모임방)은 전체관리자만, 모임방은 관리자 또는 생성자

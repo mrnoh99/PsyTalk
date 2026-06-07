@@ -23,9 +23,11 @@
   DB 트리거(`protect_superadmin.sql`)로 **퇴출(미승인)·강등·삭제 불가**, UI 목록에서도 제외.
 - **admin** (관리자): superadmin이 지정, 공지·캘린더 작성 가능
 - **user** (회원): 소속 방에서 정책에 따라 읽기/쓰기
+- **비서**(member_type): 역할은 user 이지만 **가입 승인 + 전체공지 작성 + 당직표 작성** 가능
+  (관리자에 준함, 회원 관리·방 관리는 불가). 클라이언트 헬퍼 `canApprove`/`canPostInRoom` + `secretary_perms.sql`.
 
 ### 공지 방 작성 정책 (`post_policy`)
-- `restricted`: superadmin + admin 만 작성 (예: 과 전체공지)
+- `restricted`: superadmin + admin + **비서** 만 작성 (예: 과 전체공지)
 - `members`: 방 참석 회원 누구나 작성
 
 ### 기본 방 2개 (`sort_order` 1~2) — 항상 상단 고정
@@ -146,8 +148,12 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
     전화번호는 **읽기 전용**, `device_type`(아이폰/안드로이드)·`device_email`만 본인이 변경. `moim_update_my_profile`
     에 `p_device_type`·`p_device_email` 추가(7인자). `profiles.phone_updated_at`(BEFORE UPDATE 트리거) +
     회원 명단 CSV 에 **가입일(created_at)·핸드폰 최종변경일(phone_updated_at)** 컬럼.
+33. `secretary_perms.sql` — **비서 직군 권한 확대**: `moim_approve_user` 를 admin/superadmin **또는 `비서`** 가
+    호출 가능하도록 갱신(가입 승인). 당직표 작성은 ward_duty.sql 에서 이미 비서 허용. 전체공지 작성은
+    클라이언트 `canPost`/`canApprove`(세 플랫폼)에서 비서 허용(messages INSERT 는 RLS 미강제이므로 SQL 불필요).
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 회원 8명(직군별). 운영 전 정리.
+> (선택) `seed_usage_guide.sql` — 전체공지 방에 「아주 정신 앱 사용법」 게시(superadmin 작성, 재실행 시 갱신).
 
 > `schema_extension.sql`이 `profiles` 조회를 "본인만→인증 사용자 전체"로 바꿉니다(작성자 이름 표시용).
 > 캘린더/자료실 작성은 현재 `owner=본인`만 검사하며, `room_members` 연동 시 강화 예정.

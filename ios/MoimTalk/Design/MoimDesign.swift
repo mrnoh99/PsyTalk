@@ -283,9 +283,15 @@ func roleLabel(_ role: String) -> String {
 func isAdminRole(_ role: String) -> Bool { role == "superadmin" || role == "admin" }
 func isSuperAdmin(_ role: String) -> Bool { role == "superadmin" }
 
+/// 비서 직군: 가입 승인 + 전체공지 작성 가능(관리자에 준함)
+func canApprove(_ profile: Profile?) -> Bool {
+    guard let p = profile else { return false }
+    return isAdminRole(p.role) || p.memberType == "비서"
+}
+
 func canPostInRoom(_ profile: Profile?, _ room: Room) -> Bool {
     guard let p = profile else { return false }
-    if isAdminRole(p.role) { return true }
+    if isAdminRole(p.role) || p.memberType == "비서" { return true }
     return room.postPolicy != "restricted"
 }
 

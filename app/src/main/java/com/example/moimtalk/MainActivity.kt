@@ -45,7 +45,7 @@ import com.example.moimtalk.ui.RoomListScreen
 import com.example.moimtalk.ui.RoomScreen
 import com.example.moimtalk.ui.SettingsScreen
 import com.example.moimtalk.ui.AdminConsoleScreen
-import com.example.moimtalk.ui.isAdminRole
+import com.example.moimtalk.ui.canApprove
 import com.example.moimtalk.ui.PendingApprovalScreen
 import com.example.moimtalk.ui.WardStatusScreen
 import kotlinx.coroutines.Job
@@ -1060,7 +1060,7 @@ fun App(vm: MoimViewModel = viewModel()) {
                     }
                 )
             }
-            SlideListOverlay(showApprovals && vm.myProfile?.let { isAdminRole(it.role) } == true) {
+            SlideListOverlay(showApprovals && canApprove(vm.myProfile)) {
                 AdminConsoleScreen(vm = vm, onBack = { showApprovals = false })
             }
             SlideListOverlay(showCreateRoom) {

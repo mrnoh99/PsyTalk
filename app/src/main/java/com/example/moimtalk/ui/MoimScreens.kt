@@ -701,10 +701,10 @@ fun RoomListScreen(
                     )
                     Spacer(Modifier.weight(1f))
                     TextButton(onClick = { vm.loadRooms() }) { Text("↻", fontSize = 17.sp) }
-                    // 관리자 진입: admin='가입승인' / superadmin='관리자모드'
-                    when (profile?.role) {
-                        "superadmin" -> TextButton(onClick = onApprovals) { Text("관리자모드", fontSize = 12.sp, color = MoimAdmin, fontWeight = FontWeight.Bold) }
-                        "admin" -> TextButton(onClick = onApprovals) { Text("가입승인", fontSize = 12.sp, color = MoimAdmin, fontWeight = FontWeight.Bold) }
+                    // 관리자 진입: admin·비서='가입승인' / superadmin='관리자모드'
+                    when {
+                        profile?.role == "superadmin" -> TextButton(onClick = onApprovals) { Text("관리자모드", fontSize = 12.sp, color = MoimAdmin, fontWeight = FontWeight.Bold) }
+                        profile?.role == "admin" || profile?.memberType == "비서" -> TextButton(onClick = onApprovals) { Text("가입승인", fontSize = 12.sp, color = MoimAdmin, fontWeight = FontWeight.Bold) }
                     }
                     // 설정(⚙️): 내 정보 / 방 순서 / 회원 검색
                     TextButton(onClick = onSettings) { Text("⚙️", fontSize = 15.sp) }

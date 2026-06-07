@@ -291,7 +291,7 @@ struct EventCard: View {
         if compact {
             HStack(alignment: .top, spacing: 11) {
                 RoundedRectangle(cornerRadius: 4).fill(catColor("notice")).frame(width: 4, height: 56)
-                Text(eventPreviewText(event, vm: vm))
+                Text(eventPreviewText(event, ownerName: vm.name(of: event.ownerId)))
                     .font(.system(size: 12.5))
                     .foregroundColor(Moim.ink)
                     .lineSpacing(3)
@@ -308,10 +308,10 @@ struct EventCard: View {
     }
 }
 
-private func eventPreviewText(_ event: CalendarEvent, vm: MoimViewModel) -> String {
+private func eventPreviewText(_ event: CalendarEvent, ownerName: String) -> String {
     var lines: [String] = [event.title, "📅 \(CalDate.timeLabel(event.startAt))"]
     if let p = event.place, !p.isEmpty { lines[1] += " · 📍 \(p)" }
-    lines.append("👤 발표자 \((event.presenter?.isEmpty == false) ? event.presenter! : vm.name(of: event.ownerId))")
+    lines.append("👤 발표자 \((event.presenter?.isEmpty == false) ? event.presenter! : ownerName)")
     if let s = event.scope, !s.isEmpty { lines.append("참석 \(s)") }
     if let d = event.description, !d.isEmpty { lines.append(d) }
     let atts = event.attachmentList

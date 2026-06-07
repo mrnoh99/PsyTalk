@@ -80,6 +80,7 @@ final class MoimViewModel: ObservableObject {
             onWard: { await self.loadWardStatusFromRealtime() },
             onRoomData: { await self.refreshActiveRoom($0) }
         )
+        await loadProfilesFromRealtime()
     }
 
     /// 앱 복귀·다른 클라이언트 변경 반영
@@ -156,12 +157,15 @@ final class MoimViewModel: ObservableObject {
                 // 이메일 또는 핸드폰번호 로그인: @ 없으면 핸드폰번호로 보고 이메일을 조회
                 var email = idInput
                 if !idInput.contains("@") {
-                    if let found = try? await MoimRepository.emailForPhone(idInput), let e = found { email = e }
+                    if let e = try? await MoimRepository.emailForPhone(idInput) { email = e }
                     else { throw NSError(domain: "moim", code: 1, userInfo: [NSLocalizedDescriptionKey: "등록되지 않은 핸드폰번호입니다. 이메일로 로그인하거나 번호를 확인하세요."]) }
                 }
                 try await MoimRepository.signIn(email: email, password: password)
                 myProfile = try await MoimRepository.myProfile()
                 rooms = try await MoimRepository.rooms()
+                if let list = try? await MoimRepository.allProfiles() {
+                    profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+                }
                 loggedIn = true
                 bindRealtime()
             } catch {
@@ -183,6 +187,10 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    func loadProfiles() {
+        Task { await loadProfilesFromRealtime() }
+    }
+
     func loadRooms() {
         Task {
             do {
@@ -193,9 +201,7 @@ final class MoimViewModel: ObservableObject {
                 loadUnreadCounts()
                 loadLastMessages()
                 loadRoomPins()
-                if let list = try? await MoimRepository.allProfiles() {
-                    profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
-                }
+                await loadProfilesFromRealtime()
             } catch {
                 self.error = "데이터 불러오기: \(error.localizedDescription)"
             }
@@ -642,16 +648,16 @@ final class MoimViewModel: ObservableObject {
     }
 
     /// 비밀번호 변경 (전체관리자 계정은 변경 불가 — 클라이언트 1차 방어 + DB 트리거 최종 강제)
-    func changeMyPassword(_ newPassword: String, onResult: @escaping (Result<String, String>) -> Void) {
+    func changeMyPassword(_ newPassword: String, onResult: @escaping (Bool, String) -> Void) {
         if (myProfile?.role == "superadmin") {
-            onResult(.failure("전체관리자 계정의 비밀번호는 변경할 수 없습니다."))
+            onResult(false, "전체관리자 계정의 비밀번호는 변경할 수 없습니다.")
             return
         }
         Task {
             do {
                 try await MoimRepository.changePassword(newPassword)
-                onResult(.success("비밀번호가 변경되었습니다."))
-            } catch { onResult(.failure("변경 실패: \(error.localizedDescription)")) }
+                onResult(true, "비밀번호가 변경되었습니다.")
+            } catch { onResult(false, "변경 실패: \(error.localizedDescription)") }
         }
     }
 

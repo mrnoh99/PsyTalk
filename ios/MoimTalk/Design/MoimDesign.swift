@@ -283,6 +283,16 @@ func roleLabel(_ role: String) -> String {
 func isAdminRole(_ role: String) -> Bool { role == "superadmin" || role == "admin" }
 func isSuperAdmin(_ role: String) -> Bool { role == "superadmin" }
 
+/// 가입 승인 대기(미승인·미탈퇴, superadmin 제외) — approved 가 true 가 아니면 대기
+func isSignupPending(_ p: Profile) -> Bool {
+    p.role != "superadmin" && p.withdrawn != true && p.approved != true
+}
+
+/// 승인된 활성 회원(superadmin 제외)
+func isApprovedMember(_ p: Profile) -> Bool {
+    p.role != "superadmin" && p.withdrawn != true && p.approved == true
+}
+
 /// 비서 직군: 가입 승인 + 전체공지 작성 가능(관리자에 준함)
 func canApprove(_ profile: Profile?) -> Bool {
     guard let p = profile else { return false }
@@ -306,7 +316,7 @@ func wardDutyTone(_ date: Date) -> WardDutyTone {
 
 func dutyMembersByType(_ profiles: [String: Profile], memberType: String) -> [Profile] {
     profiles.values
-        .filter { $0.memberType == memberType && $0.approved && !$0.withdrawn }
+        .filter { $0.memberType == memberType && ($0.approved ?? true) && $0.withdrawn != true }
         .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
 }
 

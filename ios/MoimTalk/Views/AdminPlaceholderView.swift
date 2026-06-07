@@ -25,8 +25,7 @@ struct AdminPlaceholderView: View {
 
     // 회원 관리 명단: 승인됨 + 미탈퇴 (전체관리자 제외). 이름순일 때 관리자(admin)를 맨 위로.
     private var members: [Profile] {
-        vm.profilesById.values
-            .filter { $0.role != "superadmin" && $0.withdrawn != true && ($0.approved == true) }
+        vm.profilesById.values.filter(isApprovedMember)
             .sorted { a, b in
                 let aa = a.role == "admin" ? 0 : 1
                 let bb = b.role == "admin" ? 0 : 1
@@ -51,7 +50,7 @@ struct AdminPlaceholderView: View {
 
     // 가입 승인 대기: 미승인 + 미탈퇴 (전체관리자 제외)
     private var pendingCount: Int {
-        vm.profilesById.values.filter { $0.role != "superadmin" && $0.withdrawn != true && $0.approved == false }.count
+        vm.profilesById.values.filter(isSignupPending).count
     }
 
     var body: some View {
@@ -92,7 +91,7 @@ struct AdminPlaceholderView: View {
             }
         }
         .background(Moim.paper.ignoresSafeArea())
-        .onAppear { tab = initialTab }
+        .onAppear { tab = initialTab; vm.loadProfiles() }
         .alert("이름 변경", isPresented: $showRename) {
             TextField("이름", text: $renameText)
             Button("저장") { vm.setName(renameTargetId, to: renameText) }
@@ -222,7 +221,7 @@ struct AdminPlaceholderView: View {
     private func memberRow(_ p: Profile) -> some View {
         let role: (Color, String) = p.role == "superadmin" ? (Moim.admin, "전체관리자")
             : p.role == "admin" ? (Color(hex: 0xB5651D), "관리자") : (Moim.line, "회원")
-        let pending = p.approved == false
+        let pending = isSignupPending(p)
         return HStack(spacing: 10) {
             PersonAvatarView(profile: p, size: 36, corner: 11, font: 13)
             VStack(alignment: .leading, spacing: 1) {

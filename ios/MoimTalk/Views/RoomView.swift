@@ -650,7 +650,8 @@ struct NoticePostCard: View {
     }
 
     private var caption: String? {
-        message.content?.trimmingCharacters(in: .whitespacesAndNewlines).flatMap { $0.isEmpty ? nil : $0 }
+        guard let text = message.content?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else { return nil }
+        return text
     }
 
     private func copyNoticeText() {

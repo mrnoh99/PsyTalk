@@ -42,14 +42,14 @@ object MemberCsvExport {
             "이름", "직군", "역할", "로그인 이메일", "핸드폰번호", "핸드폰 종류",
             "연결 이메일(앱설치)", "자기소개", "승인", "가입일", "핸드폰 최종변경일",
         )
-        val rows = profiles.filter { !it.withdrawn }.sortedBy { it.name }
+        val rows = profiles.filter { it.withdrawn != true }.sortedBy { it.name }
         val lines = mutableListOf(header.joinToString(","))
         for (p in rows) {
             lines.add(
                 listOf(
                     p.name, p.memberType, roleLbl(p.role), p.email, p.phone,
                     deviceLabel(p.deviceType), p.deviceEmail, p.intro,
-                    if (p.approved) "승인" else "대기",
+                    if (p.approved == true) "승인" else "대기",
                     fmtDate(p.createdAt), fmtDate(p.phoneUpdatedAt),
                 ).map { csvCell(it) }.joinToString(","),
             )

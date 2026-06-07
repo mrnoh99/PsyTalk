@@ -171,7 +171,7 @@ struct RoomListView: View {
     @State private var dmToDelete: Room?   // 1:1 대화 스와이프 삭제 대상
 
     private var pendingApprovalCount: Int {
-        vm.profilesById.values.filter { $0.role != "superadmin" && $0.withdrawn != true && $0.approved == false }.count
+        vm.profilesById.values.filter(isSignupPending).count
     }
 
     // 주간 학술활동(default_view=week)은 목록에서 빼고 별도 바로 표시. 나머지는 전체방(첫번째)+모임방 평면 목록.

@@ -10,11 +10,6 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-val localProperties = Properties().apply {
-    val f = rootProject.file("local.properties")
-    if (f.exists()) load(FileInputStream(f))
-}
-
 val keystoreProperties = Properties().apply {
     val f = rootProject.file("keystore.properties")
     if (f.exists()) load(FileInputStream(f))
@@ -30,12 +25,6 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        // local.properties: onesignal.app.id=... (docs/PUBLISH_ANDROID.md)
-        buildConfigField(
-            "String",
-            "ONESIGNAL_APP_ID",
-            "\"${localProperties.getProperty("onesignal.app.id", "").replace("\"", "\\\"")}\"",
-        )
     }
 
     signingConfigs {
@@ -65,7 +54,6 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true
     }
 }
 
@@ -105,12 +93,4 @@ dependencies {
 
     // --- 이미지 로딩 (채팅 사진 첨부 표시) ---
     implementation("io.coil-kt:coil-compose:2.7.0")
-
-    // --- 푸시 알림 (OneSignal) ---
-    implementation("com.onesignal:OneSignal:5.1.6")
-}
-
-// FCM 연동: app/google-services.json 이 있을 때만 플러그인 적용
-if (file("google-services.json").exists()) {
-    apply(plugin = "com.google.gms.google-services")
 }

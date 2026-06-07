@@ -1,6 +1,8 @@
 # 푸시 알림 설정 (OneSignal) — 새 메시지 알림
 
-앱(iOS·Android) 코드와 발송 함수는 이미 들어가 있습니다. **아래 외부 설정만** 하면 알림이 동작합니다.
+> **현재 상태:** iOS·Android 앱에서 OneSignal 연동은 **사용하지 않습니다**. 아래는 나중에 푸시를 도입할 때 참고용입니다.
+
+Supabase Edge Function `notify-message` 는 저장소에 남아 있습니다. 앱 연동을 다시 넣은 뒤 **아래 외부 설정**을 하면 알림이 동작합니다.
 구조: 앱이 OneSignal에 등록(external_id = Supabase 사용자 id) → 새 메시지 INSERT 시 Supabase
 Database Webhook → Edge Function `notify-message` → OneSignal REST API로 그 방 구성원(보낸이 제외)에게 푸시.
 

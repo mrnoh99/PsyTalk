@@ -211,7 +211,6 @@ class MoimViewModel : ViewModel() {
                     rooms = MoimRepository.rooms()
                     profilesById = runCatching { MoimRepository.allProfiles().associateBy { it.id } }.getOrDefault(emptyMap())
                     loggedIn = true
-                    MoimRepository.currentUserId()?.let { Push.login(it) }
                     ensureRealtime()
                     startRoomListPolling()
                 } else {
@@ -245,7 +244,6 @@ class MoimViewModel : ViewModel() {
                     throw Exception("방 목록 조회: ${e.message}", e)
                 }
                 loggedIn = true
-                MoimRepository.currentUserId()?.let { Push.login(it) }
                 ensureRealtime()
                 startRoomListPolling()
             } catch (e: Exception) {
@@ -262,7 +260,6 @@ class MoimViewModel : ViewModel() {
 
     fun logout() {
         stopRoomListPolling()
-        Push.logout()
         MoimRealtimeSync.stop(viewModelScope)
         viewModelScope.launch {
             try {

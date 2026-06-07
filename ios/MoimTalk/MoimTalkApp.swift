@@ -3,10 +3,7 @@ import UIKit
 
 @main
 struct MoimTalkApp: App {
-    init() {
-        Push.configure()
-        if let uid = MoimRepository.currentUserId() { Push.login(uid) }
-    }
+    init() {}
     var body: some Scene {
         WindowGroup { RootView() }
     }

@@ -10,9 +10,6 @@ packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift
     from: "2.0.0"
-  OneSignal:
-    url: https://github.com/OneSignal/OneSignal-iOS-SDK
-    from: "5.0.0"
 targets:
   MoimTalk:
     type: application
@@ -22,8 +19,6 @@ targets:
     dependencies:
       - package: Supabase
         product: Supabase
-      - package: OneSignal
-        product: OneSignalFramework
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.moimtalk

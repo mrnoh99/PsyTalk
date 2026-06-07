@@ -179,7 +179,6 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 멀티 방 게시 · `room_writers` 연동(예정)
 (안 읽음 배지 ✅ · 메시지별 안읽은 수 ✅ · 캘린더 이동/복귀 ✅)
 
-## 푸시 알림 (OneSignal)
-- 앱 코드(iOS `Push.swift`·Android `Push.kt`·`MoimApp`)와 발송 함수(`supabase/functions/notify-message`)는 구현됨.
-- **외부 설정 필요**(OneSignal 가입·Apple APNs 키·Firebase FCM·App ID 교체·Edge Function 배포·Database Webhook):
-  **`docs/PUSH_SETUP.md`** 단계대로. 새 메시지 → 방 구성원(보낸이 제외)에게 푸시.
+## 푸시 알림 (OneSignal) — **현재 미사용**
+- 앱(iOS·Android)에서 OneSignal 연동은 **제외**됨. 새 메시지는 Realtime·앱 내 안읽음 배지로 확인.
+- 나중에 도입 시: `supabase/functions/notify-message` + **`docs/PUSH_SETUP.md`** 참고.

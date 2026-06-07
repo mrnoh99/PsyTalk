@@ -50,7 +50,6 @@ final class MoimViewModel: ObservableObject {
                         profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                     }
                     loggedIn = true
-                    if let uid = MoimRepository.currentUserId() { Push.login(uid) }
                     bindRealtime()
                 } else {
                     notice = "가입이 접수되었습니다. 전체관리자 승인 후 로그인하여 이용할 수 있습니다."
@@ -163,7 +162,6 @@ final class MoimViewModel: ObservableObject {
                 myProfile = try await MoimRepository.myProfile()
                 rooms = try await MoimRepository.rooms()
                 loggedIn = true
-                if let uid = MoimRepository.currentUserId() { Push.login(uid) }
                 bindRealtime()
             } catch {
                 loggedIn = false
@@ -176,7 +174,6 @@ final class MoimViewModel: ObservableObject {
 
     func logout() {
         stopMessagePolling()
-        Push.logout()
         Task {
             await MoimRealtimeSync.shared.stop()
             try? await MoimRepository.signOut()

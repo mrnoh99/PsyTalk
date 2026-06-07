@@ -2220,10 +2220,12 @@ function openMsgMenu(e,msgId,isNotice){
 function pickMenuReact(id,em){toggleReaction(id,em);closeMsgMenu();}
 function pickMenuCopy(id){copyNotice(id);closeMsgMenu();}
 function pickMenuReply(id){
-  const m=msgById(id);if(m)setReply(m);
+  const m=msgById(id);if(!m){closeMsgMenu();return;}
   closeMsgMenu();
-  // 답장 입력창(미리보기 포함)을 화면에 띄우고 포커스 — 메뉴 닫힌 뒤 DOM 안정화 후 실행
-  setTimeout(()=>{layoutChat();scrollMsgsToBottom();activeMsgInput()?.focus();},0);
+  // 답장 미리보기만 띄우고 스크롤 위치는 유지(바닥 이동·자동 포커스 없음)
+  const el=document.getElementById('msgs');const top=el?el.scrollTop:0;
+  setReply(m);
+  if(el)el.scrollTop=top;
 }
 document.addEventListener('click',e=>{const m=document.getElementById('msgMenu');if(m&&!m.classList.contains('hidden')&&!e.target.closest('#msgMenu')){if(Date.now()-msgMenuOpenedAt<600)return;closeMsgMenu();}});
 function bubbleBlockHtml(m){

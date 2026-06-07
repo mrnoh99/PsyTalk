@@ -503,8 +503,8 @@
         <div class="attpreview hidden" id="attachPreview"></div>
         <div class="inputbar" id="inputbar">
           <button class="plus" id="plusBtn" onclick="toggleAttachMenu(event)">＋</button>
-          <input id="msgInput" placeholder="메시지 입력" onkeydown="onMsgKeydown(event)" onfocus="scrollMsgsToBottom()">
-          <textarea id="msgInputNotice" placeholder="공지 내용 입력 (줄바꿈 가능)" onfocus="scrollMsgsToBottom()"></textarea>
+          <input id="msgInput" placeholder="메시지 입력" onkeydown="onMsgKeydown(event)" onfocus="msgInputFocus()">
+          <textarea id="msgInputNotice" placeholder="공지 내용 입력 (줄바꿈 가능)" onfocus="msgInputFocus()"></textarea>
           <button class="send" onclick="sendMsg()">➤</button>
           <input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="onAttachPicked(this,'image')">
           <input type="file" id="chatFileInput" style="display:none" onchange="onAttachPicked(this,'file')">
@@ -2275,7 +2275,7 @@ function renderMsgs(){
 }
 window.addEventListener('resize',layoutChat);
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize',()=>{layoutChat();if(document.activeElement===activeMsgInput())scrollMsgsToBottom();});
+  window.visualViewport.addEventListener('resize',()=>{layoutChat();if(document.activeElement===activeMsgInput()&&!replyTarget)scrollMsgsToBottom();});
 }
 function isNoticeRoom(){return active&&noticeTopRoom()&&noticeTopRoom().id===active.id;}
 function activeMsgInput(){return (isNoticeRoom()||isBugReportRoom(active))?document.getElementById('msgInputNotice'):document.getElementById('msgInput');}
@@ -2294,6 +2294,8 @@ function onMsgKeydown(e){
   e.preventDefault();
   sendMsg();
 }
+// 답장 중에는 입력창 포커스 시 위치 유지(바닥 이동 안 함). 일반 입력은 바닥으로.
+function msgInputFocus(){ if(!replyTarget) scrollMsgsToBottom(); }
 async function sendMsg(){
   const i=activeMsgInput(),t=i.value.trim();
   if(pendingAttach){
@@ -2301,6 +2303,7 @@ async function sendMsg(){
     if(!ok)return;
     i.value='';
     await loadMsgs();
+    scrollMsgsToBottom();   // 보내면 최근으로 복귀
     return;
   }
   if(t){
@@ -2312,6 +2315,7 @@ async function sendMsg(){
     if(error){alert('전송 실패: '+error.message);return;}
   }
   await loadMsgs();
+  scrollMsgsToBottom();   // 보내면 최근으로 복귀
 }
 
 /* ====== 카톡식 + 첨부(사진/파일) — 공개 room-files 버킷, 선택 후 ➤ 로 전송 ====== */

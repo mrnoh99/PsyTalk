@@ -138,9 +138,10 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 30. `signup_device.sql` — **(웹 가입) 사용 핸드폰 종류 + 앱 설치용 연결 이메일**: `profiles.device_type`('iphone'|'android')·
     `profiles.device_email`. **웹 가입 폼에서만** 수집(필수), 메타데이터 → profiles 채움(moim_fill_signup_extra 갱신).
     전체관리자 콘솔 '회원 관리'의 **📥 회원 명단 엑셀(CSV) 다운로드**로 내보내 TestFlight/내부테스터 초대에 사용.
-31. `profile_phone_edit.sql` — **(웹) 내 정보에서 전화번호·핸드폰 종류 변경 + 전화번호 최종변경일**: `profiles.phone_updated_at`
-    (BEFORE UPDATE 트리거로 전화번호 바뀔 때만 갱신) + `moim_update_my_profile` 에 `p_phone`·`p_device_type` 추가.
-    회원 명단 CSV 에 **가입일(created_at)·핸드폰 최종변경일(phone_updated_at)** 컬럼 포함.
+31. `profile_phone_edit.sql` — **내 정보에서 핸드폰 종류·앱 설치용 이메일 변경**(세 플랫폼) + 전화번호 최종변경일:
+    전화번호는 **읽기 전용**, `device_type`(아이폰/안드로이드)·`device_email`만 본인이 변경. `moim_update_my_profile`
+    에 `p_device_type`·`p_device_email` 추가(7인자). `profiles.phone_updated_at`(BEFORE UPDATE 트리거) +
+    회원 명단 CSV 에 **가입일(created_at)·핸드폰 최종변경일(phone_updated_at)** 컬럼.
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 회원 8명(직군별). 운영 전 정리.
 

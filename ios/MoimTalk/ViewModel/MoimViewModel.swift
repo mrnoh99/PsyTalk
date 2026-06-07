@@ -556,7 +556,7 @@ final class MoimViewModel: ObservableObject {
     @Published var pendingOpenRoom: Room?
 
     /// 내 정보 저장: 새 사진이 있으면 먼저 업로드 후 intro/member_type/avatar_url/color 갱신
-    func saveMyInfo(intro: String, memberType: String, color: String?, avatarData: Data?, avatarExt: String?, clearAvatar: Bool, onDone: @escaping () -> Void) {
+    func saveMyInfo(intro: String, memberType: String, color: String?, avatarData: Data?, avatarExt: String?, clearAvatar: Bool, deviceType: String? = nil, deviceEmail: String? = nil, onDone: @escaping () -> Void) {
         Task {
             do {
                 var avatarUrl: String? = clearAvatar ? nil : myProfile?.avatarUrl
@@ -565,11 +565,14 @@ final class MoimViewModel: ObservableObject {
                 }
                 let trimmed = intro.trimmingCharacters(in: .whitespaces)
                 let mt = memberType.trimmingCharacters(in: .whitespaces)
+                let de = (deviceEmail ?? "").trimmingCharacters(in: .whitespaces)
                 try await MoimRepository.updateMyProfile(
                     intro: trimmed.isEmpty ? nil : trimmed,
                     memberType: mt.isEmpty ? nil : mt,
                     avatarUrl: avatarUrl,
-                    color: color
+                    color: color,
+                    deviceType: (deviceType?.isEmpty == false) ? deviceType : nil,
+                    deviceEmail: de.isEmpty ? nil : de
                 )
                 if let list = try? await MoimRepository.allProfiles() {
                     profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })

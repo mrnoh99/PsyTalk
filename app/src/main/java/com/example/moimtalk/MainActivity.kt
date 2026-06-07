@@ -610,6 +610,8 @@ class MoimViewModel : ViewModel() {
         avatarBytes: ByteArray?,
         avatarName: String?,
         clearAvatar: Boolean,
+        deviceType: String? = null,
+        deviceEmail: String? = null,
         onDone: () -> Unit = {},
     ) {
         viewModelScope.launch {
@@ -619,7 +621,8 @@ class MoimViewModel : ViewModel() {
                     avatarUrl = MoimRepository.uploadProfileAvatar(avatarName ?: "avatar.png", avatarBytes)
                 }
                 val trimmed = intro.trim().takeIf { it.isNotBlank() }
-                MoimRepository.updateMyProfile(trimmed, memberType.ifBlank { null }, avatarUrl, color)
+                MoimRepository.updateMyProfile(trimmed, memberType.ifBlank { null }, avatarUrl, color,
+                    deviceType?.ifBlank { null }, deviceEmail?.trim()?.ifBlank { null })
                 profilesById = MoimRepository.allProfiles().associateBy { it.id }
                 MoimRepository.currentUserId()?.let { uid -> profilesById[uid]?.let { myProfile = it } }
                 onDone()

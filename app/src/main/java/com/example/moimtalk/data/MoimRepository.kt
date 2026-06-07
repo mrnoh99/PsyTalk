@@ -293,12 +293,17 @@ object MoimRepository {
         supabase.from("profiles").select().decodeList()
 
     /** 내 정보 변경: 자기소개·직군·아바타 사진 URL·색상 (본인 안전 컬럼만, RPC SECURITY DEFINER) */
-    suspend fun updateMyProfile(intro: String?, memberType: String?, avatarUrl: String?, color: String?) {
+    suspend fun updateMyProfile(
+        intro: String?, memberType: String?, avatarUrl: String?, color: String?,
+        deviceType: String? = null, deviceEmail: String? = null,
+    ) {
         supabase.postgrest.rpc("moim_update_my_profile", buildJsonObject {
             put("p_intro", intro)
             put("p_member_type", memberType)
             put("p_avatar_url", avatarUrl)
             put("p_color", color)
+            put("p_device_type", deviceType)
+            put("p_device_email", deviceEmail)
         })
     }
 

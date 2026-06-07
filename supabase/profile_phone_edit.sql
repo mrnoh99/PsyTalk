@@ -1,8 +1,8 @@
 -- =============================================================================
--- profile_phone_edit.sql — 내 정보에서 전화번호·핸드폰 종류 변경 + 전화번호 최종변경일 기록
+-- profile_phone_edit.sql — 내 정보에서 핸드폰 종류·앱 설치용 이메일 변경 + 전화번호 최종변경일 기록
+--   · 전화번호 자체는 읽기 전용(변경 불가). device_type·device_email 만 본인이 변경.
 --   · profiles.phone_updated_at: 전화번호를 마지막으로 입력/변경한 시각(회원명단 표시).
---   · moim_update_my_profile 에 p_phone·p_device_type 추가(본인만). 빈 값이면 기존 유지.
---   · 전화번호가 실제로 바뀔 때만 phone_updated_at 갱신(BEFORE UPDATE 트리거).
+--   · moim_update_my_profile 에 p_device_type·p_device_email 추가(본인만). 빈 값이면 기존 유지.
 -- 실행 순서: ... profile_member_type.sql → signup_device.sql → (이 파일)
 -- 실행: Supabase SQL Editor (1회)
 -- =============================================================================
@@ -30,24 +30,26 @@ CREATE TRIGGER trg_profiles_track_phone
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.moim_track_phone_update();
 
--- moim_update_my_profile 에 전화번호·핸드폰 종류 추가 (4인자 구버전 제거 후 6인자로 재생성)
+-- moim_update_my_profile 에 핸드폰 종류·앱 설치용 이메일 추가 (전화번호는 읽기 전용 → 갱신 안 함).
+-- 구버전(4·6인자) 제거 후 7인자로 재생성.
 DROP FUNCTION IF EXISTS public.moim_update_my_profile(text, text, text, text);
+DROP FUNCTION IF EXISTS public.moim_update_my_profile(text, text, text, text, text, text);
 
 CREATE OR REPLACE FUNCTION public.moim_update_my_profile(
   p_intro        text DEFAULT NULL,
   p_avatar_url   text DEFAULT NULL,
   p_color        text DEFAULT NULL,
   p_member_type  text DEFAULT NULL,
-  p_phone        text DEFAULT NULL,
-  p_device_type  text DEFAULT NULL
+  p_device_type  text DEFAULT NULL,
+  p_device_email text DEFAULT NULL
 )
 RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
   mt_udt text;
   mt     text;
-  ph     text := NULLIF(trim(p_phone), '');
   dv     text := NULLIF(trim(p_device_type), '');
+  de     text := NULLIF(trim(p_device_email), '');
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION '로그인이 필요합니다.';
@@ -75,17 +77,17 @@ BEGIN
   ) THEN
     EXECUTE format(
       'UPDATE public.profiles SET intro=$1, avatar_url=$2, color=$3, member_type=$4::%I, '
-      || 'phone=COALESCE($5,phone), device_type=COALESCE($6,device_type) WHERE id=$7',
+      || 'device_type=COALESCE($5,device_type), device_email=COALESCE($6,device_email) WHERE id=$7',
       mt_udt
-    ) USING p_intro, p_avatar_url, p_color, mt, ph, dv, auth.uid();
+    ) USING p_intro, p_avatar_url, p_color, mt, dv, de, auth.uid();
   ELSE
     UPDATE public.profiles
-       SET intro       = p_intro,
-           avatar_url  = p_avatar_url,
-           color       = p_color,
-           member_type = COALESCE(mt, member_type),
-           phone       = COALESCE(ph, phone),
-           device_type = COALESCE(dv, device_type)
+       SET intro        = p_intro,
+           avatar_url   = p_avatar_url,
+           color        = p_color,
+           member_type  = COALESCE(mt, member_type),
+           device_type  = COALESCE(dv, device_type),
+           device_email = COALESCE(de, device_email)
      WHERE id = auth.uid();
   END IF;
 END;

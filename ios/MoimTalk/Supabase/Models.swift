@@ -17,11 +17,15 @@ struct Profile: Codable, Identifiable, Hashable {
     var email: String?            // 이메일 (auth.users 와 동기화 — 회원 검색·관리 표시용)
     var avatarUrl: String?        // 프로필 사진(공개 URL)
     var color: String?            // 프로필 아바타 색상(hex)
+    var deviceType: String?       // iphone | android (앱 설치용)
+    var deviceEmail: String?      // 앱 설치용 연결 이메일
 
     enum CodingKeys: String, CodingKey {
         case id, name, role, approved, withdrawn, phone, intro, email, color
         case memberType = "member_type"
         case avatarUrl = "avatar_url"
+        case deviceType = "device_type"
+        case deviceEmail = "device_email"
     }
 }
 

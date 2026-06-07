@@ -1971,6 +1971,8 @@ private fun MyInfoTab(vm: MoimViewModel) {
     var intro by remember(me?.id) { mutableStateOf(me?.intro ?: "") }
     var memberType by remember(me?.id) { mutableStateOf(me?.memberType ?: "의국") }
     var color by remember(me?.id) { mutableStateOf(me?.color ?: "") }
+    var deviceType by remember(me?.id) { mutableStateOf(me?.deviceType ?: "") }       // iphone | android
+    var deviceEmail by remember(me?.id) { mutableStateOf(me?.deviceEmail ?: "") }     // 앱 설치용 이메일
     var memberTypeExpanded by remember { mutableStateOf(false) }
     var avatarBytes by remember(me?.id) { mutableStateOf<ByteArray?>(null) }
     var avatarName by remember(me?.id) { mutableStateOf<String?>(null) }
@@ -2073,6 +2075,29 @@ private fun MyInfoTab(vm: MoimViewModel) {
         OutlinedTextField(
             value = me?.phone ?: "", onValueChange = {}, enabled = false, singleLine = true, modifier = Modifier.fillMaxWidth(), colors = moimOutlinedTextFieldColors())
         Spacer(Modifier.height(10.dp))
+        Text("사용 핸드폰 종류", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+        Spacer(Modifier.height(6.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("iphone" to "🍎 아이폰", "android" to "🤖 안드로이드").forEach { (k, label) ->
+                val on = deviceType == k
+                Text(
+                    label, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                    color = if (on) Color.White else MoimInk,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .clickable { deviceType = k }
+                        .background(if (on) MoimAccent else MoimWhite, RoundedCornerShape(20.dp))
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                )
+            }
+        }
+        Spacer(Modifier.height(10.dp))
+        Text("앱 설치용 연결 이메일 (애플ID/구글계정)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+        OutlinedTextField(
+            value = deviceEmail, onValueChange = { deviceEmail = it }, singleLine = true,
+            placeholder = { Text("앱 설치용 이메일") },
+            modifier = Modifier.fillMaxWidth(), colors = moimOutlinedTextFieldColors())
+        Spacer(Modifier.height(10.dp))
         Text("직군", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         ExposedDropdownMenuBox(
             expanded = memberTypeExpanded,
@@ -2115,7 +2140,8 @@ private fun MyInfoTab(vm: MoimViewModel) {
         Spacer(Modifier.height(14.dp))
         Button(
             onClick = {
-                vm.saveMyInfo(intro, memberType, color.ifBlank { null }, avatarBytes, avatarName, clearAvatar) {
+                vm.saveMyInfo(intro, memberType, color.ifBlank { null }, avatarBytes, avatarName, clearAvatar,
+                    deviceType.ifBlank { null }, deviceEmail) {
                     avatarBytes = null; avatarName = null; clearAvatar = false; savedMsg = true
                 }
             },

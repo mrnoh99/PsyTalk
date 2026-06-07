@@ -58,12 +58,15 @@ enum MoimRepository {
     }
 
     /// 내 정보 변경: 자기소개(intro)·직군(member_type)·아바타(avatar_url)·색상(color) — RPC(본인 안전 컬럼만)
-    static func updateMyProfile(intro: String?, memberType: String?, avatarUrl: String?, color: String?) async throws {
+    static func updateMyProfile(intro: String?, memberType: String?, avatarUrl: String?, color: String?,
+                                deviceType: String? = nil, deviceEmail: String? = nil) async throws {
         let params: [String: AnyJSON] = [
             "p_intro": intro.map { AnyJSON.string($0) } ?? .null,
             "p_member_type": memberType.map { AnyJSON.string($0) } ?? .null,
             "p_avatar_url": avatarUrl.map { AnyJSON.string($0) } ?? .null,
             "p_color": color.map { AnyJSON.string($0) } ?? .null,
+            "p_device_type": deviceType.map { AnyJSON.string($0) } ?? .null,
+            "p_device_email": deviceEmail.map { AnyJSON.string($0) } ?? .null,
         ]
         try await supabase.rpc("moim_update_my_profile", params: params).execute()
     }

@@ -614,12 +614,16 @@ function renderMyInfo(){
       <input id="meEmail" class="field" value="${esc(me.email||'')}" disabled style="opacity:.65">
     </div>
     <div class="my-field">
-      <span class="lbl">전화번호</span>
-      <input id="mePhone" class="field" type="tel" value="${esc(myPhone)}" placeholder="010-0000-0000">
+      <span class="lbl">전화번호 (변경 불가)</span>
+      <input id="mePhone" class="field" type="tel" value="${esc(myPhone)}" disabled style="opacity:.65" placeholder="등록된 번호 없음">
     </div>
     <div class="my-field">
       <span class="lbl">사용 핸드폰 종류</span>
       <div id="meDevice" style="display:flex;gap:7px"></div>
+    </div>
+    <div class="my-field">
+      <span class="lbl">앱 설치용 연결 이메일 (애플ID/구글계정)</span>
+      <input id="meDeviceEmail" class="field" type="email" value="${esc(me.device_email||'')}" placeholder="앱 설치용 이메일">
     </div>
     <div class="my-field">
     <span class="lbl">직군</span>
@@ -806,10 +810,10 @@ function needSqlHint(e){ const s=((e&&e.message)||'')+((e&&e.code)||'')+((e&&e.d
 async function saveMyInfo(){
   const intro=document.getElementById('meIntro').value.trim();
   const mtype=(document.getElementById('meMtypeVal')?.value||meMtypeSel||me.member_type||'의국').trim();
-  const phone=(document.getElementById('mePhone')?.value||'').trim();
+  const deviceEmail=(document.getElementById('meDeviceEmail')?.value||'').trim();
   let avatarUrl=meClearAvatar?null:meAvatarUrl;
   if(meAvatarFile){try{avatarUrl=await uploadProfileAvatar(meAvatarFile);}catch(e){alert('사진 업로드 실패: '+(e.message||e));return;}}
-  const {error}=await sb.rpc('moim_update_my_profile',{p_intro:intro||null,p_member_type:mtype,p_avatar_url:avatarUrl,p_color:meColor,p_phone:phone||null,p_device_type:meDeviceType||null});
+  const {error}=await sb.rpc('moim_update_my_profile',{p_intro:intro||null,p_member_type:mtype,p_avatar_url:avatarUrl,p_color:meColor,p_device_type:meDeviceType||null,p_device_email:deviceEmail||null});
   if(error){alert('저장 실패: '+sbErr(error)+needSqlHint(error));return;}
   const {data:prof,error:pErr}=await sb.from('profiles').select('*').eq('id',me.id).maybeSingle();
   if(!pErr&&prof){
@@ -817,8 +821,8 @@ async function saveMyInfo(){
     me=mergeMeProfile(prof,user);
     profilesById[me.id]=me;
   }else{
-    me.intro=intro; me.member_type=mtype; me.avatar_url=avatarUrl; me.color=meColor; me.phone=phone; me.device_type=meDeviceType;
-    if(profilesById[me.id]){Object.assign(profilesById[me.id],{intro,member_type:mtype,avatar_url:avatarUrl,color:meColor,phone,device_type:meDeviceType});}
+    me.intro=intro; me.member_type=mtype; me.avatar_url=avatarUrl; me.color=meColor; me.device_type=meDeviceType; me.device_email=deviceEmail;
+    if(profilesById[me.id]){Object.assign(profilesById[me.id],{intro,member_type:mtype,avatar_url:avatarUrl,color:meColor,device_type:meDeviceType,device_email:deviceEmail});}
   }
   renderRoomList(); alert('내 정보가 저장되었습니다.'); renderMyInfo();
 }

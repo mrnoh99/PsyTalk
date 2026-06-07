@@ -43,6 +43,8 @@ data class Profile(
     val phone: String? = null,        // 전화번호
     val intro: String? = null,        // 자기소개 (내 정보 변경)
     val email: String? = null,        // 이메일 (auth.users 와 동기화 — 회원 검색·관리 표시용)
+    @SerialName("device_type") val deviceType: String? = null,    // iphone | android (앱 설치용)
+    @SerialName("device_email") val deviceEmail: String? = null,  // 앱 설치용 연결 이메일
     @SerialName("avatar_url") val avatarUrl: String? = null,
     val color: String? = null,        // 프로필 아바타 색상(hex), null=직군 기본색
     @SerialName("created_at") val createdAt: String? = null,

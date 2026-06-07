@@ -50,6 +50,8 @@ struct MyInfoTab: View {
     @State private var intro = ""
     @State private var memberType = ""
     @State private var color = ""
+    @State private var deviceType = ""       // iphone | android
+    @State private var deviceEmail = ""      // 앱 설치용 이메일
     @State private var photoItem: PhotosPickerItem?
     @State private var pendingAdjustImage: UIImage?
     @State private var showAvatarAdjust = false
@@ -125,6 +127,21 @@ struct MyInfoTab: View {
                 field("이메일 (변경 불가)", MoimRepository.currentUserEmail() ?? "")
                 field("전화번호 (변경 불가)", me?.phone ?? "")
 
+                Text("사용 핸드폰 종류").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
+                HStack(spacing: 8) {
+                    ForEach([("iphone", "🍎 아이폰"), ("android", "🤖 안드로이드")], id: \.0) { k, label in
+                        let on = deviceType == k
+                        Text(label).font(.system(size: 13, weight: .bold)).foregroundColor(on ? .white : Moim.ink)
+                            .padding(.horizontal, 16).padding(.vertical, 8)
+                            .background(on ? Moim.accent : Moim.white).clipShape(Capsule())
+                            .onTapGesture { deviceType = k }
+                    }
+                }
+                Text("앱 설치용 연결 이메일 (애플ID/구글계정)").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
+                TextField("앱 설치용 이메일", text: $deviceEmail)
+                    .keyboardType(.emailAddress).autocapitalization(.none)
+                    .padding(10).background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 10))
+
                 Text("직군").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
                 Picker("직군", selection: $memberType) {
                     ForEach(MTYPE_ORDER, id: \.self) { t in
@@ -145,7 +162,9 @@ struct MyInfoTab: View {
 
                 Button {
                     vm.saveMyInfo(intro: intro, memberType: memberType, color: color, avatarData: avatarData,
-                                  avatarExt: "jpg", clearAvatar: avatarCleared) {
+                                  avatarExt: "jpg", clearAvatar: avatarCleared,
+                                  deviceType: deviceType.isEmpty ? nil : deviceType,
+                                  deviceEmail: deviceEmail) {
                         avatarData = nil; avatarCleared = false
                     }
                 } label: {
@@ -188,6 +207,8 @@ struct MyInfoTab: View {
             memberType = me?.memberType ?? MTYPE_ORDER.first ?? "의국"
             color = me?.color ?? ""
             if color.isEmpty, let m = me { color = typeHex(m.memberType) }
+            deviceType = me?.deviceType ?? ""
+            deviceEmail = me?.deviceEmail ?? ""
         }
         .onChange(of: photoItem) { _ in
             Task {

@@ -413,11 +413,13 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
             initial = null,
             defaultDate = selected,
             allowAttachment = true,
+            allowRepeat = opensWeekCalendar(room),
             onDismiss = { creating = false },
             onSubmit = { form ->
                 vm.createEvent(
                     form.title, form.startAt, form.place, form.link, form.scope, form.description,
                     form.presenter, form.keywords, form.newAttachments,
+                    form.repeatRule, form.repeatCount,
                 ) { creating = false }
             }
         )
@@ -937,6 +939,8 @@ class EventForm(
     val keptUrls: List<String>,
     val keptNames: List<String>,
     val newAttachments: List<Pair<String, ByteArray>>,
+    val repeatRule: String = "none",
+    val repeatCount: Int = 1,
 )
 
 @Composable
@@ -945,6 +949,7 @@ private fun EventDialog(
     initial: CalendarEvent?,
     defaultDate: LocalDate,
     allowAttachment: Boolean,
+    allowRepeat: Boolean = false,
     onDismiss: () -> Unit,
     onSubmit: (EventForm) -> Unit,
     onDelete: (() -> Unit)? = null,
@@ -968,7 +973,10 @@ private fun EventDialog(
     }
     var existing by remember(initial) { mutableStateOf(initialExisting) }
     var picked by remember(initial) { mutableStateOf(listOf<Pair<String, ByteArray>>()) }
+    var repeatRule by remember { mutableStateOf("none") }
+    var repeatCount by remember { mutableStateOf(12) }
     var err by remember { mutableStateOf<String?>(null) }
+    val showRepeat = allowRepeat && initial == null
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         val added = uris.mapNotNull { readUri(context, it) }
@@ -985,6 +993,23 @@ evTitle, { evTitle = it }, modifier = Modifier.fillMaxWidth(), placeholder = { T
 dateStr, { dateStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("2026-06-05", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
             OutlinedTextField(
 timeStr, { timeStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("14:00", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
+        }
+        if (showRepeat) {
+            FieldLabel("반복")
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("없음" to "none", "매주" to "weekly", "2주마다" to "biweekly", "매월" to "monthly").forEach { (label, rule) ->
+                    ModeButton(label, repeatRule == rule, Modifier.weight(1f)) { repeatRule = rule }
+                }
+            }
+            if (repeatRule != "none") {
+                Spacer(Modifier.height(8.dp))
+                FieldLabel("반복 횟수")
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(4, 8, 12, 16, 24).forEach { n ->
+                        ModeButton("${n}회", repeatCount == n, Modifier.weight(1f)) { repeatCount = n }
+                    }
+                }
+            }
         }
         FieldLabel("장소")
         OutlinedTextField(
@@ -1052,6 +1077,8 @@ desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), p
                     keptUrls = existing.map { it.second },
                     keptNames = existing.map { it.first },
                     newAttachments = picked,
+                    repeatRule = if (showRepeat) repeatRule else "none",
+                    repeatCount = if (showRepeat && repeatRule != "none") repeatCount else 1,
                 )
             )
         }

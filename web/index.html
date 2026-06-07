@@ -207,6 +207,23 @@
   .warddoc-empty .eb{font-size:36px;margin-bottom:8px}
   .warddoc-empty b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
   .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical;background:var(--surface);color:var(--ink)}
+  .wardseg{display:flex;gap:8px;padding:10px 16px;background:var(--paper)}
+  .wardseg button{flex:1;padding:10px 0;border:1px solid var(--line);border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;background:var(--surface);color:var(--sub)}
+  .wardseg button.on{background:var(--yellow);color:var(--ink);border-color:var(--yellow)}
+  .dutynav{display:flex;align-items:center;justify-content:space-between;padding:8px 16px}
+  .dutynav b{font-size:16px}
+  .dutynav .narr{font-size:20px;color:var(--sub);cursor:pointer;padding:0 8px;user-select:none}
+  .dutyhint{font-size:11.5px;color:var(--sub);padding:0 16px 8px}
+  .dutylist{padding:8px 16px 16px;display:flex;flex-direction:column;gap:8px}
+  .dutyrow{border-radius:12px;border:1px solid var(--line);padding:12px 14px;background:var(--surface);user-select:none;-webkit-user-select:none}
+  .dutyrow.today{background:rgba(255,228,92,.45);border-color:var(--accent)}
+  .dutyrow.holiday{background:#ffe0b2;border-color:#ff9800}
+  .dutyrow .dtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+  .dutyrow .dtop b{font-size:14px}
+  .dutyrow.holiday .dtop b,.dutyrow .dhol{color:#e65100}
+  .dutyrow .dhol{font-size:10px;font-weight:800}
+  .dutyrow .dprof{font-size:13px;color:var(--ink);margin-bottom:3px}
+  .dutyrow .dres{font-size:13px;color:var(--sub)}
   /* 과 전체공지 — 가운데 정렬 게시 카드 */
   .notice-post{width:94%;max-width:400px;margin:12px auto 18px}
   .notice-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
@@ -386,10 +403,24 @@
   <!-- WARD -->
   <section id="wardScreen" class="hidden app-screen slide-overlay">
     <div class="hdr"><button class="back" onclick="closeWard()">‹</button>
-      <h1 style="font-size:16px">잔여 병실 현황</h1><span class="spacer"></span>
+      <h1 style="font-size:16px">병실현황</h1><span class="spacer"></span>
       <button class="lk" id="wardEditBtn" onclick="wardEdit()">편집</button></div>
+    <div class="wardseg" id="wardSeg">
+      <button type="button" class="on" data-wardtab="beds" onclick="setWardTab('beds')">잔여병실</button>
+      <button type="button" data-wardtab="duty" onclick="setWardTab('duty')">당직표</button>
+    </div>
     <div class="wardbody" id="wardBody" style="flex:1;overflow-y:auto"></div>
   </section>
+
+  <!-- 당직표 입력 -->
+  <div class="modal" id="dutyModal"><div class="sheet">
+    <h2 id="dutyModalTitle">당직 입력</h2>
+    <span class="lbl">교수 낮당직</span><input class="field" id="dutyProf" placeholder="교수 이름">
+    <span class="lbl">전공의 밤당직</span><input class="field" id="dutyResident" placeholder="전공의 이름">
+    <label style="display:flex;align-items:center;gap:8px;margin:10px 0;font-size:13px"><input type="checkbox" id="dutyHoliday"> 휴일 (강조 표시)</label>
+    <button type="button" class="primary" onclick="saveDuty()">저장</button>
+    <button type="button" class="ghost" onclick="closeModal('dutyModal')">취소</button>
+  </div></div>
 
   <!-- ADMIN CONSOLE (관리자: 가입승인 / 회원관리 / 방관리) -->
   <section id="adminScreen" class="hidden app-screen slide-overlay">
@@ -474,6 +505,25 @@
     <span class="lbl">제목</span><input class="field" id="evTitle" placeholder="예: 증례 컨퍼런스">
     <span class="lbl">날짜 · 시간</span>
     <div class="twocol"><input class="field" id="evDate" type="date"><input class="field" id="evTime" type="time"></div>
+    <div id="evRepeatWrap" style="display:none">
+      <span class="lbl">반복</span>
+      <select class="field" id="evRepeat" onchange="toggleEvRepeatCount()">
+        <option value="none">없음</option>
+        <option value="weekly">매주</option>
+        <option value="biweekly">2주마다</option>
+        <option value="monthly">매월</option>
+      </select>
+      <div id="evRepeatCountWrap" style="display:none">
+        <span class="lbl">반복 횟수</span>
+        <select class="field" id="evRepeatCount">
+          <option value="4">4회</option>
+          <option value="8">8회</option>
+          <option value="12" selected>12회</option>
+          <option value="16">16회</option>
+          <option value="24">24회</option>
+        </select>
+      </div>
+    </div>
     <span class="lbl">장소</span><input class="field" id="evPlace" placeholder="의국 회의실">
     <span class="lbl">발표자 (이름·직위, 여러 명은 쉼표로)</span><textarea class="field" id="evPresenter" placeholder="예: 김철수 교수, 박영희 전공의 3년차"></textarea>
     <span class="lbl">링크 (선택)</span><input class="field" id="evLink" placeholder="https://zoom.us/...">
@@ -591,6 +641,7 @@ function storageObjectKey(roomId,fileName){
 
 /* ====== 상태 ====== */
 let me=null, rooms=[], myRoomIds=new Set(), profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
+let wardTab='beds', dutyMonth=new Date(), dutyByDate={}, dutyEditDate=null;
 let reactions=[], replyTarget=null; // 이모지 리액션·답장 대상
 const REACTION_EMOJIS=['👍','❤️','😂','😮','😢','👏'];
 let roomSlideActive=false; // 슬라이드 진입 애니 중 layoutChat 지연(떨림 방지)
@@ -1090,6 +1141,7 @@ function startRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'rooms'},debouncedLoadRooms)
     .on('postgres_changes',{event:'*',schema:'public',table:'room_members'},()=>{debouncedLoadRooms();debouncedRoomMembers();})
     .on('postgres_changes',{event:'*',schema:'public',table:'ward_status'},debouncedLoadWard)
+    .on('postgres_changes',{event:'*',schema:'public',table:'ward_duty'},debouncedLoadWard)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},debouncedLoadUnread)
     .subscribe((status)=>{if(status==='CHANNEL_ERROR')console.warn('realtime global',status);});
 }
@@ -2338,6 +2390,26 @@ function calNav(mode,today){
   const ret=isCur?'':`<div style="text-align:center;margin-bottom:12px"><span class="calret" onclick="gotoToday()">${mode==='day'?'오늘로':'이번주로'}</span></div>`;
   return `<div class="calnav"><span class="narr" onclick="${fn}(-1)">‹</span><b>${center}</b><span class="narr" onclick="${fn}(1)">›</span></div>${ret}`;
 }
+function toggleEvRepeatCount(){
+  const rule=document.getElementById('evRepeat')?.value||'none';
+  const wrap=document.getElementById('evRepeatCountWrap');
+  if(wrap) wrap.style.display=rule==='none'?'none':'block';
+}
+function expandRepeatStartAts(baseIso,rule,count){
+  if(rule==='none'||count<=1) return [baseIso];
+  const total=Math.min(Math.max(count,2),52);
+  const base=new Date(baseIso);
+  if(isNaN(base.getTime())) return [baseIso];
+  const out=[];
+  for(let i=0;i<total;i++){
+    const d=new Date(base);
+    if(rule==='weekly') d.setDate(d.getDate()+i*7);
+    else if(rule==='biweekly') d.setDate(d.getDate()+i*14);
+    else if(rule==='monthly') d.setMonth(d.getMonth()+i);
+    out.push(d.toISOString());
+  }
+  return out;
+}
 function openEvent(id){
   closeEventDetail(true);
   editEventId=id||null;
@@ -2347,6 +2419,16 @@ function openEvent(id){
   document.getElementById('evDeleteBtn').style.display=(id&&canDeleteEvent(e))?'inline':'none';
   document.getElementById('evAttLbl').style.display='block';
   document.getElementById('evFile').style.display='block';
+  const showRepeat=!id&&active&&opensWeekCal(active);
+  const repWrap=document.getElementById('evRepeatWrap');
+  if(repWrap){
+    repWrap.style.display=showRepeat?'block':'none';
+    if(showRepeat){
+      document.getElementById('evRepeat').value='none';
+      document.getElementById('evRepeatCount').value='12';
+      toggleEvRepeatCount();
+    }
+  }
   const g=(k,v)=>document.getElementById(k).value=v;
   // 새 일정은 선택한 날짜를 기본값으로 (수정은 기존 날짜)
   const d=e&&e.start_at?new Date(e.start_at):new Date(selDate);
@@ -2416,10 +2498,14 @@ async function saveEvent(){
       const {error}=await withFreshSession(async()=>await sb.from('calendar_events').update(upd).eq('id',editEventId));
       if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'수정 실패: '+error.message);return;}
     }else{
-      const {error}=await withFreshSession(async()=>await sb.from('calendar_events').insert({room_id:active.id,title:g('evTitle'),start_at:startAtIso,
+      const repeatRule=(active&&opensWeekCal(active))?(document.getElementById('evRepeat')?.value||'none'):'none';
+      const repeatCount=parseInt(document.getElementById('evRepeatCount')?.value||'12',10)||12;
+      const startAts=expandRepeatStartAts(startAtIso,repeatRule,repeatCount);
+      const rows=startAts.map(at=>({room_id:active.id,title:g('evTitle'),start_at:at,
         place:g('evPlace')||null,presenter:presenter,link:g('evLink')||null,scope:g('evScope')||null,description:g('evDesc')||null,
         owner_id:me.id,attachment_url:null,attachment_name:null,
         attachment_urls:up.urls,attachment_names:up.names}));
+      const {error}=await withFreshSession(async()=>await sb.from('calendar_events').insert(rows));
       if(error){alert(isJwtExpired(error)?'로그인이 만료되었습니다. 다시 로그인해 주세요.':'등록 실패: '+error.message);return;}
     }
     closeModal('emodal');await loadEvents();await loadFiles();renderCal();
@@ -2438,16 +2524,39 @@ async function deleteEvent(){
   closeModal('emodal');await loadEvents();await loadFiles();renderCal();
 }
 
-/* ====== 잔여 병실 현황 ====== */
+/* ====== 병실현황 (잔여병실 + 당직표) ====== */
 async function openWard(){openListOverlay('wardScreen');playSlideIn(document.getElementById('wardScreen'));await loadWard();}
 async function closeWard(){await slideCloseOverlay(document.getElementById('wardScreen'));}
-async function loadWard(){const {data}=await sb.from('ward_status').select('*').eq('id',1).maybeSingle();
-  wardText=data?data.content:'';wardUpdated=data?data.updated_at:null;renderWard(false);}
+function setWardTab(t){
+  wardTab=t;
+  document.querySelectorAll('#wardSeg button').forEach(b=>b.classList.toggle('on',b.dataset.wardtab===t));
+  renderWard(false);
+}
 function fmtWardPublish(iso){
   const d=new Date(iso);
   const dow=['일','월','화','수','목','금','토'][d.getDay()];
   const time=d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});
   return `${d.getMonth()+1}/${d.getDate()} (${dow}) ${time}`;
+}
+function dutyDateKey(y,m,d){return `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function isDutyHolidayDate(y,m,d,isFlag){
+  const dt=new Date(y,m-1,d);
+  const wd=dt.getDay();
+  return !!isFlag||wd===0||wd===6;
+}
+function dutyMonthBounds(){
+  const y=dutyMonth.getFullYear(), m=dutyMonth.getMonth();
+  const last=new Date(y,m+1,0).getDate();
+  return {y,m:m+1,last,from:dutyDateKey(y,m+1,1),to:dutyDateKey(y,m+1,last)};
+}
+async function loadWard(){
+  const {data}=await sb.from('ward_status').select('*').eq('id',1).maybeSingle();
+  wardText=data?data.content:'';wardUpdated=data?data.updated_at:null;
+  const b=dutyMonthBounds();
+  const {data:duties}=await sb.from('ward_duty').select('*').gte('duty_date',b.from).lte('duty_date',b.to).order('duty_date');
+  dutyByDate={};
+  (duties||[]).forEach(row=>{dutyByDate[row.duty_date]=row;});
+  renderWard(false);
 }
 function wardViewHtml(){
   let h=`<article class="warddoc"><div class="warddoc-accent"></div>`;
@@ -2462,10 +2571,87 @@ function wardViewHtml(){
   h+=`</article>`;
   return h;
 }
+function dutyViewHtml(){
+  const b=dutyMonthBounds();
+  const today=new Date();today.setHours(0,0,0,0);
+  const dow=['일','월','화','수','목','금','토'];
+  let h=`<div class="dutynav"><span class="narr" onclick="dutyShiftMonth(-1)">‹</span><b>${b.y}년 ${b.m}월</b><span class="narr" onclick="dutyShiftMonth(1)">›</span></div>`;
+  h+=`<div class="dutyhint">날짜를 길게 눌러 당직을 입력·수정합니다.</div><div class="dutylist">`;
+  for(let d=1;d<=b.last;d++){
+    const key=dutyDateKey(b.y,b.m,d);
+    const row=dutyByDate[key]||{};
+    const dt=new Date(b.y,b.m-1,d);
+    const holiday=isDutyHolidayDate(b.y,b.m,d,row.is_holiday);
+    const isToday=dt.getTime()===today.getTime();
+    let cls='dutyrow';
+    if(holiday)cls+=' holiday';
+    else if(isToday)cls+=' today';
+    const label=`${b.m}/${d} (${dow[dt.getDay()]})`;
+    h+=`<div class="${cls}" data-duty="${key}"><div class="dtop"><b>${label}</b>${holiday?'<span class="dhol">휴일</span>':''}</div>`;
+    h+=`<div class="dprof">교수 낮당직: ${esc(row.prof_day||'—')}</div>`;
+    h+=`<div class="dres">전공의 밤당직: ${esc(row.resident_night||'—')}</div></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function bindDutyLongPress(){
+  document.querySelectorAll('.dutyrow[data-duty]').forEach(el=>{
+    const key=el.dataset.duty;
+    let timer=null;
+    const start=()=>{if(!canEditWard())return;timer=setTimeout(()=>openDutyEdit(key),480);};
+    const cancel=()=>{if(timer){clearTimeout(timer);timer=null;}};
+    el.addEventListener('mousedown',e=>{if(e.button===0)start();});
+    el.addEventListener('mouseup',cancel);
+    el.addEventListener('mouseleave',cancel);
+    el.addEventListener('touchstart',e=>{start();},{passive:true});
+    el.addEventListener('touchend',cancel);
+    el.addEventListener('touchcancel',cancel);
+    el.addEventListener('contextmenu',e=>e.preventDefault());
+  });
+}
+function openDutyEdit(dateKey){
+  dutyEditDate=dateKey;
+  const row=dutyByDate[dateKey]||{};
+  const p=dateKey.split('-').map(Number);
+  const dt=new Date(p[0],p[1]-1,p[2]);
+  const dow=['일','월','화','수','목','금','토'][dt.getDay()];
+  document.getElementById('dutyModalTitle').textContent=`${p[1]}/${p[2]} (${dow}) 당직`;
+  document.getElementById('dutyProf').value=row.prof_day||'';
+  document.getElementById('dutyResident').value=row.resident_night||'';
+  document.getElementById('dutyHoliday').checked=!!row.is_holiday||isDutyHolidayDate(p[0],p[1],p[2],false);
+  document.getElementById('dutyModal').classList.add('on');
+}
+async function saveDuty(){
+  if(!dutyEditDate)return;
+  const prof=document.getElementById('dutyProf').value.trim();
+  const resident=document.getElementById('dutyResident').value.trim();
+  const isHoliday=document.getElementById('dutyHoliday').checked;
+  const payload={duty_date:dutyEditDate,prof_day:prof,resident_night:resident,is_holiday:isHoliday,updated_by:me.id,updated_at:new Date().toISOString()};
+  const existing=dutyByDate[dutyEditDate];
+  let error;
+  if(existing){
+    ({error}=await withFreshSession(async()=>await sb.from('ward_duty').update(payload).eq('duty_date',dutyEditDate)));
+  }else{
+    ({error}=await withFreshSession(async()=>await sb.from('ward_duty').insert(payload)));
+  }
+  if(error){alert('저장 실패: '+error.message);return;}
+  closeModal('dutyModal');
+  await loadWard();
+}
+function dutyShiftMonth(delta){
+  dutyMonth=new Date(dutyMonth.getFullYear(),dutyMonth.getMonth()+delta,1);
+  loadWard();
+}
 function renderWard(editing){
   const el=document.getElementById('wardBody');
-  document.getElementById('wardEditBtn').textContent='편집';
-  document.getElementById('wardEditBtn').style.display=(editing||!canEditWard())?'none':'inline';
+  const editBtn=document.getElementById('wardEditBtn');
+  editBtn.textContent='편집';
+  editBtn.style.display=(wardTab==='beds'&&!editing&&canEditWard())?'inline':'none';
+  if(wardTab==='duty'){
+    el.innerHTML=dutyViewHtml();
+    bindDutyLongPress();
+    return;
+  }
   if(editing){
     el.innerHTML=`<textarea class="wardedit" id="wardDraft">${esc(wardText)}</textarea>
       <button class="primary" onclick="wardSave()">게시</button>

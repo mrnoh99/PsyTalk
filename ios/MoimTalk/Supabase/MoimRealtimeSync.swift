@@ -44,6 +44,7 @@ final class MoimRealtimeSync {
         let membersStream = channel.postgresChange(AnyAction.self, schema: "public", table: "room_members")
         let profilesStream = channel.postgresChange(AnyAction.self, schema: "public", table: "profiles")
         let wardStream = channel.postgresChange(AnyAction.self, schema: "public", table: "ward_status")
+        let wardDutyStream = channel.postgresChange(AnyAction.self, schema: "public", table: "ward_duty")
         try? await channel.subscribeWithError()
         globalChannel = channel
 
@@ -51,6 +52,7 @@ final class MoimRealtimeSync {
         globalTasks.append(listen(membersStream) { await self.scheduleRoomListRefresh() })
         globalTasks.append(listen(profilesStream) { await self.scheduleProfiles(onProfiles) })
         globalTasks.append(listen(wardStream) { await onWard() })
+        globalTasks.append(listen(wardDutyStream) { await onWard() })
         watchChannelStatus(channel)
 
         // 구독 직후 1회 동기화

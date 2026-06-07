@@ -2698,6 +2698,7 @@ private fun WardStatusDocument(content: String, publishLabel: String?) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
+    var tab by remember { mutableStateOf("beds") }
     var editing by remember { mutableStateOf(false) }
     var draft by remember { mutableStateOf("") }
     LaunchedEffect(Unit) { vm.loadWardStatus() }
@@ -2707,12 +2708,12 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("잔여 병실 현황", fontWeight = FontWeight.Bold) },
+                title = { Text("병실현황", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     TextButton(onClick = onBack) { Text("‹", fontSize = 25.sp) }
                 },
                 actions = {
-                    if (!editing && canEditWard(vm.myProfile)) {
+                    if (tab == "beds" && !editing && canEditWard(vm.myProfile)) {
                         TextButton(onClick = { draft = vm.wardStatus; editing = true }) {
                             Text("편집", fontWeight = FontWeight.Bold)
                         }
@@ -2723,48 +2724,52 @@ fun WardStatusScreen(vm: MoimViewModel, onBack: () -> Unit) {
         },
         containerColor = MoimPaper
     ) { pad ->
-        if (editing) {
-            Column(
-                modifier = Modifier
-                    .padding(pad)
-                    .fillMaxSize()
-                    .padding(16.dp),
-            ) {
-                OutlinedTextField(
-            colors = moimOutlinedTextFieldColors(),
-                    value = draft,
-                    onValueChange = { draft = it },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    placeholder = {
-                        Text("예:\n- 남자\n다인실: 0자리 (1자리 EICU 전과예정)\n3인실(APICU): 0자리")
-                    },
-                )
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(
-                        onClick = { editing = false },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MoimLine, contentColor = MoimInk),
-                    ) { Text("취소") }
-                    Button(
-                        onClick = { vm.saveWardStatus(draft) { editing = false } },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
-                    ) { Text("게시") }
+        Column(modifier = Modifier.padding(pad).fillMaxSize()) {
+            WardSegmentRow(tab = tab, onTab = { tab = it; editing = false })
+            when (tab) {
+                "duty" -> WardDutyPane(vm = vm, modifier = Modifier.weight(1f).background(MoimBg))
+                "beds" -> if (editing) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                    ) {
+                        OutlinedTextField(
+                            colors = moimOutlinedTextFieldColors(),
+                            value = draft,
+                            onValueChange = { draft = it },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            placeholder = {
+                                Text("예:\n- 남자\n다인실: 0자리 (1자리 EICU 전과예정)\n3인실(APICU): 0자리")
+                            },
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Button(
+                                onClick = { editing = false },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = MoimLine, contentColor = MoimInk),
+                            ) { Text("취소") }
+                            Button(
+                                onClick = { vm.saveWardStatus(draft) { editing = false } },
+                                modifier = Modifier.weight(1f),
+                                colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
+                            ) { Text("게시") }
+                        }
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MoimBg)
+                            .verticalScroll(rememberScrollState())
+                            .padding(16.dp),
+                    ) {
+                        WardStatusDocument(content = vm.wardStatus, publishLabel = publishLabel)
+                    }
                 }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .padding(pad)
-                    .fillMaxSize()
-                    .background(MoimBg)
-                    .verticalScroll(rememberScrollState())
-                    .padding(16.dp),
-            ) {
-                WardStatusDocument(content = vm.wardStatus, publishLabel = publishLabel)
             }
         }
     }

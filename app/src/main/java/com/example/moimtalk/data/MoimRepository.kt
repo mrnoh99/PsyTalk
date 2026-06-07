@@ -354,7 +354,7 @@ object MoimRepository {
             order("start_at", Order.ASCENDING)
         }.decodeList()
 
-    /** 일정 등록. 첨부 바이트가 있으면 Storage 업로드 후 URL 을 함께 저장한다. */
+    /** 일정 등록. 첨부 바이트가 있으면 Storage 업로드 후 URL 을 함께 저장한다. repeatRule·repeatCount 로 반복 일정을 일괄 등록한다. */
     suspend fun createEvent(
         roomId: String,
         title: String,
@@ -366,6 +366,8 @@ object MoimRepository {
         presenter: String?,
         keywords: List<String>,
         attachments: List<Pair<String, ByteArray>>,
+        repeatRule: String = "none",
+        repeatCount: Int = 1,
     ) = withFreshSession {
         val uid = currentUserId() ?: error("Not logged in")
         val urls = mutableListOf<String>()
@@ -374,11 +376,12 @@ object MoimRepository {
             urls += uploadToStorage(roomId, fileName, bytes)
             names += fileName
         }
-        supabase.from("calendar_events").insert(
+        val startAts = expandRepeatStartAts(startAt, repeatRule, repeatCount)
+        val rows = startAts.map { at ->
             CalendarEventInsert(
                 roomId = roomId,
                 title = title,
-                startAt = startAt,
+                startAt = at,
                 place = place,
                 link = link,
                 scope = scope,
@@ -392,7 +395,8 @@ object MoimRepository {
                 attachmentUrls = urls,
                 attachmentNames = names,
             )
-        )
+        }
+        supabase.from("calendar_events").insert(rows)
     }
 
     /** 일정 삭제 (작성자/관리자/교실·의국·비서·심리실 — RLS 로 강제) */
@@ -495,6 +499,40 @@ object MoimRepository {
         supabase.from("ward_status").update(
             WardStatusUpdate(content = content, updatedBy = uid, updatedAt = nowIso)
         ) { filter { eq("id", 1) } }
+    }
+
+    // ── 당직표 ──
+    suspend fun wardDuties(fromDate: String, toDate: String): List<WardDuty> =
+        supabase.from("ward_duty").select {
+            filter {
+                gte("duty_date", fromDate)
+                lte("duty_date", toDate)
+            }
+            order("duty_date", Order.ASCENDING)
+        }.decodeList()
+
+    suspend fun upsertWardDuty(
+        dutyDate: String,
+        profDay: String,
+        residentNight: String,
+        isHoliday: Boolean,
+    ) = withFreshSession {
+        val uid = currentUserId() ?: error("Not logged in")
+        val nowIso = java.time.OffsetDateTime.now().toString()
+        val row = WardDutyUpsert(
+            dutyDate = dutyDate,
+            profDay = profDay,
+            residentNight = residentNight,
+            isHoliday = isHoliday,
+            updatedBy = uid,
+            updatedAt = nowIso,
+        )
+        val existing = wardDuties(dutyDate, dutyDate)
+        if (existing.isEmpty()) {
+            supabase.from("ward_duty").insert(row)
+        } else {
+            supabase.from("ward_duty").update(row) { filter { eq("duty_date", dutyDate) } }
+        }
     }
 
     /** Storage object key — ASCII only (Supabase/S3 rejects non-ASCII in key). DB에는 원본 파일명 저장. */

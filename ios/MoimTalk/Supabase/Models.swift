@@ -341,3 +341,38 @@ struct WardStatusUpdate: Encodable {
         case updatedAt = "updated_at"
     }
 }
+
+/// 당직표 — 날짜별 교수 낮당직 · 전공의 밤당직
+struct WardDuty: Codable, Identifiable {
+    var dutyDate: String
+    var profDay: String = ""
+    var residentNight: String = ""
+    var isHoliday: Bool = false
+
+    var id: String { dutyDate }
+
+    enum CodingKeys: String, CodingKey {
+        case dutyDate = "duty_date"
+        case profDay = "prof_day"
+        case residentNight = "resident_night"
+        case isHoliday = "is_holiday"
+    }
+}
+
+struct WardDutyUpsert: Encodable {
+    let dutyDate: String
+    let profDay: String
+    let residentNight: String
+    let isHoliday: Bool
+    var updatedBy: String?
+    let updatedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case dutyDate = "duty_date"
+        case profDay = "prof_day"
+        case residentNight = "resident_night"
+        case isHoliday = "is_holiday"
+        case updatedBy = "updated_by"
+        case updatedAt = "updated_at"
+    }
+}

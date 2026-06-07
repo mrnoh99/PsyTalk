@@ -273,6 +273,12 @@ func canPostInRoom(_ profile: Profile?, _ room: Room) -> Bool {
     return room.postPolicy != "restricted"
 }
 
+/// 당직표 휴일 강조 — 토·일 또는 DB is_holiday
+func isWardDutyHoliday(_ date: Date, isHolidayFlag: Bool) -> Bool {
+    let wd = CalDate.cal.component(.weekday, from: date)  // 일=1 … 토=7
+    return isHolidayFlag || wd == 1 || wd == 7
+}
+
 // ward 편집 권한: 관리자 또는 직군 교실·의국·간호사("병동")
 func canEditWard(_ profile: Profile?) -> Bool {
     guard let p = profile else { return false }

@@ -70,10 +70,10 @@ struct CalendarView: View {
             }
         }
         .sheet(isPresented: $creating) {
-            EventEditView(title: "일정 추가", initial: nil, allowAttachment: true, defaultDate: selected) { form in
+            EventEditView(title: "일정 추가", initial: nil, allowAttachment: true, allowRepeat: opensWeekCalendar(room), defaultDate: selected) { form in
                 vm.createEvent(title: form.title, startAt: form.startAt, place: form.place, link: form.link,
                                scope: form.scope, description: form.description, presenter: form.presenter, keywords: form.keywords,
-                               attachments: form.newAttachments) { creating = false }
+                               attachments: form.newAttachments, repeatRule: form.repeatRule, repeatCount: form.repeatCount) { creating = false }
             }
         }
         .sheet(item: $editing) { ev in

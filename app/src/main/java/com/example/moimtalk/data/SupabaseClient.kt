@@ -259,3 +259,22 @@ data class WardStatusUpdate(
     @SerialName("updated_by") val updatedBy: String? = null,
     @SerialName("updated_at") val updatedAt: String,
 )
+
+/** 당직표 — 날짜별 교수 낮당직 · 전공의 밤당직 */
+@Serializable
+data class WardDuty(
+    @SerialName("duty_date") val dutyDate: String,
+    @SerialName("prof_day") val profDay: String = "",
+    @SerialName("resident_night") val residentNight: String = "",
+    @SerialName("is_holiday") val isHoliday: Boolean = false,
+)
+
+@Serializable
+data class WardDutyUpsert(
+    @SerialName("duty_date") val dutyDate: String,
+    @SerialName("prof_day") val profDay: String,
+    @SerialName("resident_night") val residentNight: String,
+    @SerialName("is_holiday") val isHoliday: Boolean,
+    @SerialName("updated_by") val updatedBy: String? = null,
+    @SerialName("updated_at") val updatedAt: String,
+)

@@ -321,6 +321,10 @@ fun canEditWard(profile: Profile?): Boolean {
     return isAdminRole(profile.role) || profile.memberType in listOf("교실", "의국", "간호사")
 }
 
+/** 당직표 휴일 강조 — 토·일 또는 DB is_holiday */
+fun isWardDutyHoliday(date: java.time.LocalDate, isHolidayFlag: Boolean): Boolean =
+    isHolidayFlag || date.dayOfWeek == java.time.DayOfWeek.SATURDAY || date.dayOfWeek == java.time.DayOfWeek.SUNDAY
+
 /** 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실 */
 fun canDeleteEvent(profile: Profile?, event: CalendarEvent): Boolean {
     if (profile == null) return false

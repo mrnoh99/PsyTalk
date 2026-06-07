@@ -328,6 +328,7 @@ struct RoomListView: View {
 
 // 방목록 상단 — 전체공지 · 병실현황 · 학술활동 한 줄 3분할
 struct RoomListTopTriBar: View {
+    @ObservedObject private var theme = ThemeManager.shared
     let noticeRoom: Room?
     var noticeUnread: Int = 0
     let weekRoom: Room?
@@ -337,15 +338,47 @@ struct RoomListTopTriBar: View {
     let onWeek: () -> Void
 
     var body: some View {
-        HStack(spacing: 0) {
-            triSeg(label: "전체공지", color: Color(hex: 0xB5651D), unread: noticeUnread, enabled: noticeRoom != nil, action: onNotice)
-            Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
-            triSeg(label: "병실현황", color: Moim.orange, unread: 0, enabled: true, action: onWard)
-            Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
-            triSeg(label: "학술활동", color: Color(hex: 0x4A6FA5), unread: weekUnread, enabled: weekRoom != nil, action: onWeek)
+        Group {
+            if theme.dark {
+                HStack(spacing: 8) {
+                    triSegPill(label: "전체공지", unread: noticeUnread, enabled: noticeRoom != nil, action: onNotice)
+                    triSegPill(label: "병실현황", unread: 0, enabled: true, action: onWard)
+                    triSegPill(label: "학술활동", unread: weekUnread, enabled: weekRoom != nil, action: onWeek)
+                }
+            } else {
+                HStack(spacing: 0) {
+                    triSeg(label: "전체공지", color: Color(hex: 0xB5651D), unread: noticeUnread, enabled: noticeRoom != nil, action: onNotice)
+                    Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
+                    triSeg(label: "병실현황", color: Moim.orange, unread: 0, enabled: true, action: onWard)
+                    Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
+                    triSeg(label: "학술활동", color: Color(hex: 0x4A6FA5), unread: weekUnread, enabled: weekRoom != nil, action: onWeek)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 14))
         .padding(.horizontal, 14).padding(.bottom, 10)
+    }
+
+    /// 다크 — 병실현황 잔여병실·당직표 세그먼트와 동일
+    private func triSegPill(label: String, unread: Int, enabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                Text(label)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(Moim.sub)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                if unread > 0 {
+                    UnreadBadge(count: unread).padding(.top, 4).padding(.trailing, 4)
+                }
+            }
+            .background(Moim.white.opacity(enabled ? 1 : 0.45))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Moim.line, lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
     }
 
     private func triSeg(label: String, color: Color, unread: Int, enabled: Bool, action: @escaping () -> Void) -> some View {

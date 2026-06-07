@@ -2040,19 +2040,64 @@ private fun RoomListTopTriBar(
     onWard: () -> Unit,
     onWeek: () -> Unit,
 ) {
-    Row(
+    if (MoimTheme.dark) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp)
+                .padding(bottom = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            RoomListTriSegPill("전체공지", noticeUnread, noticeRoom != null, onNotice)
+            RoomListTriSegPill("병실현황", 0, true, onWard)
+            RoomListTriSegPill("학술활동", weekUnread, weekRoom != null, onWeek)
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp)
+                .padding(bottom = 10.dp)
+                .height(IntrinsicSize.Min)
+                .clip(RoundedCornerShape(14.dp)),
+        ) {
+            RoomListTriSegment("전체공지", Color(0xFFB5651D), noticeUnread, noticeRoom != null, onNotice, start = true)
+            Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
+            RoomListTriSegment("병실현황", Color(0xFFEA7317), 0, true, onWard)
+            Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
+            RoomListTriSegment("학술활동", Color(0xFF4A6FA5), weekUnread, weekRoom != null, onWeek, end = true)
+        }
+    }
+}
+
+/** 다크 모드 — 병실현황 잔여병실·당직표 세그먼트와 동일 스타일 */
+@Composable
+private fun RowScope.RoomListTriSegPill(
+    label: String, unread: Int, enabled: Boolean, onClick: () -> Unit,
+) {
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp)
-            .padding(bottom = 10.dp)
-            .height(IntrinsicSize.Min)
-            .clip(RoundedCornerShape(14.dp)),
+            .weight(1f)
+            .clip(RoundedCornerShape(10.dp))
+            .background(MoimWhite.copy(alpha = if (enabled) 1f else 0.45f), RoundedCornerShape(10.dp))
+            .border(1.dp, MoimLine, RoundedCornerShape(10.dp))
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(vertical = 10.dp, horizontal = 4.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        RoomListTriSegment("전체공지", Color(0xFFB5651D), noticeUnread, noticeRoom != null, onNotice, start = true)
-        Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
-        RoomListTriSegment("병실현황", Color(0xFFEA7317), 0, true, onWard)
-        Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
-        RoomListTriSegment("학술활동", Color(0xFF4A6FA5), weekUnread, weekRoom != null, onWeek, end = true)
+        Text(
+            label,
+            color = MoimSub,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+        )
+        if (unread > 0) {
+            Box(modifier = Modifier.align(Alignment.TopEnd).padding(end = 4.dp, top = 2.dp)) {
+                UnreadBadge(unread)
+            }
+        }
     }
 }
 

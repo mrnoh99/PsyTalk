@@ -2281,29 +2281,27 @@ function renderMsgs(){
   resolveAttachments();
 }
 window.addEventListener('resize',layoutChat);
-// iOS 홈화면(PWA): 키보드가 올라오면 iOS 가 윈도우를 위로 스크롤해 상단 바가 시계 영역까지 밀려 올라감.
-// → .phone 을 '보이는 뷰포트(visualViewport) 높이'에 맞추고 윈도우를 맨 위로 고정해 상단 바를 제자리에 유지.
-function fitPhoneToViewport(){
+// iOS 홈화면(PWA): 키보드가 올라오면 비주얼뷰포트가 줄고 위로 패닝돼 상단 바가 시계까지 밀림.
+// → .phone 높이는 보이는 영역에 맞추되, 상단 바 위치 보정(transform)·스크롤 리셋은 '키보드가 멈춘 뒤 1회'만
+//   적용해 매 프레임 싸움으로 인한 잔떨림을 없앤다.
+function fitPhoneToViewport(settle){
   if(!window.visualViewport||!document.documentElement.classList.contains('ios-standalone'))return;
   const vv=window.visualViewport, phone=document.querySelector('.phone');
   if(!phone)return;
-  const h=Math.round(vv.height), ty=Math.round(vv.offsetTop);   // 값이 바뀔 때만 적용(루프 thrash 방지)
-  if(phone._fh!==h){phone.style.height=h+'px';phone.style.bottom='auto';phone._fh=h;}
-  // iOS 키보드가 비주얼뷰포트를 위로 패닝하면 fixed 요소(상단 바)가 따라 올라감 → offsetTop 만큼 내려 보정
-  if(phone._fty!==ty){phone.style.transform='translateY('+ty+'px)';phone._fty=ty;}
-  if(window.pageYOffset!==0)window.scrollTo(0,0);
-  // 키보드 열림 감지 → 하단 안전영역 여백 제거(입력창-키보드 간격 좁힘)
+  const h=Math.round(vv.height), ty=Math.round(vv.offsetTop);
+  if(phone._fh!==h){phone.style.height=h+'px';phone.style.bottom='auto';phone._fh=h;}   // 높이만 즉시(부드럽게)
   document.documentElement.classList.toggle('kb-open',((window.innerHeight||vv.height)-h-ty)>120);
+  if(settle){   // 키보드 정착 후 한 번만 상단 바 위치 보정 → 잔떨림 없음
+    if(phone._fty!==ty){phone.style.transform=ty?('translateY('+ty+'px)'):'';phone._fty=ty;}
+    if(window.pageYOffset!==0)window.scrollTo(0,0);
+  }
 }
-// 입력하는 동안 매 프레임 보정 = "핀치 효과"를 자동으로 계속 적용(상단 바가 다시 내려옴)
-let kbFitActive=false;
-function kbFitLoop(){ if(!kbFitActive)return; fitPhoneToViewport(); requestAnimationFrame(kbFitLoop); }
-function startKbFit(){ if(!document.documentElement.classList.contains('ios-standalone'))return; if(!kbFitActive){kbFitActive=true;requestAnimationFrame(kbFitLoop);} }
-function stopKbFit(){ kbFitActive=false; setTimeout(fitPhoneToViewport,60); setTimeout(fitPhoneToViewport,360); }
-document.addEventListener('focusin',e=>{ if(e.target&&e.target.matches&&e.target.matches('input,textarea'))startKbFit(); });
-document.addEventListener('focusout',e=>{ if(e.target&&e.target.matches&&e.target.matches('input,textarea'))stopKbFit(); });
+let kbSettleT=null;
+function fitSoon(){ fitPhoneToViewport(false); clearTimeout(kbSettleT); kbSettleT=setTimeout(()=>fitPhoneToViewport(true),160); }
+document.addEventListener('focusin',e=>{ if(e.target&&e.target.matches&&e.target.matches('input,textarea'))fitSoon(); });
+document.addEventListener('focusout',e=>{ if(e.target&&e.target.matches&&e.target.matches('input,textarea'))fitSoon(); });
 if(window.visualViewport){
-  const onVV=()=>{fitPhoneToViewport();layoutChat();if(document.activeElement===activeMsgInput()&&!replyTarget)scrollMsgsToBottom();};
+  const onVV=()=>{fitSoon();layoutChat();if(document.activeElement===activeMsgInput()&&!replyTarget)scrollMsgsToBottom();};
   window.visualViewport.addEventListener('resize',onVV);
   window.visualViewport.addEventListener('scroll',onVV);
 }
@@ -3044,8 +3042,8 @@ function applyIosStandaloneSafeArea(){
   root.style.setProperty('--ios-safe-bottom',bottom+'px');
 }
 applyIosStandaloneSafeArea();
-fitPhoneToViewport();
-window.addEventListener('resize',()=>{applyIosStandaloneSafeArea();fitPhoneToViewport();});
+fitPhoneToViewport(true);
+window.addEventListener('resize',()=>{applyIosStandaloneSafeArea();fitSoon();});
 window.visualViewport?.addEventListener('resize',applyIosStandaloneSafeArea);
 
 /* ====== 시작: 기존 세션 있으면 자동 로그인 ====== */

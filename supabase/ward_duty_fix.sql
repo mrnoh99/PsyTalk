@@ -1,27 +1,18 @@
 -- =============================================================================
--- 당직표 (교원 1인 · 평일 전공의 낮/당직/외래 · 휴일 전공의 당직 1인)
--- ward_status.sql 이후 실행. 편집: 교실·의국·비서 + 관리자.
--- 이미 구버전 ward_duty 를 실행했다면 ward_duty_fix.sql 도 실행하세요.
+-- 당직표 DB 수정 (Android/iOS/Web 입력·수정 실패 시)
+-- Supabase → SQL Editor 에서 이 파일 전체를 한 번 실행하세요.
+--
+-- 원인: 초기 ward_duty.sql(교원+방당직만)만 실행한 경우
+--   · resident_day / resident_outpatient_1 / resident_outpatient_2 컬럼 없음 → 저장 실패
+--   · RLS가 간호사 기준(비서 제외) 또는 UPDATE USING/WITH CHECK 불일치 → 수정 실패
+--
+-- ward_duty 테이블이 없으면 먼저 ward_duty.sql 을 실행한 뒤 이 파일을 실행하세요.
 -- =============================================================================
 
-CREATE TABLE IF NOT EXISTS public.ward_duty (
-  duty_date date PRIMARY KEY,
-  prof_day text NOT NULL DEFAULT '',
-  resident_day text NOT NULL DEFAULT '',
-  resident_night text NOT NULL DEFAULT '',
-  resident_outpatient_1 text NOT NULL DEFAULT '',
-  resident_outpatient_2 text NOT NULL DEFAULT '',
-  is_holiday boolean NOT NULL DEFAULT false,
-  updated_at timestamptz NOT NULL DEFAULT now(),
-  updated_by uuid REFERENCES public.profiles(id)
-);
-
-ALTER TABLE public.ward_duty ENABLE ROW LEVEL SECURITY;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.ward_duty TO authenticated;
-
-DROP POLICY IF EXISTS "ward_duty_select" ON public.ward_duty;
-CREATE POLICY "ward_duty_select"
-  ON public.ward_duty FOR SELECT TO authenticated USING (true);
+ALTER TABLE public.ward_duty
+  ADD COLUMN IF NOT EXISTS resident_day text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS resident_outpatient_1 text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS resident_outpatient_2 text NOT NULL DEFAULT '';
 
 DROP POLICY IF EXISTS "ward_duty_insert" ON public.ward_duty;
 CREATE POLICY "ward_duty_insert"

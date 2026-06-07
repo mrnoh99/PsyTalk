@@ -80,6 +80,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 2. `schema_extension.sql` — room_members, room_writers, calendar_events, room_files + RLS
 3. `storage_setup.sql` — `room-files` 버킷·정책
 4. `ward_status.sql` — 잔여 병실 현황 메모(단일 행)
+   · `ward_duty.sql` — **당직표** (`ward_status` 다음). 편집=교실·의국·비서+관리자.
+     초기 버전만 실행했다면 **`ward_duty_fix.sql`** 로 컬럼·RLS 보정(입력 실패 시).
 5. `seed_rooms.sql` — 기본 2방(과 전체공지·주간 학술활동)
 6. `install.sql` — GRANT·RLS
 7. `room_create.sql` — 모임방 사용자 생성 권한·가시성

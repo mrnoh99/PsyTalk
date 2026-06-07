@@ -8,7 +8,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -1633,6 +1632,41 @@ private fun NoticePostCard(
 // 카톡식 빠른 리액션 이모지
 val REACTION_EMOJIS = listOf("👍", "❤️", "😂", "😮", "😢", "👏")
 
+private fun replyQuotePreview(msg: Message): String =
+    msg.content?.takeIf { it.isNotBlank() }
+        ?: when (msg.type) { "image" -> "사진" "file" -> "파일" else -> "" }
+
+@Composable
+private fun ReplyQuoteInBubble(
+    repliedMessage: Message,
+    repliedName: String?,
+    mine: Boolean,
+) {
+    val quoteBg = if (mine) Color.White.copy(alpha = 0.15f) else MoimBg
+    val quoteColor = if (mine) Color.White.copy(alpha = 0.9f) else MoimSub
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
+            .background(quoteBg)
+            .padding(horizontal = 8.dp, vertical = 5.dp),
+    ) {
+        Text(
+            "${repliedName ?: "상대"}에게",
+            fontSize = 10.5.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = quoteColor,
+        )
+        Text(
+            replyQuotePreview(repliedMessage),
+            fontSize = 11.sp,
+            color = quoteColor.copy(alpha = 0.85f),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageBubble(
@@ -1646,9 +1680,8 @@ fun MessageBubble(
     repliedMessage: Message? = null,
     repliedName: String? = null,
 ) {
-    // 텍스트 메시지 길게 누르기 → 카톡식 메뉴(복사·선택복사·답장 + 이모지 리액션)
+    // 텍스트 메시지 길게 누르기 → 카톡식 메뉴(복사·답장 + 이모지 리액션)
     var copyMenuOpen by remember(m.id) { mutableStateOf(false) }
-    var selecting by remember(m.id) { mutableStateOf(false) }
     val clipboard = LocalClipboardManager.current
     Row(
         modifier = Modifier
@@ -1699,22 +1732,6 @@ fun MessageBubble(
                     modifier = Modifier.padding(bottom = 3.dp, start = 2.dp)
                 )
             }
-            // 답장 인용 (대상 메시지 미리보기)
-            if (repliedMessage != null) {
-                val quote = repliedMessage.content?.takeIf { it.isNotBlank() }
-                    ?: when (repliedMessage.type) { "image" -> "사진" "file" -> "파일" else -> "" }
-                Column(
-                    modifier = Modifier
-                        .widthIn(max = 225.dp)
-                        .padding(bottom = 3.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MoimBg)
-                        .padding(horizontal = 8.dp, vertical = 5.dp)
-                ) {
-                    Text("↩ ${repliedName ?: "답장"}", fontSize = 10.5.sp, fontWeight = FontWeight.SemiBold, color = MoimSub)
-                    Text(quote, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
             val uriHandler = LocalUriHandler.current
             val path = m.attachmentUrl
             // 공개 URL(http)은 즉시 표시, 과거 path 는 서명 URL 캐시 사용
@@ -1722,31 +1739,50 @@ fun MessageBubble(
                 attachUrl(p) ?: if (p.startsWith("http")) p else null
             }
             when {
-                m.type == "image" && path != null -> AsyncImage(
-                    model = resolved,
-                    contentDescription = "사진",
-                    modifier = Modifier
-                        .widthIn(max = 220.dp)
-                        .heightIn(max = 260.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(MoimBg, RoundedCornerShape(14.dp))
-                        .clickable { resolved?.let { uriHandler.openUri(it) } }
-                )
-                m.type == "file" && path != null -> Row(
-                    modifier = Modifier
-                        .widthIn(max = 225.dp)
-                        .clip(shape)
-                        .background(MoimWhite, shape)
-                        .clickable { resolved?.let { uriHandler.openUri(it) } }
-                        .padding(horizontal = 12.dp, vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                m.type == "image" && path != null -> Column(
+                    modifier = Modifier.widthIn(max = 220.dp),
+                    horizontalAlignment = if (mine) Alignment.End else Alignment.Start,
                 ) {
-                    Text("📎", fontSize = 16.sp)
-                    Spacer(Modifier.width(7.dp))
-                    Text(
-                        m.attachmentName ?: "파일", color = MoimInk, fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis
+                    if (repliedMessage != null) {
+                        ReplyQuoteInBubble(repliedMessage, repliedName, mine)
+                        Spacer(Modifier.height(4.dp))
+                    }
+                    AsyncImage(
+                        model = resolved,
+                        contentDescription = "사진",
+                        modifier = Modifier
+                            .widthIn(max = 220.dp)
+                            .heightIn(max = 260.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(MoimBg, RoundedCornerShape(14.dp))
+                            .clickable { resolved?.let { uriHandler.openUri(it) } },
+                        contentScale = ContentScale.Fit,
                     )
+                }
+                m.type == "file" && path != null -> Column(
+                    modifier = Modifier.widthIn(max = 225.dp),
+                    horizontalAlignment = if (mine) Alignment.End else Alignment.Start,
+                ) {
+                    if (repliedMessage != null) {
+                        ReplyQuoteInBubble(repliedMessage, repliedName, mine)
+                        Spacer(Modifier.height(4.dp))
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(shape)
+                            .background(MoimWhite, shape)
+                            .clickable { resolved?.let { uriHandler.openUri(it) } }
+                            .padding(horizontal = 12.dp, vertical = 11.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("📎", fontSize = 16.sp)
+                        Spacer(Modifier.width(7.dp))
+                        Text(
+                            m.attachmentName ?: "파일", color = MoimInk, fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 else -> Box {
                     Box(
@@ -1754,18 +1790,17 @@ fun MessageBubble(
                             .widthIn(max = 225.dp)
                             .background(bg, shape)
                             .combinedClickable(onClick = {}, onLongClick = { copyMenuOpen = true })
-                            .padding(horizontal = 12.dp, vertical = 9.dp)
+                            .padding(horizontal = 12.dp, vertical = 9.dp),
                     ) {
-                        if (selecting) {
-                            SelectionContainer {
-                                Text(m.content.orEmpty(), color = bubbleTextColor, fontSize = 14.5.sp, lineHeight = 20.sp)
+                        Column {
+                            if (repliedMessage != null) {
+                                ReplyQuoteInBubble(repliedMessage, repliedName, mine)
+                                Spacer(Modifier.height(6.dp))
                             }
-                        } else {
                             Text(m.content.orEmpty(), color = bubbleTextColor, fontSize = 14.5.sp, lineHeight = 20.sp)
                         }
                     }
                     DropdownMenu(expanded = copyMenuOpen, onDismissRequest = { copyMenuOpen = false }) {
-                        // 빠른 리액션 이모지 줄
                         Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
                             REACTION_EMOJIS.forEach { e ->
                                 Text(
@@ -1773,7 +1808,7 @@ fun MessageBubble(
                                     modifier = Modifier
                                         .clip(CircleShape)
                                         .clickable { onReact(e); copyMenuOpen = false }
-                                        .padding(6.dp)
+                                        .padding(6.dp),
                                 )
                             }
                         }
@@ -1783,15 +1818,11 @@ fun MessageBubble(
                             onClick = {
                                 clipboard.setText(AnnotatedString(m.content.orEmpty()))
                                 copyMenuOpen = false
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text("선택복사") },
-                            onClick = { selecting = true; copyMenuOpen = false }
+                            },
                         )
                         DropdownMenuItem(
                             text = { Text("답장") },
-                            onClick = { onReply(); copyMenuOpen = false }
+                            onClick = { onReply(); copyMenuOpen = false },
                         )
                     }
                 }

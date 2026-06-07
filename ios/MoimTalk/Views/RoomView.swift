@@ -413,6 +413,37 @@ struct DateDividerView: View {
 // 카톡식 빠른 리액션 이모지
 let REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "👏"]
 
+private func replyQuotePreview(_ msg: Message) -> String {
+    if let c = msg.content, !c.isEmpty { return c }
+    if msg.type == "image" { return "사진" }
+    if msg.type == "file" { return "파일" }
+    return ""
+}
+
+private struct ReplyQuoteInBubble: View {
+    let repliedMessage: Message
+    let repliedName: String?
+    let mine: Bool
+
+    var body: some View {
+        let quoteBg = mine ? Color.white.opacity(0.15) : Moim.bg
+        let quoteColor = mine ? Color.white.opacity(0.9) : Moim.sub
+        VStack(alignment: .leading, spacing: 1) {
+            Text("\(repliedName ?? "상대")에게")
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundColor(quoteColor)
+            Text(replyQuotePreview(repliedMessage))
+                .font(.system(size: 11))
+                .foregroundColor(quoteColor.opacity(0.85))
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 8).padding(.vertical, 5)
+        .background(quoteBg)
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+    }
+}
+
 struct MessageBubble: View {
     let message: Message
     let mine: Bool
@@ -427,7 +458,6 @@ struct MessageBubble: View {
     var onReply: () -> Void = {}
     var repliedMessage: Message? = nil
     var repliedName: String? = nil
-    @State private var selecting = false   // 선택복사(텍스트 선택) 모드
 
     private var unreadText: some View {
         Text(unread > 99 ? "99+" : "\(unread)")
@@ -463,41 +493,35 @@ struct MessageBubble: View {
                 if !mine {
                     Text(senderName).font(.system(size: 12, weight: .semibold)).foregroundColor(Color(hex: 0x6B635C))
                 }
-                // 답장 인용 (대상 메시지 미리보기)
-                if let r = repliedMessage {
-                    let quote = (r.content?.isEmpty == false) ? (r.content ?? "")
-                        : (r.type == "image" ? "사진" : (r.type == "file" ? "파일" : ""))
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("↩ \(repliedName ?? "답장")").font(.system(size: 10.5, weight: .semibold)).foregroundColor(Moim.sub)
-                        Text(quote).font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1)
-                    }
-                    .padding(.horizontal, 8).padding(.vertical, 5)
-                    .background(Moim.bg).clipShape(RoundedRectangle(cornerRadius: 8))
-                    .frame(maxWidth: 230, alignment: .leading)
-                }
                 if message.type == "image", message.attachmentUrl != nil {
                     // 서명 URL 해석 전이면 placeholder
                     let u = attachUrl.flatMap { URL(string: $0) }
-                    Group {
-                        if let u {
-                            Link(destination: u) {
-                                AsyncImage(url: u) { phase in
-                                    if let img = phase.image {
-                                        img.resizable().scaledToFit()
-                                    } else if phase.error != nil {
-                                        Color.gray.opacity(0.15)
-                                    } else {
-                                        ProgressView().frame(width: 120, height: 120)
+                    VStack(alignment: mine ? .trailing : .leading, spacing: 4) {
+                        if let r = repliedMessage {
+                            ReplyQuoteInBubble(repliedMessage: r, repliedName: repliedName, mine: mine)
+                                .frame(maxWidth: 200, alignment: .leading)
+                        }
+                        Group {
+                            if let u {
+                                Link(destination: u) {
+                                    AsyncImage(url: u) { phase in
+                                        if let img = phase.image {
+                                            img.resizable().scaledToFit()
+                                        } else if phase.error != nil {
+                                            Color.gray.opacity(0.15)
+                                        } else {
+                                            ProgressView().frame(width: 120, height: 120)
+                                        }
                                     }
+                                    .frame(maxWidth: 200, maxHeight: 240)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
                                 }
-                                .frame(maxWidth: 200, maxHeight: 240)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                            } else {
+                                Color.gray.opacity(0.12)
+                                    .frame(width: 140, height: 100)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .overlay(ProgressView())
                             }
-                        } else {
-                            Color.gray.opacity(0.12)
-                                .frame(width: 140, height: 100)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                                .overlay(ProgressView())
                         }
                     }
                 } else if message.type == "file", message.attachmentUrl != nil {
@@ -509,29 +533,40 @@ struct MessageBubble: View {
                     }
                     .padding(.horizontal, 12).padding(.vertical, 11)
                     .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 16))
-                    if let u = attachUrl.flatMap({ URL(string: $0) }) {
-                        Link(destination: u) { chip }
-                    } else {
-                        chip
+                    VStack(alignment: mine ? .trailing : .leading, spacing: 4) {
+                        if let r = repliedMessage {
+                            ReplyQuoteInBubble(repliedMessage: r, repliedName: repliedName, mine: mine)
+                                .frame(maxWidth: 230, alignment: .leading)
+                        }
+                        if let u = attachUrl.flatMap({ URL(string: $0) }) {
+                            Link(destination: u) { chip }
+                        } else {
+                            chip
+                        }
                     }
                 } else {
-                    // 길게 누르기 → 카톡식 메뉴(이모지 리액션 + 복사·선택복사·답장)
-                    let bubble = Text(message.content ?? "")
-                        .font(.system(size: 14.5)).foregroundColor(mine ? .white : Moim.ink)
-                        .padding(.horizontal, 12).padding(.vertical, 9)
-                        .background(mine ? Moim.accent : Moim.white)   // 내 버블=Primary(파랑), 받은=Surface
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    if selecting {
-                        bubble.textSelection(.enabled)
-                    } else {
-                        bubble.contextMenu {
-                            ForEach(REACTION_EMOJIS, id: \.self) { e in
-                                Button(e) { onReact(e) }
-                            }
-                            Divider()
-                            Button { UIPasteboard.general.string = message.content ?? "" } label: { Label("복사", systemImage: "doc.on.doc") }
-                            Button { selecting = true } label: { Label("선택복사", systemImage: "selection.pin.in.out") }
-                            Button { onReply() } label: { Label("답장", systemImage: "arrowshape.turn.up.left") }
+                    // 길게 누르기 → 카톡식 메뉴(이모지 리액션 + 복사·답장)
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let r = repliedMessage {
+                            ReplyQuoteInBubble(repliedMessage: r, repliedName: repliedName, mine: mine)
+                        }
+                        Text(message.content ?? "")
+                            .font(.system(size: 14.5))
+                            .foregroundColor(mine ? .white : Moim.ink)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .background(mine ? Moim.accent : Moim.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .contextMenu {
+                        ForEach(REACTION_EMOJIS, id: \.self) { e in
+                            Button(e) { onReact(e) }
+                        }
+                        Divider()
+                        Button { UIPasteboard.general.string = message.content ?? "" } label: {
+                            Label("복사", systemImage: "doc.on.doc")
+                        }
+                        Button { onReply() } label: {
+                            Label("답장", systemImage: "arrowshape.turn.up.left")
                         }
                     }
                 }

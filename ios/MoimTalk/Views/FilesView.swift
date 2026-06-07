@@ -119,7 +119,7 @@ struct FilesView: View {
             .frame(maxWidth: .infinity).padding(.vertical, 8)
             .background(moimToggleBg(selected: on, lightOn: Moim.accent))
             .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.dark ? Moim.line : Color.clear, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.dark ? moimToggleBorder(selected: on) : Color.clear, lineWidth: 1))
             .onTapGesture { sort = value }
     }
 

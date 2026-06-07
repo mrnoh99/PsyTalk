@@ -98,7 +98,7 @@ struct CalendarView: View {
             .frame(maxWidth: .infinity).padding(.vertical, 8)
             .background(moimToggleBg(selected: on, lightOn: Moim.yellow))
             .clipShape(RoundedRectangle(cornerRadius: 10))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.dark ? Moim.line : Color.clear, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.dark ? moimToggleBorder(selected: on) : Color.clear, lineWidth: 1))
             .onTapGesture { mode = value }
     }
 
@@ -176,7 +176,7 @@ struct CalendarView: View {
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(
             RoundedRectangle(cornerRadius: 9)
-                .stroke(theme.dark ? Moim.line : Moim.accent, lineWidth: isSelected ? (theme.dark ? 1 : 2) : 0)
+                .stroke(theme.dark ? moimToggleBorder(selected: isSelected) : Moim.accent, lineWidth: isSelected ? (theme.dark ? 1 : 2) : 0)
         )
         .contentShape(Rectangle())
         .onTapGesture { if let d = cellDate { selected = CalDate.startOfDay(d) } }
@@ -222,7 +222,7 @@ struct CalendarView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 11))
                 .overlay(
                     RoundedRectangle(cornerRadius: 11)
-                        .stroke(theme.dark ? Moim.line : Moim.accent, lineWidth: isSelected ? (theme.dark ? 1 : 2) : 0)
+                        .stroke(theme.dark ? moimToggleBorder(selected: isSelected) : Moim.accent, lineWidth: isSelected ? (theme.dark ? 1 : 2) : 0)
                 )
                 .contentShape(Rectangle())
                 .onTapGesture { selected = CalDate.startOfDay(date) }

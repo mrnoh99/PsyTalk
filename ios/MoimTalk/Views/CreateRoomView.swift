@@ -57,7 +57,7 @@ struct CreateRoomView: View {
                             }
                             .padding(10)
                             .background(moimToggleBg(selected: on, lightOn: Moim.hl))
-                            .overlay(RoundedRectangle(cornerRadius: 11).stroke(ThemeManager.shared.dark && on ? Moim.line : Color.clear, lineWidth: 1))
+                            .overlay(RoundedRectangle(cornerRadius: 11).stroke(ThemeManager.shared.dark && on ? moimToggleBorder(selected: true) : Color.clear, lineWidth: 1))
                             .clipShape(RoundedRectangle(cornerRadius: 11))
                             .padding(.bottom, 7)
                             .contentShape(Rectangle())

@@ -135,7 +135,7 @@ struct MyInfoTab: View {
                             .padding(.horizontal, 16).padding(.vertical, 8)
                             .background(moimToggleBg(selected: on, lightOn: Moim.accent))
                             .clipShape(Capsule())
-                            .overlay(Capsule().stroke(theme.dark ? Moim.line : Color.clear, lineWidth: 1))
+                            .overlay(Capsule().stroke(theme.dark ? moimToggleBorder(selected: on) : Color.clear, lineWidth: 1))
                             .onTapGesture { deviceType = k }
                     }
                 }
@@ -336,7 +336,7 @@ struct MemberSearchTab: View {
                 .padding(.horizontal, 14).padding(.vertical, 7)
                 .background(moimToggleBg(selected: on, lightOn: Moim.accent))
                 .clipShape(Capsule())
-                .overlay(Capsule().stroke(Moim.line, lineWidth: 1))
+                .overlay(Capsule().stroke(moimToggleBorder(selected: on), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

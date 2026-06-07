@@ -175,7 +175,10 @@ enum Moim {
 /// 다크 모드 surface pill — 방목록 상단 3버튼(전체공지·병실현황·학술활동)과 동일 톤
 func moimDarkSegBg() -> Color { Moim.white }
 func moimDarkSegText(selected: Bool) -> Color { selected ? Moim.ink : Moim.sub }
-func moimDarkSegBorder() -> Color { Moim.line }
+func moimDarkSegBorder(selected: Bool = false) -> Color {
+    moimDark && selected ? Moim.sub : Moim.line
+}
+func moimToggleBorder(selected: Bool) -> Color { moimDarkSegBorder(selected: selected) }
 func moimToggleBg(selected: Bool, lightOn: Color, lightOff: Color = Moim.white) -> Color {
     moimDark ? Moim.white : (selected ? lightOn : lightOff)
 }
@@ -345,21 +348,23 @@ func dutyTodayPreview(_ duty: WardDuty?, offDay: Bool) -> String {
 }
 
 func wardDutyTodayCardColors() -> (Color, Color) {
-    moimDark ? (moimDarkSegBg(), moimDarkSegBorder()) : (Moim.accent.opacity(0.12), Moim.accent.opacity(0.35))
+    moimDark
+        ? (Color(hex: 0x262626), moimDarkSegBorder())
+        : (Moim.accent.opacity(0.12), Moim.accent.opacity(0.35))
 }
 
 func wardDutyOffDayRowColors() -> (Color, Color) {
     moimDark
-        ? (Color(hex: 0x3A3548), Color(hex: 0x524D62))
+        ? (Color(hex: 0x212121), Moim.line)
         : (Color(hex: 0xF3F1F8), Color(hex: 0xE4E0EC))
 }
 
 func wardDutyOffDayInk() -> Color {
-    moimDark ? Color(hex: 0xC5BED6) : Color(hex: 0x6D5E58)
+    moimDark ? Moim.ink : Color(hex: 0x6D5E58)
 }
 
 func wardDutyToneBadge() -> Color {
-    moimDark ? Color(hex: 0x9A92A8) : Color(hex: 0x8A7E96)
+    moimDark ? Moim.sub : Color(hex: 0x8A7E96)
 }
 
 func wardDutyRowColors(_ tone: WardDutyTone, isToday: Bool) -> (Color, Color) {
@@ -368,7 +373,7 @@ func wardDutyRowColors(_ tone: WardDutyTone, isToday: Bool) -> (Color, Color) {
     case .publicHoliday, .weekend: pair = wardDutyOffDayRowColors()
     case .weekday: pair = (Moim.white, Moim.line)
     }
-    let todayBorder = isToday ? (moimDark ? Moim.line : Moim.accent) : pair.1
+    let todayBorder = isToday ? (moimDark ? Moim.sub : Moim.accent) : pair.1
     return (pair.0, todayBorder)
 }
 

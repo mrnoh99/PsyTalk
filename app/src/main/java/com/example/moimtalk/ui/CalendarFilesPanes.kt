@@ -238,7 +238,7 @@ private fun SortButton(label: String, on: Boolean, modifier: Modifier, onClick: 
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .background(moimToggleBg(on, MoimAccent), RoundedCornerShape(10.dp))
-            .then(if (MoimTheme.dark) Modifier.border(1.dp, MoimLine, RoundedCornerShape(10.dp)) else Modifier)
+            .then(if (MoimTheme.dark) Modifier.border(1.dp, moimToggleBorder(on), RoundedCornerShape(10.dp)) else Modifier)
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -509,7 +509,7 @@ private fun monthContent(
                         else -> Color.Transparent
                     }
                     val cellBorder = when {
-                        MoimTheme.dark && isSelected -> MoimLine to 1.dp
+                        MoimTheme.dark && isSelected -> moimDarkSegBorder(true) to 1.dp
                         !MoimTheme.dark && isSelected -> MoimAccent to 2.dp
                         else -> Color.Transparent to 0.dp
                     }
@@ -587,7 +587,7 @@ private fun weekContent(
                 else -> Color.Transparent
             }
             val weekBorder = when {
-                MoimTheme.dark && isSelected -> MoimLine to 1.dp
+                MoimTheme.dark && isSelected -> moimDarkSegBorder(true) to 1.dp
                 !MoimTheme.dark && isSelected -> MoimAccent to 2.dp
                 else -> Color.Transparent to 0.dp
             }
@@ -690,7 +690,7 @@ private fun ModeButton(label: String, on: Boolean, modifier: Modifier, onClick: 
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .background(moimToggleBg(on, MoimYellow), RoundedCornerShape(10.dp))
-            .then(if (MoimTheme.dark) Modifier.border(1.dp, MoimLine, RoundedCornerShape(10.dp)) else Modifier)
+            .then(if (MoimTheme.dark) Modifier.border(1.dp, moimToggleBorder(on), RoundedCornerShape(10.dp)) else Modifier)
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -1138,6 +1138,8 @@ desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), p
                 Text("일정 삭제", color = MoimAdmin, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
+        Spacer(Modifier.height(8.dp))
+        GhostButton("취소", onDismiss)
     }
 }
 
@@ -1178,6 +1180,17 @@ private fun PrimaryButton(label: String, onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
         shape = RoundedCornerShape(13.dp)
     ) { Text(label, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+}
+
+/** Web `.ghost` — 일정·설정 모달 하단 취소 */
+@Composable
+private fun GhostButton(label: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(52.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = MoimLine, contentColor = MoimInk),
+        shape = RoundedCornerShape(13.dp),
+    ) { Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
 }
 
 @Composable

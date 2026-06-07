@@ -214,7 +214,7 @@ struct AdminPlaceholderView: View {
                 .padding(.horizontal, 12).padding(.vertical, 5)
                 .background(moimToggleBg(selected: on, lightOn: Moim.accent, lightOff: Moim.bg))
                 .clipShape(Capsule())
-                .overlay(Capsule().stroke(ThemeManager.shared.dark ? Moim.line : Color.clear, lineWidth: 1))
+                .overlay(Capsule().stroke(ThemeManager.shared.dark ? moimToggleBorder(selected: on) : Color.clear, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

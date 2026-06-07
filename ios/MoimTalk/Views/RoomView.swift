@@ -181,7 +181,7 @@ struct RoomView: View {
                 VStack(spacing: 8) {
                     Text(label).font(.system(size: 13, weight: .bold))
                         .foregroundColor(on ? Moim.ink : Moim.sub)
-                    Rectangle().fill(on ? (theme.dark ? Moim.line : Moim.yellow) : Color.clear)
+                    Rectangle().fill(on ? (theme.dark ? Moim.sub : Moim.yellow) : Color.clear)
                         .frame(height: 2.5).frame(maxWidth: .infinity).padding(.horizontal, 20)
                 }
                 .padding(.vertical, 12).frame(maxWidth: .infinity)

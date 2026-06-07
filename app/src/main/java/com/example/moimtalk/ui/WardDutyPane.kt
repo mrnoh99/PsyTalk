@@ -100,7 +100,7 @@ private fun RowScope.WardSegPill(label: String, on: Boolean, onClick: () -> Unit
             .weight(1f)
             .clip(RoundedCornerShape(10.dp))
             .background(moimDarkSegBg(), RoundedCornerShape(10.dp))
-            .border(1.dp, moimDarkSegBorder(), RoundedCornerShape(10.dp))
+            .border(1.dp, moimDarkSegBorder(on), RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(vertical = 10.dp),
         contentAlignment = Alignment.Center,
@@ -305,7 +305,7 @@ private fun WardDutyDayRow(
             }
             if (editLabel != null) {
                 TextButton(onClick = onEdit, modifier = Modifier.padding(0.dp)) {
-                    Text(editLabel, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = moimSurfaceAccentText())
+                    Text(editLabel, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAccent)
                 }
             }
         }

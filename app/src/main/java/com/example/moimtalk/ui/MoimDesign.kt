@@ -86,7 +86,11 @@ val MoimYouBubble: Color get() = MoimTheme.palette.youBubble
 /** 다크 모드 surface pill — 방목록 상단 3버튼(전체공지·병실현황·학술활동)과 동일 톤 */
 fun moimDarkSegBg(): Color = MoimWhite
 fun moimDarkSegText(selected: Boolean): Color = if (selected) MoimInk else MoimSub
-fun moimDarkSegBorder(): Color = MoimLine
+fun moimDarkSegBorder(selected: Boolean = false): Color =
+    if (MoimTheme.dark && selected) MoimSub else MoimLine
+
+/** 다크 surface pill — 선택 시 테두리 밝게 */
+fun moimToggleBorder(selected: Boolean): Color = moimDarkSegBorder(selected)
 
 fun moimToggleBg(selected: Boolean, lightOn: Color, lightOff: Color = MoimWhite): Color =
     if (MoimTheme.dark) MoimWhite else if (selected) lightOn else lightOff
@@ -386,23 +390,23 @@ fun dutyTodayPreview(
     }
 }
 
-/** 오늘 당직 카드 — 라이트: 파란 강조 / 다크: surface pill */
+/** 오늘 당직 카드 — 당직표 행(surface)과 살짝 구분되는 배경 */
 fun wardDutyTodayCardColors(): Pair<Color, Color> =
-    if (MoimTheme.dark) moimDarkSegBg() to moimDarkSegBorder()
+    if (MoimTheme.dark) Color(0xFF262626) to moimDarkSegBorder()
     else MoimAccent.copy(alpha = 0.12f) to MoimAccent.copy(alpha = 0.35f)
 
-/** 주말·공휴일 당직표 행 배경·테두리 — 다크 모드만 어두운 톤, 라이트는 연한 라벤더 */
+/** 주말·공휴일 당직표 행 배경·테두리 — 다크: 평일(surface)에 가깝게, 라이트: 연한 라벤더 */
 fun wardDutyOffDayRowColors(): Pair<Color, Color> = if (MoimTheme.dark) {
-    Color(0xFF3A3548) to Color(0xFF524D62)
+    Color(0xFF212121) to MoimLine
 } else {
     Color(0xFFF3F1F8) to Color(0xFFE4E0EC)
 }
 
 /** 주말·공휴일 날짜 라벨 색 */
-fun wardDutyOffDayInk(): Color = if (MoimTheme.dark) Color(0xFFC5BED6) else Color(0xFF6D5E58)
+fun wardDutyOffDayInk(): Color = if (MoimTheme.dark) MoimInk else Color(0xFF6D5E58)
 
 /** 주말·공휴일 뱃지(주말/공휴일) 색 */
-fun wardDutyToneBadge(): Color = if (MoimTheme.dark) Color(0xFF9A92A8) else Color(0xFF8A7E96)
+fun wardDutyToneBadge(): Color = if (MoimTheme.dark) MoimSub else Color(0xFF8A7E96)
 
 /** 당직표 행 배경·테두리 (주말·공휴일 동일 톤) */
 fun wardDutyRowColors(tone: WardDutyTone, isToday: Boolean): Pair<Color, Color> {
@@ -410,7 +414,7 @@ fun wardDutyRowColors(tone: WardDutyTone, isToday: Boolean): Pair<Color, Color> 
         WardDutyTone.PUBLIC_HOLIDAY, WardDutyTone.WEEKEND -> wardDutyOffDayRowColors()
         WardDutyTone.WEEKDAY -> MoimWhite to MoimLine
     }
-    val todayBorder = if (isToday) (if (MoimTheme.dark) MoimLine else MoimAccent) else border
+    val todayBorder = if (isToday) (if (MoimTheme.dark) MoimSub else MoimAccent) else border
     return bg to todayBorder
 }
 

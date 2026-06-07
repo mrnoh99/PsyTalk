@@ -104,7 +104,7 @@ private struct WardSegmentBar: View {
                 .padding(.vertical, 10)
                 .background(moimDarkSegBg())
                 .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(moimDarkSegBorder(), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(moimDarkSegBorder(selected: on), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }
@@ -287,7 +287,7 @@ private struct WardDutyPane: View {
                         editDate = day
                     }
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(moimSurfaceAccentText())
+                    .foregroundColor(Moim.accent)
                 }
             }
             Text(dutyProfDisplay(duty?.profDay)).font(.system(size: 18, weight: .bold)).foregroundColor(Moim.ink)

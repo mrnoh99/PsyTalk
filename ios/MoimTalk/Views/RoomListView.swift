@@ -491,7 +491,7 @@ struct ViewChip: View {
         .padding(.leading, 5).padding(.trailing, 10).padding(.vertical, 5)
         .background(moimToggleBg(selected: true, lightOn: Moim.accent))
         .clipShape(Capsule())
-        .overlay(Capsule().stroke(ThemeManager.shared.dark ? Moim.line : Color.clear, lineWidth: 1))
+        .overlay(Capsule().stroke(ThemeManager.shared.dark ? moimToggleBorder(selected: true) : Color.clear, lineWidth: 1))
     }
 }
 

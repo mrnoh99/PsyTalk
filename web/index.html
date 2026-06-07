@@ -104,7 +104,7 @@
   .inputbar #msgInputNotice{display:none;flex:1;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;line-height:1.55;outline:none;font-family:inherit;resize:vertical;min-height:88px;max-height:200px}
   .inputbar.notice-compose #msgInput{display:none}
   .inputbar.notice-compose #msgInputNotice{display:block}
-  .send{background:var(--accent);border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer}
+  .send{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer}
   .plus{background:none;border:1px solid var(--line);color:var(--sub);width:34px;height:34px;border-radius:50%;font-size:21px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
   .attachmenu{position:absolute;bottom:52px;left:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:30}
   .attachmenu.on{display:flex}
@@ -584,7 +584,7 @@ function renderSet(){
 
 // ── 내 정보 변경 (이름·이메일·전화번호 읽기전용 / 직군·자기소개·아바타 변경) ──
 const MEMBER_TYPES=['교실','의국','심리실','연구실','PA','간호사','SW','보조원','생명사랑','비서','의국동문','심리실 동문','기타'];
-let meColor=null, meMtypeSel=null, meAvatarFile=null, meAvatarPreview=null, meAvatarUrl=null, meClearAvatar=false;
+let meColor=null, meMtypeSel=null, meAvatarFile=null, meAvatarPreview=null, meAvatarUrl=null, meClearAvatar=false, meDeviceType=null;
 let avAdjustImg=null, avAdjustScale=1, avAdjustOx=0, avAdjustOy=0, avAdjustCropPx=0, avAdjustDragging=false, avAdjustLast=null, avAdjustPinchDist=null, avAdjustOnConfirm=null;
 function renderMyInfo(){
   meColor=me.color||tcolor(me.member_type); meAvatarFile=null; meAvatarPreview=null; meAvatarUrl=me.avatar_url||null; meClearAvatar=false;
@@ -614,8 +614,12 @@ function renderMyInfo(){
       <input id="meEmail" class="field" value="${esc(me.email||'')}" disabled style="opacity:.65">
     </div>
     <div class="my-field">
-      <span class="lbl">전화번호 (변경 불가)</span>
-      <input id="mePhone" class="field" type="tel" value="${esc(myPhone)}" disabled style="opacity:.65" placeholder="등록된 번호 없음">
+      <span class="lbl">전화번호</span>
+      <input id="mePhone" class="field" type="tel" value="${esc(myPhone)}" placeholder="010-0000-0000">
+    </div>
+    <div class="my-field">
+      <span class="lbl">사용 핸드폰 종류</span>
+      <div id="meDevice" style="display:flex;gap:7px"></div>
     </div>
     <div class="my-field">
     <span class="lbl">직군</span>
@@ -643,6 +647,14 @@ function renderMyInfo(){
     <div style="text-align:center"><button class="lk" style="color:var(--admin);font-weight:700" onclick="deleteAccount()">회원 탈퇴</button></div>`;
   renderSwatches('meColors',meColor,'pickMyColor'); renderMyAvatarPreview();
   initMeMtypePulldown(me.member_type||'의국');
+  meDeviceType=me.device_type||null; renderMeDevice();
+}
+function renderMeDevice(){
+  const el=document.getElementById('meDevice'); if(!el)return;
+  el.innerHTML=[['iphone','🍎 아이폰'],['android','🤖 안드로이드']].map(([k,l])=>{
+    const on=k===meDeviceType;
+    return `<span onclick="meDeviceType='${k}';renderMeDevice()" style="cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:20px;background:${on?'var(--accent)':'var(--surface)'};color:${on?'#fff':'var(--ink)'};border:1px solid var(--line)">${l}</span>`;
+  }).join('');
 }
 function initMeMtypePulldown(selected){
   meMtypeSel=selected||'의국';
@@ -794,9 +806,10 @@ function needSqlHint(e){ const s=((e&&e.message)||'')+((e&&e.code)||'')+((e&&e.d
 async function saveMyInfo(){
   const intro=document.getElementById('meIntro').value.trim();
   const mtype=(document.getElementById('meMtypeVal')?.value||meMtypeSel||me.member_type||'의국').trim();
+  const phone=(document.getElementById('mePhone')?.value||'').trim();
   let avatarUrl=meClearAvatar?null:meAvatarUrl;
   if(meAvatarFile){try{avatarUrl=await uploadProfileAvatar(meAvatarFile);}catch(e){alert('사진 업로드 실패: '+(e.message||e));return;}}
-  const {error}=await sb.rpc('moim_update_my_profile',{p_intro:intro||null,p_member_type:mtype,p_avatar_url:avatarUrl,p_color:meColor});
+  const {error}=await sb.rpc('moim_update_my_profile',{p_intro:intro||null,p_member_type:mtype,p_avatar_url:avatarUrl,p_color:meColor,p_phone:phone||null,p_device_type:meDeviceType||null});
   if(error){alert('저장 실패: '+sbErr(error)+needSqlHint(error));return;}
   const {data:prof,error:pErr}=await sb.from('profiles').select('*').eq('id',me.id).maybeSingle();
   if(!pErr&&prof){
@@ -804,8 +817,8 @@ async function saveMyInfo(){
     me=mergeMeProfile(prof,user);
     profilesById[me.id]=me;
   }else{
-    me.intro=intro; me.member_type=mtype; me.avatar_url=avatarUrl; me.color=meColor;
-    if(profilesById[me.id]){Object.assign(profilesById[me.id],{intro,member_type:mtype,avatar_url:avatarUrl,color:meColor});}
+    me.intro=intro; me.member_type=mtype; me.avatar_url=avatarUrl; me.color=meColor; me.phone=phone; me.device_type=meDeviceType;
+    if(profilesById[me.id]){Object.assign(profilesById[me.id],{intro,member_type:mtype,avatar_url:avatarUrl,color:meColor,phone,device_type:meDeviceType});}
   }
   renderRoomList(); alert('내 정보가 저장되었습니다.'); renderMyInfo();
 }
@@ -1391,9 +1404,10 @@ function downloadMembersExcel(){
   const devLabel=t=>t==='iphone'?'아이폰':(t==='android'?'안드로이드':'');
   const roleLbl=r=>r==='superadmin'?'전체관리자':(r==='admin'?'관리자':'회원');
   const cq=v=>{const s=(v==null?'':String(v));return /[",\n\r]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;};
-  const header=['이름','직군','역할','로그인 이메일','핸드폰번호','핸드폰 종류','연결 이메일(앱설치)','자기소개','승인'];
+  const fmtDate=s=>{if(!s)return'';const d=new Date(s);return isNaN(d)?'':`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
+  const header=['이름','직군','역할','로그인 이메일','핸드폰번호','핸드폰 종류','연결 이메일(앱설치)','자기소개','승인','가입일','핸드폰 최종변경일'];
   const lines=[header.join(',')];
-  rows.forEach(p=>lines.push([p.name,p.member_type,roleLbl(p.role),p.email,p.phone,devLabel(p.device_type),p.device_email,p.intro,(p.approved===true?'승인':'대기')].map(cq).join(',')));
+  rows.forEach(p=>lines.push([p.name,p.member_type,roleLbl(p.role),p.email,p.phone,devLabel(p.device_type),p.device_email,p.intro,(p.approved===true?'승인':'대기'),fmtDate(p.created_at),fmtDate(p.phone_updated_at)].map(cq).join(',')));
   const blob=new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv;charset=utf-8;'});
   const url=URL.createObjectURL(blob), a=document.createElement('a');
   const d=new Date(), ymd=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;

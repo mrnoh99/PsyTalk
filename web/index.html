@@ -94,6 +94,18 @@
   html.ios-standalone .inputbar,html.ios-standalone .inputbar.notice-compose{padding-bottom:9px}
   html.ios-standalone .inputbar.notice-compose{padding-bottom:12px}
   html.ios-standalone .readonly{padding-bottom:14px}
+  /* 슬라이드 오버레이 화면(roomScreen·설정·관리자·병실·일정상세)은 position:absolute;inset:0 라
+     .phone 의 상단 safe-area padding 을 벗어남 → 오버레이 자체 top 을 safe-area 만큼 내림(좌우도). */
+  html.ios-standalone #roomScreen.slide-overlay,
+  html.ios-standalone #wardScreen.slide-overlay,
+  html.ios-standalone #evDetailModal.slide-overlay,
+  html.ios-standalone #adminScreen.slide-overlay,
+  html.ios-standalone #settingsScreen.slide-overlay,
+  html.ios-standalone #createRoomScreen.slide-overlay{
+    top:max(constant(safe-area-inset-top),var(--ios-safe-top));
+    top:max(env(safe-area-inset-top),var(--ios-safe-top));
+    left:constant(safe-area-inset-left);left:env(safe-area-inset-left);
+    right:constant(safe-area-inset-right);right:env(safe-area-inset-right)}
   .hidden{display:none!important}
   .hdr{padding:14px 18px 13px;display:flex;align-items:center;gap:10px;background:var(--paper);
     border-bottom:1px solid var(--line);flex-shrink:0}

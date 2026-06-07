@@ -96,6 +96,10 @@
   html.ios-standalone .inputbar,html.ios-standalone .inputbar.notice-compose{padding-bottom:9px}
   html.ios-standalone .inputbar.notice-compose{padding-bottom:12px}
   html.ios-standalone .readonly{padding-bottom:14px}
+  /* 키보드가 올라오면 홈인디케이터 안전영역이 가려지므로 하단 여백 제거 → 입력창을 키보드에 붙임 */
+  html.ios-standalone.kb-open .chat-foot{padding-bottom:0}
+  html.ios-standalone.kb-open .list{padding-bottom:10px}
+  html.ios-standalone.kb-open .readonly{padding-bottom:9px}
   /* 슬라이드 오버레이 화면(roomScreen·설정·관리자·병실·일정상세)은 position:absolute;inset:0 라
      .phone 의 상단 safe-area padding 을 벗어남 → 오버레이 자체 top 을 safe-area 만큼 내림(좌우도). */
   html.ios-standalone #roomScreen.slide-overlay,
@@ -2288,6 +2292,9 @@ function fitPhoneToViewport(){
   // iOS 키보드가 비주얼뷰포트를 위로 패닝하면 fixed 요소(상단 바)가 따라 올라감 → offsetTop 만큼 내려 보정
   phone.style.transform='translateY('+Math.round(vv.offsetTop)+'px)';
   if(window.pageYOffset!==0)window.scrollTo(0,0);
+  // 키보드 열림 감지 → 하단 안전영역 여백 제거(입력창-키보드 간격 좁힘)
+  const kbOpen=((window.innerHeight||vv.height)-vv.height-vv.offsetTop)>120;
+  document.documentElement.classList.toggle('kb-open',kbOpen);
 }
 if(window.visualViewport){
   const onVV=()=>{fitPhoneToViewport();layoutChat();if(document.activeElement===activeMsgInput()&&!replyTarget)scrollMsgsToBottom();};

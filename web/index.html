@@ -2277,8 +2277,20 @@ function renderMsgs(){
   resolveAttachments();
 }
 window.addEventListener('resize',layoutChat);
+// iOS 홈화면(PWA): 키보드가 올라오면 iOS 가 윈도우를 위로 스크롤해 상단 바가 시계 영역까지 밀려 올라감.
+// → .phone 을 '보이는 뷰포트(visualViewport) 높이'에 맞추고 윈도우를 맨 위로 고정해 상단 바를 제자리에 유지.
+function fitPhoneToViewport(){
+  if(!window.visualViewport||!document.documentElement.classList.contains('ios-standalone'))return;
+  const vv=window.visualViewport, phone=document.querySelector('.phone');
+  if(!phone)return;
+  phone.style.height=Math.round(vv.height)+'px';
+  phone.style.bottom='auto';                 // inset:0 의 bottom 무시하고 height 적용
+  if(window.pageYOffset!==0)window.scrollTo(0,0);   // iOS 윈도우 밀림 방지(상단 바 고정)
+}
 if(window.visualViewport){
-  window.visualViewport.addEventListener('resize',()=>{layoutChat();if(document.activeElement===activeMsgInput()&&!replyTarget)scrollMsgsToBottom();});
+  const onVV=()=>{fitPhoneToViewport();layoutChat();if(document.activeElement===activeMsgInput()&&!replyTarget)scrollMsgsToBottom();};
+  window.visualViewport.addEventListener('resize',onVV);
+  window.visualViewport.addEventListener('scroll',onVV);
 }
 function isNoticeRoom(){return active&&noticeTopRoom()&&noticeTopRoom().id===active.id;}
 function activeMsgInput(){return (isNoticeRoom()||isBugReportRoom(active))?document.getElementById('msgInputNotice'):document.getElementById('msgInput');}
@@ -3017,7 +3029,8 @@ function applyIosStandaloneSafeArea(){
   root.style.setProperty('--ios-safe-bottom',bottom+'px');
 }
 applyIosStandaloneSafeArea();
-window.addEventListener('resize',applyIosStandaloneSafeArea);
+fitPhoneToViewport();
+window.addEventListener('resize',()=>{applyIosStandaloneSafeArea();fitPhoneToViewport();});
 window.visualViewport?.addEventListener('resize',applyIosStandaloneSafeArea);
 
 /* ====== 시작: 기존 세션 있으면 자동 로그인 ====== */

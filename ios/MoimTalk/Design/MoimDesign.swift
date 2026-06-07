@@ -43,14 +43,25 @@ func byName(_ a: Profile, _ b: Profile) -> Bool {
     a.name.localizedCompare(b.name) == .orderedAscending
 }
 
-/// 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본
-func opensWeekCalendar(_ room: Room) -> Bool {
-    room.category != "custom" && room.category != "direct" && room.defaultView == "week"
+/// BugReport 고정 방 id (승인·미탈퇴 전원 구성원)
+let BUG_REPORT_ROOM_ID = "11111111-1111-1111-1111-111111110013"
+
+func bugReportRoom(_ rooms: [Room]) -> Room? {
+    rooms.first { $0.id == BUG_REPORT_ROOM_ID } ?? rooms.first { $0.category == "bugreport" }
 }
 
-/// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방.
+func isBugReportRoom(_ room: Room) -> Bool {
+    room.id == BUG_REPORT_ROOM_ID || room.category == "bugreport"
+}
+
+/// 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본
+func opensWeekCalendar(_ room: Room) -> Bool {
+    room.category != "custom" && room.category != "direct" && !isBugReportRoom(room) && room.defaultView == "week"
+}
+
+/// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)·BugReport 제외.
 func noticeTopRoom(_ rooms: [Room]) -> Room? {
-    rooms.filter { $0.category != "custom" && $0.category != "direct" && $0.defaultView != "week" }
+    rooms.filter { $0.category != "custom" && $0.category != "direct" && !isBugReportRoom($0) && $0.defaultView != "week" }
         .min { $0.sortOrder < $1.sortOrder }
 }
 
@@ -107,6 +118,7 @@ enum MoimOverlayAnim {
 func catColor(_ category: String) -> Color {
     switch category {
     case "notice": return Color(hex: 0xB5651D)
+    case "bugreport": return Color(hex: 0x5C4D7A)
     case "group": return Color(hex: 0x4A6FA5)
     case "work": return Color(hex: 0x3D8361)
     case "research": return Color(hex: 0x6D597A)
@@ -117,6 +129,7 @@ func catColor(_ category: String) -> Color {
 func catLabel(_ category: String) -> String {
     switch category {
     case "notice": return "공지"
+    case "bugreport": return "BugReport"
     case "group": return "그룹"
     case "work": return "업무"
     case "research": return "연구"

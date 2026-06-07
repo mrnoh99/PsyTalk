@@ -160,6 +160,7 @@ struct RoomView: View {
     private var tabItems: [(String, String)] {
         if isDM || room.category == "custom" { return [] }
         if isNoticeTopRoom(liveRoom, vm.rooms) { return [] }
+        if isBugReportRoom(liveRoom) { return [] }
         return [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
     }
 

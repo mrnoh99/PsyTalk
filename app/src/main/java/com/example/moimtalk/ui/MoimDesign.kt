@@ -123,6 +123,7 @@ fun moimOutlinedTextFieldColors(): TextFieldColors = OutlinedTextFieldDefaults.c
 
 fun catColor(category: String): Color = when (category) {
     "notice" -> Color(0xFFB5651D)
+    "bugreport" -> Color(0xFF5C4D7A)
     "group" -> Color(0xFF4A6FA5)
     "work" -> Color(0xFF3D8361)
     "research" -> Color(0xFF6D597A)
@@ -139,6 +140,7 @@ fun roomColor(room: Room): Color = parseHexColor(room.color) ?: catColor(room.ca
 
 fun catLabel(category: String): String = when (category) {
     "notice" -> "공지"
+    "bugreport" -> "BugReport"
     "group" -> "그룹"
     "work" -> "업무"
     "research" -> "연구"
@@ -173,13 +175,22 @@ fun roomDisplayName(room: Room, profiles: Map<String, Profile>): String =
 /** DM = 채팅 전용 (캘린더·자료실 탭, 이름변경·설정·나가기 모두 숨김) */
 fun isDirect(room: Room): Boolean = room.category == "direct"
 
+/** BugReport 고정 방 id (승인·미탈퇴 전원 구성원) */
+const val BUG_REPORT_ROOM_ID = "11111111-1111-1111-1111-111111110013"
+
+fun bugReportRoom(rooms: List<Room>): Room? =
+    rooms.find { it.id == BUG_REPORT_ROOM_ID } ?: rooms.find { it.category == "bugreport" }
+
+fun isBugReportRoom(room: Room): Boolean =
+    room.id == BUG_REPORT_ROOM_ID || room.category == "bugreport"
+
 /** 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본 */
 fun opensWeekCalendar(room: Room): Boolean =
-    room.category != "custom" && room.category != "direct" && room.defaultView == "week"
+    room.category != "custom" && room.category != "direct" && !isBugReportRoom(room) && room.defaultView == "week"
 
-/** 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방. */
+/** 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)·BugReport 제외. */
 fun noticeTopRoom(rooms: List<Room>): Room? =
-    rooms.filter { it.category != "custom" && it.category != "direct" && it.defaultView != "week" }
+    rooms.filter { it.category != "custom" && it.category != "direct" && !isBugReportRoom(it) && it.defaultView != "week" }
         .minByOrNull { it.sortOrder }
 
 /** 방 구성원 id 정렬 — 개설자(created_by) 맨 앞, 나머지 가나다순 */

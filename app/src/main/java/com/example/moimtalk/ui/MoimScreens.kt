@@ -644,10 +644,11 @@ fun RoomListScreen(
     val weekRoom = vm.rooms.firstOrNull { it.category != "custom" && it.defaultView == "week" }
     // 과 전체공지 방은 항상 맨 위 고정(핀·정렬 대상에서 제외).
     val noticeRoom = noticeTopRoom(vm.rooms)
+    val bugReport = bugReportRoom(vm.rooms)
     // 고정(핀) 우선 + 나머지는 최근 메시지순
     // 홈 목록: 기본 방은 항상, 모임방(custom)·1:1(direct)은 내가 가입한 것만 (관리자 콘솔은 전체 vm.rooms 사용)
     val flatRooms = vm.rooms.filter {
-        it.id != weekRoom?.id && it.id != noticeRoom?.id &&
+        it.id != weekRoom?.id && it.id != noticeRoom?.id && it.id != bugReport?.id &&
             (if (it.category == "custom" || it.category == "direct") vm.myRoomIds.contains(it.id) else true)
     }
     val pinnedRooms = vm.roomPins.mapNotNull { id -> flatRooms.find { it.id == id } }
@@ -711,7 +712,7 @@ fun RoomListScreen(
             noticeRoom?.let { nr -> item { NoticeRoomBar(nr, vm.unreadByRoom[nr.id] ?: 0, onOpen) } }
             item { WardStatusBanner(onWard) }
             weekRoom?.let { wr -> item { WeekRoomBar(wr, vm.unreadByRoom[wr.id] ?: 0, onOpen) } }
-            item { CreateRoomButton(onCreateRoom) }
+            item { RoomListActionRow(bugReport, { bugReport?.let(onOpen) }, onCreateRoom) }
             if (listRooms.isEmpty()) {
                 item { EmptyBox("🔒", "아직 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
             } else {
@@ -1193,7 +1194,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         }
                     }
                 }
-                val showSubTabs = room.category != "custom" && !dm && !isNoticeTopRoom(liveRoom, vm.rooms)
+                val showSubTabs = room.category != "custom" && !dm && !isNoticeTopRoom(liveRoom, vm.rooms) && !isBugReportRoom(liveRoom)
                 if (showSubTabs) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         listOf("chat" to "💬 채팅", "files" to "📁 자료실", "cal" to "📅 캘린더").forEach { (id, label) ->
@@ -2036,26 +2037,37 @@ private fun NoticeRoomBar(room: Room, unread: Int = 0, onOpen: (Room) -> Unit) {
     }
 }
 
-// ＋ 모임방 만들기 버튼 (목록 위)
+// BugReport(왼쪽) + 모임방 만들기(오른쪽) — 동일 크기 버튼
 @Composable
-private fun CreateRoomButton(onClick: () -> Unit) {
+private fun RoomListActionRow(bugReport: Room?, onBugReport: () -> Unit, onCreateRoom: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 14.dp)
             .padding(bottom = 4.dp),
-        horizontalArrangement = Arrangement.End
+        horizontalArrangement = if (bugReport != null) Arrangement.spacedBy(10.dp) else Arrangement.End,
     ) {
-        Text(
-            "＋ 모임방 만들기",
-            fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAccent,
-            modifier = Modifier
-                .clip(RoundedCornerShape(10.dp))
-                .background(MoimWhite, RoundedCornerShape(10.dp))
-                .clickable(onClick = onClick)
-                .padding(horizontal = 14.dp, vertical = 8.dp)
-        )
+        if (bugReport != null) {
+            RoomListActionChip("BugReport", onBugReport, Modifier.weight(1f))
+            RoomListActionChip("＋ 모임방 만들기", onCreateRoom, Modifier.weight(1f))
+        } else {
+            RoomListActionChip("＋ 모임방 만들기", onCreateRoom)
+        }
     }
+}
+
+@Composable
+private fun RoomListActionChip(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Text(
+        label,
+        fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAccent,
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(MoimWhite, RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 8.dp),
+        textAlign = TextAlign.Center,
+    )
 }
 
 // =====================================================================
@@ -2343,8 +2355,9 @@ private fun OrderTab(vm: MoimViewModel) {
     // 고정 가능한 방 = 방목록에 보이는 방(주간 학술활동·전체공지 제외, 가입한 모임방·DM 포함)
     val weekRoom = vm.rooms.firstOrNull { it.category != "custom" && it.defaultView == "week" }
     val noticeRoom = noticeTopRoom(vm.rooms)   // 항상 맨 위 고정 · 변경 불가
+    val bugReport = bugReportRoom(vm.rooms)
     val rooms = vm.rooms.filter {
-        it.id != weekRoom?.id && it.id != noticeRoom?.id &&
+        it.id != weekRoom?.id && it.id != noticeRoom?.id && it.id != bugReport?.id &&
             (if (it.category == "custom" || it.category == "direct") vm.myRoomIds.contains(it.id) else true)
     }
     var draft by remember(vm.roomPins) { mutableStateOf(vm.roomPins.filter { id -> rooms.any { it.id == id } }) }

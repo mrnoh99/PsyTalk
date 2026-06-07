@@ -57,8 +57,8 @@
   /* 주간 학술활동 고정 바 (잔여 병실 현황 아래, 다른 색) */
   .wkbar{display:flex;align-items:center;gap:12px;margin:0 14px 10px;padding:14px 16px;border-radius:14px;background:#4a6fa5;color:#fff;cursor:pointer}
   .wkbar b{font-size:16px}.wkbar small{display:block;font-size:11.5px;color:#dde6f3}
-  .mkrow{padding:2px 14px 10px;text-align:right}
-  .mkbtn{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--accent);cursor:pointer}
+  .mkrow{padding:2px 14px 10px;display:flex;gap:10px;align-items:stretch}
+  .mkbtn{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--accent);cursor:pointer;text-align:center}
   .sechead{font-size:11px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;
     padding:16px 18px 8px;display:flex;justify-content:space-between;align-items:center}
   .sechead button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer}
@@ -595,9 +595,15 @@ async function loadRoomPins(){
 }
 // 주간 학술활동(바)을 제외한 방 목록
 // 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입(room_members)한 것만. (관리자 콘솔은 전체 rooms 사용)
-function flatRoomList(){ const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week'); return rooms.filter(r=>r!==week&&((r.category==='custom'||r.category==='direct')?myRoomIds.has(r.id):true)); }
-// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방.
-function noticeTopRoom(){ return rooms.filter(r=>r.category!=='custom'&&r.category!=='direct'&&r.default_view!=='week').sort((a,b)=>(a.sort_order||999)-(b.sort_order||999))[0]||null; }
+function bugReportRoom(){ return rooms.find(r=>r.id===BUG_REPORT_ROOM_ID)||rooms.find(r=>r.category==='bugreport')||null; }
+function isBugReportRoom(r){ return r&&(r.id===BUG_REPORT_ROOM_ID||r.category==='bugreport'); }
+function flatRoomList(){
+  const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week');
+  const br=bugReportRoom();
+  return rooms.filter(r=>r!==week&&r!==br&&((r.category==='custom'||r.category==='direct')?myRoomIds.has(r.id):true));
+}
+// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)·BugReport 제외.
+function noticeTopRoom(){ return rooms.filter(r=>r.category!=='custom'&&r.category!=='direct'&&!isBugReportRoom(r)&&r.default_view!=='week').sort((a,b)=>(a.sort_order||999)-(b.sort_order||999))[0]||null; }
 /* ====== 설정 화면: 내 정보 / 방 순서 / 회원 검색 ====== */
 let setTab='me';
 function mergeMeProfile(prof,user){
@@ -1071,7 +1077,8 @@ function stopRealtime(){
 }
 
 const TYPE_COLOR={'교실':'#b5651d','의국':'#4a6fa5','심리실':'#6d597a','연구실':'#3d8361','PA':'#0d8a8a','간호사':'#c0452f','SW':'#9a6a00','보조원':'#777','생명사랑':'#1f9b8e','비서':'#a0526d','의국동문':'#5b7c99','심리실 동문':'#8a7aa0','기타':'#8a817a'};
-const CAT={notice:{l:'공지',c:'#b5651d'},group:{l:'그룹',c:'#4a6fa5'},work:{l:'업무',c:'#3d8361'},research:{l:'연구',c:'#6d597a'},custom:{l:'모임',c:'#8a817a'}};
+const BUG_REPORT_ROOM_ID='11111111-1111-1111-1111-111111110013';
+const CAT={notice:{l:'공지',c:'#b5651d'},bugreport:{l:'BugReport',c:'#5c4d7a'},group:{l:'그룹',c:'#4a6fa5'},work:{l:'업무',c:'#3d8361'},research:{l:'연구',c:'#6d597a'},custom:{l:'모임',c:'#8a817a'}};
 // 방표식(아바타) 색상 팔레트 + 헬퍼
 const ROOM_COLORS=['#c7a008','#4a6fa5','#3d8361','#b5651d','#6d597a','#c0452f','#3a7ca5','#d98b3a','#5b8c5a','#586b7d'];
 const roomColorOf=r=>r.color||(CAT[r.category]||CAT.custom).c;
@@ -1385,7 +1392,8 @@ function renderRoomList(){
     <div style="flex:1"><b>잔여 병실 현황</b><small>남 · 여 잔여 병상 보기</small></div><span>›</span></div>`;
   if(week)h+=`<div class="wkbar" onclick="openRoom('${week.id}')"><span style="font-size:20px">📅</span>
     <div style="flex:1"><b>${esc(week.name)}</b><small>주간 학술활동 · 일정 보기</small></div>${ubadge(week.id)}<span>›</span></div>`;
-  h+=`<div class="mkrow"><button class="mkbtn" onclick="openCreate()">＋ 모임방 만들기</button></div>`;
+  const br=bugReportRoom();
+  h+=`<div class="mkrow">${br?`<button class="mkbtn" onclick="openRoom('${br.id}')">BugReport</button>`:''}<button class="mkbtn" onclick="openCreate()">＋ 모임방 만들기</button></div>`;
   h+=listRooms.length?listRooms.map(item).join(''):`<div style="padding:14px 18px;color:var(--sub);font-size:13px">방이 없습니다.</div>`;
   if(listEl){
     listEl.innerHTML=h;
@@ -1514,7 +1522,7 @@ async function reactivateUser(id){
 
 /* ====== 방 열기 ====== */
 const canPost=r=>isAdmin()||r.post_policy!=='restricted';
-const opensWeekCal=r=>r.default_view==='week'&&r.category!=='custom'&&r.category!=='direct';
+const opensWeekCal=r=>r.default_view==='week'&&r.category!=='custom'&&r.category!=='direct'&&!isBugReportRoom(r);
 // 방 이름 변경 권한: 관리자(모든 방) 또는 방 생성자(본인이 만든 방)
 // 기본 방(과 전체공지·주간 학술활동 등 비-모임방)은 전체관리자만, 모임방은 관리자 또는 생성자
 const canRename=r=>(r.category!=='custom')?(me.role==='superadmin'):(isAdmin()||(!!r.created_by&&r.created_by===me.id));
@@ -1535,7 +1543,7 @@ async function openRoom(id){
   selDate=new Date();selDate.setHours(0,0,0,0); // 방 열 때 선택 날짜를 오늘로 초기화
   // 자료실·캘린더 탭 — 주간 학술활동 등 기본 방만. 과 전체공지·모임방·DM은 채팅만.
   const isNotice=isNoticeRoom();
-  const isDefault=active.category!=='custom'&&!isDM&&!isNotice;
+  const isDefault=active.category!=='custom'&&!isDM&&!isNotice&&!isBugReportRoom(active);
   document.getElementById('roomTabs').style.display=isDefault?'':'none';
   await renderTopBarMembers(active);   // 헤더 높이 확정 후 화면 전환(떨림 방지)
   openListOverlay('roomScreen');

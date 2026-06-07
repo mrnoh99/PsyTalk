@@ -181,8 +181,12 @@ struct RoomListView: View {
     private var listRooms: [Room] {
         // 과 전체공지 방은 항상 맨 위 고정(핀·정렬 대상에서 제외)
         let notice = noticeTopRoom(vm.rooms)
+        let bugReport = bugReportRoom(vm.rooms)
         // 홈 목록: 기본 방은 항상, 모임방(custom)·DM(direct)은 내가 가입한 것만 (관리자 콘솔은 전체 vm.rooms 사용)
-        let flat = vm.rooms.filter { $0.id != weekRoom?.id && $0.id != notice?.id && (($0.category != "custom" && $0.category != "direct") || vm.myRoomIds.contains($0.id)) }
+        let flat = vm.rooms.filter {
+            $0.id != weekRoom?.id && $0.id != notice?.id && $0.id != bugReport?.id &&
+            (($0.category != "custom" && $0.category != "direct") || vm.myRoomIds.contains($0.id))
+        }
         let pinned = vm.roomPins.compactMap { id in flat.first { $0.id == id } }
         let pinnedIds = Set(pinned.map { $0.id })
         let rest = flat.filter { !pinnedIds.contains($0.id) }.sorted {
@@ -256,15 +260,28 @@ struct RoomListView: View {
         .background(Moim.paper)
     }
 
+    private var bugReport: Room? { bugReportRoom(vm.rooms) }
+
     private var createButton: some View {
-        HStack {
-            Spacer()
+        HStack(spacing: 10) {
+            if let br = bugReport {
+                Button(action: { onOpen(br) }) {
+                    Text("BugReport")
+                        .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 14).padding(.vertical, 8)
+                        .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
+            }
             Button(action: onCreateRoom) {
                 Text("＋ 모임방 만들기")
                     .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
+                    .frame(maxWidth: .infinity)
                     .padding(.horizontal, 14).padding(.vertical, 8)
                     .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 10))
             }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 14).padding(.bottom, 4)
     }

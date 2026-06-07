@@ -132,13 +132,15 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 28. `member_contact_email.sql` — **회원 검색·관리에 이메일 표시**: `profiles.email` 컬럼을 `auth.users.email` 과
     동기화(가입 시 채움 + 변경 시 트리거 + 기존 backfill). **회원 검색·회원 관리·가입 승인** 행에 이메일·전화번호·
     자기소개를 작은 글씨로 노출(세 플랫폼 공통). 전화번호·자기소개는 signup_extra_fields.sql 의 `phone`·`intro` 사용.
-29. `message_reactions.sql` — **메시지 답장 + 이모지 리액션**(카톡식 길게누르기): `messages.reply_to`(답장 대상) +
+29. `bugreport_room.sql` — **BugReport 고정 방**: 승인·미탈퇴 전원 구성원(`moim_room_member_ids` 가상 멤버십),
+    방목록 **BugReport** 버튼(모임방 만들기 왼쪽)으로만 진입·목록 행 제외·삭제 불가.
+30. `message_reactions.sql` — **메시지 답장 + 이모지 리액션**(카톡식 길게누르기): `messages.reply_to`(답장 대상) +
     `message_reactions`(message·user·emoji 유일) + `moim_room_reactions(room)`(방 리액션 일괄). 말풍선 길게누르면
     이모지 리액션 + 복사·선택복사·답장 메뉴. **Android·iOS만**(웹은 리액션 DB 공유). 리액션은 메시지 폴링과 함께 재조회.
-30. `signup_device.sql` — **(웹 가입) 사용 핸드폰 종류 + 앱 설치용 연결 이메일**: `profiles.device_type`('iphone'|'android')·
+31. `signup_device.sql` — **(웹 가입) 사용 핸드폰 종류 + 앱 설치용 연결 이메일**: `profiles.device_type`('iphone'|'android')·
     `profiles.device_email`. **웹 가입 폼에서만** 수집(필수), 메타데이터 → profiles 채움(moim_fill_signup_extra 갱신).
     전체관리자 콘솔 '회원 관리'의 **📥 회원 명단 엑셀(CSV) 다운로드**로 내보내 TestFlight/내부테스터 초대에 사용.
-31. `profile_phone_edit.sql` — **내 정보에서 핸드폰 종류·앱 설치용 이메일 변경**(세 플랫폼) + 전화번호 최종변경일:
+32. `profile_phone_edit.sql` — **내 정보에서 핸드폰 종류·앱 설치용 이메일 변경**(세 플랫폼) + 전화번호 최종변경일:
     전화번호는 **읽기 전용**, `device_type`(아이폰/안드로이드)·`device_email`만 본인이 변경. `moim_update_my_profile`
     에 `p_device_type`·`p_device_email` 추가(7인자). `profiles.phone_updated_at`(BEFORE UPDATE 트리거) +
     회원 명단 CSV 에 **가입일(created_at)·핸드폰 최종변경일(phone_updated_at)** 컬럼.

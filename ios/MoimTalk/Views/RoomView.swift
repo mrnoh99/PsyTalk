@@ -43,7 +43,8 @@ struct RoomView: View {
 
             switch tab {
             case "chat": ChatView(vm: vm, canPost: canPost, input: $input, roomId: liveRoom.id,
-                                  noticeLayout: isNoticeTopRoom(liveRoom, vm.rooms))
+                                  noticeLayout: isNoticeTopRoom(liveRoom, vm.rooms),
+                                  bugReportLayout: isBugReportRoom(liveRoom))
             case "files": FilesView(vm: vm, canUpload: canPost)
             default: CalendarView(vm: vm, room: liveRoom, canPost: canPost)
                 .id(liveRoom.id)
@@ -54,6 +55,7 @@ struct RoomView: View {
             tab = isNoticeTopRoom(liveRoom, vm.rooms) ? "chat"
                 : (opensWeekCalendar(liveRoom) ? "cal" : "chat")
             if !isDM, showRoomHeaderMembers(liveRoom, vm.rooms) { vm.loadRoomMembers(liveRoom.id) }
+            input = isBugReportRoom(liveRoom) ? bugReportDraft() : ""
         }
     }
 
@@ -189,6 +191,8 @@ struct ChatView: View {
     @Binding var input: String
     var roomId: String = ""
     var noticeLayout: Bool = false
+    var bugReportLayout: Bool = false
+    private var multilineCompose: Bool { noticeLayout || bugReportLayout }
     @State private var pickPhoto = false
     @State private var pickFile = false
     @State private var photoItem: PhotosPickerItem?
@@ -318,7 +322,7 @@ struct ChatView: View {
                     }
                     .padding(.horizontal, 12).padding(.top, 8)
                 }
-                HStack(alignment: noticeLayout ? .bottom : .center, spacing: 8) {
+                HStack(alignment: multilineCompose ? .bottom : .center, spacing: 8) {
                     Menu {
                         Button { pickPhoto = true } label: { Label("사진", systemImage: "photo") }
                         Button { pickFile = true } label: { Label("파일", systemImage: "paperclip") }
@@ -326,8 +330,11 @@ struct ChatView: View {
                         Text("＋").font(.system(size: 20)).foregroundColor(Moim.sub)
                             .frame(width: 33, height: 33).background(Moim.white).clipShape(Circle())
                     }
-                    if noticeLayout {
-                        TextField("공지 내용 입력 (줄바꿈 가능)", text: $input, axis: .vertical)
+                    if multilineCompose {
+                        TextField(
+                            noticeLayout ? "공지 내용 입력 (줄바꿈 가능)" : "버그·제안 내용 입력 (아래 템플릿 참고)",
+                            text: $input, axis: .vertical
+                        )
                             .lineLimit(3...8)
                             .textFieldStyle(.roundedBorder)
                     } else {

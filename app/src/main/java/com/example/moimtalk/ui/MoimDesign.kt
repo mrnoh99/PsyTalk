@@ -2,6 +2,7 @@ package com.example.moimtalk.ui
 
 import android.app.Activity
 import android.content.Context
+import android.os.Build
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
@@ -187,6 +188,34 @@ fun bugReportRoom(rooms: List<Room>): Room? =
 
 fun isBugReportRoom(room: Room): Boolean =
     room.id == BUG_REPORT_ROOM_ID
+
+/** BugReport 작성 시 OS·기기 정보가 채워진 기본 템플릿 */
+fun bugReportDraft(): String {
+    val platform = "Android"
+    val device = listOf(Build.MANUFACTURER, Build.MODEL)
+        .filter { it.isNotBlank() }
+        .joinToString(" ")
+        .trim()
+        .ifBlank { "알 수 없음" }
+    val os = "Android ${Build.VERSION.RELEASE}"
+    return """[환경]
+플랫폼: $platform
+기기: $device
+OS: $os
+
+[증상]
+
+
+[재현 방법]
+1. 
+
+[기대 동작]
+
+
+[실제 동작]
+
+"""
+}
 
 /** BugReport 방 새글 표시 — 전체관리자만 */
 fun bugReportUnreadVisible(role: String?): Boolean = role == "superadmin"

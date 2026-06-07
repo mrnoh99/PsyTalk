@@ -54,6 +54,44 @@ func isBugReportRoom(_ room: Room) -> Bool {
     room.id == BUG_REPORT_ROOM_ID
 }
 
+private func bugReportMachineId() -> String {
+    var systemInfo = utsname()
+    uname(&systemInfo)
+    return withUnsafePointer(to: &systemInfo.machine) {
+        $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+            String(cString: $0)
+        }
+    }
+}
+
+/// BugReport 작성 시 OS·기기 정보가 채워진 기본 템플릿
+func bugReportDraft() -> String {
+    let platform = "iOS"
+    let device = UIDevice.current
+    let kind = device.model
+    let machine = bugReportMachineId()
+    let deviceLine = machine.isEmpty ? kind : "\(kind) (\(machine))"
+    let os = "iOS \(device.systemVersion)"
+    return """
+[환경]
+플랫폼: \(platform)
+기기: \(deviceLine)
+OS: \(os)
+
+[증상]
+
+
+[재현 방법]
+1. 
+
+[기대 동작]
+
+
+[실제 동작]
+
+"""
+}
+
 /// BugReport 방 새글 표시 — 전체관리자만
 func bugReportUnreadVisible(role: String?) -> Bool {
     role == "superadmin"

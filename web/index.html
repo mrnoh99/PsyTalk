@@ -605,6 +605,27 @@ async function loadRoomPins(){
 // 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입(room_members)한 것만. (관리자 콘솔은 전체 rooms 사용)
 function bugReportRoom(){ return rooms.find(r=>r.id===BUG_REPORT_ROOM_ID)||null; }
 function isBugReportRoom(r){ return r&&r.id===BUG_REPORT_ROOM_ID; }
+function webDeviceKind(){
+  const ua=navigator.userAgent,touch=navigator.maxTouchPoints>0||'ontouchstart' in window;
+  const w=Math.min(window.innerWidth,screen.width||window.innerWidth);
+  if(/iPad|tablet|Tablet/i.test(ua)||(touch&&w>=600&&/Macintosh/i.test(ua)))return '패드';
+  if(/iPhone|iPod/i.test(ua)||(/Android/i.test(ua)&&/Mobile/i.test(ua))||(touch&&w<768))return '전화기';
+  if(/Macintosh|Mac OS X/i.test(ua)&&!/Mobile/i.test(ua))return 'Mac';
+  return 'PC';
+}
+function webOsLabel(){
+  const ua=navigator.userAgent;
+  if(/iPhone|iPad|iPod/i.test(ua))return 'iOS (브라우저)';
+  if(/Android/i.test(ua))return 'Android (브라우저)';
+  if(/Windows/i.test(ua))return 'Windows';
+  if(/Macintosh|Mac OS X/i.test(ua))return 'macOS';
+  if(/Linux/i.test(ua))return 'Linux';
+  return '기타';
+}
+function bugReportDraft(){
+  const kind=webDeviceKind(),os=webOsLabel();
+  return `[환경]\n플랫폼: Web\n기기: ${kind}\nOS: ${os}\n\n[증상]\n\n\n[재현 방법]\n1. \n\n[기대 동작]\n\n\n[실제 동작]\n\n`;
+}
 function bugReportUnreadVisible(){ return me&&me.role==='superadmin'; }
 function effectiveRoomUnread(roomId,cnt){ if(roomId===BUG_REPORT_ROOM_ID&&!bugReportUnreadVisible())return 0; return cnt||0; }
 function effectiveMsgUnread(roomId,cnt){ if(roomId===BUG_REPORT_ROOM_ID&&!bugReportUnreadVisible())return 0; return cnt||0; }
@@ -1577,7 +1598,13 @@ async function openRoom(id){
   const allow=canPost(active);
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
-  setNoticeComposeMode(!!(active&&noticeTopRoom()&&noticeTopRoom().id===active.id));
+  const isBug=isBugReportRoom(active);
+  setNoticeComposeMode(!!(active&&noticeTopRoom()&&noticeTopRoom().id===active.id)||isBug);
+  const taNotice=document.getElementById('msgInputNotice');
+  if(taNotice){
+    if(isBug){taNotice.placeholder='버그·제안 내용 입력 (아래 템플릿 참고)';taNotice.value=bugReportDraft();}
+    else{taNotice.placeholder='공지 내용 입력 (줄바꿈 가능)';taNotice.value='';}
+  }
   clearReply();
   if(!roomSlideActive){layoutChat();scrollMsgsToBottom();}
 }
@@ -2006,7 +2033,7 @@ if(window.visualViewport){
   window.visualViewport.addEventListener('resize',()=>{layoutChat();if(document.activeElement===activeMsgInput())scrollMsgsToBottom();});
 }
 function isNoticeRoom(){return active&&noticeTopRoom()&&noticeTopRoom().id===active.id;}
-function activeMsgInput(){return isNoticeRoom()?document.getElementById('msgInputNotice'):document.getElementById('msgInput');}
+function activeMsgInput(){return (isNoticeRoom()||isBugReportRoom(active))?document.getElementById('msgInputNotice'):document.getElementById('msgInput');}
 function setNoticeComposeMode(on){
   const bar=document.getElementById('inputbar');
   if(bar)bar.classList.toggle('notice-compose',on);

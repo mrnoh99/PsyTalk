@@ -1009,7 +1009,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
             },
         )
     }
-    var input by remember { mutableStateOf("") }
+    var input by remember(liveRoom.id) { mutableStateOf("") }
     var showAttach by remember { mutableStateOf(false) }
     val context = LocalContext.current
     // 카톡식 + 첨부: 선택하면 '대기'에 담고, 보내기(➤) 누르면 전송. (name, bytes, kind)
@@ -1041,6 +1041,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
     val dm = isDirect(liveRoom)
     val titleName = roomDisplayName(liveRoom, vm.profilesById)
     val noticeCompose = isNoticeTopRoom(liveRoom, vm.rooms)
+    val bugReportCompose = isBugReportRoom(liveRoom)
+    val multilineCompose = noticeCompose || bugReportCompose
 
     if (showLeave) {
         AlertDialog(
@@ -1083,6 +1085,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
             opensWeekCalendar(liveRoom) -> "cal"
             else -> "chat"
         }
+        input = if (bugReportCompose) bugReportDraft() else ""
     }
 
     if (showSettings) {
@@ -1302,7 +1305,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 9.dp),
-                        verticalAlignment = if (noticeCompose) Alignment.Bottom else Alignment.CenterVertically,
+                        verticalAlignment = if (multilineCompose) Alignment.Bottom else Alignment.CenterVertically,
                     ) {
                         Box {
                             Box(
@@ -1334,16 +1337,22 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                             modifier = Modifier
                                 .weight(1f)
                                 .then(
-                                    if (noticeCompose) Modifier.heightIn(min = 88.dp, max = 160.dp)
+                                    if (multilineCompose) Modifier.heightIn(min = 88.dp, max = 160.dp)
                                     else Modifier,
                                 ),
                             placeholder = {
-                                Text(if (noticeCompose) "공지 내용 입력 (줄바꿈 가능)" else "메시지 입력")
+                                Text(
+                                    when {
+                                        noticeCompose -> "공지 내용 입력 (줄바꿈 가능)"
+                                        bugReportCompose -> "버그·제안 내용 입력 (아래 템플릿 참고)"
+                                        else -> "메시지 입력"
+                                    },
+                                )
                             },
-                            singleLine = !noticeCompose,
-                            minLines = if (noticeCompose) 3 else 1,
-                            maxLines = if (noticeCompose) 8 else 1,
-                            shape = if (noticeCompose) RoundedCornerShape(14.dp) else RoundedCornerShape(20.dp),
+                            singleLine = !multilineCompose,
+                            minLines = if (multilineCompose) 3 else 1,
+                            maxLines = if (multilineCompose) 8 else 1,
+                            shape = if (multilineCompose) RoundedCornerShape(14.dp) else RoundedCornerShape(20.dp),
                         )
                         Spacer(Modifier.width(8.dp))
                         Box(

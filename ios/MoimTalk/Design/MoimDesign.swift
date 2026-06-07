@@ -172,6 +172,17 @@ enum Moim {
     static let orange = Color(hex: 0xEA7317)
 }
 
+/// 다크 모드 surface pill — 방목록 상단 3버튼(전체공지·병실현황·학술활동)과 동일 톤
+func moimDarkSegBg() -> Color { Moim.white }
+func moimDarkSegText(selected: Bool) -> Color { selected ? Moim.ink : Moim.sub }
+func moimDarkSegBorder() -> Color { Moim.line }
+func moimToggleBg(selected: Bool, lightOn: Color, lightOff: Color = Moim.white) -> Color {
+    moimDark ? Moim.white : (selected ? lightOn : lightOff)
+}
+func moimToggleText(selected: Bool, lightOn: Color, lightOff: Color = Moim.sub) -> Color {
+    moimDark ? moimDarkSegText(selected: selected) : (selected ? lightOn : lightOff)
+}
+
 /// 방·일정 상세 등 오버레이 슬라이드 — Android/Web 과 동일(진입 trailing, 복귀 trailing)
 enum MoimOverlayAnim {
     static let duration = 0.26

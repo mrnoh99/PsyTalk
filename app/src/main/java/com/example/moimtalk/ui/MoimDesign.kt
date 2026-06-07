@@ -83,6 +83,17 @@ val MoimHint: Color get() = MoimTheme.palette.hint
 val MoimHl: Color get() = MoimTheme.palette.hl
 val MoimYouBubble: Color get() = MoimTheme.palette.youBubble
 
+/** 다크 모드 surface pill — 방목록 상단 3버튼(전체공지·병실현황·학술활동)과 동일 톤 */
+fun moimDarkSegBg(): Color = MoimWhite
+fun moimDarkSegText(selected: Boolean): Color = if (selected) MoimInk else MoimSub
+fun moimDarkSegBorder(): Color = MoimLine
+
+fun moimToggleBg(selected: Boolean, lightOn: Color, lightOff: Color = MoimWhite): Color =
+    if (MoimTheme.dark) MoimWhite else if (selected) lightOn else lightOff
+
+fun moimToggleText(selected: Boolean, lightOn: Color, lightOff: Color = MoimSub): Color =
+    if (MoimTheme.dark) moimDarkSegText(selected) else if (selected) lightOn else lightOff
+
 /** 상태바·네비게이션 바 — MoimTheme 다크/라이트와 동기화 */
 @Composable
 fun MoimSystemBars(darkTheme: Boolean = MoimTheme.dark) {

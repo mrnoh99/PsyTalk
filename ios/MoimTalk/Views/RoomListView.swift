@@ -161,6 +161,7 @@ struct RoomAppearanceEditor: View {
 }
 
 struct RoomListView: View {
+    @ObservedObject private var theme = ThemeManager.shared
     @ObservedObject var vm: MoimViewModel
     let onOpen: (Room) -> Void
     let onAdmin: () -> Void
@@ -246,9 +247,12 @@ struct RoomListView: View {
             HStack(spacing: 8) {
                 Text("아주 정신").font(.system(size: 20, weight: .heavy)).foregroundColor(Moim.ink)
                 Text(viewBadgeText(vm.myProfile))
-                    .font(.system(size: 10.5, weight: .bold)).foregroundColor(Moim.accent)
+                    .font(.system(size: 10.5, weight: .bold))
+                    .foregroundColor(theme.dark ? Moim.sub : Moim.accent)
                     .padding(.horizontal, 8).padding(.vertical, 3)
-                    .background(Moim.yellow).clipShape(Capsule())
+                    .background(theme.dark ? Moim.white : Moim.yellow)
+                    .clipShape(Capsule())
+                    .overlay(Capsule().stroke(theme.dark ? Moim.line : Color.clear, lineWidth: 1))
                 Spacer()
                 // 관리자 진입: admin='가입승인' / superadmin='관리자모드'
                 if vm.myProfile?.role == "superadmin" {
@@ -364,8 +368,8 @@ struct RoomListTopTriBar: View {
         Button(action: action) {
             ZStack(alignment: .topTrailing) {
                 Text(label)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Moim.sub)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(enabled ? Moim.ink : Moim.ink.opacity(0.45))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
@@ -385,8 +389,8 @@ struct RoomListTopTriBar: View {
         Button(action: action) {
             ZStack(alignment: .topTrailing) {
                 Text(label)
-                    .font(.system(size: 14, weight: .heavy))
-                    .foregroundColor(.white)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(enabled ? Moim.ink : Moim.ink.opacity(0.45))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)

@@ -237,11 +237,12 @@ private fun SortButton(label: String, on: Boolean, modifier: Modifier, onClick: 
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .background(if (on) MoimAccent else MoimWhite, RoundedCornerShape(10.dp))
+            .background(moimToggleBg(on, MoimAccent), RoundedCornerShape(10.dp))
+            .then(if (MoimTheme.dark) Modifier.border(1.dp, MoimLine, RoundedCornerShape(10.dp)) else Modifier)
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = if (on) Color.White else MoimSub)
+        Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = moimToggleText(on, Color.White))
     }
 }
 
@@ -372,12 +373,27 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
                 }
                 Spacer(Modifier.height(13.dp))
                 if (canPost) {
-                    Button(
-                        onClick = { creating = true },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
-                        shape = RoundedCornerShape(12.dp)
-                    ) { Text("＋ 일정 추가", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+                    if (MoimTheme.dark) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(moimDarkSegBg(), RoundedCornerShape(12.dp))
+                                .border(1.dp, moimDarkSegBorder(), RoundedCornerShape(12.dp))
+                                .clickable { creating = true },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text("＋ 일정 추가", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+                        }
+                    } else {
+                        Button(
+                            onClick = { creating = true },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { Text("＋ 일정 추가", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+                    }
                     Spacer(Modifier.height(14.dp))
                 }
             }
@@ -487,12 +503,22 @@ private fun monthContent(
                     val cellDate = if (d != 0) ym.atDay(d) else null
                     val isToday = cellDate == today
                     val isSelected = cellDate == selected
+                    val cellBg = when {
+                        MoimTheme.dark && isSelected -> MoimWhite
+                        !MoimTheme.dark && isToday -> MoimYellow
+                        else -> Color.Transparent
+                    }
+                    val cellBorder = when {
+                        MoimTheme.dark && isSelected -> MoimLine to 1.dp
+                        !MoimTheme.dark && isSelected -> MoimAccent to 2.dp
+                        else -> Color.Transparent to 0.dp
+                    }
                     Box(
                         modifier = Modifier.weight(1f).aspectRatio(1f).padding(2.dp)
                             .clip(RoundedCornerShape(9.dp))
-                            .background(if (isToday) MoimYellow else Color.Transparent, RoundedCornerShape(9.dp))
+                            .background(cellBg, RoundedCornerShape(9.dp))
                             .then(
-                                if (isSelected) Modifier.border(2.dp, MoimAccent, RoundedCornerShape(9.dp))
+                                if (cellBorder.second > 0.dp) Modifier.border(cellBorder.second, cellBorder.first, RoundedCornerShape(9.dp))
                                 else Modifier
                             )
                             .then(
@@ -555,11 +581,24 @@ private fun weekContent(
         val isSelected = date == selected
         val dayEvents = vm.events.filter { eventDate(it.startAt) == date }.sortedBy { it.startAt }
         scope.item {
+            val weekBg = when {
+                MoimTheme.dark && isSelected -> MoimWhite
+                !MoimTheme.dark && isToday -> MoimHl
+                else -> Color.Transparent
+            }
+            val weekBorder = when {
+                MoimTheme.dark && isSelected -> MoimLine to 1.dp
+                !MoimTheme.dark && isSelected -> MoimAccent to 2.dp
+                else -> Color.Transparent to 0.dp
+            }
             Row(
                 modifier = Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(11.dp))
-                    .background(if (isToday) MoimHl else Color.Transparent, RoundedCornerShape(11.dp))
-                    .then(if (isSelected) Modifier.border(2.dp, MoimAccent, RoundedCornerShape(11.dp)) else Modifier)
+                    .background(weekBg, RoundedCornerShape(11.dp))
+                    .then(
+                        if (weekBorder.second > 0.dp) Modifier.border(weekBorder.second, weekBorder.first, RoundedCornerShape(11.dp))
+                        else Modifier
+                    )
                     .clickable { onSelect(date) }
                     .padding(vertical = 9.dp, horizontal = 6.dp)
             ) {
@@ -629,12 +668,16 @@ private fun CalNavBar(
         }
         if (!isCurrent) {
             Box(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), contentAlignment = Alignment.Center) {
-                Text(returnLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White,
+                Text(
+                    returnLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    color = if (MoimTheme.dark) MoimInk else Color.White,
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .clickable(onClick = onReturn)
-                        .background(MoimAccent)
-                        .padding(horizontal = 14.dp, vertical = 6.dp))
+                        .background(if (MoimTheme.dark) moimDarkSegBg() else MoimAccent, RoundedCornerShape(20.dp))
+                        .then(if (MoimTheme.dark) Modifier.border(1.dp, moimDarkSegBorder(), RoundedCornerShape(20.dp)) else Modifier)
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                )
             }
         }
     }
@@ -646,11 +689,12 @@ private fun ModeButton(label: String, on: Boolean, modifier: Modifier, onClick: 
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .background(if (on) MoimYellow else MoimWhite, RoundedCornerShape(10.dp))
+            .background(moimToggleBg(on, MoimYellow), RoundedCornerShape(10.dp))
+            .then(if (MoimTheme.dark) Modifier.border(1.dp, MoimLine, RoundedCornerShape(10.dp)) else Modifier)
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = if (on) MoimInk else MoimSub)
+        Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = moimToggleText(on, MoimInk))
     }
 }
 

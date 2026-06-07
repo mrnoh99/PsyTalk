@@ -68,17 +68,45 @@ struct WardStatusView: View {
 }
 
 private struct WardSegmentBar: View {
+    @ObservedObject private var theme = ThemeManager.shared
     @Binding var tab: String
     var onChange: () -> Void
 
     var body: some View {
-        HStack(spacing: 0) {
-            coloredSeg(label: "잔여병실", id: "beds", color: Moim.orange)
-            Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
-            coloredSeg(label: "당직표", id: "duty", color: Color(hex: 0x4A6FA5))
+        Group {
+            if theme.dark {
+                HStack(spacing: 8) {
+                    segPill(label: "잔여병실", id: "beds")
+                    segPill(label: "당직표", id: "duty")
+                }
+            } else {
+                HStack(spacing: 0) {
+                    coloredSeg(label: "잔여병실", id: "beds", color: Moim.orange)
+                    Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
+                    coloredSeg(label: "당직표", id: "duty", color: Color(hex: 0x4A6FA5))
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 14))
         .padding(.horizontal, 14).padding(.vertical, 10)
+    }
+
+    private func segPill(label: String, id: String) -> some View {
+        let on = tab == id
+        return Button {
+            tab = id
+            onChange()
+        } label: {
+            Text(label)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(moimDarkSegText(selected: on))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(moimDarkSegBg())
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(moimDarkSegBorder(), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
     }
 
     /// 변경 전 웹 triseg 형식 — 잔여병실(주황)·당직표(파랑) 색상 바

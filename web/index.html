@@ -59,16 +59,25 @@
   .wkbar{display:flex;align-items:center;gap:12px;margin:0 14px 10px;padding:14px 16px;border-radius:14px;background:#4a6fa5;color:#fff;cursor:pointer}
   .wkbar b{font-size:16px}.wkbar small{display:block;font-size:11.5px;color:#dde6f3}
   .trirow{display:flex;margin:10px 14px 10px;border-radius:14px;overflow:hidden;min-height:56px}
-  .triseg{flex:1;display:flex;align-items:center;justify-content:center;padding:14px 4px;color:#fff;cursor:pointer;position:relative;border:none;font-family:inherit;font-size:14px;font-weight:800;white-space:nowrap}
+  .triseg{flex:1;display:flex;align-items:center;justify-content:center;padding:14px 4px;color:var(--ink);cursor:pointer;position:relative;border:none;font-family:inherit;font-size:15px;font-weight:700;white-space:nowrap}
   .triseg:disabled{opacity:.45;cursor:default}
   .triseg .un{position:absolute;top:4px;right:4px}
   .triseg+.triseg{border-left:1px solid rgba(255,255,255,.28)}
   .seg-notice{background:#b5651d}.seg-ward{background:var(--orange)}.seg-week{background:#4a6fa5}
   /* 다크: 방목록 상단 3버튼 — surface pill (병실 탭 wardseg 색상 바와 별도) */
   html:not(.light) .trirow{gap:8px;overflow:visible;min-height:auto}
-  html:not(.light) .triseg{padding:10px 0;font-size:13px;font-weight:800;color:var(--sub);background:var(--surface);border:1px solid var(--line);border-radius:10px}
+  html:not(.light) .triseg{padding:10px 0;font-size:15px;font-weight:700;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px}
   html:not(.light) .triseg+.triseg{border-left:none}
   html:not(.light) .seg-notice,html:not(.light) .seg-ward,html:not(.light) .seg-week{background:var(--surface)}
+  /* 다크: surface pill 통일 — 방목록 상단 3버튼 톤 */
+  html:not(.light) .hdr .badge{background:var(--surface);color:var(--sub);border:1px solid var(--line)}
+  html:not(.light) .wardseg{display:flex;gap:8px;margin:10px 14px 0;border-radius:0;overflow:visible;min-height:auto;padding:0;background:transparent}
+  html:not(.light) .wardseg button{background:var(--surface)!important;color:var(--sub);border:1px solid var(--line)!important;border-radius:10px;opacity:1!important}
+  html:not(.light) .wardseg button.on{color:var(--ink)}
+  html:not(.light) .wardseg button+.wardseg button{border-left:none!important}
+  html:not(.light) .sb.on,html:not(.light) .cm.on{background:var(--surface);color:var(--ink);border-color:var(--line)}
+  html:not(.light) .addev{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  html:not(.light) .calret{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
   .mkrow{padding:2px 14px 10px;display:flex;gap:10px;align-items:stretch}
   .mkbtn{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--accent);cursor:pointer;text-align:center}
   .mkbtn-bug{color:var(--admin);position:relative}
@@ -2401,11 +2410,13 @@ function renderCal(){
     const first=new Date(y,m,1).getDay(),len=new Date(y,m+1,0).getDate();
     const evDays=new Set(monthEv.map(e=>evDate(e).getDate()));
     for(let i=0;i<first;i++)h+=`<div></div>`;
+    const dark=!document.documentElement.classList.contains('light');
     for(let d=1;d<=len;d++){
       const cur=new Date(y,m,d);
       const isT=sameDay(cur,today), isSel=sameDay(cur,selDate);
-      const style=`aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;border-radius:9px;cursor:pointer;`
-        +(isT?'background:var(--me);font-weight:800;':'')+(isSel?'box-shadow:inset 0 0 0 2px var(--accent);font-weight:800;':'');
+      let style=`aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;border-radius:9px;cursor:pointer;`;
+      if(dark&&isSel) style+=`background:var(--surface);border:1px solid var(--line);font-weight:800;`;
+      else{if(isT) style+=`background:var(--me);font-weight:800;`;if(isSel) style+=`box-shadow:inset 0 0 0 2px var(--accent);font-weight:800;`;}
       h+=`<div style="${style}" onclick="selectDay(${y},${m},${d})">${d}${evDays.has(d)?'<div style="width:5px;height:5px;border-radius:50%;background:var(--admin)"></div>':''}</div>`;}
     h+=`</div><h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">${sameDay(selDate,today)?'오늘':selLabel()} 일정</h4>`;
     h+=dayEventsHtml(selDate,compactEv);
@@ -2414,9 +2425,11 @@ function renderCal(){
     const dow=['월','화','수','목','금','토','일'];
     const sun=new Date(mon);sun.setDate(mon.getDate()+6);
     h+=calNav('week',today);
+    const dark=!document.documentElement.classList.contains('light');
     for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);
       const de=events.filter(e=>sameDay(evDate(e),d));const isT=sameDay(d,today),isSel=sameDay(d,selDate);
-      h+=`<div class="wday ${isT?'wtoday':''}" style="cursor:pointer;${isSel?'box-shadow:inset 0 0 0 2px var(--accent);border-radius:11px;':''}" onclick="selectDay(${d.getFullYear()},${d.getMonth()},${d.getDate()})"><div class="wdate"><b>${dow[i]}</b><span>${d.getMonth()+1}/${d.getDate()}</span></div>
+      const selStyle=isSel?(dark?'background:var(--surface);box-shadow:inset 0 0 0 1px var(--line);border-radius:11px;':'box-shadow:inset 0 0 0 2px var(--accent);border-radius:11px;'):'';
+      h+=`<div class="wday ${isT?'wtoday':''}" style="cursor:pointer;${selStyle}" onclick="selectDay(${d.getFullYear()},${d.getMonth()},${d.getDate()})"><div class="wdate"><b>${dow[i]}</b><span>${d.getMonth()+1}/${d.getDate()}</span></div>
         <div class="wevents">${de.length?de.map(e=>evCard(e,compactEv)).join(''):'<div class="noev">— 일정 없음</div>'}</div></div>`;}
   }else{
     h+=calNav('day',today);

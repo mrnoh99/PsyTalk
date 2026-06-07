@@ -690,9 +690,11 @@ fun RoomListScreen(
                         viewBadgeText(profile),
                         fontSize = 10.5.sp,
                         fontWeight = FontWeight.Bold,
-                        color = MoimAccent,
+                        color = if (MoimTheme.dark) MoimSub else MoimAccent,
                         modifier = Modifier
-                            .background(MoimYellow, RoundedCornerShape(20.dp))
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(if (MoimTheme.dark) MoimWhite else MoimYellow, RoundedCornerShape(20.dp))
+                            .then(if (MoimTheme.dark) Modifier.border(1.dp, MoimLine, RoundedCornerShape(20.dp)) else Modifier)
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                     Spacer(Modifier.weight(1f))
@@ -2087,8 +2089,8 @@ private fun RowScope.RoomListTriSegPill(
     ) {
         Text(
             label,
-            color = MoimSub,
-            fontSize = 13.sp,
+            color = if (enabled) MoimInk else MoimInk.copy(alpha = 0.45f),
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             maxLines = 1,
             textAlign = TextAlign.Center,
@@ -2122,9 +2124,9 @@ private fun RowScope.RoomListTriSegment(
     ) {
         Text(
             label,
-            color = Color.White,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.ExtraBold,
+            color = if (enabled) MoimInk else MoimInk.copy(alpha = 0.45f),
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
             maxLines = 1,
             textAlign = TextAlign.Center,
         )

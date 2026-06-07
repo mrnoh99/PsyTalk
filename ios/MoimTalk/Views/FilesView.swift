@@ -16,6 +16,7 @@ private struct FileEntry: Identifiable {
 }
 
 struct FilesView: View {
+    @ObservedObject private var theme = ThemeManager.shared
     @ObservedObject var vm: MoimViewModel
     let canUpload: Bool
 
@@ -114,10 +115,11 @@ struct FilesView: View {
     private func sortButton(_ label: String, _ value: String) -> some View {
         let on = sort == value
         return Text(label).font(.system(size: 12.5, weight: .bold))
-            .foregroundColor(on ? .white : Moim.sub)
+            .foregroundColor(moimToggleText(selected: on, lightOn: .white))
             .frame(maxWidth: .infinity).padding(.vertical, 8)
-            .background(on ? Moim.accent : Moim.white)
+            .background(moimToggleBg(selected: on, lightOn: Moim.accent))
             .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.dark ? Moim.line : Color.clear, lineWidth: 1))
             .onTapGesture { sort = value }
     }
 

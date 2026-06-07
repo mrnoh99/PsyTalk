@@ -68,16 +68,44 @@ private fun hasAnyDuty(duty: WardDuty?): Boolean = duty != null && (
 
 @Composable
 fun WardSegmentRow(tab: String, onTab: (String) -> Unit) {
-    Row(
+    if (MoimTheme.dark) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            WardSegPill("잔여병실", tab == "beds") { onTab("beds") }
+            WardSegPill("당직표", tab == "duty") { onTab("duty") }
+        }
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .height(IntrinsicSize.Min)
+                .clip(RoundedCornerShape(14.dp)),
+        ) {
+            WardColoredSeg("잔여병실", Color(0xFFEA7317), tab == "beds", start = true) { onTab("beds") }
+            Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
+            WardColoredSeg("당직표", Color(0xFF4A6FA5), tab == "duty", end = true) { onTab("duty") }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.WardSegPill(label: String, on: Boolean, onClick: () -> Unit) {
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 10.dp)
-            .height(IntrinsicSize.Min)
-            .clip(RoundedCornerShape(14.dp)),
+            .weight(1f)
+            .clip(RoundedCornerShape(10.dp))
+            .background(moimDarkSegBg(), RoundedCornerShape(10.dp))
+            .border(1.dp, moimDarkSegBorder(), RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 10.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        WardColoredSeg("잔여병실", Color(0xFFEA7317), tab == "beds", start = true) { onTab("beds") }
-        Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
-        WardColoredSeg("당직표", Color(0xFF4A6FA5), tab == "duty", end = true) { onTab("duty") }
+        Text(label, color = moimDarkSegText(on), fontSize = 13.sp, fontWeight = FontWeight.Bold)
     }
 }
 

@@ -407,7 +407,7 @@
   .primary{width:100%;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px}
   .ghost{width:100%;background:var(--line);color:var(--ink);border:none;border-radius:13px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
   /* login */
-  #login{flex:1;display:flex;flex-direction:column;padding:30px 30px calc(30px + constant(safe-area-inset-bottom));padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+  #login{flex:1;display:flex;flex-direction:column;align-self:center;width:100%;max-width:380px;padding:30px 28px calc(30px + constant(safe-area-inset-bottom));padding-bottom:calc(30px + env(safe-area-inset-bottom))}
   #reset,#pending{flex:1;display:flex;flex-direction:column;padding:30px 30px calc(30px + constant(safe-area-inset-bottom));padding-bottom:calc(30px + env(safe-area-inset-bottom))}
   #pending{align-items:center;text-align:center}
   #pane-files,#pane-cal,.duty-scroll,#wardBody,#adminBody,#setBody{padding-bottom:constant(safe-area-inset-bottom);padding-bottom:env(safe-area-inset-bottom)}
@@ -2284,8 +2284,10 @@ function fitPhoneToViewport(){
   const vv=window.visualViewport, phone=document.querySelector('.phone');
   if(!phone)return;
   phone.style.height=Math.round(vv.height)+'px';
-  phone.style.bottom='auto';                 // inset:0 의 bottom 무시하고 height 적용
-  if(window.pageYOffset!==0)window.scrollTo(0,0);   // iOS 윈도우 밀림 방지(상단 바 고정)
+  phone.style.bottom='auto';                                   // inset:0 의 bottom 무시하고 height 적용
+  // iOS 키보드가 비주얼뷰포트를 위로 패닝하면 fixed 요소(상단 바)가 따라 올라감 → offsetTop 만큼 내려 보정
+  phone.style.transform='translateY('+Math.round(vv.offsetTop)+'px)';
+  if(window.pageYOffset!==0)window.scrollTo(0,0);
 }
 if(window.visualViewport){
   const onVV=()=>{fitPhoneToViewport();layoutChat();if(document.activeElement===activeMsgInput()&&!replyTarget)scrollMsgsToBottom();};

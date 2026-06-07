@@ -50,7 +50,6 @@ final class MoimViewModel: ObservableObject {
                         profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                     }
                     loggedIn = true
-                    if let uid = MoimRepository.currentUserId() { Push.login(uid) }
                     bindRealtime()
                 } else {
                     notice = "가입이 접수되었습니다. 전체관리자 승인 후 로그인하여 이용할 수 있습니다."
@@ -118,6 +117,7 @@ final class MoimViewModel: ObservableObject {
             wardStatus = w.content
             wardStatusUpdatedAt = w.updatedAt
         } catch { }
+        refreshWardDutiesQuiet()
     }
 
     private func refreshActiveRoom(_ roomId: String) async {
@@ -163,7 +163,6 @@ final class MoimViewModel: ObservableObject {
                 myProfile = try await MoimRepository.myProfile()
                 rooms = try await MoimRepository.rooms()
                 loggedIn = true
-                if let uid = MoimRepository.currentUserId() { Push.login(uid) }
                 bindRealtime()
             } catch {
                 loggedIn = false
@@ -176,7 +175,6 @@ final class MoimViewModel: ObservableObject {
 
     func logout() {
         stopMessagePolling()
-        Push.logout()
         Task {
             await MoimRealtimeSync.shared.stop()
             try? await MoimRepository.signOut()
@@ -339,6 +337,8 @@ final class MoimViewModel: ObservableObject {
         title: String, startAt: String, place: String?, link: String?,
         scope: String?, description: String?, presenter: String?, keywords: [String],
         attachments: [(name: String, data: Data)],
+        repeatRule: String = "none",
+        repeatCount: Int = 1,
         onDone: @escaping () -> Void
     ) {
         guard let rid = activeRoom else { return }
@@ -347,7 +347,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.createEvent(
                     roomId: rid, title: title, startAt: startAt, place: place, link: link,
                     scope: scope, description: description, presenter: presenter, keywords: keywords,
-                    attachments: attachments)
+                    attachments: attachments, repeatRule: repeatRule, repeatCount: repeatCount)
                 events = try await MoimRepository.events(roomId: rid)
                 files = try await MoimRepository.files(roomId: rid)
                 onDone()
@@ -404,6 +404,11 @@ final class MoimViewModel: ObservableObject {
     @Published var wardStatus: String = ""
     @Published var wardStatusUpdatedAt: String?
 
+    // ── 당직표 ──
+    @Published var wardDuties: [String: WardDuty] = [:]
+    @Published var wardDutyMonth: Date?
+    @Published var wardTodayDuty: WardDuty?
+
     func loadWardStatus() {
         Task {
             do {
@@ -411,6 +416,58 @@ final class MoimViewModel: ObservableObject {
                 wardStatus = w.content
                 wardStatusUpdatedAt = w.updatedAt
             } catch { self.error = "잔여 병실 현황 불러오기: \(error.localizedDescription)" }
+        }
+    }
+
+    func loadWardDuties(month: Date) {
+        wardDutyMonth = month
+        Task {
+            do {
+                let cal = CalDate.cal
+                let comps = cal.dateComponents([.year, .month], from: month)
+                guard let start = cal.date(from: comps),
+                      let range = cal.range(of: .day, in: .month, for: start),
+                      let end = cal.date(byAdding: .day, value: range.count - 1, to: start) else { return }
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy-MM-dd"
+                fmt.timeZone = CalDate.kst
+                let list = try await MoimRepository.wardDuties(from: fmt.string(from: start), to: fmt.string(from: end))
+                wardDuties = Dictionary(uniqueKeysWithValues: list.map { ($0.dutyDate, $0) })
+            } catch { self.error = "당직표 불러오기: \(error.localizedDescription)" }
+        }
+    }
+
+    func refreshWardDutiesQuiet() {
+        if let m = wardDutyMonth { loadWardDuties(month: m) }
+        loadWardTodayDuty()
+    }
+
+    func loadWardTodayDuty() {
+        Task {
+            do {
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy-MM-dd"
+                fmt.timeZone = CalDate.kst
+                let key = fmt.string(from: CalDate.today())
+                wardTodayDuty = try await MoimRepository.wardDuties(from: key, to: key).first
+            } catch { }
+        }
+    }
+
+    func saveWardDuty(
+        dutyDate: String, profDay: String, residentDay: String, residentNight: String,
+        residentOutpatient1: String, residentOutpatient2: String,
+        onDone: @escaping () -> Void
+    ) {
+        Task {
+            do {
+                try await MoimRepository.upsertWardDuty(
+                    dutyDate: dutyDate, profDay: profDay, residentDay: residentDay, residentNight: residentNight,
+                    residentOutpatient1: residentOutpatient1, residentOutpatient2: residentOutpatient2)
+                if let m = wardDutyMonth { loadWardDuties(month: m) }
+                loadWardTodayDuty()
+                onDone()
+            } catch { self.error = "당직표 저장: \(error.localizedDescription)" }
         }
     }
 

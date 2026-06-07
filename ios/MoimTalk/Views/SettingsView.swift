@@ -131,9 +131,11 @@ struct MyInfoTab: View {
                 HStack(spacing: 8) {
                     ForEach([("iphone", "🍎 아이폰"), ("android", "🤖 안드로이드")], id: \.0) { k, label in
                         let on = deviceType == k
-                        Text(label).font(.system(size: 13, weight: .bold)).foregroundColor(on ? .white : Moim.ink)
+                        Text(label).font(.system(size: 13, weight: .bold)).foregroundColor(moimToggleText(selected: on, lightOn: .white, lightOff: Moim.ink))
                             .padding(.horizontal, 16).padding(.vertical, 8)
-                            .background(on ? Moim.accent : Moim.white).clipShape(Capsule())
+                            .background(moimToggleBg(selected: on, lightOn: Moim.accent))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(theme.dark ? moimToggleBorder(selected: on) : Color.clear, lineWidth: 1))
                             .onTapGesture { deviceType = k }
                     }
                 }
@@ -330,11 +332,11 @@ struct MemberSearchTab: View {
         return Button { vm.memberSearchSort = key } label: {
             Text(title)
                 .font(.system(size: 12, weight: .bold))
-                .foregroundColor(on ? .white : Moim.accent)
+                .foregroundColor(moimToggleText(selected: on, lightOn: .white, lightOff: Moim.accent))
                 .padding(.horizontal, 14).padding(.vertical, 7)
-                .background(on ? Moim.accent : Moim.white)
+                .background(moimToggleBg(selected: on, lightOn: Moim.accent))
                 .clipShape(Capsule())
-                .overlay(Capsule().stroke(Moim.line, lineWidth: on ? 0 : 1))
+                .overlay(Capsule().stroke(moimToggleBorder(selected: on), lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

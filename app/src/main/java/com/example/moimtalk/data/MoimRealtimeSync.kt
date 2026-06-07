@@ -102,6 +102,9 @@ object MoimRealtimeSync {
             val wardFlow = ch.postgresChangeFlow<PostgresAction>(schema = "public") {
                 table = "ward_status"
             }
+            val wardDutyFlow = ch.postgresChangeFlow<PostgresAction>(schema = "public") {
+                table = "ward_duty"
+            }
             ch.subscribe(blockUntilSubscribed = true)
             globalChannel = ch
             globalJobs.clear()
@@ -113,6 +116,9 @@ object MoimRealtimeSync {
             )
             globalJobs.add(
                 wardFlow.onEach { onWardChanged?.invoke() }.launchIn(this),
+            )
+            globalJobs.add(
+                wardDutyFlow.onEach { onWardChanged?.invoke() }.launchIn(this),
             )
             scheduleRoomListRefetch(scope, immediate = true)
         }

@@ -42,8 +42,9 @@ struct RoomView: View {
             Divider().background(Moim.line)
 
             switch tab {
-            case "chat": ChatView(vm: vm, canPost: canPost, input: $input,
-                                  noticeLayout: isNoticeTopRoom(liveRoom, vm.rooms))
+            case "chat": ChatView(vm: vm, canPost: canPost, input: $input, roomId: liveRoom.id,
+                                  noticeLayout: isNoticeTopRoom(liveRoom, vm.rooms),
+                                  bugReportLayout: isBugReportRoom(liveRoom))
             case "files": FilesView(vm: vm, canUpload: canPost)
             default: CalendarView(vm: vm, room: liveRoom, canPost: canPost)
                 .id(liveRoom.id)
@@ -53,7 +54,14 @@ struct RoomView: View {
         .task(id: liveRoom.id) {
             tab = isNoticeTopRoom(liveRoom, vm.rooms) ? "chat"
                 : (opensWeekCalendar(liveRoom) ? "cal" : "chat")
-            if !isDM { vm.loadRoomMembers(liveRoom.id) }
+            if !isDM, showRoomHeaderMembers(liveRoom, vm.rooms) { vm.loadRoomMembers(liveRoom.id) }
+            input = isBugReportRoom(liveRoom)
+                ? (vm.replyTarget != nil ? "" : bugReportDraftFor(role: vm.myProfile?.role))
+                : ""
+        }
+        .onChange(of: vm.replyTarget?.id) { _ in
+            guard isBugReportRoom(liveRoom) else { return }
+            input = vm.replyTarget != nil ? "" : bugReportDraftFor(role: vm.myProfile?.role)
         }
     }
 
@@ -66,8 +74,8 @@ struct RoomView: View {
                     .foregroundColor(Moim.ink)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                // 개설자·참여자 이름 나열 (작은 글씨, 넘치면 ... — DM 제외)
-                if !isDM, vm.memberListRoomId == liveRoom.id {
+                // 개설자·참여자 이름 나열 (모임방 등 — DM·과 전체공지 제외)
+                if !isDM, showRoomHeaderMembers(liveRoom, vm.rooms), vm.memberListRoomId == liveRoom.id {
                     let line = roomMemberNames(liveRoom, memberIds: vm.roomMemberIds, profiles: vm.profilesById).joined(separator: ", ")
                     if !line.isEmpty {
                         Text(line)
@@ -160,8 +168,11 @@ struct RoomView: View {
     private var tabItems: [(String, String)] {
         if isDM || room.category == "custom" { return [] }
         if isNoticeTopRoom(liveRoom, vm.rooms) { return [] }
+        if isBugReportRoom(liveRoom) { return [] }
         return [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
     }
+
+    @ObservedObject private var theme = ThemeManager.shared
 
     private var tabBar: some View {
         HStack(spacing: 0) {
@@ -170,7 +181,7 @@ struct RoomView: View {
                 VStack(spacing: 8) {
                     Text(label).font(.system(size: 13, weight: .bold))
                         .foregroundColor(on ? Moim.ink : Moim.sub)
-                    Rectangle().fill(on ? Moim.yellow : Color.clear)
+                    Rectangle().fill(on ? (theme.dark ? Moim.sub : Moim.yellow) : Color.clear)
                         .frame(height: 2.5).frame(maxWidth: .infinity).padding(.horizontal, 20)
                 }
                 .padding(.vertical, 12).frame(maxWidth: .infinity)
@@ -186,7 +197,10 @@ struct ChatView: View {
     @ObservedObject var vm: MoimViewModel
     let canPost: Bool
     @Binding var input: String
+    var roomId: String = ""
     var noticeLayout: Bool = false
+    var bugReportLayout: Bool = false
+    private var multilineCompose: Bool { noticeLayout || bugReportLayout }
     @State private var pickPhoto = false
     @State private var pickFile = false
     @State private var photoItem: PhotosPickerItem?
@@ -229,7 +243,10 @@ struct ChatView: View {
                                             vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
                                         },
                                         onDelete: { deleteTarget = m },
-                                        sender: vm.profilesById[m.senderId]
+                                        sender: vm.profilesById[m.senderId],
+                                        reactions: vm.reactions.filter { $0.messageId == m.id },
+                                        myUserId: vm.myProfile?.id ?? "",
+                                        onReact: { e in vm.toggleReaction(m.id, e) }
                                     )
                                     .id(m.id)
                                 } else {
@@ -239,7 +256,11 @@ struct ChatView: View {
                                             vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
                                         },
                                         onDelete: { deleteTarget = m },
-                                        unread: vm.unreadByMsg[m.id] ?? 0,
+                                        unread: effectiveMsgUnread(
+                                            roomId: roomId,
+                                            count: vm.unreadByMsg[m.id] ?? 0,
+                                            role: vm.myProfile?.role
+                                        ),
                                         sender: vm.profilesById[m.senderId],
                                         reactions: vm.reactions.filter { $0.messageId == m.id },
                                         myUserId: vm.myProfile?.id ?? "",
@@ -309,7 +330,7 @@ struct ChatView: View {
                     }
                     .padding(.horizontal, 12).padding(.top, 8)
                 }
-                HStack(alignment: noticeLayout ? .bottom : .center, spacing: 8) {
+                HStack(alignment: multilineCompose ? .bottom : .center, spacing: 8) {
                     Menu {
                         Button { pickPhoto = true } label: { Label("사진", systemImage: "photo") }
                         Button { pickFile = true } label: { Label("파일", systemImage: "paperclip") }
@@ -317,8 +338,12 @@ struct ChatView: View {
                         Text("＋").font(.system(size: 20)).foregroundColor(Moim.sub)
                             .frame(width: 33, height: 33).background(Moim.white).clipShape(Circle())
                     }
-                    if noticeLayout {
-                        TextField("공지 내용 입력 (줄바꿈 가능)", text: $input, axis: .vertical)
+                    if multilineCompose {
+                        TextField(
+                            noticeLayout ? "공지 내용 입력 (줄바꿈 가능)"
+                                : (vm.isSuperAdmin ? "메시지 입력" : "버그·제안 내용 입력 (아래 템플릿 참고)"),
+                            text: $input, axis: .vertical
+                        )
                             .lineLimit(3...8)
                             .textFieldStyle(.roundedBorder)
                     } else {
@@ -413,6 +438,39 @@ struct DateDividerView: View {
 // 카톡식 빠른 리액션 이모지
 let REACTION_EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "👏"]
 
+private func replyQuotePreview(_ msg: Message) -> String {
+    if let c = msg.content, !c.isEmpty { return c }
+    if msg.type == "image" { return "사진" }
+    if msg.type == "file" { return "파일" }
+    return ""
+}
+
+private struct ReplyQuoteInBubble: View {
+    let repliedMessage: Message
+    let repliedName: String?
+    let mine: Bool
+
+    var body: some View {
+        let nameColor = mine ? Color.white.opacity(0.92) : Moim.sub
+        let bodyColor = mine ? Color.white.opacity(0.78) : Moim.sub
+        let dividerColor = mine ? Color.white.opacity(0.32) : Moim.line
+        VStack(alignment: .leading, spacing: 1) {
+            Text("\(repliedName ?? "상대")에게")
+                .font(.system(size: 10.5, weight: .semibold))
+                .foregroundColor(nameColor)
+            Text(replyQuotePreview(repliedMessage))
+                .font(.system(size: 11))
+                .foregroundColor(bodyColor)
+                .lineLimit(1)
+            Rectangle()
+                .fill(dividerColor)
+                .frame(height: 1)
+                .padding(.top, 6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct MessageBubble: View {
     let message: Message
     let mine: Bool
@@ -427,7 +485,6 @@ struct MessageBubble: View {
     var onReply: () -> Void = {}
     var repliedMessage: Message? = nil
     var repliedName: String? = nil
-    @State private var selecting = false   // 선택복사(텍스트 선택) 모드
 
     private var unreadText: some View {
         Text(unread > 99 ? "99+" : "\(unread)")
@@ -463,75 +520,88 @@ struct MessageBubble: View {
                 if !mine {
                     Text(senderName).font(.system(size: 12, weight: .semibold)).foregroundColor(Color(hex: 0x6B635C))
                 }
-                // 답장 인용 (대상 메시지 미리보기)
-                if let r = repliedMessage {
-                    let quote = (r.content?.isEmpty == false) ? (r.content ?? "")
-                        : (r.type == "image" ? "사진" : (r.type == "file" ? "파일" : ""))
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("↩ \(repliedName ?? "답장")").font(.system(size: 10.5, weight: .semibold)).foregroundColor(Moim.sub)
-                        Text(quote).font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1)
-                    }
-                    .padding(.horizontal, 8).padding(.vertical, 5)
-                    .background(Moim.bg).clipShape(RoundedRectangle(cornerRadius: 8))
-                    .frame(maxWidth: 230, alignment: .leading)
-                }
                 if message.type == "image", message.attachmentUrl != nil {
                     // 서명 URL 해석 전이면 placeholder
                     let u = attachUrl.flatMap { URL(string: $0) }
-                    Group {
-                        if let u {
-                            Link(destination: u) {
-                                AsyncImage(url: u) { phase in
-                                    if let img = phase.image {
-                                        img.resizable().scaledToFit()
-                                    } else if phase.error != nil {
-                                        Color.gray.opacity(0.15)
-                                    } else {
-                                        ProgressView().frame(width: 120, height: 120)
+                    VStack(alignment: mine ? .trailing : .leading, spacing: 4) {
+                        if let r = repliedMessage {
+                            ReplyQuoteInBubble(repliedMessage: r, repliedName: repliedName, mine: mine)
+                                .padding(.horizontal, 12).padding(.vertical, 9)
+                                .background(mine ? Moim.accent : Moim.youBubble)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .frame(maxWidth: 230, alignment: .leading)
+                        }
+                        Group {
+                            if let u {
+                                Link(destination: u) {
+                                    AsyncImage(url: u) { phase in
+                                        if let img = phase.image {
+                                            img.resizable().scaledToFit()
+                                        } else if phase.error != nil {
+                                            Color.gray.opacity(0.15)
+                                        } else {
+                                            ProgressView().frame(width: 120, height: 120)
+                                        }
                                     }
+                                    .frame(maxWidth: 200, maxHeight: 240)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
                                 }
-                                .frame(maxWidth: 200, maxHeight: 240)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                            } else {
+                                Color.gray.opacity(0.12)
+                                    .frame(width: 140, height: 100)
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .overlay(ProgressView())
                             }
-                        } else {
-                            Color.gray.opacity(0.12)
-                                .frame(width: 140, height: 100)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                                .overlay(ProgressView())
                         }
                     }
                 } else if message.type == "file", message.attachmentUrl != nil {
                     let chip = HStack(spacing: 7) {
                         Text("📎").font(.system(size: 15))
                         Text(message.attachmentName ?? "파일")
-                            .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(mine ? .white : Moim.ink)
                             .lineLimit(1)
                     }
                     .padding(.horizontal, 12).padding(.vertical, 11)
-                    .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 16))
-                    if let u = attachUrl.flatMap({ URL(string: $0) }) {
-                        Link(destination: u) { chip }
-                    } else {
-                        chip
+                    .background(mine ? Moim.accent : Moim.youBubble)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    VStack(alignment: mine ? .trailing : .leading, spacing: 4) {
+                        if let r = repliedMessage {
+                            ReplyQuoteInBubble(repliedMessage: r, repliedName: repliedName, mine: mine)
+                                .padding(.horizontal, 12).padding(.vertical, 9)
+                                .background(mine ? Moim.accent : Moim.youBubble)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .frame(maxWidth: 230, alignment: .leading)
+                        }
+                        if let u = attachUrl.flatMap({ URL(string: $0) }) {
+                            Link(destination: u) { chip }
+                        } else {
+                            chip
+                        }
                     }
                 } else {
-                    // 길게 누르기 → 카톡식 메뉴(이모지 리액션 + 복사·선택복사·답장)
-                    let bubble = Text(message.content ?? "")
-                        .font(.system(size: 14.5)).foregroundColor(mine ? .white : Moim.ink)
-                        .padding(.horizontal, 12).padding(.vertical, 9)
-                        .background(mine ? Moim.accent : Moim.white)   // 내 버블=Primary(파랑), 받은=Surface
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-                    if selecting {
-                        bubble.textSelection(.enabled)
-                    } else {
-                        bubble.contextMenu {
-                            ForEach(REACTION_EMOJIS, id: \.self) { e in
-                                Button(e) { onReact(e) }
-                            }
-                            Divider()
-                            Button { UIPasteboard.general.string = message.content ?? "" } label: { Label("복사", systemImage: "doc.on.doc") }
-                            Button { selecting = true } label: { Label("선택복사", systemImage: "selection.pin.in.out") }
-                            Button { onReply() } label: { Label("답장", systemImage: "arrowshape.turn.up.left") }
+                    // 길게 누르기 → 카톡식 메뉴(이모지 리액션 + 복사·답장)
+                    VStack(alignment: .leading, spacing: 6) {
+                        if let r = repliedMessage {
+                            ReplyQuoteInBubble(repliedMessage: r, repliedName: repliedName, mine: mine)
+                        }
+                        Text(message.content ?? "")
+                            .font(.system(size: 14.5))
+                            .foregroundColor(mine ? .white : Moim.ink)
+                    }
+                    .padding(.horizontal, 12).padding(.vertical, 9)
+                    .background(mine ? Moim.accent : Moim.youBubble)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .contextMenu {
+                        ForEach(REACTION_EMOJIS, id: \.self) { e in
+                            Button(e) { onReact(e) }
+                        }
+                        Divider()
+                        Button { UIPasteboard.general.string = message.content ?? "" } label: {
+                            Label("복사", systemImage: "doc.on.doc")
+                        }
+                        Button { onReply() } label: {
+                            Label("답장", systemImage: "arrowshape.turn.up.left")
                         }
                     }
                 }
@@ -570,6 +640,9 @@ struct NoticePostCard: View {
     var attachUrl: String? = nil
     var onDelete: () -> Void = {}
     var sender: Profile? = nil
+    var reactions: [Reaction] = []
+    var myUserId: String = ""
+    var onReact: (String) -> Void = { _ in }
 
     private var authorLine: String {
         let mt = sender?.memberType ?? ""
@@ -578,6 +651,11 @@ struct NoticePostCard: View {
 
     private var caption: String? {
         message.content?.trimmingCharacters(in: .whitespacesAndNewlines).flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    private func copyNoticeText() {
+        guard let txt = caption else { return }
+        UIPasteboard.general.string = txt
     }
 
     var body: some View {
@@ -596,10 +674,30 @@ struct NoticePostCard: View {
                     .padding(.top, 6)
                 Divider().background(Moim.line).padding(.vertical, 14)
                 noticeBody
+                if !reactions.isEmpty {
+                    let grouped = Dictionary(grouping: reactions, by: { $0.emoji })
+                    HStack(spacing: 4) {
+                        ForEach(grouped.keys.sorted(), id: \.self) { emoji in
+                            let list = grouped[emoji] ?? []
+                            let mineReacted = list.contains { $0.userId == myUserId }
+                            Button { onReact(emoji) } label: {
+                                HStack(spacing: 3) {
+                                    Text(emoji).font(.system(size: 12))
+                                    if list.count > 1 { Text("\(list.count)").font(.system(size: 11)).foregroundColor(Moim.sub) }
+                                }
+                                .padding(.horizontal, 7).padding(.vertical, 2)
+                                .background(mineReacted ? Moim.accent.opacity(0.20) : Moim.bg)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.top, 6)
+                }
                 HStack(spacing: 16) {
                     Spacer()
-                    if let txt = message.content, !txt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Button { UIPasteboard.general.string = txt } label: {
+                    if caption != nil {
+                        Button(action: copyNoticeText) {
                             Text("📋 복사").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.accent)
                         }
                         .buttonStyle(.plain)
@@ -619,6 +717,17 @@ struct NoticePostCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Moim.line, lineWidth: 1))
             .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
+            .contextMenu {
+                ForEach(REACTION_EMOJIS, id: \.self) { e in
+                    Button(e) { onReact(e) }
+                }
+                if caption != nil {
+                    Divider()
+                    Button { copyNoticeText() } label: {
+                        Label("복사", systemImage: "doc.on.doc")
+                    }
+                }
+            }
             Spacer(minLength: 0)
         }
         .padding(.vertical, 6)
@@ -626,10 +735,12 @@ struct NoticePostCard: View {
 
     @ViewBuilder private var noticeBody: some View {
         if let cap = caption {
-            Text(cap)
+            Text(linkifiedNoticeText(cap))
                 .font(.system(size: 15))
                 .foregroundColor(Moim.ink)
+                .tint(Moim.accent)
                 .lineSpacing(6)
+                .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         if message.type == "image", message.attachmentUrl != nil {
@@ -639,10 +750,12 @@ struct NoticePostCard: View {
             if caption != nil { Spacer().frame(height: 12) }
             noticeFileBlock
         } else if caption == nil {
-            Text(message.content ?? "")
+            Text(linkifiedNoticeText(message.content ?? ""))
                 .font(.system(size: 15))
                 .foregroundColor(Moim.ink)
+                .tint(Moim.accent)
                 .lineSpacing(6)
+                .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

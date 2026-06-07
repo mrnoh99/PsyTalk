@@ -26,11 +26,24 @@ internal fun friendlySupabaseError(e: Exception, context: String): String {
                 "Wi‑Fi/데이터가 켜져 있는지 확인한 뒤 다시 시도하세요.\n" +
                 "상세: $msg"
 
+        (msg.contains("resident_day", ignoreCase = true) ||
+            msg.contains("resident_outpatient", ignoreCase = true) ||
+            msg.contains("PGRST204", ignoreCase = true)) &&
+            context.contains("당직") ->
+            "$context 실패: 당직표 DB 스키마가 앱과 맞지 않습니다.\n" +
+                "Supabase SQL Editor에서 supabase/ward_duty_fix.sql 을 실행하세요.\n" +
+                "상세: $msg"
+
         msg.contains("42501") ||
             msg.contains("new row violates row-level security", ignoreCase = true) ||
             (msg.contains("permission denied", ignoreCase = true) &&
                 msg.contains("table", ignoreCase = true)) ->
-            if (context.contains("구성원")) {
+            if (context.contains("당직")) {
+                "$context 실패: 당직표 편집 권한이 없습니다.\n" +
+                    "교실·의국·비서 또는 관리자만 입력·수정할 수 있습니다.\n" +
+                    "Supabase SQL Editor에서 supabase/ward_duty_fix.sql 을 실행했는지 확인하세요.\n" +
+                    "상세: $msg"
+            } else if (context.contains("구성원")) {
                 "$context 실패: 방 생성자 또는 관리자만 초대할 수 있습니다.\n" +
                     "Supabase SQL Editor에서 supabase/room_manage.sql 을 실행했는지 확인하세요.\n" +
                     "상세: $msg"

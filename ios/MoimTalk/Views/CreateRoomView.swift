@@ -53,10 +53,11 @@ struct CreateRoomView: View {
                                 Text(p.memberType).font(.system(size: 9, weight: .bold)).foregroundColor(.white)
                                     .padding(.horizontal, 6).padding(.vertical, 2)
                                     .background(typeColor(p.memberType)).clipShape(RoundedRectangle(cornerRadius: 5))
-                                Text(on ? "✓" : "○").foregroundColor(on ? Moim.accent : Moim.line).fontWeight(.bold)
+                                Text(on ? "✓" : "○").foregroundColor(moimToggleText(selected: on, lightOn: Moim.accent, lightOff: Moim.line)).fontWeight(.bold)
                             }
                             .padding(10)
-                            .background(on ? Moim.hl : Moim.white)
+                            .background(moimToggleBg(selected: on, lightOn: Moim.hl))
+                            .overlay(RoundedRectangle(cornerRadius: 11).stroke(ThemeManager.shared.dark && on ? moimToggleBorder(selected: true) : Color.clear, lineWidth: 1))
                             .clipShape(RoundedRectangle(cornerRadius: 11))
                             .padding(.bottom, 7)
                             .contentShape(Rectangle())

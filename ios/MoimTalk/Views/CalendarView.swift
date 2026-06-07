@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CalendarView: View {
+    @ObservedObject private var theme = ThemeManager.shared
     @ObservedObject var vm: MoimViewModel
     let room: Room
     let canPost: Bool
@@ -41,9 +42,12 @@ struct CalendarView: View {
 
                     if canPost {
                         Button { creating = true } label: {
-                            Text("＋ 일정 추가").font(.system(size: 14, weight: .bold)).foregroundColor(.white)
+                            Text("＋ 일정 추가").font(.system(size: 14, weight: .bold))
+                                .foregroundColor(theme.dark ? Moim.ink : .white)
                                 .frame(maxWidth: .infinity).frame(height: 48)
-                                .background(Moim.accent).clipShape(RoundedRectangle(cornerRadius: 12))
+                                .background(theme.dark ? Moim.white : Moim.accent)
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(theme.dark ? Moim.line : Color.clear, lineWidth: 1))
                         }
                         .padding(.bottom, 14)
                     }
@@ -70,10 +74,10 @@ struct CalendarView: View {
             }
         }
         .sheet(isPresented: $creating) {
-            EventEditView(title: "일정 추가", initial: nil, allowAttachment: true, defaultDate: selected) { form in
+            EventEditView(title: "일정 추가", initial: nil, allowAttachment: true, allowRepeat: opensWeekCalendar(room), defaultDate: selected) { form in
                 vm.createEvent(title: form.title, startAt: form.startAt, place: form.place, link: form.link,
                                scope: form.scope, description: form.description, presenter: form.presenter, keywords: form.keywords,
-                               attachments: form.newAttachments) { creating = false }
+                               attachments: form.newAttachments, repeatRule: form.repeatRule, repeatCount: form.repeatCount) { creating = false }
             }
         }
         .sheet(item: $editing) { ev in
@@ -90,10 +94,11 @@ struct CalendarView: View {
     private func modeButton(_ label: String, _ value: String) -> some View {
         let on = mode == value
         return Text(label).font(.system(size: 12.5, weight: .bold))
-            .foregroundColor(on ? Moim.ink : Moim.sub)
+            .foregroundColor(moimToggleText(selected: on, lightOn: Moim.ink))
             .frame(maxWidth: .infinity).padding(.vertical, 8)
-            .background(on ? Moim.yellow : Moim.white)
+            .background(moimToggleBg(selected: on, lightOn: Moim.yellow))
             .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(theme.dark ? moimToggleBorder(selected: on) : Color.clear, lineWidth: 1))
             .onTapGesture { mode = value }
     }
 
@@ -167,11 +172,11 @@ struct CalendarView: View {
             }
         }
         .frame(maxWidth: .infinity).frame(height: 38)
-        .background(isToday ? Moim.yellow : Color.clear)
+        .background(theme.dark ? (isSelected ? Moim.white : Color.clear) : (isToday ? Moim.yellow : Color.clear))
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(
             RoundedRectangle(cornerRadius: 9)
-                .stroke(Moim.accent, lineWidth: isSelected ? 2 : 0)
+                .stroke(theme.dark ? moimToggleBorder(selected: isSelected) : Moim.accent, lineWidth: isSelected ? (theme.dark ? 1 : 2) : 0)
         )
         .contentShape(Rectangle())
         .onTapGesture { if let d = cellDate { selected = CalDate.startOfDay(d) } }
@@ -213,10 +218,11 @@ struct CalendarView: View {
                     Spacer()
                 }
                 .padding(.vertical, 9).padding(.horizontal, 6)
-                .background(isToday ? Moim.hl : Color.clear)
+                .background(theme.dark ? (isSelected ? Moim.white : Color.clear) : (isToday ? Moim.hl : Color.clear))
                 .clipShape(RoundedRectangle(cornerRadius: 11))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 11).stroke(Moim.accent, lineWidth: isSelected ? 2 : 0)
+                    RoundedRectangle(cornerRadius: 11)
+                        .stroke(theme.dark ? moimToggleBorder(selected: isSelected) : Moim.accent, lineWidth: isSelected ? (theme.dark ? 1 : 2) : 0)
                 )
                 .contentShape(Rectangle())
                 .onTapGesture { selected = CalDate.startOfDay(date) }
@@ -260,9 +266,12 @@ struct CalendarView: View {
             }
             if !isCurrent {
                 Button { selected = CalDate.startOfDay(CalDate.today()) } label: {
-                    Text(returnLabel).font(.system(size: 12, weight: .bold)).foregroundColor(.white)
+                    Text(returnLabel).font(.system(size: 12, weight: .bold))
+                        .foregroundColor(theme.dark ? Moim.ink : .white)
                         .padding(.horizontal, 14).padding(.vertical, 6)
-                        .background(Moim.accent).clipShape(Capsule())
+                        .background(theme.dark ? Moim.white : Moim.accent)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(theme.dark ? Moim.line : Color.clear, lineWidth: 1))
                 }
                 .padding(.top, 6)
             }

@@ -3,10 +3,7 @@ import UIKit
 
 @main
 struct MoimTalkApp: App {
-    init() {
-        Push.configure()
-        if let uid = MoimRepository.currentUserId() { Push.login(uid) }
-    }
+    init() {}
     var body: some Scene {
         WindowGroup { RootView() }
     }
@@ -27,8 +24,9 @@ struct RootView: View {
     private var pinRooms: [Room] {
         let week = vm.rooms.first { $0.category != "custom" && $0.defaultView == "week" }
         let notice = noticeTopRoom(vm.rooms)
+        let bugReport = bugReportRoom(vm.rooms)
         return vm.rooms.filter {
-            $0.id != week?.id && $0.id != notice?.id &&
+            $0.id != week?.id && $0.id != notice?.id && $0.id != bugReport?.id &&
             (($0.category != "custom" && $0.category != "direct") || vm.myRoomIds.contains($0.id))
         }
     }

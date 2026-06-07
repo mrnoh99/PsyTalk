@@ -104,7 +104,7 @@ class MoimViewModel : ViewModel() {
             onRoomsRefetch = { refetchRoomsQuiet() },
             onRoomMembersChanged = { onRoomMembersChangedOnly() },
             onProfilesChanged = { reloadProfiles() },
-            onWardChanged = { loadWardStatus() },
+            onWardChanged = { loadWardStatus(); refreshWardDutiesQuiet() },
             onActiveRoomChanged = { rid -> refreshActiveRoom(rid) },
         )
     }
@@ -211,7 +211,6 @@ class MoimViewModel : ViewModel() {
                     rooms = MoimRepository.rooms()
                     profilesById = runCatching { MoimRepository.allProfiles().associateBy { it.id } }.getOrDefault(emptyMap())
                     loggedIn = true
-                    MoimRepository.currentUserId()?.let { Push.login(it) }
                     ensureRealtime()
                     startRoomListPolling()
                 } else {
@@ -245,7 +244,6 @@ class MoimViewModel : ViewModel() {
                     throw Exception("방 목록 조회: ${e.message}", e)
                 }
                 loggedIn = true
-                MoimRepository.currentUserId()?.let { Push.login(it) }
                 ensureRealtime()
                 startRoomListPolling()
             } catch (e: Exception) {
@@ -262,7 +260,6 @@ class MoimViewModel : ViewModel() {
 
     fun logout() {
         stopRoomListPolling()
-        Push.logout()
         MoimRealtimeSync.stop(viewModelScope)
         viewModelScope.launch {
             try {
@@ -356,6 +353,8 @@ class MoimViewModel : ViewModel() {
         presenter: String?,
         keywords: List<String>,
         attachments: List<Pair<String, ByteArray>>,
+        repeatRule: String = "none",
+        repeatCount: Int = 1,
         onDone: () -> Unit,
     ) {
         val rid = activeRoom ?: return
@@ -363,6 +362,7 @@ class MoimViewModel : ViewModel() {
             try {
                 MoimRepository.createEvent(
                     rid, title, startAt, place, link, scope, description, presenter, keywords, attachments,
+                    repeatRule, repeatCount,
                 )
                 events = MoimRepository.events(rid)
                 files = MoimRepository.files(rid)
@@ -458,6 +458,11 @@ class MoimViewModel : ViewModel() {
     var wardStatus by mutableStateOf("")
     var wardStatusUpdatedAt by mutableStateOf<String?>(null)
 
+    // ── 당직표 ──
+    var wardDuties by mutableStateOf<Map<String, com.example.moimtalk.data.WardDuty>>(emptyMap())
+    var wardDutyMonth by mutableStateOf<java.time.YearMonth?>(null)
+    var wardTodayDuty by mutableStateOf<com.example.moimtalk.data.WardDuty?>(null)
+
     fun loadWardStatus() {
         viewModelScope.launch {
             try {
@@ -466,6 +471,56 @@ class MoimViewModel : ViewModel() {
                 wardStatusUpdatedAt = w.updatedAt
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "잔여 병실 현황 불러오기")
+            }
+        }
+    }
+
+    fun loadWardDuties(ym: java.time.YearMonth) {
+        wardDutyMonth = ym
+        viewModelScope.launch {
+            try {
+                val from = ym.atDay(1).toString()
+                val to = ym.atEndOfMonth().toString()
+                wardDuties = MoimRepository.wardDuties(from, to).associateBy { it.dutyDate }
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "당직표 불러오기")
+            }
+        }
+    }
+
+    fun refreshWardDutiesQuiet() {
+        wardDutyMonth?.let { loadWardDuties(it) }
+        loadWardTodayDuty()
+    }
+
+    fun loadWardTodayDuty() {
+        viewModelScope.launch {
+            try {
+                val key = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).toString()
+                wardTodayDuty = MoimRepository.wardDuties(key, key).firstOrNull()
+            } catch (_: Exception) { }
+        }
+    }
+
+    fun saveWardDuty(
+        dutyDate: String,
+        profDay: String,
+        residentDay: String,
+        residentNight: String,
+        residentOutpatient1: String,
+        residentOutpatient2: String,
+        onDone: () -> Unit,
+    ) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.upsertWardDuty(
+                    dutyDate, profDay, residentDay, residentNight, residentOutpatient1, residentOutpatient2,
+                )
+                wardDutyMonth?.let { loadWardDuties(it) }
+                loadWardTodayDuty()
+                onDone()
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "당직표 저장")
             }
         }
     }

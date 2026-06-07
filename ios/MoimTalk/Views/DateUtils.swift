@@ -86,3 +86,27 @@ enum CalDate {
 func parseKeywords(_ raw: String) -> [String] {
     raw.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
 }
+
+/// 반복 일정 시작 시각 목록 (첫 회 포함). rule: none | weekly | biweekly | monthly
+func expandRepeatStartAts(baseStartAt: String, rule: String, count: Int) -> [String] {
+    if rule == "none" || count <= 1 { return [baseStartAt] }
+    guard let base = CalDate.parse(baseStartAt) else { return [baseStartAt] }
+    let total = min(max(count, 2), 52)
+    return (0..<total).map { i in
+        let d: Date
+        switch rule {
+        case "weekly":
+            d = CalDate.cal.date(byAdding: .weekOfYear, value: i, to: base) ?? base
+        case "biweekly":
+            d = CalDate.cal.date(byAdding: .weekOfYear, value: i * 2, to: base) ?? base
+        case "monthly":
+            d = CalDate.cal.date(byAdding: .month, value: i, to: base) ?? base
+        default:
+            d = base
+        }
+        let f = ISO8601DateFormatter()
+        f.timeZone = CalDate.kst
+        f.formatOptions = [.withInternetDateTime]
+        return f.string(from: d)
+    }
+}

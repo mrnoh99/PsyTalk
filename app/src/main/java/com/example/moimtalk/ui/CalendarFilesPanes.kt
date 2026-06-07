@@ -237,11 +237,12 @@ private fun SortButton(label: String, on: Boolean, modifier: Modifier, onClick: 
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .background(if (on) MoimAccent else MoimWhite, RoundedCornerShape(10.dp))
+            .background(moimToggleBg(on, MoimAccent), RoundedCornerShape(10.dp))
+            .then(if (MoimTheme.dark) Modifier.border(1.dp, moimToggleBorder(on), RoundedCornerShape(10.dp)) else Modifier)
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = if (on) Color.White else MoimSub)
+        Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = moimToggleText(on, Color.White))
     }
 }
 
@@ -372,12 +373,27 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
                 }
                 Spacer(Modifier.height(13.dp))
                 if (canPost) {
-                    Button(
-                        onClick = { creating = true },
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
-                        shape = RoundedCornerShape(12.dp)
-                    ) { Text("＋ 일정 추가", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+                    if (MoimTheme.dark) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(moimDarkSegBg(), RoundedCornerShape(12.dp))
+                                .border(1.dp, moimDarkSegBorder(), RoundedCornerShape(12.dp))
+                                .clickable { creating = true },
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text("＋ 일정 추가", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+                        }
+                    } else {
+                        Button(
+                            onClick = { creating = true },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
+                            shape = RoundedCornerShape(12.dp)
+                        ) { Text("＋ 일정 추가", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
+                    }
                     Spacer(Modifier.height(14.dp))
                 }
             }
@@ -413,11 +429,13 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
             initial = null,
             defaultDate = selected,
             allowAttachment = true,
+            allowRepeat = opensWeekCalendar(room),
             onDismiss = { creating = false },
             onSubmit = { form ->
                 vm.createEvent(
                     form.title, form.startAt, form.place, form.link, form.scope, form.description,
                     form.presenter, form.keywords, form.newAttachments,
+                    form.repeatRule, form.repeatCount,
                 ) { creating = false }
             }
         )
@@ -485,12 +503,22 @@ private fun monthContent(
                     val cellDate = if (d != 0) ym.atDay(d) else null
                     val isToday = cellDate == today
                     val isSelected = cellDate == selected
+                    val cellBg = when {
+                        MoimTheme.dark && isSelected -> MoimWhite
+                        !MoimTheme.dark && isToday -> MoimYellow
+                        else -> Color.Transparent
+                    }
+                    val cellBorder = when {
+                        MoimTheme.dark && isSelected -> moimDarkSegBorder(true) to 1.dp
+                        !MoimTheme.dark && isSelected -> MoimAccent to 2.dp
+                        else -> Color.Transparent to 0.dp
+                    }
                     Box(
                         modifier = Modifier.weight(1f).aspectRatio(1f).padding(2.dp)
                             .clip(RoundedCornerShape(9.dp))
-                            .background(if (isToday) MoimYellow else Color.Transparent, RoundedCornerShape(9.dp))
+                            .background(cellBg, RoundedCornerShape(9.dp))
                             .then(
-                                if (isSelected) Modifier.border(2.dp, MoimAccent, RoundedCornerShape(9.dp))
+                                if (cellBorder.second > 0.dp) Modifier.border(cellBorder.second, cellBorder.first, RoundedCornerShape(9.dp))
                                 else Modifier
                             )
                             .then(
@@ -553,11 +581,24 @@ private fun weekContent(
         val isSelected = date == selected
         val dayEvents = vm.events.filter { eventDate(it.startAt) == date }.sortedBy { it.startAt }
         scope.item {
+            val weekBg = when {
+                MoimTheme.dark && isSelected -> MoimWhite
+                !MoimTheme.dark && isToday -> MoimHl
+                else -> Color.Transparent
+            }
+            val weekBorder = when {
+                MoimTheme.dark && isSelected -> moimDarkSegBorder(true) to 1.dp
+                !MoimTheme.dark && isSelected -> MoimAccent to 2.dp
+                else -> Color.Transparent to 0.dp
+            }
             Row(
                 modifier = Modifier.fillMaxWidth()
                     .clip(RoundedCornerShape(11.dp))
-                    .background(if (isToday) MoimHl else Color.Transparent, RoundedCornerShape(11.dp))
-                    .then(if (isSelected) Modifier.border(2.dp, MoimAccent, RoundedCornerShape(11.dp)) else Modifier)
+                    .background(weekBg, RoundedCornerShape(11.dp))
+                    .then(
+                        if (weekBorder.second > 0.dp) Modifier.border(weekBorder.second, weekBorder.first, RoundedCornerShape(11.dp))
+                        else Modifier
+                    )
                     .clickable { onSelect(date) }
                     .padding(vertical = 9.dp, horizontal = 6.dp)
             ) {
@@ -627,12 +668,16 @@ private fun CalNavBar(
         }
         if (!isCurrent) {
             Box(modifier = Modifier.fillMaxWidth().padding(top = 6.dp), contentAlignment = Alignment.Center) {
-                Text(returnLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White,
+                Text(
+                    returnLabel, fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                    color = if (MoimTheme.dark) MoimInk else Color.White,
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .clickable(onClick = onReturn)
-                        .background(MoimAccent)
-                        .padding(horizontal = 14.dp, vertical = 6.dp))
+                        .background(if (MoimTheme.dark) moimDarkSegBg() else MoimAccent, RoundedCornerShape(20.dp))
+                        .then(if (MoimTheme.dark) Modifier.border(1.dp, moimDarkSegBorder(), RoundedCornerShape(20.dp)) else Modifier)
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                )
             }
         }
     }
@@ -644,11 +689,12 @@ private fun ModeButton(label: String, on: Boolean, modifier: Modifier, onClick: 
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .background(if (on) MoimYellow else MoimWhite, RoundedCornerShape(10.dp))
+            .background(moimToggleBg(on, MoimYellow), RoundedCornerShape(10.dp))
+            .then(if (MoimTheme.dark) Modifier.border(1.dp, moimToggleBorder(on), RoundedCornerShape(10.dp)) else Modifier)
             .padding(vertical = 8.dp),
         contentAlignment = Alignment.Center
     ) {
-        Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = if (on) MoimInk else MoimSub)
+        Text(label, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, color = moimToggleText(on, MoimInk))
     }
 }
 
@@ -937,6 +983,8 @@ class EventForm(
     val keptUrls: List<String>,
     val keptNames: List<String>,
     val newAttachments: List<Pair<String, ByteArray>>,
+    val repeatRule: String = "none",
+    val repeatCount: Int = 1,
 )
 
 @Composable
@@ -945,6 +993,7 @@ private fun EventDialog(
     initial: CalendarEvent?,
     defaultDate: LocalDate,
     allowAttachment: Boolean,
+    allowRepeat: Boolean = false,
     onDismiss: () -> Unit,
     onSubmit: (EventForm) -> Unit,
     onDelete: (() -> Unit)? = null,
@@ -968,7 +1017,10 @@ private fun EventDialog(
     }
     var existing by remember(initial) { mutableStateOf(initialExisting) }
     var picked by remember(initial) { mutableStateOf(listOf<Pair<String, ByteArray>>()) }
+    var repeatRule by remember { mutableStateOf("none") }
+    var repeatCount by remember { mutableStateOf(12) }
     var err by remember { mutableStateOf<String?>(null) }
+    val showRepeat = allowRepeat && initial == null
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         val added = uris.mapNotNull { readUri(context, it) }
@@ -985,6 +1037,23 @@ evTitle, { evTitle = it }, modifier = Modifier.fillMaxWidth(), placeholder = { T
 dateStr, { dateStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("2026-06-05", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
             OutlinedTextField(
 timeStr, { timeStr = it }, modifier = Modifier.weight(1f), placeholder = { Text("14:00", color = MoimHint) }, singleLine = true, shape = RoundedCornerShape(11.dp), colors = moimOutlinedTextFieldColors())
+        }
+        if (showRepeat) {
+            FieldLabel("반복")
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("없음" to "none", "매주" to "weekly", "2주마다" to "biweekly", "매월" to "monthly").forEach { (label, rule) ->
+                    ModeButton(label, repeatRule == rule, Modifier.weight(1f)) { repeatRule = rule }
+                }
+            }
+            if (repeatRule != "none") {
+                Spacer(Modifier.height(8.dp))
+                FieldLabel("반복 횟수")
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(4, 8, 12, 16, 24).forEach { n ->
+                        ModeButton("${n}회", repeatCount == n, Modifier.weight(1f)) { repeatCount = n }
+                    }
+                }
+            }
         }
         FieldLabel("장소")
         OutlinedTextField(
@@ -1052,6 +1121,8 @@ desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), p
                     keptUrls = existing.map { it.second },
                     keptNames = existing.map { it.first },
                     newAttachments = picked,
+                    repeatRule = if (showRepeat) repeatRule else "none",
+                    repeatCount = if (showRepeat && repeatRule != "none") repeatCount else 1,
                 )
             )
         }
@@ -1067,6 +1138,8 @@ desc, { desc = it }, modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp), p
                 Text("일정 삭제", color = MoimAdmin, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             }
         }
+        Spacer(Modifier.height(8.dp))
+        GhostButton("취소", onDismiss)
     }
 }
 
@@ -1107,6 +1180,17 @@ private fun PrimaryButton(label: String, onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
         shape = RoundedCornerShape(13.dp)
     ) { Text(label, fontSize = 15.sp, fontWeight = FontWeight.Bold) }
+}
+
+/** Web `.ghost` — 일정·설정 모달 하단 취소 */
+@Composable
+private fun GhostButton(label: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(52.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = MoimLine, contentColor = MoimInk),
+        shape = RoundedCornerShape(13.dp),
+    ) { Text(label, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
 }
 
 @Composable

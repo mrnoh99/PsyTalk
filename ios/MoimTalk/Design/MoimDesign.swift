@@ -43,15 +43,93 @@ func byName(_ a: Profile, _ b: Profile) -> Bool {
     a.name.localizedCompare(b.name) == .orderedAscending
 }
 
-/// 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본
-func opensWeekCalendar(_ room: Room) -> Bool {
-    room.category != "custom" && room.category != "direct" && room.defaultView == "week"
+/// BugReport 고정 방 id (승인·미탈퇴 전원 구성원)
+let BUG_REPORT_ROOM_ID = "11111111-1111-1111-1111-111111110013"
+
+func bugReportRoom(_ rooms: [Room]) -> Room? {
+    rooms.first { $0.id == BUG_REPORT_ROOM_ID }
 }
 
-/// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)이 아닌 기본 방.
+func isBugReportRoom(_ room: Room) -> Bool {
+    room.id == BUG_REPORT_ROOM_ID
+}
+
+private func bugReportMachineId() -> String {
+    var systemInfo = utsname()
+    uname(&systemInfo)
+    return withUnsafePointer(to: &systemInfo.machine) {
+        $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+            String(cString: $0)
+        }
+    }
+}
+
+/// BugReport 작성 시 OS·기기 정보가 채워진 기본 템플릿
+func bugReportDraft() -> String {
+    let platform = "iOS"
+    let device = UIDevice.current
+    let kind = device.model
+    let machine = bugReportMachineId()
+    let deviceLine = machine.isEmpty ? kind : "\(kind) (\(machine))"
+    let os = "iOS \(device.systemVersion)"
+    return """
+[환경]
+플랫폼: \(platform)
+기기: \(deviceLine)
+OS: \(os)
+
+[증상]
+
+
+[재현 방법]
+1. 
+
+[기대 동작]
+
+
+[실제 동작]
+
+"""
+}
+
+/// BugReport 템플릿 — 전체관리자(superadmin)는 빈 입력창
+func bugReportDraftFor(role: String?) -> String {
+    isSuperAdmin(role ?? "") ? "" : bugReportDraft()
+}
+
+/// BugReport 방 새글 표시 — 전체관리자만
+func bugReportUnreadVisible(role: String?) -> Bool {
+    role == "superadmin"
+}
+
+func effectiveRoomUnread(roomId: String, count: Int, role: String?) -> Int {
+    if roomId == BUG_REPORT_ROOM_ID && !bugReportUnreadVisible(role: role) { return 0 }
+    return count
+}
+
+func effectiveMsgUnread(roomId: String, count: Int, role: String?) -> Int {
+    if roomId == BUG_REPORT_ROOM_ID && !bugReportUnreadVisible(role: role) { return 0 }
+    return count
+}
+
+/// 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본
+func opensWeekCalendar(_ room: Room) -> Bool {
+    room.category != "custom" && room.category != "direct" && !isBugReportRoom(room) && room.defaultView == "week"
+}
+
+/// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)·BugReport 제외.
 func noticeTopRoom(_ rooms: [Room]) -> Room? {
-    rooms.filter { $0.category != "custom" && $0.category != "direct" && $0.defaultView != "week" }
+    rooms.filter { $0.category != "custom" && $0.category != "direct" && !isBugReportRoom($0) && $0.defaultView != "week" }
         .min { $0.sortOrder < $1.sortOrder }
+}
+
+func isNoticeTopRoom(_ room: Room, _ rooms: [Room]) -> Bool {
+    noticeTopRoom(rooms)?.id == room.id
+}
+
+/// 방 헤더에 구성원 이름 줄 표시 — 모임방 등만(과 전체공지·DM 제외)
+func showRoomHeaderMembers(_ room: Room, _ rooms: [Room]) -> Bool {
+    room.category != "direct" && !isNoticeTopRoom(room, rooms)
 }
 
 /// 방 구성원 id 정렬 — 개설자(createdBy) 맨 앞, 나머지 가나다순
@@ -89,9 +167,26 @@ enum Moim {
     static var admin: Color { moimDark ? Color(hex: 0xF44336) : Color(hex: 0xD32F2F) }
     static var success: Color { moimDark ? Color(hex: 0x4CAF50) : Color(hex: 0x388E3C) }
     static var white: Color { moimDark ? Color(hex: 0x1E1E1E) : Color(hex: 0xFFFFFF) }   // 카드/표면
-    static var hl: Color { moimDark ? Color(hex: 0x33301F) : Color(hex: 0xFFF8E0) }      // 선택·오늘 하이라이트
+    static var youBubble: Color { moimDark ? Color(hex: 0x3A3A3A) : Color(hex: 0xFFFFFF) } // 상대 말풍선
+    static var hl: Color { moimDark ? Color(hex: 0x1E1E1E) : Color(hex: 0xFFF8E0) }      // 다크 hl = surface
     static let orange = Color(hex: 0xEA7317)
 }
+
+/// 다크 모드 surface pill — 방목록 상단 3버튼(전체공지·병실현황·학술활동)과 동일 톤
+func moimDarkSegBg() -> Color { Moim.white }
+func moimDarkSegText(selected: Bool) -> Color { selected ? Moim.ink : Moim.sub }
+func moimDarkSegBorder(selected: Bool = false) -> Color {
+    moimDark && selected ? Moim.sub : Moim.line
+}
+func moimToggleBorder(selected: Bool) -> Color { moimDarkSegBorder(selected: selected) }
+func moimToggleBg(selected: Bool, lightOn: Color, lightOff: Color = Moim.white) -> Color {
+    moimDark ? Moim.white : (selected ? lightOn : lightOff)
+}
+func moimToggleText(selected: Bool, lightOn: Color, lightOff: Color = Moim.sub) -> Color {
+    moimDark ? moimDarkSegText(selected: selected) : (selected ? lightOn : lightOff)
+}
+
+func moimSurfaceAccentText() -> Color { moimDark ? Moim.ink : Moim.accent }
 
 /// 방·일정 상세 등 오버레이 슬라이드 — Android/Web 과 동일(진입 trailing, 복귀 trailing)
 enum MoimOverlayAnim {
@@ -106,6 +201,7 @@ enum MoimOverlayAnim {
 func catColor(_ category: String) -> Color {
     switch category {
     case "notice": return Color(hex: 0xB5651D)
+    case "bugreport": return Color(hex: 0x5C4D7A)
     case "group": return Color(hex: 0x4A6FA5)
     case "work": return Color(hex: 0x3D8361)
     case "research": return Color(hex: 0x6D597A)
@@ -113,9 +209,42 @@ func catColor(_ category: String) -> Color {
     }
 }
 
+/// 공지 본문 — http(s) URL 을 탭 가능한 링크로
+func linkifiedNoticeText(_ text: String) -> AttributedString {
+    var result = AttributedString()
+    let ns = text as NSString
+    let pattern = "https?://[^\\s<>\"']+"
+    guard let regex = try? NSRegularExpression(pattern: pattern) else {
+        return AttributedString(text)
+    }
+    let full = NSRange(location: 0, length: ns.length)
+    var last = 0
+    for match in regex.matches(in: text, options: [], range: full) {
+        if match.range.location > last {
+            let plain = ns.substring(with: NSRange(location: last, length: match.range.location - last))
+            result.append(AttributedString(plain))
+        }
+        let urlStr = ns.substring(with: match.range)
+        var linkPart = AttributedString(urlStr)
+        if let url = URL(string: urlStr) {
+            linkPart.link = url
+        }
+        result.append(linkPart)
+        last = match.range.location + match.range.length
+    }
+    if last < ns.length {
+        result.append(AttributedString(ns.substring(from: last)))
+    }
+    if result.characters.isEmpty {
+        return AttributedString(text)
+    }
+    return result
+}
+
 func catLabel(_ category: String) -> String {
     switch category {
     case "notice": return "공지"
+    case "bugreport": return "BugReport"
     case "group": return "그룹"
     case "work": return "업무"
     case "research": return "연구"
@@ -160,10 +289,92 @@ func canPostInRoom(_ profile: Profile?, _ room: Room) -> Bool {
     return room.postPolicy != "restricted"
 }
 
+enum WardDutyTone { case weekday, weekend, publicHoliday }
+
+func wardDutyTone(_ date: Date) -> WardDutyTone {
+    if KrHolidays.isPublicHoliday(date) { return .publicHoliday }
+    let wd = CalDate.cal.component(.weekday, from: date)
+    if wd == 1 || wd == 7 { return .weekend }
+    return .weekday
+}
+
+func dutyMembersByType(_ profiles: [String: Profile], memberType: String) -> [Profile] {
+    profiles.values
+        .filter { $0.memberType == memberType && $0.approved && !$0.withdrawn }
+        .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+}
+
 // ward 편집 권한: 관리자 또는 직군 교실·의국·간호사("병동")
 func canEditWard(_ profile: Profile?) -> Bool {
     guard let p = profile else { return false }
     return isAdminRole(p.role) || ["교실", "의국", "간호사"].contains(p.memberType)
+}
+
+/// 당직표 입력·수정 권한: 관리자 또는 직군 교실·의국·비서
+func canEditWardDuty(_ profile: Profile?) -> Bool {
+    guard let p = profile else { return false }
+    return isAdminRole(p.role) || ["교실", "의국", "비서"].contains(p.memberType)
+}
+
+/// 휴일(주말·공휴일) — 전공의 당직 1인만
+func isWardDutyOffDay(_ date: Date) -> Bool {
+    wardDutyTone(date) != .weekday
+}
+
+func dutyProfDisplay(_ name: String?) -> String {
+    guard let n = name, !n.isEmpty else { return "—" }
+    return "\(n) 교수님"
+}
+
+func dutyResidentDisplay(_ name: String?) -> String {
+    guard let n = name, !n.isEmpty else { return "—" }
+    return n
+}
+
+func dutyOutpatientDisplay(_ duty: WardDuty?) -> String {
+    let names = [duty?.residentOutpatient1, duty?.residentOutpatient2].compactMap { s -> String? in
+        guard let s = s, !s.isEmpty else { return nil }
+        return s
+    }
+    return names.isEmpty ? "—" : names.joined(separator: ", ")
+}
+
+func dutyTodayPreview(_ duty: WardDuty?, offDay: Bool) -> String {
+    let prof = dutyProfDisplay(duty?.profDay)
+    if offDay {
+        return "\(prof)  ·  당직 \(dutyResidentDisplay(duty?.residentNight))"
+    }
+    return "\(prof)  ·  낮 \(dutyResidentDisplay(duty?.residentDay))  ·  당직 \(dutyResidentDisplay(duty?.residentNight))  ·  외래 \(dutyOutpatientDisplay(duty))"
+}
+
+func wardDutyTodayCardColors() -> (Color, Color) {
+    moimDark
+        ? (Color(hex: 0x262626), moimDarkSegBorder())
+        : (Moim.accent.opacity(0.12), Moim.accent.opacity(0.35))
+}
+
+func wardDutyOffDayRowColors() -> (Color, Color) {
+    moimDark
+        ? (Color(hex: 0x212121), Moim.line)
+        : (Color(hex: 0xF3F1F8), Color(hex: 0xE4E0EC))
+}
+
+func wardDutyOffDayInk() -> Color {
+    moimDark ? Moim.ink : Color(hex: 0x6D5E58)
+}
+
+func wardDutyToneBadge() -> Color {
+    moimDark ? Moim.sub : Color(hex: 0x8A7E96)
+}
+
+func wardDutyRowColors(_ tone: WardDutyTone, isToday: Bool) -> (Color, Color) {
+    let pair: (Color, Color)
+    switch tone {
+    case .publicHoliday, .weekend: pair = wardDutyOffDayRowColors()
+    case .weekday: pair = (Moim.white, Moim.line)
+    }
+    let todayBorder = isToday ? (moimDark ? Moim.sub : Moim.accent) : pair.1
+    return (pair.0, todayBorder)
 }
 
 // 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
@@ -211,9 +422,6 @@ func dayKey(_ createdAt: String?) -> String {
 func fmtPublishTime(_ createdAt: String?) -> String {
     guard let iso = createdAt else { return "" }
     return CalDate.detailTimeLabel(iso)
-}
-func isNoticeTopRoom(_ room: Room, rooms: [Room]) -> Bool {
-    noticeTopRoom(rooms)?.id == room.id
 }
 /// 과 전체공지 — 텍스트+첨부가 연속으로 온 경우 한 카드로 합침 (기존 분리 전송 호환)
 func mergeNoticeMessages(_ messages: [Message]) -> [Message] {

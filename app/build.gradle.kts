@@ -1,5 +1,7 @@
 // ===== app 레벨 build.gradle.kts =====
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.FileInputStream
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -8,16 +10,32 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+val keystoreProperties = Properties().apply {
+    val f = rootProject.file("keystore.properties")
+    if (f.exists()) load(FileInputStream(f))
+}
+
 android {
     namespace = "com.example.moimtalk"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.moimtalk"
+        applicationId = "kr.ac.ajou.psytalk"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+    }
+
+    signingConfigs {
+        if (keystoreProperties.containsKey("storeFile")) {
+            create("release") {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
     }
 
     buildTypes {
@@ -27,6 +45,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     compileOptions {
@@ -74,7 +93,4 @@ dependencies {
 
     // --- 이미지 로딩 (채팅 사진 첨부 표시) ---
     implementation("io.coil-kt:coil-compose:2.7.0")
-
-    // --- 푸시 알림 (OneSignal) ---
-    implementation("com.onesignal:OneSignal:5.1.6")
 }

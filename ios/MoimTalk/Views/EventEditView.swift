@@ -14,12 +14,15 @@ struct EventFormData {
     var keptUrls: [String]
     var keptNames: [String]
     var newAttachments: [(name: String, data: Data)]
+    var repeatRule: String = "none"
+    var repeatCount: Int = 1
 }
 
 struct EventEditView: View {
     let title: String
     let initial: CalendarEvent?
     let allowAttachment: Bool
+    var allowRepeat: Bool = false
     var defaultDate: Date = CalDate.today()   // 새 일정의 기본 날짜(선택한 날짜)
     var onDelete: (() -> Void)? = nil
     let onSubmit: (EventFormData) -> Void
@@ -37,6 +40,8 @@ struct EventEditView: View {
     @State private var existing: [(name: String, url: String)] = []   // 기존 첨부
     @State private var picked: [(name: String, data: Data)] = []       // 새로 추가
     @State private var showImporter = false
+    @State private var repeatRule = "none"
+    @State private var repeatCount = 12
     @State private var err: String?
 
     var body: some View {
@@ -51,6 +56,23 @@ struct EventEditView: View {
                     TextField("링크 (https://zoom.us/...)", text: $link).autocapitalization(.none)
                     TextField("참석 범위 (예: 의국 전공의 전원)", text: $scope)
                     TextField("설명 (안건/준비사항)", text: $desc, axis: .vertical).lineLimit(2...4)
+                }
+                if allowRepeat && initial == nil {
+                    Section("반복") {
+                        Picker("반복", selection: $repeatRule) {
+                            Text("없음").tag("none")
+                            Text("매주").tag("weekly")
+                            Text("2주마다").tag("biweekly")
+                            Text("매월").tag("monthly")
+                        }
+                        if repeatRule != "none" {
+                            Picker("반복 횟수", selection: $repeatCount) {
+                                ForEach([4, 8, 12, 16, 24], id: \.self) { n in
+                                    Text("\(n)회").tag(n)
+                                }
+                            }
+                        }
+                    }
                 }
                 Section("첨부 자료 (여러 개 가능)") {
                     Button { showImporter = true } label: {
@@ -135,7 +157,9 @@ struct EventEditView: View {
             description: desc.trimmed(), presenter: presenter.trimmed(), keywords: [],
             keptUrls: existing.map { $0.url },
             keptNames: existing.map { $0.name },
-            newAttachments: picked
+            newAttachments: picked,
+            repeatRule: (allowRepeat && initial == nil) ? repeatRule : "none",
+            repeatCount: (allowRepeat && initial == nil && repeatRule != "none") ? repeatCount : 1
         )
         onSubmit(form)
         dismiss()

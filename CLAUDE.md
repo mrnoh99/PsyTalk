@@ -80,6 +80,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 2. `schema_extension.sql` — room_members, room_writers, calendar_events, room_files + RLS
 3. `storage_setup.sql` — `room-files` 버킷·정책
 4. `ward_status.sql` — 잔여 병실 현황 메모(단일 행)
+   · `ward_duty.sql` — **당직표** (`ward_status` 다음). 편집=교실·의국·비서+관리자.
+     초기 버전만 실행했다면 **`ward_duty_fix.sql`** 로 컬럼·RLS 보정(입력 실패 시).
 5. `seed_rooms.sql` — 기본 2방(과 전체공지·주간 학술활동)
 6. `install.sql` — GRANT·RLS
 7. `room_create.sql` — 모임방 사용자 생성 권한·가시성
@@ -132,13 +134,15 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 28. `member_contact_email.sql` — **회원 검색·관리에 이메일 표시**: `profiles.email` 컬럼을 `auth.users.email` 과
     동기화(가입 시 채움 + 변경 시 트리거 + 기존 backfill). **회원 검색·회원 관리·가입 승인** 행에 이메일·전화번호·
     자기소개를 작은 글씨로 노출(세 플랫폼 공통). 전화번호·자기소개는 signup_extra_fields.sql 의 `phone`·`intro` 사용.
-29. `message_reactions.sql` — **메시지 답장 + 이모지 리액션**(카톡식 길게누르기): `messages.reply_to`(답장 대상) +
+29. `bugreport_room_seed.sql` — **BugReport 고정 방**: `category=notice`·고정 id(enum 추가 없음), **한 번 Run**.
+    승인·미탈퇴 전원 구성원(`moim_room_member_ids` 가상 멤버십), 방목록 **BugReport** 버튼으로만 진입·목록 행 제외·삭제 불가.
+30. `message_reactions.sql` — **메시지 답장 + 이모지 리액션**(카톡식 길게누르기): `messages.reply_to`(답장 대상) +
     `message_reactions`(message·user·emoji 유일) + `moim_room_reactions(room)`(방 리액션 일괄). 말풍선 길게누르면
     이모지 리액션 + 복사·선택복사·답장 메뉴. **Android·iOS만**(웹은 리액션 DB 공유). 리액션은 메시지 폴링과 함께 재조회.
-30. `signup_device.sql` — **(웹 가입) 사용 핸드폰 종류 + 앱 설치용 연결 이메일**: `profiles.device_type`('iphone'|'android')·
+31. `signup_device.sql` — **(웹 가입) 사용 핸드폰 종류 + 앱 설치용 연결 이메일**: `profiles.device_type`('iphone'|'android')·
     `profiles.device_email`. **웹 가입 폼에서만** 수집(필수), 메타데이터 → profiles 채움(moim_fill_signup_extra 갱신).
     전체관리자 콘솔 '회원 관리'의 **📥 회원 명단 엑셀(CSV) 다운로드**로 내보내 TestFlight/내부테스터 초대에 사용.
-31. `profile_phone_edit.sql` — **내 정보에서 핸드폰 종류·앱 설치용 이메일 변경**(세 플랫폼) + 전화번호 최종변경일:
+32. `profile_phone_edit.sql` — **내 정보에서 핸드폰 종류·앱 설치용 이메일 변경**(세 플랫폼) + 전화번호 최종변경일:
     전화번호는 **읽기 전용**, `device_type`(아이폰/안드로이드)·`device_email`만 본인이 변경. `moim_update_my_profile`
     에 `p_device_type`·`p_device_email` 추가(7인자). `profiles.phone_updated_at`(BEFORE UPDATE 트리거) +
     회원 명단 CSV 에 **가입일(created_at)·핸드폰 최종변경일(phone_updated_at)** 컬럼.
@@ -177,7 +181,6 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 멀티 방 게시 · `room_writers` 연동(예정)
 (안 읽음 배지 ✅ · 메시지별 안읽은 수 ✅ · 캘린더 이동/복귀 ✅)
 
-## 푸시 알림 (OneSignal)
-- 앱 코드(iOS `Push.swift`·Android `Push.kt`·`MoimApp`)와 발송 함수(`supabase/functions/notify-message`)는 구현됨.
-- **외부 설정 필요**(OneSignal 가입·Apple APNs 키·Firebase FCM·App ID 교체·Edge Function 배포·Database Webhook):
-  **`docs/PUSH_SETUP.md`** 단계대로. 새 메시지 → 방 구성원(보낸이 제외)에게 푸시.
+## 푸시 알림 (OneSignal) — **현재 미사용**
+- 앱(iOS·Android)에서 OneSignal 연동은 **제외**됨. 새 메시지는 Realtime·앱 내 안읽음 배지로 확인.
+- 나중에 도입 시: `supabase/functions/notify-message` + **`docs/PUSH_SETUP.md`** 참고.

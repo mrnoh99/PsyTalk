@@ -19,6 +19,8 @@ struct Profile: Codable, Identifiable, Hashable {
     var color: String?            // 프로필 아바타 색상(hex)
     var deviceType: String?       // iphone | android (앱 설치용)
     var deviceEmail: String?      // 앱 설치용 연결 이메일
+    var createdAt: String?        // 가입일
+    var phoneUpdatedAt: String?   // 전화번호 최종 변경일
 
     enum CodingKeys: String, CodingKey {
         case id, name, role, approved, withdrawn, phone, intro, email, color
@@ -26,6 +28,8 @@ struct Profile: Codable, Identifiable, Hashable {
         case avatarUrl = "avatar_url"
         case deviceType = "device_type"
         case deviceEmail = "device_email"
+        case createdAt = "created_at"
+        case phoneUpdatedAt = "phone_updated_at"
     }
 }
 
@@ -333,6 +337,51 @@ struct WardStatusUpdate: Encodable {
 
     enum CodingKeys: String, CodingKey {
         case content
+        case updatedBy = "updated_by"
+        case updatedAt = "updated_at"
+    }
+}
+
+/// 당직표 — 날짜별 교수 낮당직 · 전공의 밤당직
+struct WardDuty: Codable, Identifiable {
+    var dutyDate: String
+    var profDay: String = ""
+    var residentDay: String = ""
+    var residentNight: String = ""
+    var residentOutpatient1: String = ""
+    var residentOutpatient2: String = ""
+    var isHoliday: Bool = false
+
+    var id: String { dutyDate }
+
+    enum CodingKeys: String, CodingKey {
+        case dutyDate = "duty_date"
+        case profDay = "prof_day"
+        case residentDay = "resident_day"
+        case residentNight = "resident_night"
+        case residentOutpatient1 = "resident_outpatient_1"
+        case residentOutpatient2 = "resident_outpatient_2"
+        case isHoliday = "is_holiday"
+    }
+}
+
+struct WardDutyUpsert: Encodable {
+    let dutyDate: String
+    let profDay: String
+    let residentDay: String
+    let residentNight: String
+    let residentOutpatient1: String
+    let residentOutpatient2: String
+    var updatedBy: String?
+    let updatedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case dutyDate = "duty_date"
+        case profDay = "prof_day"
+        case residentDay = "resident_day"
+        case residentNight = "resident_night"
+        case residentOutpatient1 = "resident_outpatient_1"
+        case residentOutpatient2 = "resident_outpatient_2"
         case updatedBy = "updated_by"
         case updatedAt = "updated_at"
     }

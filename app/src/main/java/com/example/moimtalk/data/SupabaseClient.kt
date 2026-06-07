@@ -48,6 +48,7 @@ data class Profile(
     @SerialName("avatar_url") val avatarUrl: String? = null,
     val color: String? = null,        // 프로필 아바타 색상(hex), null=직군 기본색
     @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("phone_updated_at") val phoneUpdatedAt: String? = null,
 )
 
 @Serializable
@@ -255,6 +256,31 @@ data class WardStatus(
 @Serializable
 data class WardStatusUpdate(
     val content: String,
+    @SerialName("updated_by") val updatedBy: String? = null,
+    @SerialName("updated_at") val updatedAt: String,
+)
+
+/** 당직표 — 교원 1인 · 평일 전공의(낮/당직/외래) · 휴일 전공의 당직 1인 */
+@Serializable
+data class WardDuty(
+    @SerialName("duty_date") val dutyDate: String,
+    @SerialName("prof_day") val profDay: String = "",
+    @SerialName("resident_day") val residentDay: String = "",
+    @SerialName("resident_night") val residentNight: String = "",
+    @SerialName("resident_outpatient_1") val residentOutpatient1: String = "",
+    @SerialName("resident_outpatient_2") val residentOutpatient2: String = "",
+    @SerialName("is_holiday") val isHoliday: Boolean = false,
+)
+
+@Serializable
+data class WardDutyUpsert(
+    @SerialName("duty_date") val dutyDate: String,
+    @SerialName("prof_day") val profDay: String,
+    @SerialName("resident_day") val residentDay: String,
+    @SerialName("resident_night") val residentNight: String,
+    @SerialName("resident_outpatient_1") val residentOutpatient1: String,
+    @SerialName("resident_outpatient_2") val residentOutpatient2: String,
+    @SerialName("is_holiday") val isHoliday: Boolean = false,
     @SerialName("updated_by") val updatedBy: String? = null,
     @SerialName("updated_at") val updatedAt: String,
 )

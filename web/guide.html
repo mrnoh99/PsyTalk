@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="아주 정신 웹앱 사용법">
+<meta name="application-name" content="아주 정신">
+<meta name="apple-mobile-web-app-title" content="아주 정신">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#121212">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="icons/favicon-16.png" sizes="16x16" type="image/png">
+<link rel="shortcut icon" href="icons/favicon.ico">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>아주 정신 — 사용법</title>
+<style>
+  :root{
+    --bg:#161616;--paper:#121212;--surface:#1e1e1e;--ink:#fff;--sub:#bdbdbd;
+    --accent:#1e88e5;--line:#2c2c2c;--admin:#f44336;
+    --notice:#b5651d;--orange:#ea7317;--week:#4a6fa5;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  html.light{
+    --bg:#ececec;--paper:#fff;--surface:#f5f5f5;--ink:#212121;--sub:#757575;
+    --accent:#1976d2;--line:#e0e0e0;--admin:#d32f2f;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.65;
+    padding:calc(12px + var(--safe-top)) 16px calc(28px + var(--safe-bottom));
+    font-size:16px;-webkit-text-size-adjust:100%;
+  }
+  .top{
+    position:sticky;top:0;z-index:10;
+    margin:-12px -16px 16px;padding:calc(10px + var(--safe-top)) 16px 10px;
+    background:var(--paper);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .top h1{font-size:17px;font-weight:800;letter-spacing:-.2px}
+  .top a{font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;padding:8px 10px;border-radius:8px;background:var(--surface)}
+  .hero{
+    background:linear-gradient(135deg,var(--notice),#8a4a1a);
+    border-radius:16px;padding:20px 18px;margin-bottom:18px;color:#fff;
+  }
+  .hero h2{font-size:22px;font-weight:800;margin-bottom:8px;line-height:1.3}
+  .hero p{font-size:14.5px;opacity:.92;line-height:1.55}
+  .hero .open-app{
+    display:inline-block;margin-top:14px;padding:12px 18px;border-radius:12px;
+    background:#fff;color:var(--notice);font-weight:800;font-size:15px;text-decoration:none;
+  }
+  .toc{
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;
+    padding:14px 16px;margin-bottom:20px;
+  }
+  .toc b{display:block;font-size:13px;color:var(--sub);margin-bottom:10px;letter-spacing:.3px}
+  .toc a{
+    display:block;padding:10px 4px;color:var(--accent);font-weight:700;font-size:15px;
+    text-decoration:none;border-bottom:1px solid var(--line);
+  }
+  .toc a:last-child{border-bottom:none}
+  section{
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;
+    padding:18px 16px;margin-bottom:14px;
+  }
+  section h3{
+    font-size:18px;font-weight:800;margin-bottom:12px;padding-bottom:10px;
+    border-bottom:2px solid var(--accent);line-height:1.35;
+  }
+  section h4{font-size:15px;font-weight:800;margin:14px 0 8px;color:var(--ink)}
+  section p,section li{font-size:15.5px;color:var(--ink)}
+  section ul,section ol{padding-left:1.2em;margin:8px 0 4px}
+  section li{margin:6px 0}
+  section li::marker{color:var(--accent)}
+  .tip{
+    background:var(--surface);border-left:4px solid var(--accent);
+    border-radius:0 10px 10px 0;padding:12px 14px;margin:12px 0;font-size:14.5px;color:var(--sub);
+  }
+  .chiprow{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+  .chip{padding:8px 12px;border-radius:20px;font-size:13px;font-weight:700;color:#fff}
+  .chip-n{background:var(--notice)}.chip-w{background:var(--orange)}.chip-s{background:var(--week)}
+  .foot{text-align:center;padding:24px 8px;font-size:13px;color:var(--sub)}
+  .theme-btn{
+    border:1px solid var(--line);background:var(--surface);color:var(--ink);
+    border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;
+  }
+  @media (min-width:600px){
+    body{max-width:520px;margin:0 auto;padding-left:20px;padding-right:20px}
+    .top{margin-left:-20px;margin-right:-20px;padding-left:20px;padding-right:20px}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>아주 정신 사용법</h1>
+  <div style="display:flex;gap:6px;align-items:center">
+    <button type="button" class="theme-btn" id="themeBtn" aria-label="테마 전환">🌙</button>
+    <a href="index.html">앱 열기</a>
+  </div>
+</header>
+
+<div class="hero">
+  <h2>정신건강의학과<br>그룹 메신저</h2>
+  <p>Android · iPhone · 웹 브라우저에서 같은 계정으로 채팅·일정·자료를 공유합니다.</p>
+  <a class="open-app" href="index.html">웹 앱 바로가기</a>
+</div>
+
+<nav class="toc" aria-label="목차">
+  <b>목차</b>
+  <a href="#start">1. 시작하기 (가입·로그인)</a>
+  <a href="#home">2. 방 목록 (홈 화면)</a>
+  <a href="#chat">3. 채팅</a>
+  <a href="#tabs">4. 자료실 · 캘린더</a>
+  <a href="#room">5. 모임방</a>
+  <a href="#dm">6. 1:1 대화</a>
+  <a href="#settings">7. 설정</a>
+  <a href="#admin">8. 관리자</a>
+  <a href="#help">9. 문의 · BugReport</a>
+</nav>
+
+<section id="start">
+  <h3>1. 시작하기</h3>
+  <h4>회원가입</h4>
+  <ul>
+    <li>이름 · 핸드폰 · 이메일 · 비밀번호(확인) · 직군 · 자기소개를 입력합니다.</li>
+    <li>가입 직후에는 <strong>승인 대기</strong> 상태입니다. 관리자가 승인하면 방 목록이 보입니다.</li>
+  </ul>
+  <h4>로그인</h4>
+  <ul>
+    <li><strong>이메일</strong> 또는 <strong>핸드폰번호</strong> + 비밀번호로 로그인합니다.</li>
+    <li>비밀번호를 잊었다면 로그인 화면의 재설정을 이용합니다. (전체관리자 계정은 보안상 재설정 불가)</li>
+  </ul>
+  <div class="tip">폰 앱과 웹은 같은 계정·같은 대화를 실시간으로 공유합니다.</div>
+</section>
+
+<section id="home">
+  <h3>2. 방 목록 (홈)</h3>
+  <p>로그인 후 첫 화면입니다. 맨 위부터 순서대로:</p>
+  <div class="chiprow">
+    <span class="chip chip-n">전체공지</span>
+    <span class="chip chip-w">병실현황</span>
+    <span class="chip chip-s">학술활동</span>
+  </div>
+  <ul>
+    <li><strong>전체공지</strong> — 과 전체 공지. 관리자 글이 카드 형태로 표시됩니다.</li>
+    <li><strong>병실현황</strong> — 남·여 잔여 병상 메모를 확인·편집합니다. (교실·의국·간호사·관리자 편집 가능)</li>
+    <li><strong>학술활동</strong> — 학술 일정·자료 방. 열면 <strong>주간 캘린더</strong>가 기본입니다.</li>
+    <li><strong>BugReport</strong> — 앱 오류·개선 제안. 새 글 알림은 전체관리자만 받습니다.</li>
+    <li><strong>＋ 모임방 만들기</strong> — 카톡처럼 이름과 참여 회원을 골라 모임방을 만듭니다.</li>
+  </ul>
+  <p>아래 목록에는 <strong>모임방</strong>과 <strong>1:1 대화</strong>가 표시됩니다. 안 읽은 메시지가 있으면 숫자 배지가 붙습니다.</p>
+  <h4>방 순서 고정</h4>
+  <p>⚙️ 설정 → <strong>방 순서</strong>에서 최대 5개를 고정·드래그 정렬할 수 있습니다. 전체공지는 항상 맨 위이며 고정 대상에서 제외됩니다.</p>
+</section>
+
+<section id="chat">
+  <h3>3. 채팅</h3>
+  <ul>
+    <li>하단 입력창에 글을 쓰고 <strong>➤</strong> 를 눌러 전송합니다.</li>
+    <li><strong>＋</strong> 버튼: 사진 또는 파일을 선택 → <strong>미리보기 확인 후 ➤</strong> 로 전송 (카톡과 동일).</li>
+    <li>말풍선 <strong>길게 누르기</strong>: 복사 · 답장 · 이모지 반응(👍 ❤️ 😂 😮 😢 👏).</li>
+    <li>내가 쓴 글 옆 <strong>🗑</strong>: 삭제 (본인·관리자).</li>
+    <li>방을 열면 읽음 처리되어 안 읽음 배지가 사라집니다.</li>
+  </ul>
+  <div class="tip">과 전체공지는 일반 말풍선이 아니라 가운데 정렬된 <strong>공지 카드</strong>로 표시됩니다. 길게 눌러 복사할 수 있습니다.</div>
+</section>
+
+<section id="tabs">
+  <h3>4. 자료실 · 캘린더</h3>
+  <p>모임방·학술활동 등 기본 방에는 상단에 세 탭이 있습니다.</p>
+  <h4>📁 자료실</h4>
+  <ul>
+    <li>직접 업로드한 파일과 캘린더 일정 첨부를 한곳에 모읍니다.</li>
+    <li><strong>날짜순</strong> / <strong>키워드별</strong> 정렬.</li>
+    <li>파일명과 업로드 시 적은 설명이 함께 표시됩니다.</li>
+  </ul>
+  <h4>📅 캘린더</h4>
+  <ul>
+    <li>보기: <strong>금일</strong> · <strong>주간</strong> · <strong>월간</strong>.</li>
+    <li>일정 필드: 제목 · 시간 · 장소 · 링크 · 참석범위 · 설명 · 키워드 · 첨부파일+설명.</li>
+    <li>수정·삭제: 작성자 본인 + 관리자 (일정 삭제는 일부 직군 추가 허용).</li>
+  </ul>
+</section>
+
+<section id="room">
+  <h3>5. 모임방</h3>
+  <ul>
+    <li>만든 사람(생성자)과 관리자는 ⚙️ <strong>설정</strong>에서 구성원 초대·제거, 방 삭제가 가능합니다.</li>
+    <li>본인이 만들지 않은 모임방은 헤더 <strong>나가기</strong>로 목록에서만 제거됩니다. (대화는 보존)</li>
+    <li>헤더 <strong>이름변경</strong>: 생성자 또는 관리자 (기본 방은 전체관리자만).</li>
+    <li>방 표식: 만들 때·이름 변경 시 색상·사진 아바타를 지정할 수 있습니다.</li>
+  </ul>
+</section>
+
+<section id="dm">
+  <h3>6. 1:1 대화</h3>
+  <ol>
+    <li>방 목록 ⚙️ <strong>설정</strong> → <strong>회원 검색</strong></li>
+    <li>상대를 찾아 <strong>메시지</strong> 버튼을 누릅니다.</li>
+    <li>방 목록에서 해당 1:1 행을 <strong>왼쪽으로 스와이프</strong> → 확인 후 삭제 (내 목록에서만, 상대·이력 보존).</li>
+  </ol>
+  <p>1:1 방에는 캘린더·자료실 탭이 없고 채팅만 사용합니다.</p>
+</section>
+
+<section id="settings">
+  <h3>7. 설정 (⚙️)</h3>
+  <h4>내 정보</h4>
+  <ul>
+    <li>자기소개 · 아바타(사진/색) · <strong>다크/라이트 테마</strong> · 비밀번호 변경.</li>
+    <li>이름·이메일은 읽기 전용입니다.</li>
+  </ul>
+  <h4>방 순서</h4>
+  <p>자주 쓰는 방 최대 5개 고정·드래그 정렬.</p>
+  <h4>회원 검색</h4>
+  <p>동료 이름·직군·이메일·전화로 검색, 1:1 메시지 시작.</p>
+  <h4>회원 탈퇴</h4>
+  <p>본인 계정 비활성화. 작성한 글·자료는 보존되며 로그인만 차단됩니다. 전체관리자는 탈퇴 불가.</p>
+</section>
+
+<section id="admin">
+  <h3>8. 관리자</h3>
+  <p>방 목록 상단 배너로 진입합니다.</p>
+  <ul>
+    <li><strong>관리자(admin)</strong>: 가입 승인만.</li>
+    <li><strong>전체관리자(superadmin)</strong>: 가입 승인 · 회원 관리(역할·비활성·복구) · 방 관리(구성원·삭제).</li>
+  </ul>
+  <p>기본 방(전체공지·학술활동) 삭제는 불가합니다.</p>
+</section>
+
+<section id="help">
+  <h3>9. 문의 · BugReport</h3>
+  <ul>
+    <li>앱 오류·개선 아이디어: 홈의 <strong style="color:var(--admin)">BugReport</strong> 버튼 → 버그·제안 글 작성.</li>
+    <li>계정·승인·방 관련: 전체관리자에게 연락하세요.</li>
+  </ul>
+  <div class="tip">첨부 파일·채팅 사진은 약 4주 후 자동 정리될 수 있습니다. 중요 자료는 별도 보관을 권장합니다.</div>
+</section>
+
+<p class="foot">아주 정신 · 아주대학교병원 정신건강의학과<br><a href="index.html" style="color:var(--accent)">웹 앱으로 돌아가기</a></p>
+
+<script>
+(function(){
+  const KEY='moim-guide-theme';
+  const btn=document.getElementById('themeBtn');
+  function apply(light){
+    document.documentElement.classList.toggle('light',light);
+    btn.textContent=light?'☀️':'🌙';
+    try{localStorage.setItem(KEY,light?'light':'dark');}catch(e){}
+  }
+  let light=false;
+  try{light=localStorage.getItem(KEY)==='light';}catch(e){}
+  apply(light);
+  btn.addEventListener('click',()=>apply(!document.documentElement.classList.contains('light')));
+})();
+</script>
+</body>
+</html>

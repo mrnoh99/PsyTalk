@@ -348,7 +348,9 @@ enum MoimRepository {
         roomId: String, title: String, startAt: String,
         place: String?, link: String?, scope: String?, description: String?,
         presenter: String?, keywords: [String],
-        attachments: [(name: String, data: Data)]
+        attachments: [(name: String, data: Data)],
+        repeatRule: String = "none",
+        repeatCount: Int = 1
     ) async throws {
         try await withFreshSession {
             guard let uid = currentUserId() else { throw AppError.notLoggedIn }
@@ -358,14 +360,17 @@ enum MoimRepository {
                 urls.append(try await uploadToStorage(roomId: roomId, fileName: a.name, data: a.data))
                 names.append(a.name)
             }
-            let payload = CalendarEventInsert(
-                roomId: roomId, title: title, startAt: startAt,
-                place: place, link: link, scope: scope, description: description,
-                presenter: (presenter?.isEmpty == false) ? presenter : nil,
-                keywords: keywords, ownerId: uid,
-                attachmentUrls: urls, attachmentNames: names
-            )
-            try await supabase.from("calendar_events").insert(payload).execute()
+            let startAts = expandRepeatStartAts(baseStartAt: startAt, rule: repeatRule, count: repeatCount)
+            let payloads = startAts.map { at in
+                CalendarEventInsert(
+                    roomId: roomId, title: title, startAt: at,
+                    place: place, link: link, scope: scope, description: description,
+                    presenter: (presenter?.isEmpty == false) ? presenter : nil,
+                    keywords: keywords, ownerId: uid,
+                    attachmentUrls: urls, attachmentNames: names
+                )
+            }
+            try await supabase.from("calendar_events").insert(payloads).execute()
         }
     }
 
@@ -453,6 +458,37 @@ enum MoimRepository {
         let nowIso = ISO8601DateFormatter().string(from: Date())
         let payload = WardStatusUpdate(content: content, updatedBy: currentUserId(), updatedAt: nowIso)
         try await supabase.from("ward_status").update(payload).eq("id", value: 1).execute()
+    }
+
+    // ── 당직표 ──
+    static func wardDuties(from: String, to: String) async throws -> [WardDuty] {
+        try await supabase.from("ward_duty")
+            .select()
+            .gte("duty_date", value: from)
+            .lte("duty_date", value: to)
+            .order("duty_date", ascending: true)
+            .execute().value
+    }
+
+    static func upsertWardDuty(
+        dutyDate: String, profDay: String, residentDay: String, residentNight: String,
+        residentOutpatient1: String, residentOutpatient2: String
+    ) async throws {
+        try await withFreshSession {
+            guard let uid = currentUserId() else { throw AppError.notLoggedIn }
+            let now = ISO8601DateFormatter().string(from: Date())
+            let payload = WardDutyUpsert(
+                dutyDate: dutyDate, profDay: profDay, residentDay: residentDay, residentNight: residentNight,
+                residentOutpatient1: residentOutpatient1, residentOutpatient2: residentOutpatient2,
+                updatedBy: uid, updatedAt: now
+            )
+            let existing = try await wardDuties(from: dutyDate, to: dutyDate)
+            if existing.isEmpty {
+                try await supabase.from("ward_duty").insert(payload).execute()
+            } else {
+                try await supabase.from("ward_duty").update(payload).eq("duty_date", value: dutyDate).execute()
+            }
+        }
     }
 
     /// Storage object key — ASCII only (Supabase/S3 rejects non-ASCII in key). DB에는 원본 파일명 저장.

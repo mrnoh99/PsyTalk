@@ -2018,17 +2018,17 @@ private fun RoomListTopTriBar(
             .height(IntrinsicSize.Min)
             .clip(RoundedCornerShape(14.dp)),
     ) {
-        RoomListTriSegment("📢", "전체공지", Color(0xFFB5651D), noticeUnread, noticeRoom != null, onNotice, start = true)
+        RoomListTriSegment("전체공지", Color(0xFFB5651D), noticeUnread, noticeRoom != null, onNotice, start = true)
         Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
-        RoomListTriSegment("🛏", "병실현황", Color(0xFFEA7317), 0, true, onWard)
+        RoomListTriSegment("병실현황", Color(0xFFEA7317), 0, true, onWard)
         Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
-        RoomListTriSegment("📅", "학술활동", Color(0xFF4A6FA5), weekUnread, weekRoom != null, onWeek, end = true)
+        RoomListTriSegment("학술활동", Color(0xFF4A6FA5), weekUnread, weekRoom != null, onWeek, end = true)
     }
 }
 
 @Composable
 private fun RowScope.RoomListTriSegment(
-    icon: String, label: String, bg: Color, unread: Int, enabled: Boolean, onClick: () -> Unit,
+    label: String, bg: Color, unread: Int, enabled: Boolean, onClick: () -> Unit,
     start: Boolean = false, end: Boolean = false,
 ) {
     val shape = when {
@@ -2045,10 +2045,14 @@ private fun RowScope.RoomListTriSegment(
             .padding(vertical = 12.dp, horizontal = 4.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Text(icon, fontSize = 18.sp)
-            Text(label, color = Color.White, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
-        }
+        Text(
+            label,
+            color = Color.White,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 1,
+            textAlign = TextAlign.Center,
+        )
         if (unread > 0) {
             Box(modifier = Modifier.align(Alignment.TopEnd).padding(end = 4.dp, top = 2.dp)) {
                 UnreadBadge(unread)

@@ -338,25 +338,25 @@ struct RoomListTopTriBar: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            triSeg(icon: "📢", label: "전체공지", color: Color(hex: 0xB5651D), unread: noticeUnread, enabled: noticeRoom != nil, action: onNotice, corners: [.topLeft, .bottomLeft])
+            triSeg(label: "전체공지", color: Color(hex: 0xB5651D), unread: noticeUnread, enabled: noticeRoom != nil, action: onNotice)
             Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
-            triSeg(icon: "🛏", label: "병실현황", color: Moim.orange, unread: 0, enabled: true, action: onWard, corners: [])
+            triSeg(label: "병실현황", color: Moim.orange, unread: 0, enabled: true, action: onWard)
             Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
-            triSeg(icon: "📅", label: "학술활동", color: Color(hex: 0x4A6FA5), unread: weekUnread, enabled: weekRoom != nil, action: onWeek, corners: [.topRight, .bottomRight])
+            triSeg(label: "학술활동", color: Color(hex: 0x4A6FA5), unread: weekUnread, enabled: weekRoom != nil, action: onWeek)
         }
         .clipShape(RoundedRectangle(cornerRadius: 14))
         .padding(.horizontal, 14).padding(.bottom, 10)
     }
 
-    private func triSeg(icon: String, label: String, color: Color, unread: Int, enabled: Bool, action: @escaping () -> Void, corners: UIRectCorner) -> some View {
+    private func triSeg(label: String, color: Color, unread: Int, enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             ZStack(alignment: .topTrailing) {
-                VStack(spacing: 2) {
-                    Text(icon).font(.system(size: 18))
-                    Text(label).font(.system(size: 11.5, weight: .heavy)).foregroundColor(.white).lineLimit(1)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
+                Text(label)
+                    .font(.system(size: 14, weight: .heavy))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
                 if unread > 0 {
                     UnreadBadge(count: unread).padding(.top, 4).padding(.trailing, 4)
                 }

@@ -13,8 +13,13 @@ DECLARE
   v_msg    uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001';
   v_content text := $guide$【아주 정신 앱 사용법】
 
+📖 자세한 사용법 (웹·모바일 최적화):
+https://mrnoh99.github.io/PsyTalk/guide.html
+
 아주대학교병원 정신건강의학과 의국용 그룹 메신저입니다.
 Android · iPhone · 웹 브라우저(Windows/Mac)에서 같은 계정으로 이용할 수 있습니다.
+
+(아래는 요약입니다. 화면별 설명·팁은 위 링크를 참고하세요.)
 
 ━━━━━━━━━━━━━━━━━━━━
 1. 시작하기

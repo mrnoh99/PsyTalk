@@ -2127,7 +2127,7 @@ function renderReplyBar(){
   bar.classList.remove('hidden'); layoutChat();
 }
 const MSG_LONG_MS=480, MSG_MOVE_MAX=14;
-let msgPressTimer=null,msgPressX=0,msgPressY=0,msgMenuOpenedByTouch=false;
+let msgPressTimer=null,msgPressX=0,msgPressY=0,msgMenuOpenedByTouch=false,msgMenuOpenedAt=0;
 function msgHitTarget(el){return el?.closest?.('.msg-hit,.notice-card');}
 function clearMsgPress(){if(msgPressTimer){clearTimeout(msgPressTimer);msgPressTimer=null;}}
 function startMsgPress(cx,cy,msgId,isNotice){
@@ -2208,15 +2208,16 @@ function openMsgMenu(e,msgId,isNotice){
   if(cap) h+=`<div class="mi" onclick="pickMenuCopy('${msgId}')">복사</div>`;
   if(!isNotice&&!isNoticeRoom()) h+=`<div class="mi" onclick="pickMenuReply('${msgId}')">답장</div>`;
   menu.innerHTML=h; menu.classList.remove('hidden');
+  msgMenuOpenedAt=Date.now();   // 길게누르기 직후 따라오는 click 으로 즉시 닫히지 않도록 가드
   const cx=e.clientX||(e.touches&&e.touches[0]&&e.touches[0].clientX)||(e.changedTouches&&e.changedTouches[0]&&e.changedTouches[0].clientX)||120;
   const cy=e.clientY||(e.touches&&e.touches[0]&&e.touches[0].clientY)||(e.changedTouches&&e.changedTouches[0]&&e.changedTouches[0].clientY)||120;
   menu.style.left=Math.min(Math.max(8,cx-90),window.innerWidth-200)+'px';
   menu.style.top=Math.min(Math.max(8,cy-20),window.innerHeight-160)+'px';
 }
-function pickMenuReact(id,em){toggleReaction(id,em);}
+function pickMenuReact(id,em){toggleReaction(id,em);closeMsgMenu();}
 function pickMenuCopy(id){copyNotice(id);closeMsgMenu();}
 function pickMenuReply(id){const m=msgById(id);if(m)setReply(m);closeMsgMenu();activeMsgInput()?.focus();layoutChat();}
-document.addEventListener('click',e=>{const m=document.getElementById('msgMenu');if(m&&!m.classList.contains('hidden')&&!e.target.closest('#msgMenu'))closeMsgMenu();});
+document.addEventListener('click',e=>{const m=document.getElementById('msgMenu');if(m&&!m.classList.contains('hidden')&&!e.target.closest('#msgMenu')){if(Date.now()-msgMenuOpenedAt<600)return;closeMsgMenu();}});
 function bubbleBlockHtml(m){
   const quote=replyQuoteHtml(m);
   const chips=reactionChipsHtml(m.id);

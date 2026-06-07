@@ -28,6 +28,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -382,6 +383,7 @@ private fun WardDutyEditDialog(
 }
 
 /** 필드 탭 시 이름 목록 — DropdownMenu(별도 Popup)로 Dialog 에서도 동작 */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DutyMemberPicker(members: List<Profile>, selected: String, onSelect: (String) -> Unit) {
     var expanded by remember { mutableStateOf(false) }

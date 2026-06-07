@@ -42,7 +42,7 @@ struct RoomView: View {
             Divider().background(Moim.line)
 
             switch tab {
-            case "chat": ChatView(vm: vm, canPost: canPost, input: $input,
+            case "chat": ChatView(vm: vm, canPost: canPost, input: $input, roomId: liveRoom.id,
                                   noticeLayout: isNoticeTopRoom(liveRoom, vm.rooms))
             case "files": FilesView(vm: vm, canUpload: canPost)
             default: CalendarView(vm: vm, room: liveRoom, canPost: canPost)
@@ -187,6 +187,7 @@ struct ChatView: View {
     @ObservedObject var vm: MoimViewModel
     let canPost: Bool
     @Binding var input: String
+    var roomId: String = ""
     var noticeLayout: Bool = false
     @State private var pickPhoto = false
     @State private var pickFile = false
@@ -243,7 +244,11 @@ struct ChatView: View {
                                             vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
                                         },
                                         onDelete: { deleteTarget = m },
-                                        unread: vm.unreadByMsg[m.id] ?? 0,
+                                        unread: effectiveMsgUnread(
+                                            roomId: roomId,
+                                            count: vm.unreadByMsg[m.id] ?? 0,
+                                            role: vm.myProfile?.role
+                                        ),
                                         sender: vm.profilesById[m.senderId],
                                         reactions: vm.reactions.filter { $0.messageId == m.id },
                                         myUserId: vm.myProfile?.id ?? "",

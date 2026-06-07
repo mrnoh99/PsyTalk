@@ -204,9 +204,15 @@ struct RoomListView: View {
             header
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    if let nr = noticeRoom { NoticeRoomBar(room: nr, unread: vm.unreadByRoom[nr.id] ?? 0, onOpen: onOpen) }
-                    WardStatusBanner(onTap: onWard)
-                    if let wr = weekRoom { WeekRoomBar(room: wr, unread: vm.unreadByRoom[wr.id] ?? 0, onOpen: onOpen) }
+                    RoomListTopTriBar(
+                        noticeRoom: noticeRoom,
+                        noticeUnread: noticeRoom.map { vm.unreadByRoom[$0.id] ?? 0 } ?? 0,
+                        weekRoom: weekRoom,
+                        weekUnread: weekRoom.map { vm.unreadByRoom[$0.id] ?? 0 } ?? 0,
+                        onNotice: { if let nr = noticeRoom { onOpen(nr) } },
+                        onWard: onWard,
+                        onWeek: { if let wr = weekRoom { onOpen(wr) } }
+                    )
                     createButton
                     if listRooms.isEmpty {
                         EmptyBox(emoji: "🔒", title: "아직 방이 없어요",
@@ -263,14 +269,22 @@ struct RoomListView: View {
     private var bugReport: Room? { bugReportRoom(vm.rooms) }
 
     private var createButton: some View {
-        HStack(spacing: 10) {
+        let brUnread = bugReport.map {
+            effectiveRoomUnread(roomId: $0.id, count: vm.unreadByRoom[$0.id] ?? 0, role: vm.myProfile?.role)
+        } ?? 0
+        return HStack(spacing: 10) {
             if let br = bugReport {
                 Button(action: { onOpen(br) }) {
-                    Text("BugReport")
-                        .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 14).padding(.vertical, 8)
-                        .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 10))
+                    ZStack(alignment: .topTrailing) {
+                        Text("BugReport")
+                            .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.admin)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 14).padding(.vertical, 8)
+                            .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 10))
+                        if brUnread > 0 {
+                            UnreadBadge(count: brUnread).padding(.top, 2).padding(.trailing, 6)
+                        }
+                    }
                 }
                 .buttonStyle(.plain)
             }
@@ -312,7 +326,49 @@ struct RoomListView: View {
     }
 }
 
-// 방 목록 맨 위 고정 배너
+// 방목록 상단 — 전체공지 · 병실현황 · 학술활동 한 줄 3분할
+struct RoomListTopTriBar: View {
+    let noticeRoom: Room?
+    var noticeUnread: Int = 0
+    let weekRoom: Room?
+    var weekUnread: Int = 0
+    let onNotice: () -> Void
+    let onWard: () -> Void
+    let onWeek: () -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            triSeg(icon: "📢", label: "전체공지", color: Color(hex: 0xB5651D), unread: noticeUnread, enabled: noticeRoom != nil, action: onNotice, corners: [.topLeft, .bottomLeft])
+            Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
+            triSeg(icon: "🛏", label: "병실현황", color: Moim.orange, unread: 0, enabled: true, action: onWard, corners: [])
+            Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
+            triSeg(icon: "📅", label: "학술활동", color: Color(hex: 0x4A6FA5), unread: weekUnread, enabled: weekRoom != nil, action: onWeek, corners: [.topRight, .bottomRight])
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 14).padding(.bottom, 10)
+    }
+
+    private func triSeg(icon: String, label: String, color: Color, unread: Int, enabled: Bool, action: @escaping () -> Void, corners: UIRectCorner) -> some View {
+        Button(action: action) {
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 2) {
+                    Text(icon).font(.system(size: 18))
+                    Text(label).font(.system(size: 11.5, weight: .heavy)).foregroundColor(.white).lineLimit(1)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                if unread > 0 {
+                    UnreadBadge(count: unread).padding(.top, 4).padding(.trailing, 4)
+                }
+            }
+            .background(color.opacity(enabled ? 1 : 0.45))
+        }
+        .buttonStyle(.plain)
+        .disabled(!enabled)
+    }
+}
+
+// 방 목록 맨 위 고정 배너 (레거시·미사용)
 struct WardStatusBanner: View {
     let onTap: () -> Void
     var body: some View {

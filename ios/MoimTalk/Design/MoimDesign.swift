@@ -54,6 +54,21 @@ func isBugReportRoom(_ room: Room) -> Bool {
     room.id == BUG_REPORT_ROOM_ID
 }
 
+/// BugReport 방 새글 표시 — 전체관리자만
+func bugReportUnreadVisible(role: String?) -> Bool {
+    role == "superadmin"
+}
+
+func effectiveRoomUnread(roomId: String, count: Int, role: String?) -> Int {
+    if roomId == BUG_REPORT_ROOM_ID && !bugReportUnreadVisible(role: role) { return 0 }
+    return count
+}
+
+func effectiveMsgUnread(roomId: String, count: Int, role: String?) -> Int {
+    if roomId == BUG_REPORT_ROOM_ID && !bugReportUnreadVisible(role: role) { return 0 }
+    return count
+}
+
 /// 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본
 func opensWeekCalendar(_ room: Room) -> Bool {
     room.category != "custom" && room.category != "direct" && !isBugReportRoom(room) && room.defaultView == "week"

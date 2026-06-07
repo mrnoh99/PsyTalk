@@ -132,7 +132,7 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 28. `member_contact_email.sql` — **회원 검색·관리에 이메일 표시**: `profiles.email` 컬럼을 `auth.users.email` 과
     동기화(가입 시 채움 + 변경 시 트리거 + 기존 backfill). **회원 검색·회원 관리·가입 승인** 행에 이메일·전화번호·
     자기소개를 작은 글씨로 노출(세 플랫폼 공통). 전화번호·자기소개는 signup_extra_fields.sql 의 `phone`·`intro` 사용.
-29. `bugreport_room_seed.sql` — **BugReport 고정 방**: `category=group`·고정 id( enum 추가 없음), **한 번 Run**.
+29. `bugreport_room_seed.sql` — **BugReport 고정 방**: `category=notice`·고정 id(enum 추가 없음), **한 번 Run**.
     승인·미탈퇴 전원 구성원(`moim_room_member_ids` 가상 멤버십), 방목록 **BugReport** 버튼으로만 진입·목록 행 제외·삭제 불가.
 30. `message_reactions.sql` — **메시지 답장 + 이모지 리액션**(카톡식 길게누르기): `messages.reply_to`(답장 대상) +
     `message_reactions`(message·user·emoji 유일) + `moim_room_reactions(room)`(방 리액션 일괄). 말풍선 길게누르면

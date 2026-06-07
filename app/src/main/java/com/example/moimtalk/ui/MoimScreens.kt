@@ -26,9 +26,12 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -709,10 +712,23 @@ fun RoomListScreen(
                 .padding(pad)
                 .fillMaxSize()
         ) {
-            noticeRoom?.let { nr -> item { NoticeRoomBar(nr, vm.unreadByRoom[nr.id] ?: 0, onOpen) } }
-            item { WardStatusBanner(onWard) }
-            weekRoom?.let { wr -> item { WeekRoomBar(wr, vm.unreadByRoom[wr.id] ?: 0, onOpen) } }
-            item { RoomListActionRow(bugReport, { bugReport?.let(onOpen) }, onCreateRoom) }
+            item {
+                RoomListTopTriBar(
+                    noticeRoom = noticeRoom,
+                    noticeUnread = noticeRoom?.let { vm.unreadByRoom[it.id] ?: 0 } ?: 0,
+                    weekRoom = weekRoom,
+                    weekUnread = weekRoom?.let { vm.unreadByRoom[it.id] ?: 0 } ?: 0,
+                    onNotice = { noticeRoom?.let(onOpen) },
+                    onWard = onWard,
+                    onWeek = { weekRoom?.let(onOpen) },
+                )
+            }
+            item {
+                val brUnread = bugReport?.let { r ->
+                    effectiveRoomUnread(r.id, vm.unreadByRoom[r.id] ?: 0, vm.myProfile?.role)
+                } ?: 0
+                RoomListActionRow(bugReport, brUnread, { bugReport?.let(onOpen) }, onCreateRoom)
+            }
             if (listRooms.isEmpty()) {
                 item { EmptyBox("🔒", "아직 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
             } else {
@@ -1379,7 +1395,9 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                 nameOf = vm::nameOf,
                 attachUrl = { vm.attachmentUrls[it] },
                 onDelete = { vm.deleteMessage(it.id) },
-                unreadOf = { vm.unreadByMsg[it.id] ?: 0 },
+                unreadOf = { m ->
+                    effectiveMsgUnread(liveRoom.id, vm.unreadByMsg[m.id] ?: 0, vm.myProfile?.role)
+                },
                 profileOf = { vm.profilesById[it] },
                 noticeLayout = isNoticeTopRoom(liveRoom, vm.rooms),
                 reactions = vm.reactions,
@@ -1981,65 +1999,69 @@ private fun WardStatusBanner(onClick: () -> Unit) {
     }
 }
 
-// 주간 학술활동 고정 바 (잔여 병실 현황 아래, 파란색)
+/** 방목록 상단 — 전체공지 · 병실현황 · 학술활동 한 줄 3분할 */
 @Composable
-private fun WeekRoomBar(room: Room, unread: Int = 0, onOpen: (Room) -> Unit) {
+private fun RoomListTopTriBar(
+    noticeRoom: Room?,
+    noticeUnread: Int,
+    weekRoom: Room?,
+    weekUnread: Int,
+    onNotice: () -> Unit,
+    onWard: () -> Unit,
+    onWeek: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 14.dp)
             .padding(bottom = 10.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFF4A6FA5))
-            .clickable { onOpen(room) }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .height(IntrinsicSize.Min)
+            .clip(RoundedCornerShape(14.dp)),
     ) {
-        Text("📅", fontSize = 20.sp)
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(room.name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-            Text("주간 학술활동 · 일정 보기", color = Color(0xFFDDE6F3), fontSize = 11.5.sp)
-        }
-        if (unread > 0) {
-            UnreadBadge(unread)
-            Spacer(Modifier.width(6.dp))
-        }
-        Text("›", color = Color.White, fontSize = 20.sp)
+        RoomListTriSegment("📢", "전체공지", Color(0xFFB5651D), noticeUnread, noticeRoom != null, onNotice, start = true)
+        Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
+        RoomListTriSegment("🛏", "병실현황", Color(0xFFEA7317), 0, true, onWard)
+        Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
+        RoomListTriSegment("📅", "학술활동", Color(0xFF4A6FA5), weekUnread, weekRoom != null, onWeek, end = true)
     }
 }
 
-// 과 전체공지 고정 바 (맨 위, 잔여병실현황·주간학술활동과 동일한 색 바 형식)
 @Composable
-private fun NoticeRoomBar(room: Room, unread: Int = 0, onOpen: (Room) -> Unit) {
-    Row(
+private fun RowScope.RoomListTriSegment(
+    icon: String, label: String, bg: Color, unread: Int, enabled: Boolean, onClick: () -> Unit,
+    start: Boolean = false, end: Boolean = false,
+) {
+    val shape = when {
+        start -> RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp)
+        end -> RoundedCornerShape(topEnd = 14.dp, bottomEnd = 14.dp)
+        else -> RoundedCornerShape(0.dp)
+    }
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp)
-            .padding(bottom = 10.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(Color(0xFFB5651D))
-            .clickable { onOpen(room) }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .weight(1f)
+            .fillMaxHeight()
+            .background(bg.copy(alpha = if (enabled) 1f else 0.45f), shape)
+            .then(if (enabled) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(vertical = 12.dp, horizontal = 4.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Text("📢", fontSize = 20.sp)
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(room.name, color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
-            Text("과 전체공지", color = Color(0xFFF3E2D2), fontSize = 11.5.sp)
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Text(icon, fontSize = 18.sp)
+            Text(label, color = Color.White, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
         }
         if (unread > 0) {
-            UnreadBadge(unread)
-            Spacer(Modifier.width(6.dp))
+            Box(modifier = Modifier.align(Alignment.TopEnd).padding(end = 4.dp, top = 2.dp)) {
+                UnreadBadge(unread)
+            }
         }
-        Text("›", color = Color.White, fontSize = 20.sp)
     }
 }
 
 // BugReport(왼쪽) + 모임방 만들기(오른쪽) — 동일 크기 버튼
 @Composable
-private fun RoomListActionRow(bugReport: Room?, onBugReport: () -> Unit, onCreateRoom: () -> Unit) {
+private fun RoomListActionRow(
+    bugReport: Room?, bugReportUnread: Int, onBugReport: () -> Unit, onCreateRoom: () -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -2048,7 +2070,14 @@ private fun RoomListActionRow(bugReport: Room?, onBugReport: () -> Unit, onCreat
         horizontalArrangement = if (bugReport != null) Arrangement.spacedBy(10.dp) else Arrangement.End,
     ) {
         if (bugReport != null) {
-            RoomListActionChip("BugReport", onBugReport, Modifier.weight(1f))
+            Box(Modifier.weight(1f)) {
+                RoomListActionChip("BugReport", onBugReport, Modifier.fillMaxWidth(), accent = MoimAdmin)
+                if (bugReportUnread > 0) {
+                    Box(Modifier.align(Alignment.TopEnd).padding(top = 2.dp, end = 6.dp)) {
+                        UnreadBadge(bugReportUnread)
+                    }
+                }
+            }
             RoomListActionChip("＋ 모임방 만들기", onCreateRoom, Modifier.weight(1f))
         } else {
             RoomListActionChip("＋ 모임방 만들기", onCreateRoom)
@@ -2057,13 +2086,18 @@ private fun RoomListActionRow(bugReport: Room?, onBugReport: () -> Unit, onCreat
 }
 
 @Composable
-private fun RoomListActionChip(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun RoomListActionChip(
+    label: String, onClick: () -> Unit, modifier: Modifier = Modifier,
+    accent: Color = MoimAccent, fill: Color? = null,
+) {
+    val bg = fill ?: MoimWhite
+    val fg = if (fill != null) Color.White else accent
     Text(
         label,
-        fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAccent,
+        fontSize = 13.sp, fontWeight = FontWeight.Bold, color = fg,
         modifier = modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(MoimWhite, RoundedCornerShape(10.dp))
+            .background(bg, RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 8.dp),
         textAlign = TextAlign.Center,

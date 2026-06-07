@@ -184,6 +184,15 @@ fun bugReportRoom(rooms: List<Room>): Room? =
 fun isBugReportRoom(room: Room): Boolean =
     room.id == BUG_REPORT_ROOM_ID
 
+/** BugReport 방 새글 표시 — 전체관리자만 */
+fun bugReportUnreadVisible(role: String?): Boolean = role == "superadmin"
+
+fun effectiveRoomUnread(roomId: String, count: Int, role: String?): Int =
+    if (roomId == BUG_REPORT_ROOM_ID && !bugReportUnreadVisible(role)) 0 else count
+
+fun effectiveMsgUnread(roomId: String, count: Int, role: String?): Int =
+    if (roomId == BUG_REPORT_ROOM_ID && !bugReportUnreadVisible(role)) 0 else count
+
 /** 주간 학술활동(default_view=week) — 입장 시 캘린더·주간 보기가 기본 */
 fun opensWeekCalendar(room: Room): Boolean =
     room.category != "custom" && room.category != "direct" && !isBugReportRoom(room) && room.defaultView == "week"

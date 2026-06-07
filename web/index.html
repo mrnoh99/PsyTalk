@@ -54,11 +54,20 @@
   .list{flex:1;overflow-y:auto;padding-bottom:calc(env(safe-area-inset-bottom, 0px) + 28px);-webkit-overflow-scrolling:touch}
   .banner{display:flex;align-items:center;gap:12px;margin:10px 14px;padding:14px 16px;border-radius:14px;background:var(--orange);color:#fff;cursor:pointer}
   .banner b{font-size:16px}.banner small{display:block;font-size:11.5px;color:#ffe9d6}
-  /* 주간 학술활동 고정 바 (잔여 병실 현황 아래, 다른 색) */
   .wkbar{display:flex;align-items:center;gap:12px;margin:0 14px 10px;padding:14px 16px;border-radius:14px;background:#4a6fa5;color:#fff;cursor:pointer}
   .wkbar b{font-size:16px}.wkbar small{display:block;font-size:11.5px;color:#dde6f3}
+  .trirow{display:flex;margin:10px 14px 10px;border-radius:14px;overflow:hidden;min-height:56px}
+  .triseg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:12px 4px;color:#fff;cursor:pointer;position:relative;border:none;font-family:inherit}
+  .triseg:disabled{opacity:.45;cursor:default}
+  .triseg .ico{font-size:18px;line-height:1}
+  .triseg .lbl{font-size:11.5px;font-weight:800;white-space:nowrap}
+  .triseg .un{position:absolute;top:4px;right:4px}
+  .triseg+.triseg{border-left:1px solid rgba(255,255,255,.28)}
+  .seg-notice{background:#b5651d}.seg-ward{background:var(--orange)}.seg-week{background:#4a6fa5}
   .mkrow{padding:2px 14px 10px;display:flex;gap:10px;align-items:stretch}
   .mkbtn{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--accent);cursor:pointer;text-align:center}
+  .mkbtn-bug{color:var(--admin);position:relative}
+  .mkbtn-bug .mkunread{position:absolute;top:2px;right:6px}
   .sechead{font-size:11px;font-weight:800;color:var(--sub);text-transform:uppercase;letter-spacing:.6px;
     padding:16px 18px 8px;display:flex;justify-content:space-between;align-items:center}
   .sechead button{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;color:var(--accent);cursor:pointer}
@@ -597,6 +606,9 @@ async function loadRoomPins(){
 // 홈 목록: 기본 방은 항상, 모임방(custom)은 내가 가입(room_members)한 것만. (관리자 콘솔은 전체 rooms 사용)
 function bugReportRoom(){ return rooms.find(r=>r.id===BUG_REPORT_ROOM_ID)||null; }
 function isBugReportRoom(r){ return r&&r.id===BUG_REPORT_ROOM_ID; }
+function bugReportUnreadVisible(){ return me&&me.role==='superadmin'; }
+function effectiveRoomUnread(roomId,cnt){ if(roomId===BUG_REPORT_ROOM_ID&&!bugReportUnreadVisible())return 0; return cnt||0; }
+function effectiveMsgUnread(roomId,cnt){ if(roomId===BUG_REPORT_ROOM_ID&&!bugReportUnreadVisible())return 0; return cnt||0; }
 function flatRoomList(){
   const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week');
   const br=bugReportRoom();
@@ -1363,7 +1375,7 @@ function renderRoomList(){
   // 주간 학술활동 방(default_view=week)은 목록에서 빼고 별도 바로 고정
   const week=rooms.find(r=>r.category!=='custom'&&r.default_view==='week');
   const listRooms=orderedRooms(); // 고정(핀) 우선 + 나머지는 최근 메시지순
-  const ubadge=id=>{const u=unreadByRoom[id]||0;return u>0?`<span class="unread">${u>99?'99+':u}</span>`:'';};
+  const ubadge=id=>{const u=effectiveRoomUnread(id,unreadByRoom[id]||0);return u>0?`<span class="unread">${u>99?'99+':u}</span>`:'';};
   const item=r=>{const isDM=r.category==='direct';const other=isDM?dmOther(r):null;
     const c=isDM?{l:'1:1',c:'#7a8a99'}:(CAT[r.category]||CAT.custom);const lm=lastMsgByRoom[r.id];
     const prev=lm?esc(msgPreview(lm)):(isDM?(other?esc(other.member_type||''):''):(r.post_policy==='restricted'?'공지 · 관리자':''));
@@ -1386,14 +1398,19 @@ function renderRoomList(){
   else ab.style.display='none';
   const notice=noticeTopRoom();
   let h='';
-  if(notice)h+=`<div class="wkbar" style="background:#b5651d" onclick="openRoom('${notice.id}')"><span style="font-size:20px">📢</span>
-    <div style="flex:1"><b>${esc(notice.name)}</b><small style="color:#f3e2d2">과 전체공지</small></div>${ubadge(notice.id)}<span>›</span></div>`;
-  h+=`<div class="banner" onclick="openWard()"><span style="font-size:20px">🛏</span>
-    <div style="flex:1"><b>잔여 병실 현황</b><small>남 · 여 잔여 병상 보기</small></div><span>›</span></div>`;
-  if(week)h+=`<div class="wkbar" onclick="openRoom('${week.id}')"><span style="font-size:20px">📅</span>
-    <div style="flex:1"><b>${esc(week.name)}</b><small>주간 학술활동 · 일정 보기</small></div>${ubadge(week.id)}<span>›</span></div>`;
+  h+=`<div class="trirow">
+    <button type="button" class="triseg seg-notice" ${notice?`onclick="openRoom('${notice.id}')"`:''} ${notice?'':'disabled'}>
+      <span class="ico">📢</span><span class="lbl">전체공지</span>${notice&&ubadge(notice.id)?`<span class="un">${ubadge(notice.id)}</span>`:''}
+    </button>
+    <button type="button" class="triseg seg-ward" onclick="openWard()"><span class="ico">🛏</span><span class="lbl">병실현황</span></button>
+    <button type="button" class="triseg seg-week" ${week?`onclick="openRoom('${week.id}')"`:''} ${week?'':'disabled'}>
+      <span class="ico">📅</span><span class="lbl">학술활동</span>${week&&ubadge(week.id)?`<span class="un">${ubadge(week.id)}</span>`:''}
+    </button>
+  </div>`;
   const br=bugReportRoom();
-  h+=`<div class="mkrow">${br?`<button class="mkbtn" onclick="openRoom('${br.id}')">BugReport</button>`:''}<button class="mkbtn" onclick="openCreate()">＋ 모임방 만들기</button></div>`;
+  const brUnread=br?effectiveRoomUnread(br.id,unreadByRoom[br.id]||0):0;
+  const brBadge=brUnread>0?`<span class="mkunread unread">${brUnread>99?'99+':brUnread}</span>`:'';
+  h+=`<div class="mkrow">${br?`<button class="mkbtn mkbtn-bug" onclick="openRoom('${br.id}')">BugReport${brBadge}</button>`:''}<button class="mkbtn" onclick="openCreate()">＋ 모임방 만들기</button></div>`;
   h+=listRooms.length?listRooms.map(item).join(''):`<div style="padding:14px 18px;color:var(--sub);font-size:13px">방이 없습니다.</div>`;
   if(listEl){
     listEl.innerHTML=h;
@@ -1965,7 +1982,8 @@ function renderMsgs(){
     }
     const dk=new Date(m.created_at).toDateString();
     if(dk!==lastDate){ html+=`<div class="datediv"><span>${fmtDateDivider(m.created_at)}</span></div>`; lastDate=dk; }
-    const un=(unreadByMsg[m.id]||0)>0?`<span class="munread">${unreadByMsg[m.id]}</span>`:'';
+    const msgUnread=effectiveMsgUnread(active?.id,unreadByMsg[m.id]||0);
+    const un=msgUnread>0?`<span class="munread">${msgUnread>99?'99+':msgUnread}</span>`:'';
     const del=mine?`<span class="mdel" onclick="delMsg('${m.id}')" title="삭제">🗑</span>`:'';
     const avStyle=personAvatarStyle(who), avText=who.avatar_url?'':ini(who.name);
     const avClick=who.avatar_url?` onclick="openImageView('${esc(who.avatar_url)}')" title="사진 보기" style="cursor:pointer;${avStyle}"`:` style="${avStyle}"`;

@@ -1,4 +1,4 @@
 -- =============================================================================
 -- (구버전) enum 'bugreport' 1단계 — Supabase 에서 커밋 이슈로 사용 중단.
--- BugReport 방은 bugreport_room_seed.sql 만 Run 하세요 (category='group', id 고정).
+-- BugReport 방은 bugreport_room_seed.sql 만 Run 하세요 (category='notice', id 고정).
 -- =============================================================================

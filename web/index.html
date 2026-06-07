@@ -64,7 +64,7 @@
   .triseg .un{position:absolute;top:4px;right:4px}
   .triseg+.triseg{border-left:1px solid rgba(255,255,255,.28)}
   .seg-notice{background:#b5651d}.seg-ward{background:var(--orange)}.seg-week{background:#4a6fa5}
-  /* 다크: 방목록 상단 3버튼 — 병실현황 잔여병실·당직표(wardseg)와 동일 톤 */
+  /* 다크: 방목록 상단 3버튼 — surface pill (병실 탭 wardseg 색상 바와 별도) */
   html:not(.light) .trirow{gap:8px;overflow:visible;min-height:auto}
   html:not(.light) .triseg{padding:10px 0;font-size:13px;font-weight:800;color:var(--sub);background:var(--surface);border:1px solid var(--line);border-radius:10px}
   html:not(.light) .triseg+.triseg{border-left:none}
@@ -214,9 +214,12 @@
   .warddoc-empty .eb{font-size:36px;margin-bottom:8px}
   .warddoc-empty b{display:block;font-size:15px;color:var(--ink);margin-bottom:4px}
   .wardedit{width:100%;min-height:260px;border:1px solid var(--line);border-radius:14px;padding:14px;font-size:15px;font-family:inherit;line-height:1.7;outline:none;resize:vertical;background:var(--surface);color:var(--ink)}
-  .wardseg{display:flex;gap:8px;padding:10px 16px;background:var(--paper)}
-  .wardseg button{flex:1;padding:10px 0;border:1px solid var(--line);border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;background:var(--surface);color:var(--sub)}
-  .wardseg button.on{background:var(--me);color:var(--ink);border-color:var(--me)}
+  .wardseg{display:flex;margin:10px 14px 0;border-radius:14px;overflow:hidden;min-height:48px;padding:0;background:transparent;gap:0}
+  .wardseg button{flex:1;display:flex;align-items:center;justify-content:center;padding:14px 4px;color:#fff;cursor:pointer;border:none;font-family:inherit;font-size:14px;font-weight:800;white-space:nowrap}
+  .wardseg button[data-wardtab="beds"]{background:var(--orange)}
+  .wardseg button[data-wardtab="duty"]{background:#4a6fa5}
+  .wardseg button:not(.on){opacity:.45}
+  .wardseg button+.wardseg button{border-left:1px solid rgba(255,255,255,.28)}
   .wardbody.duty-mode{display:flex;flex-direction:column;overflow:hidden;min-height:0}
   .duty-pane{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--bg)}
   .duty-fixed{flex-shrink:0;background:var(--bg)}

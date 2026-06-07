@@ -72,28 +72,30 @@ private struct WardSegmentBar: View {
     var onChange: () -> Void
 
     var body: some View {
-        HStack(spacing: 8) {
-            seg("잔여병실", id: "beds")
-            seg("당직표", id: "duty")
+        HStack(spacing: 0) {
+            coloredSeg(label: "잔여병실", id: "beds", color: Moim.orange)
+            Rectangle().fill(Color.white.opacity(0.28)).frame(width: 1)
+            coloredSeg(label: "당직표", id: "duty", color: Color(hex: 0x4A6FA5))
         }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(Moim.paper)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal, 14).padding(.vertical, 10)
     }
 
-    private func seg(_ label: String, id: String) -> some View {
-        Button {
+    /// 변경 전 웹 triseg 형식 — 잔여병실(주황)·당직표(파랑) 색상 바
+    private func coloredSeg(label: String, id: String, color: Color) -> some View {
+        let on = tab == id
+        return Button {
             tab = id
             onChange()
         } label: {
             Text(label)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(tab == id ? Moim.ink : Moim.sub)
+                .font(.system(size: 14, weight: .heavy))
+                .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background(tab == id ? Moim.yellow : Moim.white)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(tab == id ? Moim.yellow : Moim.line, lineWidth: 1))
+                .padding(.vertical, 14)
+                .background(color.opacity(on ? 1 : 0.45))
         }
+        .buttonStyle(.plain)
     }
 }
 

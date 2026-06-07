@@ -7,10 +7,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,26 +70,36 @@ fun WardSegmentRow(tab: String, onTab: (String) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .height(IntrinsicSize.Min)
+            .clip(RoundedCornerShape(14.dp)),
     ) {
-        WardSegButton("잔여병실", tab == "beds", Modifier.weight(1f)) { onTab("beds") }
-        WardSegButton("당직표", tab == "duty", Modifier.weight(1f)) { onTab("duty") }
+        WardColoredSeg("잔여병실", Color(0xFFEA7317), tab == "beds", start = true) { onTab("beds") }
+        Box(Modifier.fillMaxHeight().width(1.dp).background(Color.White.copy(alpha = 0.28f)))
+        WardColoredSeg("당직표", Color(0xFF4A6FA5), tab == "duty", end = true) { onTab("duty") }
     }
 }
 
+/** 변경 전 웹 triseg 형식 — 잔여병실(주황)·당직표(파랑) 색상 바 */
 @Composable
-private fun WardSegButton(label: String, on: Boolean, modifier: Modifier, onClick: () -> Unit) {
+private fun RowScope.WardColoredSeg(
+    label: String, bg: Color, on: Boolean, start: Boolean = false, end: Boolean = false, onClick: () -> Unit,
+) {
+    val shape = when {
+        start -> RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp)
+        end -> RoundedCornerShape(topEnd = 14.dp, bottomEnd = 14.dp)
+        else -> RoundedCornerShape(0.dp)
+    }
     Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(if (on) MoimYellow else MoimWhite, RoundedCornerShape(10.dp))
-            .border(1.dp, if (on) MoimYellow else MoimLine, RoundedCornerShape(10.dp))
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .background(bg.copy(alpha = if (on) 1f else 0.45f), shape)
             .clickable(onClick = onClick)
-            .padding(vertical = 10.dp),
+            .padding(vertical = 14.dp, horizontal = 4.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = if (on) MoimInk else MoimSub)
+        Text(label, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, maxLines = 1)
     }
 }
 

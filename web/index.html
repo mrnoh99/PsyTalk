@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+<!-- 홈 화면 추가(웹앱/PWA) — iOS 상태바 겹침/하단 여백 방지 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="아주 정신">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#121212">
 <title>아주 정신 — 정신건강의학과 (Web)</title>
 <!-- Supabase JS v2 (UMD) — 같은 출처(vendor)에서 먼저 로드(병원망에서 외부 CDN 차단 대비). 실패 시 CDN 폴백 -->
 <script src="vendor/supabase.js"></script>
@@ -42,6 +48,12 @@
   /* 모바일 브라우저 하단 주소창에 가리지 않도록 dvh(동적 뷰포트) 사용 */
   .phone{width:100%;max-width:460px;height:100vh;height:100dvh;max-height:940px;background:var(--paper);
     position:relative;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+  /* 홈 화면 앱(standalone) — iOS 상태바(시계)·하단 홈 인디케이터 안전영역만큼 안쪽으로 (box-sizing:border-box 라 높이 안에서 처리) */
+  @media (display-mode: standalone){
+    body{min-height:100vh;min-height:100dvh}
+    .phone{max-width:none;max-height:none;border-radius:0;box-shadow:none;
+      padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+  }
   .hidden{display:none!important}
   .hdr{padding:14px 18px 13px;display:flex;align-items:center;gap:10px;background:var(--paper);
     border-bottom:1px solid var(--line);flex-shrink:0}

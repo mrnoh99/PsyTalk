@@ -11,15 +11,16 @@ Database Webhook → Edge Function `notify-message` → OneSignal REST API로 �
 2. 플랫폼 추가:
    - **Apple iOS (APNs)**: Apple Developer(유료 계정)에서 **APNs Auth Key(.p8)** 발급
      (Certificates, Identifiers & Profiles → Keys → + → Apple Push Notifications service).
-     OneSignal에 업로드: **.p8 파일 + Key ID + Team ID + Bundle ID(`com.example.moimtalk`)**.
+     OneSignal에 업로드: **.p8 파일 + Key ID + Team ID + Bundle ID(`kr.ac.ajou.psytalk` Android / iOS 각각 등록)**.
    - **Google Android (FCM)**: Firebase 콘솔에서 프로젝트 생성 →
      프로젝트 설정 → 서비스 계정 → **Firebase Admin SDK 비공개 키(JSON)** 발급 →
      OneSignal에 업로드. (OneSignal Android는 내부적으로 FCM 사용)
 3. OneSignal **App ID** 와 **REST API Key** 복사 (Settings → Keys & IDs).
 
 ## 2) 앱에 App ID 넣기
-- iOS: `ios/MoimTalk/Push.swift` 의 `oneSignalAppId = "ONESIGNAL_APP_ID"` 교체
-- Android: `app/src/main/java/com/example/moimtalk/Push.kt` 의 `ONESIGNAL_APP_ID` 교체
+- **Android**: 프로젝트 루트 `local.properties` 에 `onesignal.app.id=...` 추가 (`local.properties.example` 참고)
+- **iOS**: `ios/MoimTalk/Push.swift` 의 `oneSignalAppId = "ONESIGNAL_APP_ID"` 교체
+- Android FCM: Firebase `google-services.json` → `app/google-services.json`
 
 ## 3) iOS 빌드 설정 (Xcode)
 1. `cd ios && xcodegen generate` (OneSignal 패키지가 project.yml에 추가돼 있음)
@@ -31,7 +32,8 @@ Database Webhook → Edge Function `notify-message` → OneSignal REST API로 �
    - (선택) 확인 전달률을 위해 OneSignal **Notification Service Extension** 추가 가능 — 기본 알림은 위만으로 동작.
 
 ## 4) Android 빌드 설정
-- 추가 파일 불필요(OneSignal SDK가 FCM 자격을 서버에 보관). Gradle Sync 후 빌드.
+- `app/google-services.json` (Firebase) + `local.properties` 의 `onesignal.app.id`
+- 상세: [`docs/PUBLISH_ANDROID.md`](PUBLISH_ANDROID.md)
 - Android 13+ 는 첫 실행 시 알림 권한 요청(코드에 포함됨).
 
 ## 5) Supabase — 발송 함수 + 웹훅

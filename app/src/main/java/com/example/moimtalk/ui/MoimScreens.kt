@@ -2405,6 +2405,21 @@ private fun MyInfoTab(vm: MoimViewModel) {
             ) { Text("비밀번호 변경", fontSize = 14.sp, fontWeight = FontWeight.Bold) }
         }
 
+        Spacer(Modifier.height(8.dp))
+        val uriHandler = LocalUriHandler.current
+        val privacyUrl = context.getString(R.string.privacy_policy_url)
+        Text(
+            "개인정보처리방침",
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Bold,
+            color = MoimAccent,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .clickable { uriHandler.openUri(privacyUrl) }
+                .padding(vertical = 8.dp),
+        )
         HorizontalDivider(color = MoimLine, modifier = Modifier.padding(vertical = 20.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
             Text("로그아웃", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimSub,

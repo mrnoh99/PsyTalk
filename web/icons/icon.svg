@@ -1,7 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Dü à">
-  <rect width="512" height="512" rx="112" fill="#121212"/>
-  <text x="256" y="148" text-anchor="middle" fill="#ffffff" font-family="-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',sans-serif" font-size="52" font-weight="800">Düà</text>
-  <rect x="56" y="196" width="120" height="220" rx="28" fill="#b5651d"/>
-  <rect x="196" y="196" width="120" height="220" rx="28" fill="#ea7317"/>
-  <rect x="336" y="196" width="120" height="220" rx="28" fill="#4a6fa5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="AUMC PSY">
+  <rect width="512" height="512" fill="#f28500"/>
+  <text x="256" y="188" text-anchor="middle" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="72" font-weight="700">AUMC</text>
+  <text x="256" y="340" text-anchor="middle" fill="#ffffff" font-family="Arial,Helvetica,sans-serif" font-size="120" font-weight="700">PSY</text>
 </svg>

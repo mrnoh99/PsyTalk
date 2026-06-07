@@ -23,7 +23,7 @@ python3 -m http.server 8080
 ### 홈 화면에 추가 (앱처럼 열기)
 - **iPhone/iPad:** Safari에서 `index.html` 열기 → 공유 → **홈 화면에 추가** (`apple-touch-icon`·메타태그 적용)
 - **Android:** Chrome에서 열기 → 메뉴(⋮) → **홈 화면에 추가** 또는 **앱 설치** (`manifest.webmanifest`·192/512 아이콘)
-- 아이콘은 방목록 상단 3버튼(전체공지·병실·학술) 색상 바를 모티브로 한 `web/icons/` (재생성: `powershell -File web/icons/generate.ps1`)
+- 아이콘은 iOS `AppIcon`(`icon_1024.png`, AUMC PSY 오렌지)과 동일 — `web/icons/` (재생성: `powershell -File web/icons/generate.ps1`)
 
 ## 기능 (네이티브 앱과 동일)
 - 로그인(이메일/비밀번호) · 세션 유지

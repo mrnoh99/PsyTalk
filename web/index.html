@@ -103,9 +103,11 @@
   .react-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:12px;background:var(--bg);font-size:12px;cursor:pointer;border:none;font-family:inherit;color:var(--ink)}
   .react-chip.mine{background:rgba(30,136,229,.2)}
   .notice-card .reaction-chips{margin-top:8px}
-  .notice-body{user-select:text;-webkit-user-select:text}
-  .bubble,.bubble-text,.bubble-quote,.bimg,.bfile,.bfile-me,.react-chip{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
-  .msg-menu{position:fixed;z-index:90;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:6px 4px;min-width:180px}
+  .notice-body,.notice-body *{user-select:text;-webkit-user-select:text;-webkit-touch-callout:default}
+  .msg-hit,.msg-hit *,.notice-card,.bubble,.bubble-text,.bubble-quote,.bimg,.bfile,.bfile-me,.react-chip{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+  body.msg-press-lock,body.msg-press-lock *{user-select:none!important;-webkit-user-select:none!important;-webkit-touch-callout:none!important}
+  body.msg-press-lock .notice-body,body.msg-press-lock .notice-body *{user-select:text!important;-webkit-user-select:text!important}
+  .msg-menu{position:fixed;z-index:90;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:6px 4px;min-width:180px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
   .msg-menu .emoji-row{display:flex;gap:2px;justify-content:center;padding:4px 6px 8px;flex-wrap:wrap}
   .msg-menu .emoji-row span{font-size:22px;cursor:pointer;padding:4px 6px;border-radius:8px;line-height:1}
   .msg-menu .emoji-row span:hover,.msg-menu .emoji-row span:active{background:var(--bg)}
@@ -1774,8 +1776,7 @@ function noticePostHtml(m,who,mine){
   const copy=cap?`<span onclick="copyNotice('${m.id}')" style="cursor:pointer;font-size:12px;font-weight:700;color:var(--accent)">📋 복사</span>`:'';
   const del=mine?`<span onclick="delMsg('${m.id}')" style="cursor:pointer;font-size:12px;font-weight:700;color:var(--admin)">🗑 삭제</span>`:'';
   const footer=(copy||del)?`<div style="display:flex;gap:16px;justify-content:flex-end;margin-top:10px">${copy}${del}</div>`:'';
-  const touch=`ontouchstart="msgTouchStart(event,'${m.id}',true)" ontouchend="msgTouchEnd(event)" ontouchmove="msgTouchCancel()" oncontextmenu="openMsgMenu(event,'${m.id}',true);return false;"`;
-  return `<div class="notice-post"><article class="notice-card" data-msgid="${m.id}" ${touch}>
+  return `<div class="notice-post"><article class="notice-card" data-msgid="${m.id}">
     <div class="notice-accent"></div>
     <p class="notice-time">${fmtDetailTime(m.created_at)}</p>
     <p class="notice-author">${author}</p>
@@ -1838,26 +1839,78 @@ function renderReplyBar(){
     `<b>↩ ${esc(who.name||'?')} 에게 답장</b><span>${esc(replyQuotePreview(replyTarget))}</span>`;
   bar.classList.remove('hidden'); layoutChat();
 }
-let msgTouchTimer=null,msgMenuOpenedByTouch=false;
-function msgTouchStart(e,id,isNotice){
-  if(e.touches&&e.touches.length>1)return;
+const MSG_LONG_MS=480, MSG_MOVE_MAX=14;
+let msgPressTimer=null,msgPressX=0,msgPressY=0,msgMenuOpenedByTouch=false;
+function msgHitTarget(el){return el?.closest?.('.msg-hit,.notice-card');}
+function clearMsgPress(){if(msgPressTimer){clearTimeout(msgPressTimer);msgPressTimer=null;}}
+function startMsgPress(cx,cy,msgId,isNotice){
+  clearMsgPress();
   msgMenuOpenedByTouch=false;
-  const t=e.touches?.[0], sx=t?.clientX??0, sy=t?.clientY??0;
-  msgTouchTimer=setTimeout(()=>{
+  msgPressX=cx; msgPressY=cy;
+  msgPressTimer=setTimeout(()=>{
     window.getSelection?.()?.removeAllRanges();
     msgMenuOpenedByTouch=true;
-    openMsgMenu({clientX:sx,clientY:sy,preventDefault(){},stopPropagation(){}},id,isNotice);
-    msgTouchTimer=null;
-  },500);
+    openMsgMenu({clientX:msgPressX,clientY:msgPressY,preventDefault(){},stopPropagation(){}},msgId,isNotice);
+    msgPressTimer=null;
+  },MSG_LONG_MS);
 }
-function msgTouchEnd(e){
-  if(msgTouchTimer){clearTimeout(msgTouchTimer);msgTouchTimer=null;return;}
-  if(msgMenuOpenedByTouch){e.preventDefault();e.stopPropagation();msgMenuOpenedByTouch=false;}
+function bindMsgLongPress(){
+  const root=document.getElementById('msgs');
+  if(!root||root.dataset.pressBound)return;
+  root.dataset.pressBound='1';
+  root.addEventListener('touchstart',e=>{
+    const hit=msgHitTarget(e.target); if(!hit)return;
+    const id=hit.dataset.msgid; if(!id||e.touches.length>1)return;
+    startMsgPress(e.touches[0].clientX,e.touches[0].clientY,id,hit.classList.contains('notice-card'));
+  },{passive:true});
+  root.addEventListener('touchmove',e=>{
+    if(!msgPressTimer||!e.touches[0])return;
+    const t=e.touches[0];
+    if(Math.abs(t.clientX-msgPressX)>MSG_MOVE_MAX||Math.abs(t.clientY-msgPressY)>MSG_MOVE_MAX)clearMsgPress();
+  },{passive:true});
+  root.addEventListener('touchend',e=>{
+    if(msgPressTimer){clearMsgPress();return;}
+    if(msgMenuOpenedByTouch){e.preventDefault();msgMenuOpenedByTouch=false;}
+  },{passive:false});
+  root.addEventListener('touchcancel',clearMsgPress,{passive:true});
+  root.addEventListener('mousedown',e=>{
+    if(e.button!==0)return;
+    const hit=msgHitTarget(e.target); if(!hit)return;
+    const id=hit.dataset.msgid; if(!id)return;
+    startMsgPress(e.clientX,e.clientY,id,hit.classList.contains('notice-card'));
+  });
+  root.addEventListener('mousemove',e=>{
+    if(!msgPressTimer)return;
+    if(Math.abs(e.clientX-msgPressX)>MSG_MOVE_MAX||Math.abs(e.clientY-msgPressY)>MSG_MOVE_MAX)clearMsgPress();
+  });
+  root.addEventListener('mouseup',clearMsgPress);
+  root.addEventListener('mouseleave',clearMsgPress);
+  root.addEventListener('contextmenu',e=>{
+    const hit=msgHitTarget(e.target); if(!hit)return;
+    const id=hit.dataset.msgid; if(!id)return;
+    e.preventDefault();
+    clearMsgPress();
+    openMsgMenu(e,id,hit.classList.contains('notice-card'));
+  });
+  root.addEventListener('selectstart',e=>{
+    const hit=msgHitTarget(e.target); if(!hit)return;
+    if(e.target.closest('.notice-body'))return;
+    e.preventDefault();
+  });
+  root.addEventListener('dragstart',e=>{
+    if(msgHitTarget(e.target))e.preventDefault();
+  });
+  document.addEventListener('mouseup',clearMsgPress);
 }
-function msgTouchCancel(){if(msgTouchTimer){clearTimeout(msgTouchTimer);msgTouchTimer=null;}}
-function closeMsgMenu(){const m=document.getElementById('msgMenu');if(m)m.classList.add('hidden');}
+bindMsgLongPress();
+function closeMsgMenu(){
+  const m=document.getElementById('msgMenu'); if(m)m.classList.add('hidden');
+  document.body.classList.remove('msg-press-lock');
+}
 function openMsgMenu(e,msgId,isNotice){
   e.preventDefault(); e.stopPropagation();
+  window.getSelection?.()?.removeAllRanges();
+  document.body.classList.add('msg-press-lock');
   const list=isNoticeRoom()?mergeNoticeMsgs(msgs):msgs;
   const msg=list.find(x=>x.id===msgId)||msgById(msgId); if(!msg)return;
   const cap=(msg.content||'').trim();
@@ -1878,15 +1931,17 @@ document.addEventListener('click',e=>{const m=document.getElementById('msgMenu')
 function bubbleBlockHtml(m){
   const quote=replyQuoteHtml(m);
   const chips=reactionChipsHtml(m.id);
-  const touch=`ontouchstart="msgTouchStart(event,'${m.id}')" ontouchend="msgTouchEnd(event)" ontouchmove="msgTouchCancel()" oncontextmenu="openMsgMenu(event,'${m.id}');return false;"`;
   const quoteBubble=quote?`<div class="bubble bubble-quote">${quote}</div>`:'';
+  let body='';
   if(m.type==='image'&&m.attachment_url)
-    return `${quoteBubble}<img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진" ${touch}>${chips}`;
-  if(m.type==='file'&&m.attachment_url){
+    body=`${quoteBubble}<img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진">`;
+  else if(m.type==='file'&&m.attachment_url){
     const fileCls=m.sender_id===me.id?'bubble bfile-me':'bfile';
-    return `${quoteBubble}<a class="${fileCls}" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}" ${touch}>📎 <span>${esc(m.attachment_name||'파일')}</span></a>${chips}`;
+    body=`${quoteBubble}<a class="${fileCls}" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a>`;
+  } else {
+    body=`<div class="bubble bubble-text">${quote}${esc(m.content||'')}</div>`;
   }
-  return `<div class="bubble bubble-text" data-msgid="${m.id}" ${touch}>${quote}${esc(m.content||'')}</div>${chips}`;
+  return `<div class="msg-hit" data-msgid="${m.id}">${body}</div>${chips}`;
 }
 function renderMsgs(){
   const el=document.getElementById('msgs');

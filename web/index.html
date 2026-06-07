@@ -10,6 +10,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#121212">
+<script>
+(function(){
+  var ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  if(ios&&(window.navigator.standalone||window.matchMedia('(display-mode: standalone)').matches))
+    document.documentElement.classList.add('ios-standalone');
+})();
+</script>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png">
@@ -35,6 +42,7 @@
     --duty-today-bg:#262626;--duty-today-border:#2c2c2c;
     --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
     --safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);
+    --ios-safe-top:0px;
   }
   html.light{
     /* ☀️ 라이트 모드 */
@@ -55,17 +63,27 @@
     -webkit-box-shadow:0 0 0 1000px var(--surface) inset;box-shadow:0 0 0 1000px var(--surface) inset}
   html:not(.light) input[type=date],html:not(.light) input[type=time],html:not(.light) input[type=datetime-local]{color-scheme:dark}
   html.light input[type=date],html.light input[type=time],html.light input[type=datetime-local]{color-scheme:light}
-  html,body{height:100%;overflow:hidden}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
-    background:var(--bg);color:var(--ink);min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center}
-  /* 모바일·PWA: 노치·상태바·홈 인디케이터 여백 (viewport-fit=cover) */
-  .phone{width:100%;max-width:460px;height:100vh;height:100dvh;max-height:940px;background:var(--paper);
-    position:relative;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.22);
-    padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left)}
+  html{height:100%;height:-webkit-fill-available}
+  body{height:100%;min-height:100vh;min-height:100dvh;min-height:-webkit-fill-available;overflow:hidden;
+    box-sizing:border-box;
+    padding-top:constant(safe-area-inset-top);padding-top:env(safe-area-inset-top);
+    padding-right:constant(safe-area-inset-right);padding-right:env(safe-area-inset-right);
+    padding-bottom:constant(safe-area-inset-bottom);padding-bottom:env(safe-area-inset-bottom);
+    padding-left:constant(safe-area-inset-left);padding-left:env(safe-area-inset-left);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+    background:var(--bg);color:var(--ink);display:flex;flex-direction:column;align-items:center}
+  /* iOS 홈화면: env()가 0으로 나올 때 JS가 --ios-safe-top 으로 body 상단 여백 보정 */
+  html.ios-standalone body{padding-top:max(constant(safe-area-inset-top),var(--ios-safe-top));
+    padding-top:max(env(safe-area-inset-top),var(--ios-safe-top))}
+  .phone{width:100%;max-width:460px;flex:1;min-height:0;max-height:940px;background:var(--paper);
+    position:relative;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+  @media (min-width:520px){body{justify-content:center}}
   @media (display-mode:standalone),(display-mode:fullscreen){
-    body{align-items:stretch;justify-content:stretch}
+    body{align-items:stretch}
     .phone{max-height:none;max-width:none;box-shadow:none}
   }
+  html.ios-standalone body{align-items:stretch}
+  html.ios-standalone .phone{max-height:none;max-width:none;box-shadow:none}
   .hidden{display:none!important}
   .hdr{padding:14px 18px 13px;display:flex;align-items:center;gap:10px;background:var(--paper);
     border-bottom:1px solid var(--line);flex-shrink:0}
@@ -317,7 +335,8 @@
   .tag.super{background:var(--admin);color:#fff}.tag.admin{background:var(--notice);color:#fff}.tag.user{background:var(--line);color:var(--accent)}
   /* 일정 편집 모달은 상세·다른 모달 위에 */
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:30;
-    padding:calc(14px + var(--safe-top)) calc(14px + var(--safe-right)) calc(14px + var(--safe-bottom)) calc(14px + var(--safe-left))}
+    padding:calc(14px + constant(safe-area-inset-top)) calc(14px + constant(safe-area-inset-right)) calc(14px + constant(safe-area-inset-bottom)) calc(14px + constant(safe-area-inset-left));
+    padding:calc(14px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
   #emodal{z-index:45}
   #evDetailModal{z-index:40}
   #evDetailModal .ev-detail-scroll{flex:1;overflow-y:auto;min-height:0;background:var(--bg);padding:12px 16px}
@@ -2910,6 +2929,25 @@ async function createRoom(){
 
 function closeModal(id){document.getElementById(id).classList.remove('on');}
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
+
+/* iOS 홈화면 PWA: safe-area env() 미적용 시 상단 여백 보정 (노치·상태바) */
+function applyIosStandaloneSafeArea(){
+  if(!document.documentElement.classList.contains('ios-standalone'))return;
+  const probe=document.createElement('div');
+  probe.style.cssText='position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding-top:constant(safe-area-inset-top);padding-top:env(safe-area-inset-top)';
+  document.body.appendChild(probe);
+  let top=parseFloat(getComputedStyle(probe).paddingTop)||0;
+  probe.remove();
+  if(top<1&&window.visualViewport&&window.visualViewport.offsetTop>0)top=window.visualViewport.offsetTop;
+  if(top<1){
+    const h=Math.max(screen.height,screen.width),w=Math.min(screen.height,screen.width);
+    top=h>=812?47:20;
+  }
+  if(top>0)document.documentElement.style.setProperty('--ios-safe-top',top+'px');
+}
+applyIosStandaloneSafeArea();
+window.addEventListener('resize',applyIosStandaloneSafeArea);
+window.visualViewport?.addEventListener('resize',applyIosStandaloneSafeArea);
 
 /* ====== 시작: 기존 세션 있으면 자동 로그인 ====== */
 (async()=>{

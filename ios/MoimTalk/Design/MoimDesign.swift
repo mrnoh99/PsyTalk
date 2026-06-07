@@ -92,6 +92,11 @@ OS: \(os)
 """
 }
 
+/// BugReport 템플릿 — 전체관리자(superadmin)는 빈 입력창
+func bugReportDraftFor(role: String?) -> String {
+    isSuperAdmin(role ?? "") ? "" : bugReportDraft()
+}
+
 /// BugReport 방 새글 표시 — 전체관리자만
 func bugReportUnreadVisible(role: String?) -> Bool {
     role == "superadmin"

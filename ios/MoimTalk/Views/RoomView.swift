@@ -56,12 +56,12 @@ struct RoomView: View {
                 : (opensWeekCalendar(liveRoom) ? "cal" : "chat")
             if !isDM, showRoomHeaderMembers(liveRoom, vm.rooms) { vm.loadRoomMembers(liveRoom.id) }
             input = isBugReportRoom(liveRoom)
-                ? (vm.replyTarget != nil ? "" : bugReportDraft())
+                ? (vm.replyTarget != nil ? "" : bugReportDraftFor(role: vm.myProfile?.role))
                 : ""
         }
         .onChange(of: vm.replyTarget?.id) { _ in
             guard isBugReportRoom(liveRoom) else { return }
-            input = vm.replyTarget != nil ? "" : bugReportDraft()
+            input = vm.replyTarget != nil ? "" : bugReportDraftFor(role: vm.myProfile?.role)
         }
     }
 
@@ -338,7 +338,8 @@ struct ChatView: View {
                     }
                     if multilineCompose {
                         TextField(
-                            noticeLayout ? "공지 내용 입력 (줄바꿈 가능)" : "버그·제안 내용 입력 (아래 템플릿 참고)",
+                            noticeLayout ? "공지 내용 입력 (줄바꿈 가능)"
+                                : (vm.isSuperAdmin ? "메시지 입력" : "버그·제안 내용 입력 (아래 템플릿 참고)"),
                             text: $input, axis: .vertical
                         )
                             .lineLimit(3...8)

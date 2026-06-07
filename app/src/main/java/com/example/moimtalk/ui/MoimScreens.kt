@@ -1084,14 +1084,14 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
             else -> "chat"
         }
         input = if (bugReportCompose) {
-            if (vm.replyTarget != null) "" else bugReportDraft()
+            if (vm.replyTarget != null) "" else bugReportDraftFor(profile?.role)
         } else ""
     }
 
     // BugReport 답장 작성 중에는 환경 템플릿 숨김, 답장 취소 시 복원
-    LaunchedEffect(vm.replyTarget, bugReportCompose) {
+    LaunchedEffect(vm.replyTarget, bugReportCompose, profile?.role) {
         if (bugReportCompose) {
-            input = if (vm.replyTarget != null) "" else bugReportDraft()
+            input = if (vm.replyTarget != null) "" else bugReportDraftFor(profile?.role)
         }
     }
 
@@ -1351,7 +1351,11 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                 Text(
                                     when {
                                         noticeCompose -> "공지 내용 입력 (줄바꿈 가능)"
-                                        bugReportCompose -> "버그·제안 내용 입력 (아래 템플릿 참고)"
+                                        bugReportCompose -> if (isSuperAdmin(profile?.role.orEmpty())) {
+                                            "메시지 입력"
+                                        } else {
+                                            "버그·제안 내용 입력 (아래 템플릿 참고)"
+                                        }
                                         else -> "메시지 입력"
                                     },
                                 )

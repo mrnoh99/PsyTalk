@@ -627,6 +627,10 @@ function bugReportDraft(){
   const kind=webDeviceKind(),os=webOsLabel();
   return `[환경]\n플랫폼: Web\n기기: ${kind}\nOS: ${os}\n\n[증상]\n\n\n[재현 방법]\n1. \n\n[기대 동작]\n\n\n[실제 동작]\n\n`;
 }
+function bugReportDraftFor(){
+  if(me&&me.role==='superadmin')return '';
+  return bugReportDraft();
+}
 function bugReportUnreadVisible(){ return me&&me.role==='superadmin'; }
 function effectiveRoomUnread(roomId,cnt){ if(roomId===BUG_REPORT_ROOM_ID&&!bugReportUnreadVisible())return 0; return cnt||0; }
 function effectiveMsgUnread(roomId,cnt){ if(roomId===BUG_REPORT_ROOM_ID&&!bugReportUnreadVisible())return 0; return cnt||0; }
@@ -1603,7 +1607,7 @@ async function openRoom(id){
   setNoticeComposeMode(!!(active&&noticeTopRoom()&&noticeTopRoom().id===active.id)||isBug);
   const taNotice=document.getElementById('msgInputNotice');
   if(taNotice){
-    if(isBug){taNotice.placeholder='버그·제안 내용 입력 (아래 템플릿 참고)';taNotice.value=bugReportDraft();}
+    if(isBug){const draft=bugReportDraftFor();taNotice.placeholder=draft?'버그·제안 내용 입력 (아래 템플릿 참고)':'메시지 입력';taNotice.value=draft;}
     else{taNotice.placeholder='공지 내용 입력 (줄바꿈 가능)';taNotice.value='';}
   }
   clearReply();
@@ -1893,7 +1897,7 @@ async function toggleReaction(messageId,emoji){
 function applyBugReportInput(){
   if(!isBugReportRoom(active))return;
   const inp=activeMsgInput(); if(!inp)return;
-  inp.value=replyTarget?'':bugReportDraft();
+  inp.value=replyTarget?'':bugReportDraftFor();
 }
 function setReply(m){replyTarget=m;renderReplyBar();applyBugReportInput();}
 function clearReply(){replyTarget=null;renderReplyBar();applyBugReportInput();}

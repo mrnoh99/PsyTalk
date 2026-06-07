@@ -219,6 +219,10 @@ OS: $os
 """
 }
 
+/** BugReport 템플릿 — 전체관리자(superadmin)는 빈 입력창 */
+fun bugReportDraftFor(role: String?): String =
+    if (isSuperAdmin(role.orEmpty())) "" else bugReportDraft()
+
 /** BugReport 방 새글 표시 — 전체관리자만 */
 fun bugReportUnreadVisible(role: String?): Boolean = role == "superadmin"
 

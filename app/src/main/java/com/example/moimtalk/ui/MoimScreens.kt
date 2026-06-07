@@ -1083,7 +1083,16 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
             opensWeekCalendar(liveRoom) -> "cal"
             else -> "chat"
         }
-        input = if (bugReportCompose) bugReportDraft() else ""
+        input = if (bugReportCompose) {
+            if (vm.replyTarget != null) "" else bugReportDraft()
+        } else ""
+    }
+
+    // BugReport 답장 작성 중에는 환경 템플릿 숨김, 답장 취소 시 복원
+    LaunchedEffect(vm.replyTarget, bugReportCompose) {
+        if (bugReportCompose) {
+            input = if (vm.replyTarget != null) "" else bugReportDraft()
+        }
     }
 
     if (showSettings) {

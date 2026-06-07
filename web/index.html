@@ -92,11 +92,11 @@
   /* 채팅: grid로 msgs 높이 고정(Chrome flex 스크롤 버그 회피) */
   #pane-chat.pane.on{display:grid;grid-template-rows:minmax(0,1fr) auto;overflow:hidden}
   .msgs{grid-row:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px 12px;background:var(--bg);scrollbar-gutter:stable}
-  .chat-foot{grid-row:2;display:flex;flex-direction:column;flex-shrink:0}
-  .reply-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border-top:1px solid var(--line);font-size:12px}
+  .chat-foot{grid-row:2;display:flex;flex-direction:column;flex-shrink:0;min-height:0;max-height:min(220px,42vh)}
+  .reply-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border-top:1px solid var(--line);font-size:12px;flex-shrink:0;max-height:52px;overflow:hidden}
   .reply-bar .preview{flex:1;min-width:0;color:var(--sub);overflow:hidden}
-  .reply-bar .preview b{color:var(--accent);font-size:11px;font-weight:700;display:block;margin-bottom:2px}
-  .reply-bar .preview span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reply-bar .preview b{color:var(--accent);font-size:11px;font-weight:700;display:block;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reply-bar .preview span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%}
   .reply-quote{padding:0 0 7px;margin-bottom:7px;font-size:11px;line-height:1.35;border-bottom:1px solid var(--line);background:none;border-radius:0;max-width:none}
   .reply-quote b{font-size:10.5px;font-weight:700;display:block;margin-bottom:2px;color:var(--sub)}
   .reply-quote span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--sub)}
@@ -134,13 +134,13 @@
   .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--you);border-radius:16px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
   .bfile-me{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--accent);border-radius:16px;padding:10px 12px;font-size:13px;color:#fff;text-decoration:none;font-weight:600}
   .bfile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line);position:relative}
+  .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line);position:relative;flex-shrink:0;min-height:0;flex-wrap:nowrap}
   .inputbar.notice-compose{align-items:flex-end;padding:10px 12px 12px}
-  .inputbar input[type=text],.inputbar #msgInput{flex:1;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
-  .inputbar #msgInputNotice{display:none;flex:1;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;line-height:1.55;outline:none;font-family:inherit;resize:vertical;min-height:88px;max-height:200px}
+  .inputbar input[type=text],.inputbar #msgInput{flex:1 1 0;min-width:0;width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
+  .inputbar #msgInputNotice{display:none;flex:1 1 0;min-width:0;width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;line-height:1.55;outline:none;font-family:inherit;resize:vertical;min-height:88px;max-height:120px}
   .inputbar.notice-compose #msgInput{display:none}
   .inputbar.notice-compose #msgInputNotice{display:block}
-  .send{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer}
+  .send{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0}
   .plus{background:none;border:1px solid var(--line);color:var(--sub);width:34px;height:34px;border-radius:50%;font-size:21px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
   .attachmenu{position:absolute;bottom:52px;left:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:30}
   .attachmenu.on{display:flex}
@@ -1853,9 +1853,11 @@ function copyTextFallback(t){
   try{document.execCommand('copy');}catch(e){} ta.remove();
 }
 function msgById(id){return msgs.find(x=>x.id===id);}
+const REPLY_PREVIEW_MAX=80;
 function replyQuotePreview(m){
-  const cap=(m.content||'').trim();
-  return cap||(m.type==='image'?'사진':m.type==='file'?'파일':'');
+  const cap=(m.content||'').trim().replace(/\s+/g,' ');
+  const raw=cap||(m.type==='image'?'사진':m.type==='file'?'파일':'');
+  return raw.length>REPLY_PREVIEW_MAX?raw.slice(0,REPLY_PREVIEW_MAX)+'…':raw;
 }
 function replyQuoteHtml(m){
   if(!m.reply_to)return '';
@@ -1886,8 +1888,13 @@ async function toggleReaction(messageId,emoji){
   await loadReactions(); renderMsgs();
   closeMsgMenu();
 }
-function setReply(m){replyTarget=m;renderReplyBar();}
-function clearReply(){replyTarget=null;renderReplyBar();}
+function applyBugReportInput(){
+  if(!isBugReportRoom(active))return;
+  const inp=activeMsgInput(); if(!inp)return;
+  inp.value=replyTarget?'':bugReportDraft();
+}
+function setReply(m){replyTarget=m;renderReplyBar();applyBugReportInput();}
+function clearReply(){replyTarget=null;renderReplyBar();applyBugReportInput();}
 function renderReplyBar(){
   const bar=document.getElementById('replyBar'); if(!bar)return;
   if(!replyTarget||isNoticeRoom()){bar.classList.add('hidden');return;}
@@ -1985,7 +1992,7 @@ function openMsgMenu(e,msgId,isNotice){
 }
 function pickMenuReact(id,em){toggleReaction(id,em);}
 function pickMenuCopy(id){copyNotice(id);closeMsgMenu();}
-function pickMenuReply(id){const m=msgById(id);if(m)setReply(m);closeMsgMenu();activeMsgInput()?.focus();}
+function pickMenuReply(id){const m=msgById(id);if(m)setReply(m);closeMsgMenu();activeMsgInput()?.focus();layoutChat();}
 document.addEventListener('click',e=>{const m=document.getElementById('msgMenu');if(m&&!m.classList.contains('hidden')&&!e.target.closest('#msgMenu'))closeMsgMenu();});
 function bubbleBlockHtml(m){
   const quote=replyQuoteHtml(m);

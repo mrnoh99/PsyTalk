@@ -55,7 +55,13 @@ struct RoomView: View {
             tab = isNoticeTopRoom(liveRoom, vm.rooms) ? "chat"
                 : (opensWeekCalendar(liveRoom) ? "cal" : "chat")
             if !isDM, showRoomHeaderMembers(liveRoom, vm.rooms) { vm.loadRoomMembers(liveRoom.id) }
-            input = isBugReportRoom(liveRoom) ? bugReportDraft() : ""
+            input = isBugReportRoom(liveRoom)
+                ? (vm.replyTarget != nil ? "" : bugReportDraft())
+                : ""
+        }
+        .onChange(of: vm.replyTarget?.id) { _ in
+            guard isBugReportRoom(liveRoom) else { return }
+            input = vm.replyTarget != nil ? "" : bugReportDraft()
         }
     }
 

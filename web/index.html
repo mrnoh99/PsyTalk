@@ -2009,8 +2009,8 @@ function scrollMsgsToBottom(){
   layoutChat();
   const el=document.getElementById('msgs');
   if(!el)return;
-  const go=()=>{el.scrollTop=el.scrollHeight;};
-  requestAnimationFrame(()=>requestAnimationFrame(go));
+  el.scrollTop=el.scrollHeight;                                   // 즉시 바닥(맨 위 깜빡임 방지)
+  requestAnimationFrame(()=>{el.scrollTop=el.scrollHeight;});     // 레이아웃 후 보정
 }
 function mergeNoticeMsgs(msgs){
   const out=[]; let i=0;
@@ -2269,7 +2269,7 @@ function renderMsgs(){
     <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleBlockHtml(m)}</div><span class="mtime">${fmtMsgTime(m.created_at)}</span>${un}${del}</div>`;
   });
   el.innerHTML=html;
-  if(nearBottom) scrollMsgsToBottom();   // 바닥에 있었으면 새 내용으로 바닥 유지
+  if(nearBottom){ el.scrollTop=el.scrollHeight; scrollMsgsToBottom(); }  // 즉시 바닥 → 맨 위 깜빡임 방지
   else el.scrollTop=prevTop;             // 위로 올려본 상태면 그 위치 유지(맨 아래로 안 튐)
   resolveAttachments();
 }

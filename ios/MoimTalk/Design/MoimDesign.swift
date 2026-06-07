@@ -89,6 +89,7 @@ enum Moim {
     static var admin: Color { moimDark ? Color(hex: 0xF44336) : Color(hex: 0xD32F2F) }
     static var success: Color { moimDark ? Color(hex: 0x4CAF50) : Color(hex: 0x388E3C) }
     static var white: Color { moimDark ? Color(hex: 0x1E1E1E) : Color(hex: 0xFFFFFF) }   // 카드/표면
+    static var youBubble: Color { moimDark ? Color(hex: 0x3A3A3A) : Color(hex: 0xFFFFFF) } // 상대 말풍선
     static var hl: Color { moimDark ? Color(hex: 0x33301F) : Color(hex: 0xFFF8E0) }      // 선택·오늘 하이라이트
     static let orange = Color(hex: 0xEA7317)
 }

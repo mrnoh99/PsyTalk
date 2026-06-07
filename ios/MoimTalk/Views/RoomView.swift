@@ -429,21 +429,23 @@ private struct ReplyQuoteInBubble: View {
     let mine: Bool
 
     var body: some View {
-        let quoteBg = mine ? Color.white.opacity(0.15) : Moim.bg
-        let quoteColor = mine ? Color.white.opacity(0.9) : Moim.sub
+        let nameColor = mine ? Color.white.opacity(0.92) : Moim.sub
+        let bodyColor = mine ? Color.white.opacity(0.78) : Moim.sub
+        let dividerColor = mine ? Color.white.opacity(0.32) : Moim.line
         VStack(alignment: .leading, spacing: 1) {
             Text("\(repliedName ?? "상대")에게")
                 .font(.system(size: 10.5, weight: .semibold))
-                .foregroundColor(quoteColor)
+                .foregroundColor(nameColor)
             Text(replyQuotePreview(repliedMessage))
                 .font(.system(size: 11))
-                .foregroundColor(quoteColor.opacity(0.85))
+                .foregroundColor(bodyColor)
                 .lineLimit(1)
+            Rectangle()
+                .fill(dividerColor)
+                .frame(height: 1)
+                .padding(.top, 6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 8).padding(.vertical, 5)
-        .background(quoteBg)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 }
 
@@ -502,7 +504,10 @@ struct MessageBubble: View {
                     VStack(alignment: mine ? .trailing : .leading, spacing: 4) {
                         if let r = repliedMessage {
                             ReplyQuoteInBubble(repliedMessage: r, repliedName: repliedName, mine: mine)
-                                .frame(maxWidth: 200, alignment: .leading)
+                                .padding(.horizontal, 12).padding(.vertical, 9)
+                                .background(mine ? Moim.accent : Moim.youBubble)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .frame(maxWidth: 230, alignment: .leading)
                         }
                         Group {
                             if let u {
@@ -531,14 +536,19 @@ struct MessageBubble: View {
                     let chip = HStack(spacing: 7) {
                         Text("📎").font(.system(size: 15))
                         Text(message.attachmentName ?? "파일")
-                            .font(.system(size: 13, weight: .semibold)).foregroundColor(Moim.ink)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(mine ? .white : Moim.ink)
                             .lineLimit(1)
                     }
                     .padding(.horizontal, 12).padding(.vertical, 11)
-                    .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 16))
+                    .background(mine ? Moim.accent : Moim.youBubble)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                     VStack(alignment: mine ? .trailing : .leading, spacing: 4) {
                         if let r = repliedMessage {
                             ReplyQuoteInBubble(repliedMessage: r, repliedName: repliedName, mine: mine)
+                                .padding(.horizontal, 12).padding(.vertical, 9)
+                                .background(mine ? Moim.accent : Moim.youBubble)
+                                .clipShape(RoundedRectangle(cornerRadius: 16))
                                 .frame(maxWidth: 230, alignment: .leading)
                         }
                         if let u = attachUrl.flatMap({ URL(string: $0) }) {
@@ -558,7 +568,7 @@ struct MessageBubble: View {
                             .foregroundColor(mine ? .white : Moim.ink)
                     }
                     .padding(.horizontal, 12).padding(.vertical, 9)
-                    .background(mine ? Moim.accent : Moim.white)
+                    .background(mine ? Moim.accent : Moim.youBubble)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .contextMenu {
                         ForEach(REACTION_EMOJIS, id: \.self) { e in

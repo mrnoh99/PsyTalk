@@ -1739,28 +1739,25 @@ private fun ReplyQuoteInBubble(
     repliedName: String?,
     mine: Boolean,
 ) {
-    val quoteBg = if (mine) Color.White.copy(alpha = 0.15f) else MoimBg
-    val quoteColor = if (mine) Color.White.copy(alpha = 0.9f) else MoimSub
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
-            .background(quoteBg)
-            .padding(horizontal = 8.dp, vertical = 5.dp),
-    ) {
+    val nameColor = if (mine) Color.White.copy(alpha = 0.92f) else MoimSub
+    val bodyColor = if (mine) Color.White.copy(alpha = 0.78f) else MoimSub
+    val dividerColor = if (mine) Color.White.copy(alpha = 0.32f) else MoimLine
+    Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             "${repliedName ?: "상대"}에게",
             fontSize = 10.5.sp,
             fontWeight = FontWeight.SemiBold,
-            color = quoteColor,
+            color = nameColor,
         )
         Text(
             replyQuotePreview(repliedMessage),
             fontSize = 11.sp,
-            color = quoteColor.copy(alpha = 0.85f),
+            color = bodyColor,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
+        Spacer(Modifier.height(6.dp))
+        HorizontalDivider(color = dividerColor, thickness = 1.dp)
     }
 }
 
@@ -1812,7 +1809,7 @@ fun MessageBubble(
             Text(fmtMsgTime(m.createdAt), fontSize = 10.sp, color = MoimSub,
                 modifier = Modifier.align(Alignment.Bottom).padding(horizontal = 3.dp))
         }
-        val bg = if (mine) MoimAccent else MoimWhite     // 내 버블=Primary(파랑), 받은=Surface
+        val bg = if (mine) MoimAccent else MoimYouBubble // 내=파랑, 상대=채팅배경과 구분되는 밝은 톤
         val bubbleTextColor = if (mine) Color.White else MoimInk
         val shape = if (mine) {
             RoundedCornerShape(topStart = 16.dp, topEnd = 5.dp, bottomEnd = 16.dp, bottomStart = 16.dp)
@@ -1841,7 +1838,14 @@ fun MessageBubble(
                     horizontalAlignment = if (mine) Alignment.End else Alignment.Start,
                 ) {
                     if (repliedMessage != null) {
-                        ReplyQuoteInBubble(repliedMessage, repliedName, mine)
+                        Box(
+                            modifier = Modifier
+                                .widthIn(max = 225.dp)
+                                .background(bg, shape)
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                        ) {
+                            ReplyQuoteInBubble(repliedMessage, repliedName, mine)
+                        }
                         Spacer(Modifier.height(4.dp))
                     }
                     AsyncImage(
@@ -1861,14 +1865,22 @@ fun MessageBubble(
                     horizontalAlignment = if (mine) Alignment.End else Alignment.Start,
                 ) {
                     if (repliedMessage != null) {
-                        ReplyQuoteInBubble(repliedMessage, repliedName, mine)
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(shape)
+                                .background(bg, shape)
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                        ) {
+                            ReplyQuoteInBubble(repliedMessage, repliedName, mine)
+                        }
                         Spacer(Modifier.height(4.dp))
                     }
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(shape)
-                            .background(MoimWhite, shape)
+                            .background(if (mine) MoimAccent else MoimYouBubble, shape)
                             .clickable { resolved?.let { uriHandler.openUri(it) } }
                             .padding(horizontal = 12.dp, vertical = 11.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1876,7 +1888,7 @@ fun MessageBubble(
                         Text("📎", fontSize = 16.sp)
                         Spacer(Modifier.width(7.dp))
                         Text(
-                            m.attachmentName ?: "파일", color = MoimInk, fontSize = 13.sp,
+                            m.attachmentName ?: "파일", color = bubbleTextColor, fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         )
                     }

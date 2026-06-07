@@ -28,20 +28,20 @@ data class MoimPalette(
     val bg: Color, val paper: Color, val surface: Color,
     val ink: Color, val sub: Color, val accent: Color, val secondary: Color,
     val yellow: Color, val line: Color, val admin: Color, val success: Color, val hint: Color,
-    val hl: Color,
+    val hl: Color, val youBubble: Color,
 )
 
 private val DarkPalette = MoimPalette(
     bg = Color(0xFF161616), paper = Color(0xFF121212), surface = Color(0xFF1E1E1E),
     ink = Color(0xFFFFFFFF), sub = Color(0xFFBDBDBD), accent = Color(0xFF1E88E5), secondary = Color(0xFF00BCD4),
     yellow = Color(0xFFFFCA28), line = Color(0xFF2C2C2C), admin = Color(0xFFF44336), success = Color(0xFF4CAF50), hint = Color(0xFF6E6E6E),
-    hl = Color(0xFF33301F),
+    hl = Color(0xFF33301F), youBubble = Color(0xFF3A3A3A),
 )
 private val LightPalette = MoimPalette(
     bg = Color(0xFFECECEC), paper = Color(0xFFFFFFFF), surface = Color(0xFFF5F5F5),
     ink = Color(0xFF212121), sub = Color(0xFF757575), accent = Color(0xFF1976D2), secondary = Color(0xFF0097A7),
     yellow = Color(0xFFFFE45C), line = Color(0xFFE0E0E0), admin = Color(0xFFD32F2F), success = Color(0xFF388E3C), hint = Color(0xFFBDBDBD),
-    hl = Color(0xFFFFF8E0),
+    hl = Color(0xFFFFF8E0), youBubble = Color(0xFFFFFFFF),
 )
 
 object MoimTheme {
@@ -74,6 +74,7 @@ val MoimSuccess: Color get() = MoimTheme.palette.success
 val MoimWhite: Color get() = MoimTheme.palette.surface   // 카드/표면(다크에선 어두운 surface)
 val MoimHint: Color get() = MoimTheme.palette.hint
 val MoimHl: Color get() = MoimTheme.palette.hl
+val MoimYouBubble: Color get() = MoimTheme.palette.youBubble
 
 /** 상태바·네비게이션 바 — MoimTheme 다크/라이트와 동기화 */
 @Composable

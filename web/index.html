@@ -14,14 +14,14 @@
 <style>
   :root{
     /* 🌙 다크 모드 (기본) */
-    --bg:#161616;--paper:#121212;--surface:#1e1e1e;--you:#1e1e1e;--hl:#33301f;
+    --bg:#161616;--paper:#121212;--surface:#1e1e1e;--you:#3a3a3a;--hl:#33301f;
     --ink:#ffffff;--sub:#bdbdbd;--accent:#1e88e5;--secondary:#00bcd4;
     --me:#ffca28;--line:#2c2c2c;--admin:#f44336;
     --notice:#b5651d;--group:#4a6fa5;--work:#3d8361;--research:#6d597a;--orange:#ea7317;
   }
   html.light{
     /* ☀️ 라이트 모드 */
-    --bg:#ececec;--paper:#ffffff;--surface:#f5f5f5;--you:#f5f5f5;--hl:#fff8e0;
+    --bg:#ececec;--paper:#ffffff;--surface:#f5f5f5;--you:#ffffff;--hl:#fff8e0;
     --ink:#212121;--sub:#757575;--accent:#1976d2;--secondary:#0097a7;
     --me:#ffe45c;--line:#e0e0e0;--admin:#d32f2f;
   }
@@ -90,9 +90,15 @@
   .reply-bar .preview{flex:1;min-width:0;color:var(--sub);overflow:hidden}
   .reply-bar .preview b{color:var(--accent);font-size:11px;font-weight:700;display:block;margin-bottom:2px}
   .reply-bar .preview span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .reply-quote{padding:6px 8px;background:var(--bg);border-radius:6px;margin-bottom:6px;font-size:11px;color:var(--sub);max-width:260px;line-height:1.35}
+  .reply-quote{padding:0 0 7px;margin-bottom:7px;font-size:11px;line-height:1.35;border-bottom:1px solid var(--line);background:none;border-radius:0;max-width:none}
   .reply-quote b{font-size:10.5px;font-weight:700;display:block;margin-bottom:2px;color:var(--sub)}
-  .reply-quote span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reply-quote span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--sub)}
+  .mrow.me .reply-quote{border-bottom-color:rgba(255,255,255,.32)}
+  .mrow.me .reply-quote b{color:rgba(255,255,255,.92)}
+  .mrow.me .reply-quote span{color:rgba(255,255,255,.78)}
+  .bubble-quote{padding:9px 12px;border-radius:16px;max-width:260px;margin-bottom:4px;font-size:14.5px}
+  .mrow.me .bubble-quote{background:var(--accent);color:#fff}
+  .mrow.you .bubble-quote{background:var(--you);color:var(--ink)}
   .reaction-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
   .react-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:12px;background:var(--bg);font-size:12px;cursor:pointer;border:none;font-family:inherit;color:var(--ink)}
   .react-chip.mine{background:rgba(30,136,229,.2)}
@@ -115,7 +121,8 @@
   .bubble{padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.42;word-break:break-word;max-width:260px}
   .mrow.you .bubble{background:var(--you);color:var(--ink)}.mrow.me .bubble{background:var(--accent);color:#fff}
   .bimg{max-width:200px;max-height:240px;border-radius:14px;cursor:pointer;display:block;object-fit:cover}
-  .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
+  .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--you);border-radius:16px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
+  .bfile-me{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--accent);border-radius:16px;padding:10px 12px;font-size:13px;color:#fff;text-decoration:none;font-weight:600}
   .bfile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line);position:relative}
   .inputbar.notice-compose{align-items:flex-end;padding:10px 12px 12px}
@@ -1861,11 +1868,14 @@ function bubbleBlockHtml(m){
   const quote=replyQuoteHtml(m);
   const chips=reactionChipsHtml(m.id);
   const touch=`ontouchstart="msgTouchStart(event,'${m.id}')" ontouchend="msgTouchEnd(event)" ontouchmove="msgTouchCancel()" oncontextmenu="openMsgMenu(event,'${m.id}');return false;"`;
+  const quoteBubble=quote?`<div class="bubble bubble-quote">${quote}</div>`:'';
   if(m.type==='image'&&m.attachment_url)
-    return `${quote}<img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진" ${touch}>${chips}`;
-  if(m.type==='file'&&m.attachment_url)
-    return `${quote}<a class="bfile" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}" ${touch}>📎 <span>${esc(m.attachment_name||'파일')}</span></a>${chips}`;
-  return `${quote}<div class="bubble bubble-text" data-msgid="${m.id}" ${touch}>${esc(m.content||'')}</div>${chips}`;
+    return `${quoteBubble}<img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진" ${touch}>${chips}`;
+  if(m.type==='file'&&m.attachment_url){
+    const fileCls=m.sender_id===me.id?'bubble bfile-me':'bfile';
+    return `${quoteBubble}<a class="${fileCls}" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}" ${touch}>📎 <span>${esc(m.attachment_name||'파일')}</span></a>${chips}`;
+  }
+  return `<div class="bubble bubble-text" data-msgid="${m.id}" ${touch}>${quote}${esc(m.content||'')}</div>${chips}`;
 }
 function renderMsgs(){
   const el=document.getElementById('msgs');

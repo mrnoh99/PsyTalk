@@ -294,6 +294,17 @@ func canEditWard(_ profile: Profile?) -> Bool {
     return isAdminRole(p.role) || ["교실", "의국", "간호사"].contains(p.memberType)
 }
 
+/// 당직표 입력·수정 권한: 관리자 또는 직군 교실·의국·비서
+func canEditWardDuty(_ profile: Profile?) -> Bool {
+    guard let p = profile else { return false }
+    return isAdminRole(p.role) || ["교실", "의국", "비서"].contains(p.memberType)
+}
+
+/// 휴일(주말·공휴일) — 전공의 당직 1인만
+func isWardDutyOffDay(_ date: Date) -> Bool {
+    wardDutyTone(date) != .weekday
+}
+
 // 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 func canDeleteEvent(_ profile: Profile?, _ event: CalendarEvent) -> Bool {
     guard let p = profile else { return false }

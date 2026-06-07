@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS public.ward_duty (
   prof_day text NOT NULL DEFAULT '',
   resident_day text NOT NULL DEFAULT '',
   resident_night text NOT NULL DEFAULT '',
+  resident_outpatient_1 text NOT NULL DEFAULT '',
+  resident_outpatient_2 text NOT NULL DEFAULT '',
   is_holiday boolean NOT NULL DEFAULT false,
   updated_at timestamptz NOT NULL DEFAULT now(),
   updated_by uuid REFERENCES public.profiles(id)
@@ -24,7 +26,7 @@ DROP POLICY IF EXISTS "ward_duty_insert" ON public.ward_duty;
 CREATE POLICY "ward_duty_insert"
   ON public.ward_duty FOR INSERT TO authenticated
   WITH CHECK (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid()
-                 AND (p.role IN ('superadmin','admin') OR p.member_type IN ('교실','의국','간호사'))));
+                 AND (p.role IN ('superadmin','admin') OR p.member_type IN ('교실','의국','비서'))));
 
 DROP POLICY IF EXISTS "ward_duty_update" ON public.ward_duty;
 CREATE POLICY "ward_duty_update"
@@ -32,12 +34,12 @@ CREATE POLICY "ward_duty_update"
   USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid()
                  AND (p.role IN ('superadmin','admin') OR p.member_type IN ('교실','의국','간호사'))))
   WITH CHECK (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid()
-                 AND (p.role IN ('superadmin','admin') OR p.member_type IN ('교실','의국','간호사'))));
+                 AND (p.role IN ('superadmin','admin') OR p.member_type IN ('교실','의국','비서'))));
 
 DROP POLICY IF EXISTS "ward_duty_delete" ON public.ward_duty;
 CREATE POLICY "ward_duty_delete"
   ON public.ward_duty FOR DELETE TO authenticated
   USING (EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = auth.uid()
-                 AND (p.role IN ('superadmin','admin') OR p.member_type IN ('교실','의국','간호사'))));
+                 AND (p.role IN ('superadmin','admin') OR p.member_type IN ('교실','의국','비서'))));
 
 NOTIFY pgrst, 'reload schema';

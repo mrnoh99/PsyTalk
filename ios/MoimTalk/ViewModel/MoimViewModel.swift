@@ -454,10 +454,16 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
-    func saveWardDuty(dutyDate: String, profDay: String, residentDay: String, residentNight: String, onDone: @escaping () -> Void) {
+    func saveWardDuty(
+        dutyDate: String, profDay: String, residentDay: String, residentNight: String,
+        residentOutpatient1: String, residentOutpatient2: String,
+        onDone: @escaping () -> Void
+    ) {
         Task {
             do {
-                try await MoimRepository.upsertWardDuty(dutyDate: dutyDate, profDay: profDay, residentDay: residentDay, residentNight: residentNight)
+                try await MoimRepository.upsertWardDuty(
+                    dutyDate: dutyDate, profDay: profDay, residentDay: residentDay, residentNight: residentNight,
+                    residentOutpatient1: residentOutpatient1, residentOutpatient2: residentOutpatient2)
                 if let m = wardDutyMonth { loadWardDuties(month: m) }
                 loadWardTodayDuty()
                 onDone()

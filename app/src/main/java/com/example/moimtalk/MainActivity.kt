@@ -507,11 +507,15 @@ class MoimViewModel : ViewModel() {
         profDay: String,
         residentDay: String,
         residentNight: String,
+        residentOutpatient1: String,
+        residentOutpatient2: String,
         onDone: () -> Unit,
     ) {
         viewModelScope.launch {
             try {
-                MoimRepository.upsertWardDuty(dutyDate, profDay, residentDay, residentNight)
+                MoimRepository.upsertWardDuty(
+                    dutyDate, profDay, residentDay, residentNight, residentOutpatient1, residentOutpatient2,
+                )
                 wardDutyMonth?.let { loadWardDuties(it) }
                 loadWardTodayDuty()
                 onDone()

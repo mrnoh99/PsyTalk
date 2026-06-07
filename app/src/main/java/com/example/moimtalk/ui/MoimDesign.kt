@@ -321,6 +321,15 @@ fun canEditWard(profile: Profile?): Boolean {
     return isAdminRole(profile.role) || profile.memberType in listOf("교실", "의국", "간호사")
 }
 
+/** 당직표 입력·수정 권한: 관리자 또는 직군 교실·의국·비서 */
+fun canEditWardDuty(profile: Profile?): Boolean {
+    if (profile == null) return false
+    return isAdminRole(profile.role) || profile.memberType in listOf("교실", "의국", "비서")
+}
+
+/** 휴일(주말·공휴일) — 전공의 당직 1인만 */
+fun isWardDutyOffDay(date: java.time.LocalDate): Boolean = wardDutyTone(date) != WardDutyTone.WEEKDAY
+
 enum class WardDutyTone { WEEKDAY, WEEKEND, PUBLIC_HOLIDAY }
 
 /** 당직표 날짜 톤 — 평일 / 주말 / 대한민국 공휴일 */

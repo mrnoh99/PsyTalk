@@ -516,6 +516,8 @@ object MoimRepository {
         profDay: String,
         residentDay: String,
         residentNight: String,
+        residentOutpatient1: String,
+        residentOutpatient2: String,
     ) = withFreshSession {
         val uid = currentUserId() ?: error("Not logged in")
         val nowIso = java.time.OffsetDateTime.now().toString()
@@ -524,6 +526,8 @@ object MoimRepository {
             profDay = profDay,
             residentDay = residentDay,
             residentNight = residentNight,
+            residentOutpatient1 = residentOutpatient1,
+            residentOutpatient2 = residentOutpatient2,
             updatedBy = uid,
             updatedAt = nowIso,
         )

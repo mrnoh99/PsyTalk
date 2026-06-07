@@ -348,6 +348,8 @@ struct WardDuty: Codable, Identifiable {
     var profDay: String = ""
     var residentDay: String = ""
     var residentNight: String = ""
+    var residentOutpatient1: String = ""
+    var residentOutpatient2: String = ""
     var isHoliday: Bool = false
 
     var id: String { dutyDate }
@@ -357,6 +359,8 @@ struct WardDuty: Codable, Identifiable {
         case profDay = "prof_day"
         case residentDay = "resident_day"
         case residentNight = "resident_night"
+        case residentOutpatient1 = "resident_outpatient_1"
+        case residentOutpatient2 = "resident_outpatient_2"
         case isHoliday = "is_holiday"
     }
 }
@@ -366,6 +370,8 @@ struct WardDutyUpsert: Encodable {
     let profDay: String
     let residentDay: String
     let residentNight: String
+    let residentOutpatient1: String
+    let residentOutpatient2: String
     var updatedBy: String?
     let updatedAt: String
 
@@ -374,6 +380,8 @@ struct WardDutyUpsert: Encodable {
         case profDay = "prof_day"
         case residentDay = "resident_day"
         case residentNight = "resident_night"
+        case residentOutpatient1 = "resident_outpatient_1"
+        case residentOutpatient2 = "resident_outpatient_2"
         case updatedBy = "updated_by"
         case updatedAt = "updated_at"
     }

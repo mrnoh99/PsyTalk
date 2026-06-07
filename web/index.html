@@ -235,7 +235,7 @@
   .dutyrow .dedit{font-size:13px;font-weight:800;color:var(--accent);background:none;border:none;cursor:pointer;padding:0}
   .dutyrow .dlbl{font-size:11px;font-weight:800;color:var(--sub);margin-bottom:2px}
   .dutyrow .dname{font-size:18px;font-weight:800;color:var(--ink);line-height:1.3;margin-bottom:8px}
-  .dutyrow .dresgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .dutyrow .dresgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
   .dutyrow .dresgrid .dsl{font-size:10px;color:var(--sub);margin-bottom:2px}
   .dutyrow .dresgrid .dsn{font-size:17px;font-weight:800;color:var(--ink);line-height:1.3}
   /* 과 전체공지 — 가운데 정렬 게시 카드 */
@@ -430,20 +430,29 @@
   <div class="modal" id="todayDutyModal"><div class="sheet today-duty-detail">
     <h2>오늘 당직</h2>
     <p id="todayDutySub" style="font-size:12px;color:var(--sub);margin-bottom:14px"></p>
-    <span class="lbl">교원</span><div class="tdn" id="todayDutyProf">—</div>
+    <span class="lbl">교원 당직</span><div class="tdn" id="todayDutyProf">—</div>
     <span class="lbl">전공의</span>
-    <div class="tdg">
+    <div class="tdg" id="todayDutyWeekday">
       <div><div class="dsl" style="font-size:10px;color:var(--sub)">낮당직</div><div class="dsn" id="todayDutyDay">—</div></div>
-      <div><div class="dsl" style="font-size:10px;color:var(--sub)">방당직</div><div class="dsn" id="todayDutyNight">—</div></div>
+      <div><div class="dsl" style="font-size:10px;color:var(--sub)">당직</div><div class="dsn" id="todayDutyNight">—</div></div>
     </div>
+    <div id="todayDutyOutWrap" style="display:none"><span class="lbl">외래</span><div class="tdn" id="todayDutyOut" style="font-size:18px">—</div></div>
+    <div id="todayDutyHolOnly" style="display:none"><span class="lbl">당직</span><div class="tdn" id="todayDutyHolNight">—</div></div>
     <button type="button" class="primary" onclick="closeModal('todayDutyModal')">확인</button>
   </div></div>
 
   <div class="modal" id="dutyModal"><div class="sheet">
     <h2 id="dutyModalTitle">당직 입력</h2>
-    <span class="lbl">교원 (교실)</span><select class="field" id="dutyProf"></select>
-    <span class="lbl">전공의 낮당직 (의국)</span><select class="field" id="dutyResDay"></select>
-    <span class="lbl">전공의 방당직 (의국)</span><select class="field" id="dutyResNight"></select>
+    <span class="lbl">교원 당직 (교실 · 1인)</span><select class="field" id="dutyProf"></select>
+    <div id="dutyWeekdayFields">
+      <span class="lbl">전공의 낮당직 (의국 · 1인)</span><select class="field" id="dutyResDay"></select>
+      <span class="lbl">전공의 당직 (의국 · 1인)</span><select class="field" id="dutyResNight"></select>
+      <span class="lbl">외래 (의국 · 최대 2인)</span><select class="field" id="dutyOut1"></select>
+      <select class="field" id="dutyOut2"></select>
+    </div>
+    <div id="dutyHolidayFields" style="display:none">
+      <span class="lbl">전공의 당직 (의국 · 1인)</span><select class="field" id="dutyResNightHol"></select>
+    </div>
     <button type="button" class="primary" onclick="saveDuty()">저장</button>
     <button type="button" class="ghost" onclick="closeModal('dutyModal')">취소</button>
   </div></div>
@@ -1240,6 +1249,12 @@ const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&g
 const isAdmin=()=>me&&(me.role==='superadmin'||me.role==='admin');
 // ward 편집: 관리자 또는 직군 교실·의국·간호사("병동")
 const canEditWard=()=>!!me&&(isAdmin()||['교실','의국','간호사'].includes(me.member_type));
+const canEditWardDuty=()=>!!me&&(isAdmin()||['교실','의국','비서'].includes(me.member_type));
+const isDutyOffDay=(y,m,d)=>dutyTone(y,m,d)!=='weekday';
+const outpatientLabel=row=>{
+  const a=[row?.resident_outpatient_1,row?.resident_outpatient_2].filter(x=>x&&String(x).trim());
+  return a.length?a.join(', '):'—';
+};
 // 일정 삭제: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 const canDeleteEvent=ev=>!!me&&((ev&&ev.owner_id===me.id)||isAdmin()||['교실','의국','비서','심리실'].includes(me.member_type));
 function show(id){['login','pending','reset','listScreen','roomScreen','wardScreen','adminScreen','settingsScreen','createRoomScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
@@ -2614,8 +2629,11 @@ async function loadWard(){
 }
 function todayDutyPreview(){
   const row=wardTodayDuty||{};
+  const t=new Date();
+  const y=t.getFullYear(), m=t.getMonth()+1, d=t.getDate();
   const prof=row.prof_day||'—', day=row.resident_day||'—', night=row.resident_night||'—';
-  return `교원 ${esc(prof)}  ·  낮 ${esc(day)}  ·  방 ${esc(night)}`;
+  if(isDutyOffDay(y,m,d)) return `교원 ${esc(prof)}  ·  당직 ${esc(night)}`;
+  return `교원 ${esc(prof)}  ·  낮 ${esc(day)}  ·  당직 ${esc(night)}  ·  외래 ${esc(outpatientLabel(row))}`;
 }
 function openTodayDuty(){
   loadWardTodayDuty().then(()=>{
@@ -2624,12 +2642,21 @@ function openTodayDuty(){
     const dow=['일','월','화','수','목','금','토'][t.getDay()];
     const tone=dutyTone(y,m,d);
     const toneLbl=tone==='pubhol'?'공휴일':(tone==='weekend'?'주말':'');
+    const off=isDutyOffDay(y,m,d);
     const row=wardTodayDuty||{};
     const n=v=>(v&&String(v).trim())?v:'미지정';
     document.getElementById('todayDutySub').textContent=`${m}월 ${d}일 (${dow})${toneLbl?' · '+toneLbl:''}`;
     document.getElementById('todayDutyProf').textContent=n(row.prof_day);
-    document.getElementById('todayDutyDay').textContent=n(row.resident_day);
-    document.getElementById('todayDutyNight').textContent=n(row.resident_night);
+    document.getElementById('todayDutyWeekday').style.display=off?'none':'grid';
+    document.getElementById('todayDutyOutWrap').style.display=off?'none':'block';
+    document.getElementById('todayDutyHolOnly').style.display=off?'block':'none';
+    if(off){
+      document.getElementById('todayDutyHolNight').textContent=n(row.resident_night);
+    }else{
+      document.getElementById('todayDutyDay').textContent=n(row.resident_day);
+      document.getElementById('todayDutyNight').textContent=n(row.resident_night);
+      document.getElementById('todayDutyOut').textContent=outpatientLabel(row)==='—'?'미지정':outpatientLabel(row);
+    }
     document.getElementById('todayDutyModal').classList.add('on');
   });
 }
@@ -2661,18 +2688,24 @@ function dutyViewHtml(){
     const dt=new Date(b.y,b.m-1,d);
     const tone=dutyTone(b.y,b.m,d);
     const isToday=dt.getTime()===today.getTime();
-    const hasDuty=!!(row.prof_day||row.resident_day||row.resident_night);
+    const off=isDutyOffDay(b.y,b.m,d);
+    const hasDuty=!!(row.prof_day||row.resident_day||row.resident_night||row.resident_outpatient_1||row.resident_outpatient_2);
     let cls='dutyrow';
     if(tone==='pubhol')cls+=' pubhol';
     else if(tone==='weekend')cls+=' weekend';
     if(isToday)cls+=' today';
     const label=`${b.m}/${d} (${dow[dt.getDay()]})`;
     const toneLbl=tone==='pubhol'?'공휴일':(tone==='weekend'?'주말':'');
-    const editBtn=(isToday&&canEditWard())?`<button type="button" class="dedit" onclick="openDutyEdit('${key}')">${hasDuty?'수정':'입력'}</button>`:'';
+    const editBtn=canEditWardDuty()?`<button type="button" class="dedit" onclick="openDutyEdit('${key}')">${hasDuty?'수정':'입력'}</button>`:'';
     h+=`<div class="${cls}"><div class="dtop"><b>${label}</b>${isToday?'<span class="dtoday">오늘</span>':''}${toneLbl?`<span class="dtone">${toneLbl}</span>`:''}${editBtn}</div>`;
-    h+=`<div class="dlbl">교원</div><div class="dname">${esc(row.prof_day||'—')}</div>`;
-    h+=`<div class="dlbl">전공의</div><div class="dresgrid"><div><div class="dsl">낮당직</div><div class="dsn">${esc(row.resident_day||'—')}</div></div>`;
-    h+=`<div><div class="dsl">방당직</div><div class="dsn">${esc(row.resident_night||'—')}</div></div></div></div>`;
+    h+=`<div class="dlbl">교원 당직</div><div class="dname">${esc(row.prof_day||'—')}</div><div class="dlbl">전공의</div>`;
+    if(off){
+      h+=`<div class="dsl">당직</div><div class="dsn" style="font-size:17px;font-weight:800">${esc(row.resident_night||'—')}</div></div>`;
+    }else{
+      h+=`<div class="dresgrid"><div><div class="dsl">낮당직</div><div class="dsn">${esc(row.resident_day||'—')}</div></div>`;
+      h+=`<div><div class="dsl">당직</div><div class="dsn">${esc(row.resident_night||'—')}</div></div>`;
+      h+=`<div><div class="dsl">외래</div><div class="dsn" style="font-size:14px">${esc(outpatientLabel(row))}</div></div></div></div>`;
+    }
   }
   h+=`</div>`;
   return h;
@@ -2683,20 +2716,36 @@ function openDutyEdit(dateKey){
   const p=dateKey.split('-').map(Number);
   const dt=new Date(p[0],p[1]-1,p[2]);
   const dow=['일','월','화','수','목','금','토'][dt.getDay()];
-  document.getElementById('dutyModalTitle').textContent=`${p[1]}/${p[2]} (${dow}) 당직`;
+  const tone=dutyTone(p[0],p[1],p[2]);
+  const toneLbl=tone==='pubhol'?'공휴일':(tone==='weekend'?'주말':'');
+  const off=isDutyOffDay(p[0],p[1],p[2]);
+  document.getElementById('dutyModalTitle').textContent=`${p[1]}/${p[2]} (${dow}) 당직${toneLbl?' · '+toneLbl:''}`;
+  document.getElementById('dutyWeekdayFields').style.display=off?'none':'block';
+  document.getElementById('dutyHolidayFields').style.display=off?'block':'none';
   const faculty=dutyMembers('교실').map(x=>x.name);
   const residents=dutyMembers('의국').map(x=>x.name);
   fillDutySelect(document.getElementById('dutyProf'),row.prof_day||'',faculty);
-  fillDutySelect(document.getElementById('dutyResDay'),row.resident_day||'',residents);
-  fillDutySelect(document.getElementById('dutyResNight'),row.resident_night||'',residents);
+  if(off){
+    fillDutySelect(document.getElementById('dutyResNightHol'),row.resident_night||'',residents);
+  }else{
+    fillDutySelect(document.getElementById('dutyResDay'),row.resident_day||'',residents);
+    fillDutySelect(document.getElementById('dutyResNight'),row.resident_night||'',residents);
+    fillDutySelect(document.getElementById('dutyOut1'),row.resident_outpatient_1||'',residents);
+    fillDutySelect(document.getElementById('dutyOut2'),row.resident_outpatient_2||'',residents);
+  }
   document.getElementById('dutyModal').classList.add('on');
 }
 async function saveDuty(){
   if(!dutyEditDate)return;
+  const p=dutyEditDate.split('-').map(Number);
+  const off=isDutyOffDay(p[0],p[1],p[2]);
   const prof=document.getElementById('dutyProf').value.trim();
-  const resDay=document.getElementById('dutyResDay').value.trim();
-  const resNight=document.getElementById('dutyResNight').value.trim();
-  const payload={duty_date:dutyEditDate,prof_day:prof,resident_day:resDay,resident_night:resNight,updated_by:me.id,updated_at:new Date().toISOString()};
+  const resDay=off?'':document.getElementById('dutyResDay').value.trim();
+  const resNight=off?document.getElementById('dutyResNightHol').value.trim():document.getElementById('dutyResNight').value.trim();
+  const out1=off?'':document.getElementById('dutyOut1').value.trim();
+  const out2=off?'':document.getElementById('dutyOut2').value.trim();
+  const payload={duty_date:dutyEditDate,prof_day:prof,resident_day:resDay,resident_night:resNight,
+    resident_outpatient_1:out1,resident_outpatient_2:out2,updated_by:me.id,updated_at:new Date().toISOString()};
   const existing=dutyByDate[dutyEditDate];
   let error;
   if(existing){

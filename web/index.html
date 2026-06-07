@@ -90,13 +90,14 @@
   .pane.on{display:flex}
   #pane-files,#pane-cal{overflow-y:auto;-webkit-overflow-scrolling:touch}
   /* 채팅: grid로 msgs 높이 고정(Chrome flex 스크롤 버그 회피) */
-  #pane-chat.pane.on{display:grid;grid-template-rows:minmax(0,1fr) auto;overflow:hidden}
+  #pane-chat.pane.on{display:grid;grid-template-rows:minmax(0,1fr) auto;grid-template-columns:minmax(0,1fr);overflow:hidden;min-width:0;width:100%}
   .msgs{grid-row:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px 12px;background:var(--bg);scrollbar-gutter:stable}
-  .chat-foot{grid-row:2;display:flex;flex-direction:column;flex-shrink:0;min-height:0;max-height:min(220px,42vh)}
-  .reply-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border-top:1px solid var(--line);font-size:12px;flex-shrink:0;max-height:52px;overflow:hidden}
-  .reply-bar .preview{flex:1;min-width:0;color:var(--sub);overflow:hidden}
-  .reply-bar .preview b{color:var(--accent);font-size:11px;font-weight:700;display:block;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .reply-bar .preview span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%}
+  .chat-foot{grid-row:2;display:flex;flex-direction:column;flex-shrink:0;min-height:0;min-width:0;width:100%;max-width:100%;overflow:hidden;max-height:min(220px,42vh)}
+  .reply-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border-top:1px solid var(--line);font-size:12px;flex-shrink:0;min-width:0;width:100%;max-width:100%;max-height:52px;overflow:hidden;box-sizing:border-box}
+  .reply-bar .preview{flex:1 1 0;min-width:0;width:0;color:var(--sub);overflow:hidden}
+  .reply-bar .preview b{color:var(--accent);font-size:11px;font-weight:700;display:block;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .reply-bar .preview span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  .reply-bar .reply-close{flex-shrink:0;cursor:pointer;color:var(--admin);font-weight:800;padding:4px 8px;line-height:1}
   .reply-quote{padding:0 0 7px;margin-bottom:7px;font-size:11px;line-height:1.35;border-bottom:1px solid var(--line);background:none;border-radius:0;max-width:none}
   .reply-quote b{font-size:10.5px;font-weight:700;display:block;margin-bottom:2px;color:var(--sub)}
   .reply-quote span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--sub)}
@@ -134,7 +135,7 @@
   .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--you);border-radius:16px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
   .bfile-me{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--accent);border-radius:16px;padding:10px 12px;font-size:13px;color:#fff;text-decoration:none;font-weight:600}
   .bfile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line);position:relative;flex-shrink:0;min-height:0;flex-wrap:nowrap}
+  .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line);position:relative;flex-shrink:0;min-height:0;min-width:0;width:100%;max-width:100%;overflow:hidden;flex-wrap:nowrap;box-sizing:border-box}
   .inputbar.notice-compose{align-items:flex-end;padding:10px 12px 12px}
   .inputbar input[type=text],.inputbar #msgInput{flex:1 1 0;min-width:0;width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
   .inputbar #msgInputNotice{display:none;flex:1 1 0;min-width:0;width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;line-height:1.55;outline:none;font-family:inherit;resize:vertical;min-height:88px;max-height:120px}
@@ -361,7 +362,7 @@
       <div class="chat-foot" id="chatFoot">
         <div class="reply-bar hidden" id="replyBar">
           <div class="preview" id="replyPreview"></div>
-          <span onclick="clearReply()" style="cursor:pointer;color:var(--admin);font-weight:800;padding:4px 8px">✕</span>
+          <span class="reply-close" onclick="clearReply()">✕</span>
         </div>
         <div class="inputbar" id="inputbar">
           <div class="attpreview hidden" id="attachPreview"></div>
@@ -1853,11 +1854,12 @@ function copyTextFallback(t){
   try{document.execCommand('copy');}catch(e){} ta.remove();
 }
 function msgById(id){return msgs.find(x=>x.id===id);}
-const REPLY_PREVIEW_MAX=80;
+const REPLY_PREVIEW_MAX=48;
 function replyQuotePreview(m){
   const cap=(m.content||'').trim().replace(/\s+/g,' ');
   const raw=cap||(m.type==='image'?'사진':m.type==='file'?'파일':'');
-  return raw.length>REPLY_PREVIEW_MAX?raw.slice(0,REPLY_PREVIEW_MAX)+'…':raw;
+  if(raw.length<=REPLY_PREVIEW_MAX)return raw;
+  return raw.slice(0,REPLY_PREVIEW_MAX)+'…';
 }
 function replyQuoteHtml(m){
   if(!m.reply_to)return '';
@@ -1899,8 +1901,15 @@ function renderReplyBar(){
   const bar=document.getElementById('replyBar'); if(!bar)return;
   if(!replyTarget||isNoticeRoom()){bar.classList.add('hidden');return;}
   const who=profilesById[replyTarget.sender_id]||{};
-  document.getElementById('replyPreview').innerHTML=
-    `<b>↩ ${esc(who.name||'?')} 에게 답장</b><span>${esc(replyQuotePreview(replyTarget))}</span>`;
+  const prev=document.getElementById('replyPreview');
+  if(prev){
+    prev.replaceChildren();
+    const title=document.createElement('b');
+    title.textContent=`↩ ${who.name||'?'} 에게 답장`;
+    const body=document.createElement('span');
+    body.textContent=replyQuotePreview(replyTarget);
+    prev.append(title,body);
+  }
   bar.classList.remove('hidden'); layoutChat();
 }
 const MSG_LONG_MS=480, MSG_MOVE_MAX=14;

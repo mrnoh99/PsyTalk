@@ -103,7 +103,8 @@
   .react-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:12px;background:var(--bg);font-size:12px;cursor:pointer;border:none;font-family:inherit;color:var(--ink)}
   .react-chip.mine{background:rgba(30,136,229,.2)}
   .notice-card .reaction-chips{margin-top:8px}
-  .notice-body,.bubble-text{user-select:text;-webkit-user-select:text}
+  .notice-body{user-select:text;-webkit-user-select:text}
+  .bubble,.bubble-text,.bubble-quote,.bimg,.bfile,.bfile-me,.react-chip{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
   .msg-menu{position:fixed;z-index:90;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:6px 4px;min-width:180px}
   .msg-menu .emoji-row{display:flex;gap:2px;justify-content:center;padding:4px 6px 8px;flex-wrap:wrap}
   .msg-menu .emoji-row span{font-size:22px;cursor:pointer;padding:4px 6px;border-radius:8px;line-height:1}
@@ -1837,12 +1838,22 @@ function renderReplyBar(){
     `<b>↩ ${esc(who.name||'?')} 에게 답장</b><span>${esc(replyQuotePreview(replyTarget))}</span>`;
   bar.classList.remove('hidden'); layoutChat();
 }
-let msgTouchTimer=null;
+let msgTouchTimer=null,msgMenuOpenedByTouch=false;
 function msgTouchStart(e,id,isNotice){
   if(e.touches&&e.touches.length>1)return;
-  msgTouchTimer=setTimeout(()=>{openMsgMenu(e,id,isNotice);msgTouchTimer=null;},500);
+  msgMenuOpenedByTouch=false;
+  const t=e.touches?.[0], sx=t?.clientX??0, sy=t?.clientY??0;
+  msgTouchTimer=setTimeout(()=>{
+    window.getSelection?.()?.removeAllRanges();
+    msgMenuOpenedByTouch=true;
+    openMsgMenu({clientX:sx,clientY:sy,preventDefault(){},stopPropagation(){}},id,isNotice);
+    msgTouchTimer=null;
+  },500);
 }
-function msgTouchEnd(){if(msgTouchTimer){clearTimeout(msgTouchTimer);msgTouchTimer=null;}}
+function msgTouchEnd(e){
+  if(msgTouchTimer){clearTimeout(msgTouchTimer);msgTouchTimer=null;return;}
+  if(msgMenuOpenedByTouch){e.preventDefault();e.stopPropagation();msgMenuOpenedByTouch=false;}
+}
 function msgTouchCancel(){if(msgTouchTimer){clearTimeout(msgTouchTimer);msgTouchTimer=null;}}
 function closeMsgMenu(){const m=document.getElementById('msgMenu');if(m)m.classList.add('hidden');}
 function openMsgMenu(e,msgId,isNotice){

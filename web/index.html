@@ -2235,6 +2235,9 @@ function bubbleBlockHtml(m){
 }
 function renderMsgs(){
   const el=document.getElementById('msgs');
+  if(!el)return;
+  // 스크롤 보존: 바닥 근처면 바닥 유지, 위로 올려본 상태면(리액션·폴링 갱신 등) 위치 유지
+  const prevTop=el.scrollTop, nearBottom=(el.scrollHeight-prevTop-el.clientHeight)<80;
   if(!msgs.length){ el.innerHTML=`<div class="emptybox"><div class="eb">💬</div><b>대화를 시작해보세요</b></div>`; scrollMsgsToBottom(); resolveAttachments(); return; }
   const noticeLayout=active&&noticeTopRoom()&&noticeTopRoom().id===active.id;
   let html='', lastDate='';
@@ -2256,7 +2259,8 @@ function renderMsgs(){
     <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleBlockHtml(m)}</div><span class="mtime">${fmtMsgTime(m.created_at)}</span>${un}${del}</div>`;
   });
   el.innerHTML=html;
-  scrollMsgsToBottom();
+  if(nearBottom) scrollMsgsToBottom();   // 바닥에 있었으면 새 내용으로 바닥 유지
+  else el.scrollTop=prevTop;             // 위로 올려본 상태면 그 위치 유지(맨 아래로 안 튐)
   resolveAttachments();
 }
 window.addEventListener('resize',layoutChat);

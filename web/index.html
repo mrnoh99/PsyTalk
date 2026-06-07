@@ -42,7 +42,7 @@
     --duty-today-bg:#262626;--duty-today-border:#2c2c2c;
     --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
     --safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);
-    --ios-safe-top:0px;
+    --ios-safe-top:0px;--ios-safe-bottom:0px;
   }
   html.light{
     /* ☀️ 라이트 모드 */
@@ -68,13 +68,9 @@
     box-sizing:border-box;
     padding-top:constant(safe-area-inset-top);padding-top:env(safe-area-inset-top);
     padding-right:constant(safe-area-inset-right);padding-right:env(safe-area-inset-right);
-    padding-bottom:constant(safe-area-inset-bottom);padding-bottom:env(safe-area-inset-bottom);
     padding-left:constant(safe-area-inset-left);padding-left:env(safe-area-inset-left);
     font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
     background:var(--bg);color:var(--ink);display:flex;flex-direction:column;align-items:center}
-  /* iOS 홈화면: env()가 0으로 나올 때 JS가 --ios-safe-top 으로 body 상단 여백 보정 */
-  html.ios-standalone body{padding-top:max(constant(safe-area-inset-top),var(--ios-safe-top));
-    padding-top:max(env(safe-area-inset-top),var(--ios-safe-top))}
   .phone{width:100%;max-width:460px;flex:1;min-height:0;max-height:940px;background:var(--paper);
     position:relative;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.22)}
   @media (min-width:520px){body{justify-content:center}}
@@ -82,8 +78,22 @@
     body{align-items:stretch}
     .phone{max-height:none;max-width:none;box-shadow:none}
   }
-  html.ios-standalone body{align-items:stretch}
-  html.ios-standalone .phone{max-height:none;max-width:none;box-shadow:none}
+  /* iOS 홈화면: .phone 을 화면에 고정 — body padding 시 하단 빈 띠·상단 가림 방지 */
+  html.ios-standalone{height:100%;height:-webkit-fill-available;overflow:hidden}
+  html.ios-standalone body{padding:0;min-height:100%;min-height:-webkit-fill-available;height:100%;align-items:stretch}
+  html.ios-standalone .phone{position:fixed;inset:0;flex:none;width:100%;max-width:none;max-height:none;height:auto;box-shadow:none;
+    padding-top:max(constant(safe-area-inset-top),var(--ios-safe-top));padding-top:max(env(safe-area-inset-top),var(--ios-safe-top));
+    padding-left:constant(safe-area-inset-left);padding-left:env(safe-area-inset-left);
+    padding-right:constant(safe-area-inset-right);padding-right:env(safe-area-inset-right);
+    padding-bottom:0}
+  /* iOS: 하단 safe-area는 chat-foot·list 한 곳만 — inputbar 이중 padding 제거 */
+  html.ios-standalone .list{padding-bottom:calc(12px + var(--ios-safe-bottom,constant(safe-area-inset-bottom)));
+    padding-bottom:calc(12px + var(--ios-safe-bottom,env(safe-area-inset-bottom)))}
+  html.ios-standalone .chat-foot{padding-bottom:var(--ios-safe-bottom,constant(safe-area-inset-bottom));
+    padding-bottom:var(--ios-safe-bottom,env(safe-area-inset-bottom));background:var(--paper)}
+  html.ios-standalone .inputbar,html.ios-standalone .inputbar.notice-compose{padding-bottom:9px}
+  html.ios-standalone .inputbar.notice-compose{padding-bottom:12px}
+  html.ios-standalone .readonly{padding-bottom:14px}
   .hidden{display:none!important}
   .hdr{padding:14px 18px 13px;display:flex;align-items:center;gap:10px;background:var(--paper);
     border-bottom:1px solid var(--line);flex-shrink:0}
@@ -93,7 +103,8 @@
   .lk{font-size:12px;color:var(--sub);cursor:pointer;background:none;border:none;font-family:inherit;padding:0;line-height:1.3}
   .lk-pill{background:var(--bg);padding:8px 12px;border-radius:10px;color:var(--accent);font-weight:700}
   .hdr .spacer{flex:1}
-  .list{flex:1;overflow-y:auto;padding-bottom:28px;-webkit-overflow-scrolling:touch}
+  .list{flex:1;overflow-y:auto;padding-bottom:calc(28px + constant(safe-area-inset-bottom));
+    padding-bottom:calc(28px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch}
   .banner{display:flex;align-items:center;gap:12px;margin:10px 14px;padding:14px 16px;border-radius:14px;background:var(--orange);color:#fff;cursor:pointer}
   .banner b{font-size:16px}.banner small{display:block;font-size:11.5px;color:#ffe9d6}
   .wkbar{display:flex;align-items:center;gap:12px;margin:0 14px 10px;padding:14px 16px;border-radius:14px;background:#4a6fa5;color:#fff;cursor:pointer}
@@ -201,8 +212,9 @@
   .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--you);border-radius:16px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
   .bfile-me{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--accent);border-radius:16px;padding:10px 12px;font-size:13px;color:#fff;text-decoration:none;font-weight:600}
   .bfile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--paper);border-top:1px solid var(--line);position:relative;flex-shrink:0;min-height:0;min-width:0;width:100%;max-width:100%;overflow:hidden;flex-wrap:nowrap;box-sizing:border-box}
-  .inputbar.notice-compose{align-items:flex-end;padding:10px 12px 12px}
+  .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;padding-bottom:calc(9px + constant(safe-area-inset-bottom));
+    padding-bottom:calc(9px + env(safe-area-inset-bottom));background:var(--paper);border-top:1px solid var(--line);position:relative;flex-shrink:0;min-height:0;min-width:0;width:100%;max-width:100%;overflow:hidden;flex-wrap:nowrap;box-sizing:border-box}
+  .inputbar.notice-compose{align-items:flex-end;padding:10px 12px;padding-bottom:calc(12px + constant(safe-area-inset-bottom));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
   .inputbar input[type=text],.inputbar #msgInput{flex:1 1 0;min-width:0;width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
   .inputbar #msgInputNotice{display:none;flex:1 1 0;min-width:0;width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;line-height:1.55;outline:none;font-family:inherit;resize:vertical;min-height:88px;max-height:120px}
   .inputbar.notice-compose #msgInput{display:none}
@@ -215,7 +227,7 @@
   .ami:active,.ami:hover{background:var(--bg)}
   .attpreview{position:absolute;left:0;right:0;bottom:100%;background:var(--paper);border-top:1px solid var(--line);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
   .attpreview.hidden{display:none}
-  .readonly{padding:14px;background:#f3ede3;border-top:1px solid var(--line);text-align:center;font-size:12.5px;color:var(--sub);font-weight:600}
+  .readonly{padding:14px;padding-bottom:calc(14px + constant(safe-area-inset-bottom));padding-bottom:calc(14px + env(safe-area-inset-bottom));background:#f3ede3;border-top:1px solid var(--line);text-align:center;font-size:12.5px;color:var(--sub);font-weight:600}
   .files,.cal{padding:13px}
   .sortrow,.calmode{display:flex;gap:8px;margin-bottom:12px}
   .sb,.cm{flex:1;text-align:center;padding:8px;border-radius:10px;font-size:12.5px;font-weight:700;background:var(--surface);border:1px solid var(--line);color:var(--sub);cursor:pointer}
@@ -381,7 +393,10 @@
   .primary{width:100%;background:var(--accent);color:#fff;border:none;border-radius:13px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px}
   .ghost{width:100%;background:var(--line);color:var(--ink);border:none;border-radius:13px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;margin-top:8px}
   /* login */
-  #login{flex:1;display:flex;flex-direction:column;padding:30px}
+  #login{flex:1;display:flex;flex-direction:column;padding:30px 30px calc(30px + constant(safe-area-inset-bottom));padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+  #reset,#pending{flex:1;display:flex;flex-direction:column;padding:30px 30px calc(30px + constant(safe-area-inset-bottom));padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+  #pending{align-items:center;text-align:center}
+  #pane-files,#pane-cal,.duty-scroll,#wardBody,#adminBody,#setBody{padding-bottom:constant(safe-area-inset-bottom);padding-bottom:env(safe-area-inset-bottom)}
   /* 인증 화면: 내용이 길면 스크롤, 짧으면 세로 가운데 (auto 마진 스페이서) */
   #login,#reset,#pending{overflow-y:auto;-webkit-overflow-scrolling:touch}
   #login::before,#reset::before,#pending::before{content:'';margin-top:auto}
@@ -422,7 +437,7 @@
   </section>
 
   <!-- PASSWORD RESET (이메일 재설정 링크로 진입) -->
-  <section id="reset" class="hidden" style="flex:1;display:flex;flex-direction:column;padding:30px">
+  <section id="reset" class="hidden">
     <h2 style="font-size:22px;font-weight:800;margin-bottom:6px">새 비밀번호 설정</h2>
     <p style="font-size:14px;color:var(--sub);margin-bottom:18px">새로 사용할 비밀번호를 입력하세요.</p>
     <input id="rpw" type="password" placeholder="새 비밀번호" oninput="updateResetBtn()">
@@ -433,7 +448,7 @@
   </section>
 
   <!-- PENDING APPROVAL -->
-  <section id="pending" class="hidden" style="flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;padding:30px">
+  <section id="pending" class="hidden">
     <div style="font-size:46px">⏳</div>
     <h2 style="font-size:19px;font-weight:800;margin-top:16px">관리자 승인 대기 중</h2>
     <p style="font-size:14px;color:var(--sub);line-height:1.5;margin-top:10px">가입이 접수되었습니다.<br>관리자가 승인하면 이용할 수 있습니다.</p>
@@ -2930,20 +2945,28 @@ async function createRoom(){
 function closeModal(id){document.getElementById(id).classList.remove('on');}
 document.querySelectorAll('.modal').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('on');}));
 
-/* iOS 홈화면 PWA: safe-area env() 미적용 시 상단 여백 보정 (노치·상태바) */
+/* iOS 홈화면 PWA: safe-area env() 미적용·과대 보정 (노치·홈 인디케이터) */
 function applyIosStandaloneSafeArea(){
   if(!document.documentElement.classList.contains('ios-standalone'))return;
+  const root=document.documentElement;
   const probe=document.createElement('div');
-  probe.style.cssText='position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;padding-top:constant(safe-area-inset-top);padding-top:env(safe-area-inset-top)';
+  probe.style.cssText='position:fixed;top:0;left:0;visibility:hidden;pointer-events:none;'+
+    'padding-top:constant(safe-area-inset-top);padding-top:env(safe-area-inset-top);'+
+    'padding-bottom:constant(safe-area-inset-bottom);padding-bottom:env(safe-area-inset-bottom)';
   document.body.appendChild(probe);
-  let top=parseFloat(getComputedStyle(probe).paddingTop)||0;
+  const cs=getComputedStyle(probe);
+  let top=parseFloat(cs.paddingTop)||0;
+  let bottom=parseFloat(cs.paddingBottom)||0;
   probe.remove();
   if(top<1&&window.visualViewport&&window.visualViewport.offsetTop>0)top=window.visualViewport.offsetTop;
   if(top<1){
-    const h=Math.max(screen.height,screen.width),w=Math.min(screen.height,screen.width);
+    const h=Math.max(screen.height,screen.width);
     top=h>=812?47:20;
   }
-  if(top>0)document.documentElement.style.setProperty('--ios-safe-top',top+'px');
+  if(bottom<1)bottom=Math.max(screen.height,screen.width)>=812?34:0;
+  if(bottom>40)bottom=34;
+  root.style.setProperty('--ios-safe-top',top+'px');
+  root.style.setProperty('--ios-safe-bottom',bottom+'px');
 }
 applyIosStandaloneSafeArea();
 window.addEventListener('resize',applyIosStandaloneSafeArea);

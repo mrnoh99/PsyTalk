@@ -141,6 +141,38 @@ func catColor(_ category: String) -> Color {
     }
 }
 
+/// 공지 본문 — http(s) URL 을 탭 가능한 링크로
+func linkifiedNoticeText(_ text: String) -> AttributedString {
+    var result = AttributedString()
+    let ns = text as NSString
+    let pattern = "https?://[^\\s<>\"']+"
+    guard let regex = try? NSRegularExpression(pattern: pattern) else {
+        return AttributedString(text)
+    }
+    let full = NSRange(location: 0, length: ns.length)
+    var last = 0
+    for match in regex.matches(in: text, options: [], range: full) {
+        if match.range.location > last {
+            let plain = ns.substring(with: NSRange(location: last, length: match.range.location - last))
+            result.append(AttributedString(plain))
+        }
+        let urlStr = ns.substring(with: match.range)
+        var linkPart = AttributedString(urlStr)
+        if let url = URL(string: urlStr) {
+            linkPart.link = url
+        }
+        result.append(linkPart)
+        last = match.range.location + match.range.length
+    }
+    if last < ns.length {
+        result.append(AttributedString(ns.substring(from: last)))
+    }
+    if result.characters.isEmpty {
+        return AttributedString(text)
+    }
+    return result
+}
+
 func catLabel(_ category: String) -> String {
     switch category {
     case "notice": return "공지"

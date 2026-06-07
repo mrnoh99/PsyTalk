@@ -719,9 +719,10 @@ struct NoticePostCard: View {
 
     @ViewBuilder private var noticeBody: some View {
         if let cap = caption {
-            Text(cap)
+            Text(linkifiedNoticeText(cap))
                 .font(.system(size: 15))
                 .foregroundColor(Moim.ink)
+                .tint(Moim.accent)
                 .lineSpacing(6)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -733,9 +734,10 @@ struct NoticePostCard: View {
             if caption != nil { Spacer().frame(height: 12) }
             noticeFileBlock
         } else if caption == nil {
-            Text(message.content ?? "")
+            Text(linkifiedNoticeText(message.content ?? ""))
                 .font(.system(size: 15))
                 .foregroundColor(Moim.ink)
+                .tint(Moim.accent)
                 .lineSpacing(6)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)

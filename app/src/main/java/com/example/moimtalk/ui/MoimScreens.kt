@@ -85,6 +85,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.LinkInteractionListener
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -1546,12 +1551,20 @@ private fun noticeCopyText(m: Message): String? =
 
 @Composable
 private fun NoticeBodyText(text: String) {
+    val uriHandler = LocalUriHandler.current
+    val annotated = remember(text) { linkifyAnnotatedString(text) }
     SelectionContainer {
         Text(
-            text,
+            text = annotated,
             color = MoimInk,
             fontSize = 15.sp,
             lineHeight = 24.sp,
+            linkStyles = TextLinkStyles(
+                style = SpanStyle(color = MoimAccent, textDecoration = TextDecoration.Underline),
+            ),
+            linkInteractionListener = LinkInteractionListener { link ->
+                (link as? LinkAnnotation.Url)?.url?.let { uriHandler.openUri(it) }
+            },
         )
     }
 }

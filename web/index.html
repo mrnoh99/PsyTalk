@@ -214,6 +214,7 @@
   .notice-author{font-size:13px;font-weight:600;color:var(--sub);margin:6px 0 0}
   .notice-hr{border:none;border-top:1px solid var(--line);margin:14px 0}
   .notice-body{white-space:pre-wrap;font-size:15px;line-height:1.65;color:var(--ink);word-break:break-word}
+  .notice-body a.notice-link{color:var(--accent);font-weight:700;text-decoration:underline;word-break:break-all;user-select:text;-webkit-user-select:text;-webkit-touch-callout:default;touch-action:auto;cursor:pointer}
   .notice-media{margin-top:12px}
   .notice-card .bimg{max-width:100%;border-radius:12px;display:block;margin:0 auto;cursor:pointer}
   .notice-card .bfile{display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink);font-size:13px;font-weight:600;cursor:pointer}
@@ -1788,11 +1789,15 @@ function noticeAttachmentHtml(m){
     return `<div class="notice-media"><a class="bfile" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a></div>`;
   return '';
 }
+function linkifyNoticeHtml(t){
+  const safe=esc(t);
+  return safe.replace(/(https?:\/\/[^\s&lt;&gt;&quot;']+)/g,'<a class="notice-link" href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+}
 function noticePostHtml(m,who,mine){
   const author=(who.name||'?')+(who.member_type?' · '+esc(who.member_type):'');
   const cap=(m.content||'').trim();
   let body='';
-  if(cap) body+=`<div class="notice-body">${esc(cap)}</div>`;
+  if(cap) body+=`<div class="notice-body">${linkifyNoticeHtml(cap)}</div>`;
   body+=noticeAttachmentHtml(m);
   if(!body) body=`<div class="notice-body"></div>`;
   const chips=reactionChipsHtml(m.id);
@@ -1882,6 +1887,7 @@ function bindMsgLongPress(){
   if(!root||root.dataset.pressBound)return;
   root.dataset.pressBound='1';
   root.addEventListener('touchstart',e=>{
+    if(e.target.closest('a.notice-link'))return;
     const hit=msgHitTarget(e.target); if(!hit)return;
     const id=hit.dataset.msgid; if(!id||e.touches.length>1)return;
     startMsgPress(e.touches[0].clientX,e.touches[0].clientY,id,hit.classList.contains('notice-card'));
@@ -1898,6 +1904,7 @@ function bindMsgLongPress(){
   root.addEventListener('touchcancel',clearMsgPress,{passive:true});
   root.addEventListener('mousedown',e=>{
     if(e.button!==0)return;
+    if(e.target.closest('a.notice-link'))return;
     const hit=msgHitTarget(e.target); if(!hit)return;
     const id=hit.dataset.msgid; if(!id)return;
     startMsgPress(e.clientX,e.clientY,id,hit.classList.contains('notice-card'));

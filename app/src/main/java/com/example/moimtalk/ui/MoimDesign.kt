@@ -14,6 +14,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withLink
 import com.example.moimtalk.data.CalendarEvent
 import com.example.moimtalk.data.LastMsg
 import com.example.moimtalk.data.Message
@@ -376,4 +380,18 @@ fun viewBadgeText(profile: Profile?): String {
         isAdminRole(profile.role) -> "관리자 · 전체 방"
         else -> "${profile.name}(${profile.memberType})"
     }
+}
+
+private val URL_IN_TEXT = Regex("""https?://[^\s<>"']+""")
+
+/** 공지 본문 — http(s) URL 을 탭 가능한 링크로 */
+fun linkifyAnnotatedString(text: String): AnnotatedString = buildAnnotatedString {
+    var last = 0
+    for (match in URL_IN_TEXT.findAll(text)) {
+        append(text.substring(last, match.range.first))
+        val url = match.value
+        withLink(LinkAnnotation.Url(url)) { append(url) }
+        last = match.range.last + 1
+    }
+    append(text.substring(last))
 }

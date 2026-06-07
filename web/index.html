@@ -1784,6 +1784,9 @@ async function openRoom(id){
   const listEl=document.getElementById('roomList');
   if(listEl)roomListScrollTop=listEl.scrollTop;
   active=rooms.find(r=>r.id===id);
+  // 이전 방의 메시지·이미지가 슬라이드 중 잠깐 비치지 않도록 즉시 비움
+  msgs=[];reactions=[];events=[];files=[];
+  const _msgsEl=document.getElementById('msgs');if(_msgsEl)_msgsEl.innerHTML='';
   const isDM=active.category==='direct';
   document.getElementById('roomTitle').textContent=roomDisplayName(active);
   document.getElementById('renameBtn').style.display=(!isDM&&canRename(active))?'':'none';
@@ -2216,7 +2219,12 @@ function openMsgMenu(e,msgId,isNotice){
 }
 function pickMenuReact(id,em){toggleReaction(id,em);closeMsgMenu();}
 function pickMenuCopy(id){copyNotice(id);closeMsgMenu();}
-function pickMenuReply(id){const m=msgById(id);if(m)setReply(m);closeMsgMenu();activeMsgInput()?.focus();layoutChat();}
+function pickMenuReply(id){
+  const m=msgById(id);if(m)setReply(m);
+  closeMsgMenu();
+  // 답장 입력창(미리보기 포함)을 화면에 띄우고 포커스 — 메뉴 닫힌 뒤 DOM 안정화 후 실행
+  setTimeout(()=>{layoutChat();scrollMsgsToBottom();activeMsgInput()?.focus();},0);
+}
 document.addEventListener('click',e=>{const m=document.getElementById('msgMenu');if(m&&!m.classList.contains('hidden')&&!e.target.closest('#msgMenu')){if(Date.now()-msgMenuOpenedAt<600)return;closeMsgMenu();}});
 function bubbleBlockHtml(m){
   const quote=replyQuoteHtml(m);

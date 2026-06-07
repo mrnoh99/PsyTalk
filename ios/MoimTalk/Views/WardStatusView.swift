@@ -218,18 +218,6 @@ private struct WardDutyPane: View {
         return f.string(from: d)
     }
 
-    private func dutyRowColors(_ tone: WardDutyTone, isToday: Bool) -> (Color, Color) {
-        let bg: Color
-        let border: Color
-        switch tone {
-        case .publicHoliday, .weekend:
-            bg = Color(hex: 0xF3F1F8); border = Color(hex: 0xE4E0EC)
-        case .weekday:
-            bg = Moim.white; border = Moim.line
-        }
-        return (bg, isToday ? Moim.accent : border)
-    }
-
     private func dutyRow(_ day: Date) -> some View {
         let key = dateKey(day)
         let duty = vm.wardDuties[key]
@@ -237,7 +225,7 @@ private struct WardDutyPane: View {
         let isToday = CalDate.sameDay(day, CalDate.today())
         let dow = ["일", "월", "화", "수", "목", "금", "토"][CalDate.cal.component(.weekday, from: day) - 1]
         let label = "\(CalDate.cal.component(.month, from: day))/\(CalDate.cal.component(.day, from: day)) (\(dow))"
-        let colors = dutyRowColors(tone, isToday: isToday)
+        let colors = wardDutyRowColors(tone, isToday: isToday)
         let toneLabel = tone == .publicHoliday ? "공휴일" : (tone == .weekend ? "주말" : nil)
         let off = isWardDutyOffDay(day)
         let hasDuty = duty.map {
@@ -250,14 +238,14 @@ private struct WardDutyPane: View {
             HStack {
                 HStack(spacing: 4) {
                     Text(label).font(.system(size: 14, weight: .bold))
-                        .foregroundColor(tone == .weekday ? Moim.ink : Color(hex: 0x6D5E58))
+                        .foregroundColor(tone == .weekday ? Moim.ink : wardDutyOffDayInk())
                     if isToday {
                         Text("오늘").font(.system(size: 11, weight: .bold)).foregroundColor(Moim.accent)
                     }
                 }
                 Spacer()
                 if let tl = toneLabel {
-                    Text(tl).font(.system(size: 10, weight: .bold)).foregroundColor(Color(hex: 0x8A7E96))
+                    Text(tl).font(.system(size: 10, weight: .bold)).foregroundColor(wardDutyToneBadge())
                 }
                 if canEdit {
                     Button(hasDuty ? "수정" : "입력") {

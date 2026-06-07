@@ -20,12 +20,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.moimtalk.MoimViewModel
 import com.example.moimtalk.data.Profile
 import com.example.moimtalk.data.WardDuty
@@ -251,14 +246,14 @@ private fun WardDutyDayRow(
                 label,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (tone != WardDutyTone.WEEKDAY) Color(0xFF6D5E58) else MoimInk,
+                color = if (tone != WardDutyTone.WEEKDAY) wardDutyOffDayInk() else MoimInk,
             )
             if (isToday) {
                 Text(" 오늘", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimAccent)
             }
             Spacer(Modifier.weight(1f))
             if (toneLabel != null) {
-                Text(toneLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF8A7E96))
+                Text(toneLabel, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = wardDutyToneBadge())
             }
             if (editLabel != null) {
                 TextButton(onClick = onEdit, modifier = Modifier.padding(0.dp)) {
@@ -294,7 +289,6 @@ private fun WardDutyDayRow(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WardDutyEditDialog(
     date: LocalDate,
@@ -318,10 +312,13 @@ private fun WardDutyEditDialog(
     val toneLabel = TONE_LABEL[wardDutyTone(date)]
     val title = "${date.monthValue}/${date.dayOfMonth} ($dow) 당직${toneLabel?.let { " · $it" } ?: ""}"
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.92f)
                 .clip(RoundedCornerShape(16.dp))
                 .background(MoimPaper)
                 .verticalScroll(rememberScrollState())
@@ -330,23 +327,23 @@ private fun WardDutyEditDialog(
             Text(title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = MoimInk)
             Spacer(Modifier.height(14.dp))
             Text("교원 당직 (교실 · 1인)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-            DutyMemberPicker(members = faculty, selected = prof, onSelect = { prof = it })
+            DutyMemberSelect(members = faculty, selected = prof, onSelect = { prof = it })
             Spacer(Modifier.height(10.dp))
             Text("전공의 (의국)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
             if (offDay) {
                 Text("당직 (1인)", fontSize = 10.sp, color = MoimSub)
-                DutyMemberPicker(members = residents, selected = resNight, onSelect = { resNight = it })
+                DutyMemberSelect(members = residents, selected = resNight, onSelect = { resNight = it })
             } else {
                 Text("낮당직 (1인)", fontSize = 10.sp, color = MoimSub)
-                DutyMemberPicker(members = residents, selected = resDay, onSelect = { resDay = it })
+                DutyMemberSelect(members = residents, selected = resDay, onSelect = { resDay = it })
                 Spacer(Modifier.height(8.dp))
                 Text("당직 (1인)", fontSize = 10.sp, color = MoimSub)
-                DutyMemberPicker(members = residents, selected = resNight, onSelect = { resNight = it })
+                DutyMemberSelect(members = residents, selected = resNight, onSelect = { resNight = it })
                 Spacer(Modifier.height(8.dp))
                 Text("외래 (최대 2인)", fontSize = 10.sp, color = MoimSub)
-                DutyMemberPicker(members = residents, selected = out1, onSelect = { out1 = it })
+                DutyMemberSelect(members = residents, selected = out1, onSelect = { out1 = it })
                 Spacer(Modifier.height(6.dp))
-                DutyMemberPicker(members = residents, selected = out2, onSelect = { out2 = it })
+                DutyMemberSelect(members = residents, selected = out2, onSelect = { out2 = it })
             }
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -365,35 +362,40 @@ private fun WardDutyEditDialog(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+/** Dialog 안에서도 동작하는 탭 선택 목록 (ExposedDropdownMenu 는 Dialog 에서 터치 불가) */
 @Composable
-private fun DutyMemberPicker(members: List<Profile>, selected: String, onSelect: (String) -> Unit) {
-    var expanded by remember { mutableStateOf(false) }
-    val options = remember(members) { listOf("") + members.map { it.name } }
-    val label = selected.ifBlank { "선택" }
-
-    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
-        OutlinedTextField(
-            value = label,
-            onValueChange = {},
-            readOnly = true,
-            modifier = Modifier
-                .menuAnchor(type = MenuAnchorType.PrimaryNotEditable, enabled = true)
-                .fillMaxWidth(),
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            shape = RoundedCornerShape(11.dp),
-            colors = moimOutlinedTextFieldColors(),
-        )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            options.forEach { name ->
-                DropdownMenuItem(
-                    text = { Text(if (name.isBlank()) "— (없음)" else name) },
-                    onClick = {
-                        onSelect(name)
-                        expanded = false
-                    },
-                )
-            }
+private fun DutyMemberSelect(members: List<Profile>, selected: String, onSelect: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        DutyMemberSelectRow(label = "— (없음)", selected = selected.isBlank(), onClick = { onSelect("") })
+        members.forEach { member ->
+            DutyMemberSelectRow(
+                label = member.name,
+                selected = selected == member.name,
+                onClick = { onSelect(member.name) },
+            )
         }
+    }
+}
+
+@Composable
+private fun DutyMemberSelectRow(label: String, selected: Boolean, onClick: () -> Unit) {
+    val bg = if (selected) MoimAccent.copy(alpha = 0.14f) else MoimWhite
+    val border = if (selected) MoimAccent else MoimLine
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(bg, RoundedCornerShape(8.dp))
+            .border(1.dp, border, RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            label,
+            fontSize = 14.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) MoimAccent else MoimInk,
+        )
     }
 }

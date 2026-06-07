@@ -531,11 +531,8 @@ object MoimRepository {
             updatedBy = uid,
             updatedAt = nowIso,
         )
-        val existing = wardDuties(dutyDate, dutyDate)
-        if (existing.isEmpty()) {
-            supabase.from("ward_duty").insert(row)
-        } else {
-            supabase.from("ward_duty").update(row) { filter { eq("duty_date", dutyDate) } }
+        supabase.from("ward_duty").upsert(row) {
+            onConflict = "duty_date"
         }
     }
 

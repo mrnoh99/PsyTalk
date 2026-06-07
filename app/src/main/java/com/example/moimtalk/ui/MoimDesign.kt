@@ -376,10 +376,23 @@ fun dutyTodayPreview(
 fun wardDutyTodayCardColors(): Pair<Color, Color> =
     MoimAccent.copy(alpha = 0.12f) to MoimAccent.copy(alpha = 0.35f)
 
+/** 주말·공휴일 당직표 행 배경·테두리 — 다크 모드만 어두운 톤, 라이트는 연한 라벤더 */
+fun wardDutyOffDayRowColors(): Pair<Color, Color> = if (MoimTheme.dark) {
+    Color(0xFF3A3548) to Color(0xFF524D62)
+} else {
+    Color(0xFFF3F1F8) to Color(0xFFE4E0EC)
+}
+
+/** 주말·공휴일 날짜 라벨 색 */
+fun wardDutyOffDayInk(): Color = if (MoimTheme.dark) Color(0xFFC5BED6) else Color(0xFF6D5E58)
+
+/** 주말·공휴일 뱃지(주말/공휴일) 색 */
+fun wardDutyToneBadge(): Color = if (MoimTheme.dark) Color(0xFF9A92A8) else Color(0xFF8A7E96)
+
 /** 당직표 행 배경·테두리 (주말·공휴일 동일 톤) */
 fun wardDutyRowColors(tone: WardDutyTone, isToday: Boolean): Pair<Color, Color> {
     val (bg, border) = when (tone) {
-        WardDutyTone.PUBLIC_HOLIDAY, WardDutyTone.WEEKEND -> Color(0xFFF3F1F8) to Color(0xFFE4E0EC)
+        WardDutyTone.PUBLIC_HOLIDAY, WardDutyTone.WEEKEND -> wardDutyOffDayRowColors()
         WardDutyTone.WEEKDAY -> MoimWhite to MoimLine
     }
     return if (isToday) bg to MoimAccent else bg to border

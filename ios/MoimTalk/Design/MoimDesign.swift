@@ -335,6 +335,29 @@ func wardDutyTodayCardColors() -> (Color, Color) {
     (Moim.accent.opacity(0.12), Moim.accent.opacity(0.35))
 }
 
+func wardDutyOffDayRowColors() -> (Color, Color) {
+    moimDark
+        ? (Color(hex: 0x3A3548), Color(hex: 0x524D62))
+        : (Color(hex: 0xF3F1F8), Color(hex: 0xE4E0EC))
+}
+
+func wardDutyOffDayInk() -> Color {
+    moimDark ? Color(hex: 0xC5BED6) : Color(hex: 0x6D5E58)
+}
+
+func wardDutyToneBadge() -> Color {
+    moimDark ? Color(hex: 0x9A92A8) : Color(hex: 0x8A7E96)
+}
+
+func wardDutyRowColors(_ tone: WardDutyTone, isToday: Bool) -> (Color, Color) {
+    let pair: (Color, Color)
+    switch tone {
+    case .publicHoliday, .weekend: pair = wardDutyOffDayRowColors()
+    case .weekday: pair = (Moim.white, Moim.line)
+    }
+    return (pair.0, isToday ? Moim.accent : pair.1)
+}
+
 // 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 func canDeleteEvent(_ profile: Profile?, _ event: CalendarEvent) -> Bool {
     guard let p = profile else { return false }

@@ -486,10 +486,12 @@ struct ViewChip: View {
                 .font(.system(size: 9, weight: .heavy)).foregroundColor(.white)
                 .frame(width: 19, height: 19)
                 .background(typeColor(memberType)).clipShape(RoundedRectangle(cornerRadius: 6))
-            Text(name).font(.system(size: 12, weight: .semibold)).foregroundColor(.white)
+            Text(name).font(.system(size: 12, weight: .semibold)).foregroundColor(moimToggleText(selected: true, lightOn: .white, lightOff: Moim.ink))
         }
         .padding(.leading, 5).padding(.trailing, 10).padding(.vertical, 5)
-        .background(Moim.accent).clipShape(Capsule())
+        .background(moimToggleBg(selected: true, lightOn: Moim.accent))
+        .clipShape(Capsule())
+        .overlay(Capsule().stroke(ThemeManager.shared.dark ? Moim.line : Color.clear, lineWidth: 1))
     }
 }
 

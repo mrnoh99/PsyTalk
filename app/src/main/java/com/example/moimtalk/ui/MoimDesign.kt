@@ -42,7 +42,7 @@ private val DarkPalette = MoimPalette(
     bg = Color(0xFF161616), paper = Color(0xFF121212), surface = Color(0xFF1E1E1E),
     ink = Color(0xFFFFFFFF), sub = Color(0xFFBDBDBD), accent = Color(0xFF1E88E5), secondary = Color(0xFF00BCD4),
     yellow = Color(0xFFFFCA28), line = Color(0xFF2C2C2C), admin = Color(0xFFF44336), success = Color(0xFF4CAF50), hint = Color(0xFF6E6E6E),
-    hl = Color(0xFF33301F), youBubble = Color(0xFF3A3A3A),
+    hl = Color(0xFF1E1E1E), youBubble = Color(0xFF3A3A3A),   // 다크 hl = surface(노란 톤 제거)
 )
 private val LightPalette = MoimPalette(
     bg = Color(0xFFECECEC), paper = Color(0xFFFFFFFF), surface = Color(0xFFF5F5F5),
@@ -93,6 +93,9 @@ fun moimToggleBg(selected: Boolean, lightOn: Color, lightOff: Color = MoimWhite)
 
 fun moimToggleText(selected: Boolean, lightOn: Color, lightOff: Color = MoimSub): Color =
     if (MoimTheme.dark) moimDarkSegText(selected) else if (selected) lightOn else lightOff
+
+/** surface 위 강조 링크·라벨 — 다크에서는 ink(파란 accent 대신) */
+fun moimSurfaceAccentText(): Color = if (MoimTheme.dark) MoimInk else MoimAccent
 
 /** 상태바·네비게이션 바 — MoimTheme 다크/라이트와 동기화 */
 @Composable
@@ -383,9 +386,10 @@ fun dutyTodayPreview(
     }
 }
 
-/** 오늘 당직 카드 — 항상 파란 강조 스킴 */
+/** 오늘 당직 카드 — 라이트: 파란 강조 / 다크: surface pill */
 fun wardDutyTodayCardColors(): Pair<Color, Color> =
-    MoimAccent.copy(alpha = 0.12f) to MoimAccent.copy(alpha = 0.35f)
+    if (MoimTheme.dark) moimDarkSegBg() to moimDarkSegBorder()
+    else MoimAccent.copy(alpha = 0.12f) to MoimAccent.copy(alpha = 0.35f)
 
 /** 주말·공휴일 당직표 행 배경·테두리 — 다크 모드만 어두운 톤, 라이트는 연한 라벤더 */
 fun wardDutyOffDayRowColors(): Pair<Color, Color> = if (MoimTheme.dark) {
@@ -406,7 +410,8 @@ fun wardDutyRowColors(tone: WardDutyTone, isToday: Boolean): Pair<Color, Color> 
         WardDutyTone.PUBLIC_HOLIDAY, WardDutyTone.WEEKEND -> wardDutyOffDayRowColors()
         WardDutyTone.WEEKDAY -> MoimWhite to MoimLine
     }
-    return if (isToday) bg to MoimAccent else bg to border
+    val todayBorder = if (isToday) (if (MoimTheme.dark) MoimLine else MoimAccent) else border
+    return bg to todayBorder
 }
 
 /** 승인·활성 회원 중 직군 필터 (당직 선택용) */

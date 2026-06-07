@@ -204,7 +204,7 @@ private struct WardDutyPane: View {
         } label: {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("오늘 당직").font(.system(size: 16, weight: .heavy)).foregroundColor(Moim.accent)
+                    Text("오늘 당직").font(.system(size: 16, weight: .heavy)).foregroundColor(moimSurfaceAccentText())
                     Spacer()
                     Text("\(m)/\(d) (\(dow))").font(.system(size: 12)).foregroundColor(Moim.sub)
                 }
@@ -270,7 +270,7 @@ private struct WardDutyPane: View {
                     Text(label).font(.system(size: 14, weight: .bold))
                         .foregroundColor(tone == .weekday ? Moim.ink : wardDutyOffDayInk())
                     if isToday {
-                        Text("오늘").font(.system(size: 11, weight: .bold)).foregroundColor(Moim.accent)
+                        Text("오늘").font(.system(size: 11, weight: .bold)).foregroundColor(moimSurfaceAccentText())
                     }
                 }
                 Spacer()
@@ -287,7 +287,7 @@ private struct WardDutyPane: View {
                         editDate = day
                     }
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(Moim.accent)
+                    .foregroundColor(moimSurfaceAccentText())
                 }
             }
             Text(dutyProfDisplay(duty?.profDay)).font(.system(size: 18, weight: .bold)).foregroundColor(Moim.ink)

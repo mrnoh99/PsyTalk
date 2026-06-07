@@ -466,11 +466,12 @@ private fun SortChip(label: String, selected: Boolean, onClick: () -> Unit) {
         label,
         fontSize = 12.sp,
         fontWeight = FontWeight.Bold,
-        color = if (selected) Color.White else MoimSub,
+        color = moimToggleText(selected, Color.White),
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
-            .background(if (selected) MoimAccent else MoimBg)
+            .background(moimToggleBg(selected, MoimAccent, MoimBg))
+            .then(if (MoimTheme.dark) Modifier.border(1.dp, MoimLine, RoundedCornerShape(20.dp)) else Modifier)
             .padding(horizontal = 14.dp, vertical = 7.dp)
     )
 }
@@ -571,11 +572,12 @@ private fun MemberManageRow(p: Profile, vm: MoimViewModel) {
         val isAdmin = p.role == "admin"
         Text(
             if (isAdmin) "관리자 ✓" else "관리자 지정",
-            color = if (isAdmin) Color.White else MoimAccent, fontSize = 11.sp, fontWeight = FontWeight.Bold,
+            color = moimToggleText(isAdmin, Color.White, MoimAccent), fontSize = 11.sp, fontWeight = FontWeight.Bold,
             modifier = Modifier
                 .clip(RoundedCornerShape(20.dp))
                 .clickable { vm.setRole(p.id, if (isAdmin) "user" else "admin") }
-                .background(if (isAdmin) MoimAccent else MoimBg)
+                .background(moimToggleBg(isAdmin, MoimAccent, MoimBg))
+                .then(if (MoimTheme.dark) Modifier.border(1.dp, MoimLine, RoundedCornerShape(20.dp)) else Modifier)
                 .padding(horizontal = 10.dp, vertical = 6.dp)
         )
         Spacer(Modifier.width(6.dp))
@@ -780,12 +782,13 @@ fun RoomListScreen(
 
 @Composable
 private fun ViewChip(name: String, memberType: String, selected: Boolean) {
-    val bg = if (selected) MoimAccent else MoimWhite
-    val fg = if (selected) Color.White else MoimInk
+    val bg = moimToggleBg(selected, MoimAccent)
+    val fg = moimToggleText(selected, Color.White, MoimInk)
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
             .background(bg)
+            .then(if (MoimTheme.dark && selected) Modifier.border(1.dp, MoimLine, RoundedCornerShape(20.dp)) else Modifier)
             .padding(start = 5.dp, end = 10.dp, top = 5.dp, bottom = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(5.dp)
@@ -1250,7 +1253,10 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                     modifier = Modifier
                                         .fillMaxWidth(0.6f)
                                         .height(2.5.dp)
-                                        .background(if (on) MoimYellow else Color.Transparent)
+                                        .background(
+                                            if (on) (if (MoimTheme.dark) MoimLine else MoimYellow)
+                                            else Color.Transparent,
+                                        )
                                 )
                             }
                         }
@@ -2339,11 +2345,12 @@ private fun MyInfoTab(vm: MoimViewModel) {
                 val on = deviceType == k
                 Text(
                     label, fontSize = 13.sp, fontWeight = FontWeight.Bold,
-                    color = if (on) Color.White else MoimInk,
+                    color = moimToggleText(on, Color.White, MoimInk),
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
                         .clickable { deviceType = k }
-                        .background(if (on) MoimAccent else MoimWhite, RoundedCornerShape(20.dp))
+                        .background(moimToggleBg(on, MoimAccent), RoundedCornerShape(20.dp))
+                        .then(if (MoimTheme.dark) Modifier.border(1.dp, MoimLine, RoundedCornerShape(20.dp)) else Modifier)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
@@ -3034,7 +3041,8 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                             .padding(bottom = 7.dp)
                             .clip(RoundedCornerShape(11.dp))
                             .clickable { selected = if (on) selected - p.id else selected + p.id }
-                            .background(if (on) MoimHl else MoimWhite)
+                            .background(moimToggleBg(on, MoimHl))
+                            .then(if (MoimTheme.dark && on) Modifier.border(1.dp, MoimLine, RoundedCornerShape(11.dp)) else Modifier)
                             .padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -3056,7 +3064,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text(if (on) "✓" else "○", color = if (on) MoimAccent else MoimLine, fontWeight = FontWeight.Bold)
+                        Text(if (on) "✓" else "○", color = moimToggleText(on, MoimAccent, MoimLine), fontWeight = FontWeight.Bold)
                     }
                 }
             }

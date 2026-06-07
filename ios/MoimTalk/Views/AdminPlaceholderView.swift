@@ -210,10 +210,11 @@ struct AdminPlaceholderView: View {
         return Button { vm.memAdminSort = key } label: {
             Text(title)
                 .font(.system(size: 11, weight: .bold))
-                .foregroundColor(on ? .white : Moim.accent)
+                .foregroundColor(moimToggleText(selected: on, lightOn: .white, lightOff: Moim.accent))
                 .padding(.horizontal, 12).padding(.vertical, 5)
-                .background(on ? Moim.accent : Moim.bg)
+                .background(moimToggleBg(selected: on, lightOn: Moim.accent, lightOff: Moim.bg))
                 .clipShape(Capsule())
+                .overlay(Capsule().stroke(ThemeManager.shared.dark ? Moim.line : Color.clear, lineWidth: 1))
         }
         .buttonStyle(.plain)
     }

@@ -256,7 +256,7 @@ private fun TodayDutyQuickButton(
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("오늘 당직", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MoimAccent)
+                Text("오늘 당직", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = moimSurfaceAccentText())
                 Spacer(Modifier.weight(1f))
                 Text("${today.monthValue}/${today.dayOfMonth} ($dow)", fontSize = 12.sp, color = MoimSub)
             }
@@ -297,7 +297,7 @@ private fun WardDutyDayRow(
                 color = if (tone != WardDutyTone.WEEKDAY) wardDutyOffDayInk() else MoimInk,
             )
             if (isToday) {
-                Text(" 오늘", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimAccent)
+                Text(" 오늘", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = moimSurfaceAccentText())
             }
             Spacer(Modifier.weight(1f))
             if (toneLabel != null) {
@@ -305,7 +305,7 @@ private fun WardDutyDayRow(
             }
             if (editLabel != null) {
                 TextButton(onClick = onEdit, modifier = Modifier.padding(0.dp)) {
-                    Text(editLabel, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAccent)
+                    Text(editLabel, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = moimSurfaceAccentText())
                 }
             }
         }

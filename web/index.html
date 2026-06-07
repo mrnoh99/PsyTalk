@@ -14,7 +14,7 @@
 <style>
   :root{
     /* 🌙 다크 모드 (기본) */
-    --bg:#161616;--paper:#121212;--surface:#1e1e1e;--you:#3a3a3a;--hl:#33301f;
+    --bg:#161616;--paper:#121212;--surface:#1e1e1e;--you:#3a3a3a;--hl:#1e1e1e;
     --ink:#ffffff;--sub:#bdbdbd;--accent:#1e88e5;--secondary:#00bcd4;
     --me:#ffca28;--line:#2c2c2c;--admin:#f44336;
     --notice:#b5651d;--group:#4a6fa5;--work:#3d8361;--research:#6d597a;--orange:#ea7317;
@@ -78,6 +78,16 @@
   html:not(.light) .sb.on,html:not(.light) .cm.on{background:var(--surface);color:var(--ink);border-color:var(--line)}
   html:not(.light) .addev{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
   html:not(.light) .calret{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  html:not(.light) .tab.on{border-bottom-color:var(--line)}
+  html:not(.light) .wday.wtoday{background:var(--surface);border:1px solid var(--line)}
+  html:not(.light) .today-duty-btn{border-color:var(--line);background:var(--surface)}
+  html:not(.light) .today-duty-btn .tdt,html:not(.light) .today-duty-btn .tdm{color:var(--ink)}
+  html:not(.light) .dutyrow.today{border-color:var(--line)}
+  html:not(.light) .dutyrow .dtoday,html:not(.light) .dutyrow .dedit{color:var(--ink)}
+  html:not(.light) .sortbtn.on{background:var(--surface);color:var(--ink);border-color:var(--line)}
+  html:not(.light) .pick.sel{border-color:var(--line);background:var(--surface)}
+  html:not(.light) .pick.sel .chk{color:var(--ink)}
+  html:not(.light) .pulldown-opt.sel{color:var(--ink)}
   .mkrow{padding:2px 14px 10px;display:flex;gap:10px;align-items:stretch}
   .mkbtn{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;color:var(--accent);cursor:pointer;text-align:center}
   .mkbtn-bug{color:var(--admin);position:relative}
@@ -847,9 +857,12 @@ function renderMyInfo(){
 }
 function renderMeDevice(){
   const el=document.getElementById('meDevice'); if(!el)return;
+  const dark=!document.documentElement.classList.contains('light');
   el.innerHTML=[['iphone','🍎 아이폰'],['android','🤖 안드로이드']].map(([k,l])=>{
     const on=k===meDeviceType;
-    return `<span onclick="meDeviceType='${k}';renderMeDevice()" style="cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:20px;background:${on?'var(--accent)':'var(--surface)'};color:${on?'#fff':'var(--ink)'};border:1px solid var(--line)">${l}</span>`;
+    const bg=on?(dark?'var(--surface)':'var(--accent)'):'var(--surface)';
+    const fg=on?(dark?'var(--ink)':'#fff'):'var(--ink)';
+    return `<span onclick="meDeviceType='${k}';renderMeDevice()" style="cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:20px;background:${bg};color:${fg};border:1px solid var(--line)">${l}</span>`;
   }).join('');
 }
 function initMeMtypePulldown(selected){
@@ -1357,9 +1370,12 @@ function renderSuTypes(){
 }
 function renderSuDevice(){
   const el=document.getElementById('suDevice'); if(!el)return;
+  const dark=!document.documentElement.classList.contains('light');
   el.innerHTML=[['iphone','🍎 아이폰'],['android','🤖 안드로이드']].map(([k,l])=>{
     const on=k===suDeviceType;
-    return `<span onclick="suDeviceType='${k}';renderSuDevice()" style="cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:20px;background:${on?'var(--accent)':'var(--surface)'};color:${on?'#fff':'var(--ink)'};border:1px solid var(--line)">${l}</span>`;
+    const bg=on?(dark?'var(--surface)':'var(--accent)'):'var(--surface)';
+    const fg=on?(dark?'var(--ink)':'#fff'):'var(--ink)';
+    return `<span onclick="suDeviceType='${k}';renderSuDevice()" style="cursor:pointer;font-size:13px;font-weight:700;padding:8px 16px;border-radius:20px;background:${bg};color:${fg};border:1px solid var(--line)">${l}</span>`;
   }).join('');
 }
 function toggleSignup(){
@@ -1604,7 +1620,11 @@ function renderApproval(){
 let memAdminSort='name';
 function memAdminSortGo(s){ memAdminSort=s; renderAdmin(); }
 function memberMgmtRow(p){const isAd=p.role==='admin';
-  const roleBtn=`<button onclick="setRole('${p.id}','${isAd?'user':'admin'}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;${isAd?'background:var(--accent);color:#fff':'background:var(--bg);color:var(--accent)'}">${isAd?'관리자 ✓':'관리자 지정'}</button>`;
+  const dark=!document.documentElement.classList.contains('light');
+  const roleBtnStyle=isAd
+    ?(dark?'background:var(--surface);color:var(--ink);border:1px solid var(--line)':'background:var(--accent);color:#fff;border:none')
+    :(dark?'background:var(--surface);color:var(--sub);border:1px solid var(--line)':'background:var(--bg);color:var(--accent);border:none');
+  const roleBtn=`<button onclick="setRole('${p.id}','${isAd?'user':'admin'}')" style="border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;${roleBtnStyle}">${isAd?'관리자 ✓':'관리자 지정'}</button>`;
   const deact=`<button onclick="adminDeactivate('${p.id}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(192,69,47,.12);color:var(--admin);margin-left:6px">계정 비활성화</button>`;
   return adminRow(p, roleBtn+deact, `${p.member_type||''} · ${isAd?'관리자':'회원'}`);
 }
@@ -2416,6 +2436,7 @@ function renderCal(){
       const isT=sameDay(cur,today), isSel=sameDay(cur,selDate);
       let style=`aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;border-radius:9px;cursor:pointer;`;
       if(dark&&isSel) style+=`background:var(--surface);border:1px solid var(--line);font-weight:800;`;
+      else if(dark&&isT) style+=`background:var(--surface);border:1px solid var(--line);font-weight:800;`;
       else{if(isT) style+=`background:var(--me);font-weight:800;`;if(isSel) style+=`box-shadow:inset 0 0 0 2px var(--accent);font-weight:800;`;}
       h+=`<div style="${style}" onclick="selectDay(${y},${m},${d})">${d}${evDays.has(d)?'<div style="width:5px;height:5px;border-radius:50%;background:var(--admin)"></div>':''}</div>`;}
     h+=`</div><h4 style="font-size:11px;color:var(--sub);font-weight:800;margin-bottom:10px">${sameDay(selDate,today)?'오늘':selLabel()} 일정</h4>`;

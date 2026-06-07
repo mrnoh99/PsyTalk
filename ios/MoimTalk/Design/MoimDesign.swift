@@ -168,7 +168,7 @@ enum Moim {
     static var success: Color { moimDark ? Color(hex: 0x4CAF50) : Color(hex: 0x388E3C) }
     static var white: Color { moimDark ? Color(hex: 0x1E1E1E) : Color(hex: 0xFFFFFF) }   // 카드/표면
     static var youBubble: Color { moimDark ? Color(hex: 0x3A3A3A) : Color(hex: 0xFFFFFF) } // 상대 말풍선
-    static var hl: Color { moimDark ? Color(hex: 0x33301F) : Color(hex: 0xFFF8E0) }      // 선택·오늘 하이라이트
+    static var hl: Color { moimDark ? Color(hex: 0x1E1E1E) : Color(hex: 0xFFF8E0) }      // 다크 hl = surface
     static let orange = Color(hex: 0xEA7317)
 }
 
@@ -182,6 +182,8 @@ func moimToggleBg(selected: Bool, lightOn: Color, lightOff: Color = Moim.white) 
 func moimToggleText(selected: Bool, lightOn: Color, lightOff: Color = Moim.sub) -> Color {
     moimDark ? moimDarkSegText(selected: selected) : (selected ? lightOn : lightOff)
 }
+
+func moimSurfaceAccentText() -> Color { moimDark ? Moim.ink : Moim.accent }
 
 /// 방·일정 상세 등 오버레이 슬라이드 — Android/Web 과 동일(진입 trailing, 복귀 trailing)
 enum MoimOverlayAnim {
@@ -343,7 +345,7 @@ func dutyTodayPreview(_ duty: WardDuty?, offDay: Bool) -> String {
 }
 
 func wardDutyTodayCardColors() -> (Color, Color) {
-    (Moim.accent.opacity(0.12), Moim.accent.opacity(0.35))
+    moimDark ? (moimDarkSegBg(), moimDarkSegBorder()) : (Moim.accent.opacity(0.12), Moim.accent.opacity(0.35))
 }
 
 func wardDutyOffDayRowColors() -> (Color, Color) {
@@ -366,7 +368,8 @@ func wardDutyRowColors(_ tone: WardDutyTone, isToday: Bool) -> (Color, Color) {
     case .publicHoliday, .weekend: pair = wardDutyOffDayRowColors()
     case .weekday: pair = (Moim.white, Moim.line)
     }
-    return (pair.0, isToday ? Moim.accent : pair.1)
+    let todayBorder = isToday ? (moimDark ? Moim.line : Moim.accent) : pair.1
+    return (pair.0, todayBorder)
 }
 
 // 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실

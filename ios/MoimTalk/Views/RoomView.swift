@@ -172,6 +172,8 @@ struct RoomView: View {
         return [("chat", "💬 채팅"), ("files", "📁 자료실"), ("cal", "📅 캘린더")]
     }
 
+    @ObservedObject private var theme = ThemeManager.shared
+
     private var tabBar: some View {
         HStack(spacing: 0) {
             ForEach(tabItems, id: \.0) { id, label in
@@ -179,7 +181,7 @@ struct RoomView: View {
                 VStack(spacing: 8) {
                     Text(label).font(.system(size: 13, weight: .bold))
                         .foregroundColor(on ? Moim.ink : Moim.sub)
-                    Rectangle().fill(on ? Moim.yellow : Color.clear)
+                    Rectangle().fill(on ? (theme.dark ? Moim.line : Moim.yellow) : Color.clear)
                         .frame(height: 2.5).frame(maxWidth: .infinity).padding(.horizontal, 20)
                 }
                 .padding(.vertical, 12).frame(maxWidth: .infinity)

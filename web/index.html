@@ -2302,7 +2302,8 @@ function resolveAttachments(){/* 공개 URL 이라 별도 처리 불필요 */}
 function toggleAttachMenu(e){
   if(e)e.stopPropagation();
   const m=document.getElementById('attachMenu');
-  if(!m.classList.contains('on')){               // 열 때: + 버튼 바로 위에 고정 위치(부모 overflow 클리핑 회피)
+  if(!m.classList.contains('on')){               // 열 때: body 로 옮겨 뷰포트 기준 고정 위치(변형·overflow 조상 영향 제거)
+    if(m.parentElement!==document.body)document.body.appendChild(m);
     const r=document.getElementById('plusBtn').getBoundingClientRect();
     m.style.left=r.left+'px';
     m.style.bottom=(window.innerHeight-r.top+8)+'px';

@@ -2282,28 +2282,26 @@ function renderMsgs(){
 }
 window.addEventListener('resize',layoutChat);
 // iOS 홈화면(PWA): 키보드가 올라오면 비주얼뷰포트가 줄고 위로 패닝돼 상단 바가 시계까지 밀림.
-// → .phone 높이는 보이는 영역에 맞추되, 상단 바 위치 보정(transform)·스크롤 리셋은 '키보드가 멈춘 뒤 1회'만
-//   적용해 매 프레임 싸움으로 인한 잔떨림을 없앤다.
-function fitPhoneToViewport(settle){
+// 이벤트마다 손대면 iOS 애니메이션과 충돌해 잔떨림 → 이벤트 중엔 아무것도 안 하고
+// '키보드가 멈춘 뒤(디바운스) 딱 한 번' .phone 을 보이는 영역에 맞춘다.
+function fitPhoneToViewport(){
   if(!window.visualViewport||!document.documentElement.classList.contains('ios-standalone'))return;
   const vv=window.visualViewport, phone=document.querySelector('.phone');
   if(!phone)return;
   const h=Math.round(vv.height), ty=Math.round(vv.offsetTop);
-  if(phone._fh!==h){phone.style.height=h+'px';phone.style.bottom='auto';phone._fh=h;}   // 높이만 즉시(부드럽게)
+  phone.style.height=h+'px'; phone.style.bottom='auto';
+  phone.style.transform=ty?('translateY('+ty+'px)'):'';
+  if(window.pageYOffset!==0)window.scrollTo(0,0);
   document.documentElement.classList.toggle('kb-open',((window.innerHeight||vv.height)-h-ty)>120);
-  if(settle){   // 키보드 정착 후 한 번만 상단 바 위치 보정 → 잔떨림 없음
-    if(phone._fty!==ty){phone.style.transform=ty?('translateY('+ty+'px)'):'';phone._fty=ty;}
-    if(window.pageYOffset!==0)window.scrollTo(0,0);
-  }
+  layoutChat();
+  if(document.activeElement===activeMsgInput()&&!replyTarget)scrollMsgsToBottom();
 }
 let kbSettleT=null;
-function fitSoon(){ fitPhoneToViewport(false); clearTimeout(kbSettleT); kbSettleT=setTimeout(()=>fitPhoneToViewport(true),160); }
+function fitSoon(){ clearTimeout(kbSettleT); kbSettleT=setTimeout(fitPhoneToViewport,180); }   // 정착 후 1회만
 document.addEventListener('focusin',e=>{ if(e.target&&e.target.matches&&e.target.matches('input,textarea'))fitSoon(); });
 document.addEventListener('focusout',e=>{ if(e.target&&e.target.matches&&e.target.matches('input,textarea'))fitSoon(); });
 if(window.visualViewport){
-  const onVV=()=>{fitSoon();layoutChat();if(document.activeElement===activeMsgInput()&&!replyTarget)scrollMsgsToBottom();};
-  window.visualViewport.addEventListener('resize',onVV);
-  window.visualViewport.addEventListener('scroll',onVV);
+  window.visualViewport.addEventListener('resize',fitSoon);   // scroll(패닝) 은 무시 → 떨림 없음
 }
 function isNoticeRoom(){return active&&noticeTopRoom()&&noticeTopRoom().id===active.id;}
 function activeMsgInput(){return (isNoticeRoom()||isBugReportRoom(active))?document.getElementById('msgInputNotice'):document.getElementById('msgInput');}
@@ -3042,9 +3040,9 @@ function applyIosStandaloneSafeArea(){
   root.style.setProperty('--ios-safe-bottom',bottom+'px');
 }
 applyIosStandaloneSafeArea();
-fitPhoneToViewport(true);
+fitPhoneToViewport();
 window.addEventListener('resize',()=>{applyIosStandaloneSafeArea();fitSoon();});
-window.visualViewport?.addEventListener('resize',applyIosStandaloneSafeArea);
+// 키보드(비주얼뷰포트 resize)마다 probe reflow 돌면 떨림 → 키보드 변화엔 safe-area 재계산 안 함
 
 /* ====== 시작: 기존 세션 있으면 자동 로그인 ====== */
 (async()=>{

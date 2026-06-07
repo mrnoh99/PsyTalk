@@ -17,7 +17,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import com.example.moimtalk.data.CalendarEvent
 import com.example.moimtalk.data.LastMsg
@@ -423,7 +425,9 @@ fun linkifyAnnotatedString(text: String): AnnotatedString = buildAnnotatedString
     for (match in URL_IN_TEXT.findAll(text)) {
         append(text.substring(last, match.range.first))
         val url = match.value
+        val start = length
         withLink(LinkAnnotation.Url(url)) { append(url) }
+        addStyle(SpanStyle(color = MoimAccent, textDecoration = TextDecoration.Underline), start, length)
         last = match.range.last + 1
     }
     append(text.substring(last))

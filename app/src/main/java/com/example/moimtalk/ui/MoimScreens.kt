@@ -9,6 +9,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
@@ -86,10 +87,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
-import androidx.compose.ui.text.LinkInteractionListener
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.TextLinkStyles
-import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
@@ -1563,16 +1561,13 @@ private fun NoticeBodyText(text: String) {
     val uriHandler = LocalUriHandler.current
     val annotated = remember(text) { linkifyAnnotatedString(text) }
     SelectionContainer {
-        Text(
+        ClickableText(
             text = annotated,
-            color = MoimInk,
-            fontSize = 15.sp,
-            lineHeight = 24.sp,
-            linkStyles = TextLinkStyles(
-                style = SpanStyle(color = MoimAccent, textDecoration = TextDecoration.Underline),
-            ),
-            linkInteractionListener = LinkInteractionListener { link ->
-                (link as? LinkAnnotation.Url)?.url?.let { uriHandler.openUri(it) }
+            style = TextStyle(color = MoimInk, fontSize = 15.sp, lineHeight = 24.sp),
+            onClick = { offset ->
+                annotated.getLinkAnnotations(offset, offset)
+                    .firstOrNull()?.item
+                    ?.let { link -> (link as? LinkAnnotation.Url)?.url?.let { uriHandler.openUri(it) } }
             },
         )
     }

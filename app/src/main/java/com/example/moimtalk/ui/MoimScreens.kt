@@ -1512,6 +1512,7 @@ private fun NoticePostCard(
     onDelete: () -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
+    val clipboard = LocalClipboardManager.current
     val path = m.attachmentUrl
     val resolved = path?.let { p -> attachUrl(p) ?: if (p.startsWith("http")) p else null }
     val caption = m.content?.trim()?.takeIf { it.isNotEmpty() }
@@ -1608,17 +1609,22 @@ private fun NoticePostCard(
                     lineHeight = 24.sp,
                 )
             }
-            if (mine) {
-                Text(
-                    "🗑 삭제",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MoimAdmin,
-                    modifier = Modifier
-                        .align(Alignment.End)
-                        .padding(top = 10.dp)
-                        .clickable { onDelete() },
-                )
+            Row(
+                modifier = Modifier.align(Alignment.End).padding(top = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                m.content?.takeIf { it.isNotBlank() }?.let { txt ->
+                    Text(
+                        "📋 복사", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimAccent,
+                        modifier = Modifier.clickable { clipboard.setText(AnnotatedString(txt)) },
+                    )
+                }
+                if (mine) {
+                    Text(
+                        "🗑 삭제", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
+                        modifier = Modifier.clickable { onDelete() },
+                    )
+                }
             }
         }
     }

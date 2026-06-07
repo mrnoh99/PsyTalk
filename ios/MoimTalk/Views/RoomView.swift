@@ -596,14 +596,22 @@ struct NoticePostCard: View {
                     .padding(.top, 6)
                 Divider().background(Moim.line).padding(.vertical, 14)
                 noticeBody
-                if mine {
-                    Button(action: onDelete) {
-                        Text("🗑 삭제").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.admin)
+                HStack(spacing: 16) {
+                    Spacer()
+                    if let txt = message.content, !txt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Button { UIPasteboard.general.string = txt } label: {
+                            Text("📋 복사").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.accent)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.top, 10)
+                    if mine {
+                        Button(action: onDelete) {
+                            Text("🗑 삭제").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.admin)
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
+                .padding(.top, 10)
             }
             .padding(.horizontal, 20).padding(.vertical, 18)
             .frame(maxWidth: 400)

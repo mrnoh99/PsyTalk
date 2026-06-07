@@ -1723,12 +1723,27 @@ function noticePostHtml(m,who,mine){
   if(cap) body+=`<div class="notice-body">${esc(cap)}</div>`;
   body+=noticeAttachmentHtml(m);
   if(!body) body=`<div class="notice-body"></div>`;
-  const del=mine?`<span class="notice-del" onclick="delMsg('${m.id}')">🗑 삭제</span>`:'';
+  const copy=cap?`<span onclick="copyNotice('${m.id}')" style="cursor:pointer;font-size:12px;font-weight:700;color:var(--accent)">📋 복사</span>`:'';
+  const del=mine?`<span onclick="delMsg('${m.id}')" style="cursor:pointer;font-size:12px;font-weight:700;color:var(--admin)">🗑 삭제</span>`:'';
+  const footer=(copy||del)?`<div style="display:flex;gap:16px;justify-content:flex-end;margin-top:10px">${copy}${del}</div>`:'';
   return `<div class="notice-post"><article class="notice-card">
     <div class="notice-accent"></div>
     <p class="notice-time">${fmtDetailTime(m.created_at)}</p>
     <p class="notice-author">${author}</p>
-    <hr class="notice-hr">${body}${del}</article></div>`;
+    <hr class="notice-hr">${body}${footer}</article></div>`;
+}
+// 과 전체공지 복사 (https 면 Clipboard API, 아니면 폴백)
+function copyNotice(id){
+  const m=msgs.find(x=>x.id===id); if(!m)return;
+  const t=m.content||'';
+  if(navigator.clipboard&&window.isSecureContext){ navigator.clipboard.writeText(t).catch(()=>copyTextFallback(t)); }
+  else copyTextFallback(t);
+}
+function copyTextFallback(t){
+  const ta=document.createElement('textarea'); ta.value=t;
+  ta.style.position='fixed'; ta.style.top='-1000px'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.focus(); ta.select();
+  try{document.execCommand('copy');}catch(e){} ta.remove();
 }
 function renderMsgs(){
   const el=document.getElementById('msgs');

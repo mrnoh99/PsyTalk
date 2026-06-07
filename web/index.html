@@ -220,20 +220,21 @@
   .mdel{align-self:center;cursor:pointer;font-size:13px;opacity:.4;padding:2px 4px}.mdel:hover{opacity:1}
   .munread{align-self:flex-end;font-size:11px;color:#e0922f;font-weight:800;margin:0 4px;white-space:nowrap}
   .unread{background:var(--admin);color:#fff;font-size:11px;font-weight:800;min-width:19px;height:19px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 5px;flex-shrink:0}
-  .bubble{padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.42;word-break:break-word;max-width:260px}
+  .bubble{padding:9px 12px;border-radius:16px;font-size:14.5px;line-height:1.42;word-break:break-word;max-width:260px;white-space:pre-wrap}
   .mrow.you .bubble{background:var(--you);color:var(--ink)}.mrow.me .bubble{background:var(--accent);color:#fff}
+  .msg-more{display:inline-block;margin-left:4px;font-weight:700;text-decoration:underline;cursor:pointer;opacity:.85}
   .bimg{max-width:200px;max-height:240px;border-radius:14px;cursor:pointer;display:block;object-fit:cover}
   .bfile{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--you);border-radius:16px;padding:10px 12px;font-size:13px;color:var(--ink);text-decoration:none;font-weight:600}
   .bfile-me{display:inline-flex;align-items:center;gap:7px;max-width:230px;background:var(--accent);border-radius:16px;padding:10px 12px;font-size:13px;color:#fff;text-decoration:none;font-weight:600}
   .bfile span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .inputbar{display:flex;align-items:center;gap:8px;padding:9px 12px;padding-bottom:calc(9px + constant(safe-area-inset-bottom));
+  .inputbar{display:flex;align-items:flex-end;gap:8px;padding:9px 16px 9px 12px;padding-bottom:calc(9px + constant(safe-area-inset-bottom));
     padding-bottom:calc(9px + env(safe-area-inset-bottom));background:var(--paper);border-top:1px solid var(--line);position:relative;flex-shrink:0;min-height:0;min-width:0;width:100%;max-width:100%;overflow:hidden;flex-wrap:nowrap;box-sizing:border-box}
-  .inputbar.notice-compose{align-items:flex-end;padding:10px 12px;padding-bottom:calc(12px + constant(safe-area-inset-bottom));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
-  .inputbar input[type=text],.inputbar #msgInput{flex:1 1 0;min-width:0;width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:20px;padding:10px 13px;font-size:15px;outline:none;font-family:inherit}
+  .inputbar.notice-compose{align-items:flex-end;padding:10px 16px 10px 12px;padding-bottom:calc(12px + constant(safe-area-inset-bottom));padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+  .inputbar #msgInput{flex:1 1 0;min-width:0;width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:18px;padding:9px 13px;font-size:15px;line-height:1.4;outline:none;font-family:inherit;resize:none;min-height:38px;max-height:120px;overflow-y:auto}
   .inputbar #msgInputNotice{display:none;flex:1 1 0;min-width:0;width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;line-height:1.55;outline:none;font-family:inherit;resize:vertical;min-height:88px;max-height:120px}
   .inputbar.notice-compose #msgInput{display:none}
   .inputbar.notice-compose #msgInputNotice{display:block}
-  .send{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0}
+  .send{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:19px;font-weight:700;line-height:1;cursor:pointer;flex-shrink:0;margin-right:2px}
   .plus{background:none;border:1px solid var(--line);color:var(--sub);width:34px;height:34px;border-radius:50%;font-size:21px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
   .attachmenu{position:fixed;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:90}
   .attachmenu.on{display:flex}
@@ -503,9 +504,9 @@
         <div class="attpreview hidden" id="attachPreview"></div>
         <div class="inputbar" id="inputbar">
           <button class="plus" id="plusBtn" onclick="toggleAttachMenu(event)">＋</button>
-          <input id="msgInput" placeholder="메시지 입력" onkeydown="onMsgKeydown(event)" onfocus="msgInputFocus()">
+          <textarea id="msgInput" placeholder="메시지 입력" rows="1" oninput="autoGrowMsg(this)" onkeydown="onMsgKeydown(event)" onfocus="msgInputFocus()"></textarea>
           <textarea id="msgInputNotice" placeholder="공지 내용 입력 (줄바꿈 가능)" onfocus="msgInputFocus()"></textarea>
-          <button class="send" onclick="sendMsg()">➤</button>
+          <button class="send" onclick="sendMsg()">↑</button>
           <input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="onAttachPicked(this,'image')">
           <input type="file" id="chatFileInput" style="display:none" onchange="onAttachPicked(this,'file')">
           <div class="attachmenu" id="attachMenu">
@@ -705,6 +706,14 @@
   <!-- 사진 원본 보기 (탭하면 닫힘) -->
   <div id="imgViewer" onclick="closeImageView()" style="position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center;z-index:80;padding:18px">
     <img id="imgViewerImg" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px" alt="사진">
+  </div>
+
+  <!-- 긴 메시지 전체 보기 (탭하면 닫힘) -->
+  <div id="msgFullView" onclick="closeFullMsg()" style="position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;z-index:85;padding:18px">
+    <div onclick="event.stopPropagation()" style="background:var(--surface);color:var(--ink);max-width:460px;width:100%;max-height:80vh;display:flex;flex-direction:column;border-radius:16px;border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.3)">
+      <div id="msgFullBody" style="overflow:auto;white-space:pre-wrap;word-break:break-word;line-height:1.6;font-size:15px;padding:20px"></div>
+      <button onclick="closeFullMsg()" style="margin:0 16px 16px;padding:11px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer">닫기</button>
+    </div>
   </div>
 
   <!-- 메시지·공지 길게누르기 메뉴 (이모지·복사·답장) -->
@@ -2242,10 +2251,23 @@ function bubbleBlockHtml(m){
     const fileCls=m.sender_id===me.id?'bubble bfile-me':'bfile';
     body=`${quoteBubble}<a class="${fileCls}" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a>`;
   } else {
-    body=`<div class="bubble bubble-text">${quote}${esc(m.content||'')}</div>`;
+    const c=m.content||'';
+    if(c.length>MSG_TRUNC){   // 너무 길면 잘라 보여주고 '전체보기'로 새 화면에서 전체 표시
+      body=`<div class="bubble bubble-text">${quote}${esc(c.slice(0,MSG_TRUNC))}…<span class="msg-more" onclick="event.stopPropagation();openFullMsg('${m.id}')">전체보기</span></div>`;
+    } else {
+      body=`<div class="bubble bubble-text">${quote}${esc(c)}</div>`;
+    }
   }
   return `<div class="msg-hit" data-msgid="${m.id}">${body}</div>${chips}`;
 }
+const MSG_TRUNC=400;   // 이 길이(글자) 넘으면 말풍선은 잘리고 '전체보기' 표시
+function openFullMsg(id){
+  const m=(typeof msgs!=='undefined'?msgs:[]).find(x=>x.id===id); if(!m)return;
+  const body=document.getElementById('msgFullBody');
+  if(body)body.textContent=m.content||'';
+  const v=document.getElementById('msgFullView'); if(v)v.style.display='flex';
+}
+function closeFullMsg(){ const v=document.getElementById('msgFullView'); if(v)v.style.display='none'; }
 function renderMsgs(){
   const el=document.getElementById('msgs');
   if(!el)return;
@@ -2295,12 +2317,13 @@ function setNoticeComposeMode(on){
 // 보내기(➤): 첨부가 대기 중이면 첨부를 보내고, 텍스트가 있으면 텍스트도 보낸다
 /** 한글 IME 조합 중 Enter 는 전송하지 않음 (마지막 글자만 먼저 나가는 버그 방지) */
 function onMsgKeydown(e){
-  if(e.target.id==='msgInputNotice')return;
   if(e.key!=='Enter')return;
   if(e.isComposing||e.keyCode===229)return;
-  e.preventDefault();
-  sendMsg();
+  // Enter = 줄바꿈, Ctrl/⌘+Enter = 전송 (모바일은 ↑ 버튼으로 전송)
+  if(e.ctrlKey||e.metaKey){ e.preventDefault(); sendMsg(); }
 }
+// 입력 줄바꿈에 맞춰 입력창 높이 자동 확장(최대 120px 후 스크롤)
+function autoGrowMsg(ta){ if(!ta)return; ta.style.height='auto'; ta.style.height=Math.min(ta.scrollHeight,120)+'px'; }
 // 답장 중에는 입력창 포커스 시 위치 유지(바닥 이동 안 함). 일반 입력은 바닥으로.
 function msgInputFocus(){ if(!replyTarget) scrollMsgsToBottom(); }
 async function sendMsg(){
@@ -2308,13 +2331,13 @@ async function sendMsg(){
   if(pendingAttach){
     const ok=await sendPendingAttach(t||null);
     if(!ok)return;
-    i.value='';
+    i.value='';autoGrowMsg(i);
     await loadMsgs();
     scrollMsgsToBottom();   // 보내면 최근으로 복귀
     return;
   }
   if(t){
-    i.value='';
+    i.value='';autoGrowMsg(i);
     const payload={room_id:active.id,sender_id:me.id,content:t};
     if(replyTarget&&!isNoticeRoom())payload.reply_to=replyTarget.id;
     clearReply();

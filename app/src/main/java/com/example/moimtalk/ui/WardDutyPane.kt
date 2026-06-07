@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -55,16 +56,6 @@ private val TONE_LABEL = mapOf(
     WardDutyTone.WEEKEND to "주말",
 )
 
-private fun dash(s: String?) = s?.takeIf { it.isNotBlank() } ?: "—"
-
-private fun outpatientLabel(duty: WardDuty?): String {
-    val names = listOfNotNull(
-        duty?.residentOutpatient1?.takeIf { it.isNotBlank() },
-        duty?.residentOutpatient2?.takeIf { it.isNotBlank() },
-    )
-    return names.joinToString(", ").ifBlank { "—" }
-}
-
 private fun hasAnyDuty(duty: WardDuty?): Boolean = duty != null && (
     duty.profDay.isNotBlank() || duty.residentDay.isNotBlank() || duty.residentNight.isNotBlank()
         || duty.residentOutpatient1.isNotBlank() || duty.residentOutpatient2.isNotBlank()
@@ -103,12 +94,21 @@ fun WardDutyPane(vm: MoimViewModel, modifier: Modifier = Modifier) {
     val today = remember { LocalDate.now(KST) }
     var ym by remember { mutableStateOf(YearMonth.from(today)) }
     var editDate by remember { mutableStateOf<LocalDate?>(null) }
-    var showTodaySummary by remember { mutableStateOf(false) }
+    var pendingScrollToday by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) { vm.loadWardTodayDuty() }
     LaunchedEffect(ym) { vm.loadWardDuties(ym) }
 
     val days = remember(ym) { (1..ym.lengthOfMonth()).map { ym.atDay(it) } }
+
+    LaunchedEffect(ym, pendingScrollToday) {
+        if (pendingScrollToday) {
+            val idx = days.indexOfFirst { it == today }
+            if (idx >= 0) listState.animateScrollToItem(idx)
+            pendingScrollToday = false
+        }
+    }
     val faculty = remember(vm.profilesById) { dutyMembersByType(vm.profilesById, "교실") }
     val residents = remember(vm.profilesById) { dutyMembersByType(vm.profilesById, "의국") }
     val canEdit = canEditWardDuty(vm.myProfile)
@@ -132,14 +132,17 @@ fun WardDutyPane(vm: MoimViewModel, modifier: Modifier = Modifier) {
         TodayDutyQuickButton(
             today = today,
             duty = vm.wardTodayDuty,
+            tone = wardDutyTone(today),
             offDay = isWardDutyOffDay(today),
             onClick = {
                 vm.loadWardTodayDuty()
-                showTodaySummary = true
+                ym = YearMonth.from(today)
+                pendingScrollToday = true
             },
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
         )
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -158,15 +161,6 @@ fun WardDutyPane(vm: MoimViewModel, modifier: Modifier = Modifier) {
                 )
             }
         }
-    }
-
-    if (showTodaySummary) {
-        TodayDutySummaryDialog(
-            today = today,
-            duty = vm.wardTodayDuty,
-            offDay = isWardDutyOffDay(today),
-            onDismiss = { showTodaySummary = false },
-        )
     }
 
     editDate?.let { date ->
@@ -198,98 +192,37 @@ fun WardDutyPane(vm: MoimViewModel, modifier: Modifier = Modifier) {
 private fun TodayDutyQuickButton(
     today: LocalDate,
     duty: WardDuty?,
+    tone: WardDutyTone,
     offDay: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dow = DOW_KO[today.dayOfWeek.value - 1]
-    val prof = dash(duty?.profDay)
-    val preview = if (offDay) {
-        "교원 $prof  ·  당직 ${dash(duty?.residentNight)}"
-    } else {
-        "교원 $prof  ·  낮 ${dash(duty?.residentDay)}  ·  당직 ${dash(duty?.residentNight)}  ·  외래 ${outpatientLabel(duty)}"
-    }
+    val preview = dutyTodayPreview(
+        duty?.profDay, duty?.residentDay, duty?.residentNight,
+        duty?.residentOutpatient1, duty?.residentOutpatient2, offDay,
+    )
+    val (bg, border) = wardDutyTodayCardColors(tone)
+    val titleColor = if (tone == WardDutyTone.WEEKDAY) MoimAccent else Color(0xFF6D5E58)
 
     Box(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(MoimAccent.copy(alpha = 0.12f), RoundedCornerShape(12.dp))
-            .border(1.dp, MoimAccent.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+            .background(bg, RoundedCornerShape(12.dp))
+            .border(1.dp, border, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .padding(horizontal = 14.dp, vertical = 12.dp),
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("오늘 당직", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = MoimAccent)
+                Text("오늘 당직", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = titleColor)
                 Spacer(Modifier.weight(1f))
                 Text("${today.monthValue}/${today.dayOfMonth} ($dow)", fontSize = 11.sp, color = MoimSub)
             }
             Spacer(Modifier.height(6.dp))
             Text(preview, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MoimInk, maxLines = 3)
-            Text("탭하여 자세히 보기", fontSize = 10.sp, color = MoimSub, modifier = Modifier.padding(top = 4.dp))
         }
-    }
-}
-
-@Composable
-private fun TodayDutySummaryDialog(
-    today: LocalDate,
-    duty: WardDuty?,
-    offDay: Boolean,
-    onDismiss: () -> Unit,
-) {
-    val dow = DOW_KO[today.dayOfWeek.value - 1]
-    val toneLabel = TONE_LABEL[wardDutyTone(today)]
-    fun name(v: String?) = v?.takeIf { it.isNotBlank() } ?: "미지정"
-
-    Dialog(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(16.dp))
-                .background(MoimPaper)
-                .padding(20.dp),
-        ) {
-            Text("오늘 당직", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MoimInk)
-            Text(
-                "${today.monthValue}월 ${today.dayOfMonth}일 ($dow)${toneLabel?.let { " · $it" } ?: ""}",
-                fontSize = 12.sp,
-                color = MoimSub,
-                modifier = Modifier.padding(top = 4.dp, bottom = 16.dp),
-            )
-            Text("교원 당직", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-            Text(name(duty?.profDay), fontSize = 22.sp, fontWeight = FontWeight.Bold, color = MoimInk)
-            Spacer(Modifier.height(14.dp))
-            Text("전공의", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-            if (offDay) {
-                Text("당직", fontSize = 10.sp, color = MoimSub)
-                Text(name(duty?.residentNight), fontSize = 20.sp, fontWeight = FontWeight.Bold, color = MoimInk)
-            } else {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    DutySummaryCell("낮당직", name(duty?.residentDay), Modifier.weight(1f))
-                    DutySummaryCell("당직", name(duty?.residentNight), Modifier.weight(1f))
-                }
-                Spacer(Modifier.height(8.dp))
-                Text("외래", fontSize = 10.sp, color = MoimSub)
-                Text(outpatientLabel(duty).let { if (it == "—") "미지정" else it },
-                    fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MoimInk)
-            }
-            Spacer(Modifier.height(18.dp))
-            Button(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
-            ) { Text("확인") }
-        }
-    }
-}
-
-@Composable
-private fun DutySummaryCell(label: String, value: String, modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Text(label, fontSize = 10.sp, color = MoimSub)
-        Text(value, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MoimInk)
     }
 }
 
@@ -337,26 +270,27 @@ private fun WardDutyDayRow(
             }
         }
         Spacer(Modifier.height(8.dp))
-        Text("교원 당직", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-        Text(dash(duty?.profDay), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 24.sp)
+        Text(dutyProfDisplay(duty?.profDay), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 24.sp)
         Spacer(Modifier.height(8.dp))
-        Text("전공의", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
         if (offDay) {
             Text("당직", fontSize = 10.sp, color = MoimSub)
-            Text(dash(duty?.residentNight), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 22.sp)
+            Text(dutyResidentDisplay(duty?.residentNight), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 22.sp)
         } else {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Column(Modifier.weight(1f)) {
-                    Text("낮당직", fontSize = 10.sp, color = MoimSub)
-                    Text(dash(duty?.residentDay), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+                    Text("낮", fontSize = 10.sp, color = MoimSub)
+                    Text(dutyResidentDisplay(duty?.residentDay), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MoimInk)
                 }
                 Column(Modifier.weight(1f)) {
                     Text("당직", fontSize = 10.sp, color = MoimSub)
-                    Text(dash(duty?.residentNight), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+                    Text(dutyResidentDisplay(duty?.residentNight), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MoimInk)
                 }
                 Column(Modifier.weight(1f)) {
                     Text("외래", fontSize = 10.sp, color = MoimSub)
-                    Text(outpatientLabel(duty), fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 18.sp)
+                    Text(
+                        dutyOutpatientDisplay(duty?.residentOutpatient1, duty?.residentOutpatient2),
+                        fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 18.sp,
+                    )
                 }
             }
         }

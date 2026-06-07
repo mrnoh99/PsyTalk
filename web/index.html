@@ -215,10 +215,13 @@
   .dutynav .narr{font-size:20px;color:var(--sub);cursor:pointer;padding:0 8px;user-select:none}
   .dutyhint{font-size:11.5px;color:var(--sub);padding:0 16px 8px}
   .today-duty-btn{width:calc(100% - 32px);margin:4px 16px 8px;padding:12px 14px;border-radius:12px;border:1px solid rgba(25,118,210,.35);background:rgba(25,118,210,.12);cursor:pointer;text-align:left}
+  .today-duty-btn.weekend{background:#f3f1f8;border-color:#e4e0ec}
+  .today-duty-btn.weekend .tdt{color:#6d5e58}
+  .today-duty-btn.pubhol{background:#f6f0eb;border-color:#e8ddd4}
+  .today-duty-btn.pubhol .tdt{color:#6d5e58}
   .today-duty-btn .tdt{font-size:14px;font-weight:800;color:var(--accent)}
   .today-duty-btn .tdm{font-size:11px;color:var(--sub);float:right}
   .today-duty-btn .tds{font-size:12px;font-weight:600;color:var(--ink);margin-top:6px;line-height:1.4}
-  .today-duty-btn .tdh{font-size:10px;color:var(--sub);margin-top:4px}
   .today-duty-detail .tdn{font-size:22px;font-weight:800;color:var(--ink);margin:4px 0 14px}
   .today-duty-detail .tdg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
   .today-duty-detail .tdg .dsn{font-size:20px;font-weight:800;color:var(--ink)}
@@ -2627,37 +2630,29 @@ async function loadWard(){
   await loadWardTodayDuty();
   renderWard(false);
 }
+function dutyProfDisplay(v){
+  const s=v&&String(v).trim();
+  return s?esc(s)+' 교수님':'—';
+}
+function dutyResidentDisplay(v){
+  const s=v&&String(v).trim();
+  return s?esc(s):'—';
+}
 function todayDutyPreview(){
   const row=wardTodayDuty||{};
   const t=new Date();
   const y=t.getFullYear(), m=t.getMonth()+1, d=t.getDate();
-  const prof=row.prof_day||'—', day=row.resident_day||'—', night=row.resident_night||'—';
-  if(isDutyOffDay(y,m,d)) return `교원 ${esc(prof)}  ·  당직 ${esc(night)}`;
-  return `교원 ${esc(prof)}  ·  낮 ${esc(day)}  ·  당직 ${esc(night)}  ·  외래 ${esc(outpatientLabel(row))}`;
+  const prof=dutyProfDisplay(row.prof_day);
+  if(isDutyOffDay(y,m,d)) return `${prof}  ·  당직 ${dutyResidentDisplay(row.resident_night)}`;
+  return `${prof}  ·  낮 ${dutyResidentDisplay(row.resident_day)}  ·  당직 ${dutyResidentDisplay(row.resident_night)}  ·  외래 ${esc(outpatientLabel(row))}`;
 }
-function openTodayDuty(){
-  loadWardTodayDuty().then(()=>{
-    const t=new Date();
-    const y=t.getFullYear(), m=t.getMonth()+1, d=t.getDate();
-    const dow=['일','월','화','수','목','금','토'][t.getDay()];
-    const tone=dutyTone(y,m,d);
-    const toneLbl=tone==='pubhol'?'공휴일':(tone==='weekend'?'주말':'');
-    const off=isDutyOffDay(y,m,d);
-    const row=wardTodayDuty||{};
-    const n=v=>(v&&String(v).trim())?v:'미지정';
-    document.getElementById('todayDutySub').textContent=`${m}월 ${d}일 (${dow})${toneLbl?' · '+toneLbl:''}`;
-    document.getElementById('todayDutyProf').textContent=n(row.prof_day);
-    document.getElementById('todayDutyWeekday').style.display=off?'none':'grid';
-    document.getElementById('todayDutyOutWrap').style.display=off?'none':'block';
-    document.getElementById('todayDutyHolOnly').style.display=off?'block':'none';
-    if(off){
-      document.getElementById('todayDutyHolNight').textContent=n(row.resident_night);
-    }else{
-      document.getElementById('todayDutyDay').textContent=n(row.resident_day);
-      document.getElementById('todayDutyNight').textContent=n(row.resident_night);
-      document.getElementById('todayDutyOut').textContent=outpatientLabel(row)==='—'?'미지정':outpatientLabel(row);
-    }
-    document.getElementById('todayDutyModal').classList.add('on');
+function scrollToTodayDuty(){
+  const t=new Date();
+  dutyMonth=new Date(t.getFullYear(),t.getMonth(),1);
+  loadWard().then(()=>{
+    const key=dutyDateKey(t.getFullYear(),t.getMonth()+1,t.getDate());
+    const el=document.querySelector(`.dutyrow[data-date="${key}"]`);
+    el?.scrollIntoView({behavior:'smooth',block:'center'});
   });
 }
 function wardViewHtml(){
@@ -2680,8 +2675,10 @@ function dutyViewHtml(){
   const t=new Date();
   const tdow=['일','월','화','수','목','금','토'][t.getDay()];
   let h=`<div class="dutynav"><span class="narr" onclick="dutyShiftMonth(-1)">‹</span><b>${b.y}년 ${b.m}월</b><span class="narr" onclick="dutyShiftMonth(1)">›</span></div>`;
-  h+=`<button type="button" class="today-duty-btn" onclick="openTodayDuty()"><span class="tdt">오늘 당직</span><span class="tdm">${t.getMonth()+1}/${t.getDate()} (${tdow})</span>`;
-  h+=`<div class="tds">${todayDutyPreview()}</div><div class="tdh">탭하여 자세히 보기</div></button><div class="dutylist">`;
+  const todayTone=dutyTone(t.getFullYear(),t.getMonth()+1,t.getDate());
+  const todayBtnCls='today-duty-btn'+(todayTone==='pubhol'?' pubhol':(todayTone==='weekend'?' weekend':''));
+  h+=`<button type="button" class="${todayBtnCls}" onclick="scrollToTodayDuty()"><span class="tdt">오늘 당직</span><span class="tdm">${t.getMonth()+1}/${t.getDate()} (${tdow})</span>`;
+  h+=`<div class="tds">${todayDutyPreview()}</div></button><div class="dutylist">`;
   for(let d=1;d<=b.last;d++){
     const key=dutyDateKey(b.y,b.m,d);
     const row=dutyByDate[key]||{};
@@ -2697,13 +2694,13 @@ function dutyViewHtml(){
     const label=`${b.m}/${d} (${dow[dt.getDay()]})`;
     const toneLbl=tone==='pubhol'?'공휴일':(tone==='weekend'?'주말':'');
     const editBtn=canEditWardDuty()?`<button type="button" class="dedit" onclick="openDutyEdit('${key}')">${hasDuty?'수정':'입력'}</button>`:'';
-    h+=`<div class="${cls}"><div class="dtop"><b>${label}</b>${isToday?'<span class="dtoday">오늘</span>':''}${toneLbl?`<span class="dtone">${toneLbl}</span>`:''}${editBtn}</div>`;
-    h+=`<div class="dlbl">교원 당직</div><div class="dname">${esc(row.prof_day||'—')}</div><div class="dlbl">전공의</div>`;
+    h+=`<div class="${cls}" data-date="${key}"><div class="dtop"><b>${label}</b>${isToday?'<span class="dtoday">오늘</span>':''}${toneLbl?`<span class="dtone">${toneLbl}</span>`:''}${editBtn}</div>`;
+    h+=`<div class="dname">${dutyProfDisplay(row.prof_day)}</div>`;
     if(off){
-      h+=`<div class="dsl">당직</div><div class="dsn" style="font-size:17px;font-weight:800">${esc(row.resident_night||'—')}</div></div>`;
+      h+=`<div class="dsl">당직</div><div class="dsn" style="font-size:17px;font-weight:800">${dutyResidentDisplay(row.resident_night)}</div></div>`;
     }else{
-      h+=`<div class="dresgrid"><div><div class="dsl">낮당직</div><div class="dsn">${esc(row.resident_day||'—')}</div></div>`;
-      h+=`<div><div class="dsl">당직</div><div class="dsn">${esc(row.resident_night||'—')}</div></div>`;
+      h+=`<div class="dresgrid"><div><div class="dsl">낮</div><div class="dsn">${dutyResidentDisplay(row.resident_day)}</div></div>`;
+      h+=`<div><div class="dsl">당직</div><div class="dsn">${dutyResidentDisplay(row.resident_night)}</div></div>`;
       h+=`<div><div class="dsl">외래</div><div class="dsn" style="font-size:14px">${esc(outpatientLabel(row))}</div></div></div></div>`;
     }
   }

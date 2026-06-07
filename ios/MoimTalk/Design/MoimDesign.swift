@@ -305,6 +305,40 @@ func isWardDutyOffDay(_ date: Date) -> Bool {
     wardDutyTone(date) != .weekday
 }
 
+func dutyProfDisplay(_ name: String?) -> String {
+    guard let n = name, !n.isEmpty else { return "—" }
+    return "\(n) 교수님"
+}
+
+func dutyResidentDisplay(_ name: String?) -> String {
+    guard let n = name, !n.isEmpty else { return "—" }
+    return n
+}
+
+func dutyOutpatientDisplay(_ duty: WardDuty?) -> String {
+    let names = [duty?.residentOutpatient1, duty?.residentOutpatient2].compactMap { s -> String? in
+        guard let s = s, !s.isEmpty else { return nil }
+        return s
+    }
+    return names.isEmpty ? "—" : names.joined(separator: ", ")
+}
+
+func dutyTodayPreview(_ duty: WardDuty?, offDay: Bool) -> String {
+    let prof = dutyProfDisplay(duty?.profDay)
+    if offDay {
+        return "\(prof)  ·  당직 \(dutyResidentDisplay(duty?.residentNight))"
+    }
+    return "\(prof)  ·  낮 \(dutyResidentDisplay(duty?.residentDay))  ·  당직 \(dutyResidentDisplay(duty?.residentNight))  ·  외래 \(dutyOutpatientDisplay(duty))"
+}
+
+func wardDutyTodayCardColors(_ tone: WardDutyTone) -> (Color, Color) {
+    switch tone {
+    case .publicHoliday: return (Color(hex: 0xF6F0EB), Color(hex: 0xE8DDD4))
+    case .weekend: return (Color(hex: 0xF3F1F8), Color(hex: 0xE4E0EC))
+    case .weekday: return (Moim.accent.opacity(0.12), Moim.accent.opacity(0.35))
+    }
+}
+
 // 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 func canDeleteEvent(_ profile: Profile?, _ event: CalendarEvent) -> Bool {
     guard let p = profile else { return false }

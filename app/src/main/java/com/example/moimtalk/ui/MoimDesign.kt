@@ -339,6 +339,46 @@ fun wardDutyTone(date: java.time.LocalDate): WardDutyTone = when {
     else -> WardDutyTone.WEEKDAY
 }
 
+/** 교원 표시 — 이름 + 교수님 */
+fun dutyProfDisplay(name: String?): String =
+    name?.takeIf { it.isNotBlank() }?.let { "$it 교수님" } ?: "—"
+
+/** 전공의 표시 — 이름만 */
+fun dutyResidentDisplay(name: String?): String =
+    name?.takeIf { it.isNotBlank() } ?: "—"
+
+fun dutyOutpatientDisplay(
+    out1: String?,
+    out2: String?,
+): String {
+    val names = listOfNotNull(out1?.takeIf { it.isNotBlank() }, out2?.takeIf { it.isNotBlank() })
+    return names.joinToString(", ").ifBlank { "—" }
+}
+
+/** 오늘 당직 한 줄 미리보기 */
+fun dutyTodayPreview(
+    profDay: String?,
+    residentDay: String?,
+    residentNight: String?,
+    out1: String?,
+    out2: String?,
+    offDay: Boolean,
+): String {
+    val prof = dutyProfDisplay(profDay)
+    return if (offDay) {
+        "$prof  ·  당직 ${dutyResidentDisplay(residentNight)}"
+    } else {
+        "$prof  ·  낮 ${dutyResidentDisplay(residentDay)}  ·  당직 ${dutyResidentDisplay(residentNight)}  ·  외래 ${dutyOutpatientDisplay(out1, out2)}"
+    }
+}
+
+/** 오늘 당직 카드 배경·테두리 (주말·공휴일은 행과 동일 톤) */
+fun wardDutyTodayCardColors(tone: WardDutyTone): Pair<Color, Color> = when (tone) {
+    WardDutyTone.PUBLIC_HOLIDAY -> Color(0xFFF6F0EB) to Color(0xFFE8DDD4)
+    WardDutyTone.WEEKEND -> Color(0xFFF3F1F8) to Color(0xFFE4E0EC)
+    WardDutyTone.WEEKDAY -> MoimAccent.copy(alpha = 0.12f) to MoimAccent.copy(alpha = 0.35f)
+}
+
 /** 당직표 행 배경·테두리 (차이는 있되 과하지 않게) */
 fun wardDutyRowColors(tone: WardDutyTone, isToday: Boolean): Pair<Color, Color> {
     val (bg, border) = when (tone) {

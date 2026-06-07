@@ -106,8 +106,6 @@ private struct WardDutyPane: View {
     @State private var editResNight = ""
     @State private var editOut1 = ""
     @State private var editOut2 = ""
-    @State private var showTodaySummary = false
-
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -119,27 +117,27 @@ private struct WardDutyPane: View {
             }
             .padding(.horizontal, 16).padding(.vertical, 8)
 
-            todayDutyQuickButton
-                .padding(.horizontal, 16).padding(.bottom, 6)
-
-            ScrollView {
-                LazyVStack(spacing: 8) {
-                    ForEach(daysInMonth, id: \.self) { day in
-                        dutyRow(day)
+            ScrollViewReader { proxy in
+                VStack(spacing: 6) {
+                    todayDutyQuickButton(proxy: proxy)
+                        .padding(.horizontal, 16)
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach(daysInMonth, id: \.self) { day in
+                                dutyRow(day).id(dateKey(day))
+                            }
+                        }
+                        .padding(.horizontal, 16).padding(.vertical, 8)
                     }
+                    .background(Moim.bg)
                 }
-                .padding(.horizontal, 16).padding(.vertical, 8)
             }
-            .background(Moim.bg)
         }
         .onAppear {
             vm.loadWardDuties(month: monthAnchor)
             vm.loadWardTodayDuty()
         }
         .onChange(of: monthAnchor) { vm.loadWardDuties(month: $0) }
-        .sheet(isPresented: $showTodaySummary) {
-            TodayDutySummarySheet(duty: vm.wardTodayDuty) { showTodaySummary = false }
-        }
         .sheet(item: Binding(
             get: { editDate.map { EditDayWrapper(date: $0) } },
             set: { editDate = $0?.date }
@@ -162,42 +160,51 @@ private struct WardDutyPane: View {
         return (0..<range.count).compactMap { cal.date(byAdding: .day, value: $0, to: start) }
     }
 
-    private var todayDutyQuickButton: some View {
+    private func todayDutyQuickButton(proxy: ScrollViewProxy) -> some View {
         let today = CalDate.today()
         let duty = vm.wardTodayDuty
+        let tone = wardDutyTone(today)
         let dow = ["일", "월", "화", "수", "목", "금", "토"][CalDate.cal.component(.weekday, from: today) - 1]
         let m = CalDate.cal.component(.month, from: today)
         let d = CalDate.cal.component(.day, from: today)
         let off = isWardDutyOffDay(today)
-        let prof = duty?.profDay.nilIfEmpty ?? "—"
-        let resDay = duty?.residentDay.nilIfEmpty ?? "—"
-        let resNight = duty?.residentNight.nilIfEmpty ?? "—"
-        let out = outpatientLabel(duty)
-        let preview = off
-            ? "교원 \(prof)  ·  당직 \(resNight)"
-            : "교원 \(prof)  ·  낮 \(resDay)  ·  당직 \(resNight)  ·  외래 \(out)"
+        let preview = dutyTodayPreview(duty, offDay: off)
+        let colors = wardDutyTodayCardColors(tone)
+        let titleColor: Color = tone == .weekday ? Moim.accent : Color(hex: 0x6D5E58)
         return Button {
-            vm.loadWardTodayDuty()
-            showTodaySummary = true
+            scrollToToday(proxy)
         } label: {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("오늘 당직").font(.system(size: 14, weight: .heavy)).foregroundColor(Moim.accent)
+                    Text("오늘 당직").font(.system(size: 14, weight: .heavy)).foregroundColor(titleColor)
                     Spacer()
                     Text("\(m)/\(d) (\(dow))").font(.system(size: 11)).foregroundColor(Moim.sub)
                 }
                 Text(preview)
                     .font(.system(size: 12, weight: .semibold)).foregroundColor(Moim.ink)
                     .lineLimit(3)
-                Text("탭하여 자세히 보기").font(.system(size: 10)).foregroundColor(Moim.sub)
             }
             .padding(.horizontal, 14).padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Moim.accent.opacity(0.12))
+            .background(colors.0)
             .clipShape(RoundedRectangle(cornerRadius: 12))
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Moim.accent.opacity(0.35), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(colors.1, lineWidth: 1))
         }
         .buttonStyle(.plain)
+    }
+
+    private func scrollToToday(_ proxy: ScrollViewProxy) {
+        let today = CalDate.today()
+        let cal = CalDate.cal
+        if !cal.isDate(monthAnchor, equalTo: today, toGranularity: .month) {
+            monthAnchor = cal.date(from: cal.dateComponents([.year, .month], from: today)) ?? today
+        }
+        vm.loadWardTodayDuty()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            withAnimation {
+                proxy.scrollTo(dateKey(today), anchor: .center)
+            }
+        }
     }
 
     private func shiftMonth(_ delta: Int) {
@@ -269,25 +276,23 @@ private struct WardDutyPane: View {
                     .foregroundColor(Moim.accent)
                 }
             }
-            Text("교원 당직").font(.system(size: 11, weight: .bold)).foregroundColor(Moim.sub)
-            Text(duty?.profDay.nilIfEmpty ?? "—").font(.system(size: 18, weight: .bold)).foregroundColor(Moim.ink)
-            Text("전공의").font(.system(size: 11, weight: .bold)).foregroundColor(Moim.sub)
+            Text(dutyProfDisplay(duty?.profDay)).font(.system(size: 18, weight: .bold)).foregroundColor(Moim.ink)
             if off {
                 Text("당직").font(.system(size: 10)).foregroundColor(Moim.sub)
-                Text(duty?.residentNight.nilIfEmpty ?? "—").font(.system(size: 17, weight: .bold)).foregroundColor(Moim.ink)
+                Text(dutyResidentDisplay(duty?.residentNight)).font(.system(size: 17, weight: .bold)).foregroundColor(Moim.ink)
             } else {
                 HStack(spacing: 8) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("낮당직").font(.system(size: 10)).foregroundColor(Moim.sub)
-                        Text(duty?.residentDay.nilIfEmpty ?? "—").font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
+                        Text("낮").font(.system(size: 10)).foregroundColor(Moim.sub)
+                        Text(dutyResidentDisplay(duty?.residentDay)).font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text("당직").font(.system(size: 10)).foregroundColor(Moim.sub)
-                        Text(duty?.residentNight.nilIfEmpty ?? "—").font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
+                        Text(dutyResidentDisplay(duty?.residentNight)).font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         Text("외래").font(.system(size: 10)).foregroundColor(Moim.sub)
-                        Text(outpatientLabel(duty)).font(.system(size: 14, weight: .bold)).foregroundColor(Moim.ink).lineLimit(2)
+                        Text(dutyOutpatientDisplay(duty)).font(.system(size: 14, weight: .bold)).foregroundColor(Moim.ink).lineLimit(2)
                     }
                 }
             }
@@ -369,62 +374,6 @@ private struct WardDutyPane: View {
         }
     }
 
-    private func outpatientLabel(_ duty: WardDuty?) -> String {
-        let names = [duty?.residentOutpatient1, duty?.residentOutpatient2].compactMap { $0?.nilIfEmpty }
-        return names.isEmpty ? "—" : names.joined(separator: ", ")
-    }
-}
-
-private struct TodayDutySummarySheet: View {
-    let duty: WardDuty?
-    let onClose: () -> Void
-
-    var body: some View {
-        let today = CalDate.today()
-        let dow = ["일", "월", "화", "수", "목", "금", "토"][CalDate.cal.component(.weekday, from: today) - 1]
-        let m = CalDate.cal.component(.month, from: today)
-        let d = CalDate.cal.component(.day, from: today)
-        let tone = wardDutyTone(today)
-        let toneLbl = tone == .publicHoliday ? "공휴일" : (tone == .weekend ? "주말" : "")
-        func n(_ s: String?) -> String { (s?.isEmpty == false) ? s! : "미지정" }
-        NavigationView {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("\(m)월 \(d)일 (\(dow))\(toneLbl.isEmpty ? "" : " · \(toneLbl)")")
-                    .font(.system(size: 12)).foregroundColor(Moim.sub)
-                Text("교원 당직").font(.system(size: 11, weight: .bold)).foregroundColor(Moim.sub)
-                Text(n(duty?.profDay)).font(.system(size: 22, weight: .bold)).foregroundColor(Moim.ink)
-                Text("전공의").font(.system(size: 11, weight: .bold)).foregroundColor(Moim.sub).padding(.top, 4)
-                if isWardDutyOffDay(today) {
-                    Text("당직").font(.system(size: 10)).foregroundColor(Moim.sub)
-                    Text(n(duty?.residentNight)).font(.system(size: 20, weight: .bold)).foregroundColor(Moim.ink)
-                } else {
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("낮당직").font(.system(size: 10)).foregroundColor(Moim.sub)
-                            Text(n(duty?.residentDay)).font(.system(size: 20, weight: .bold)).foregroundColor(Moim.ink)
-                        }
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("당직").font(.system(size: 10)).foregroundColor(Moim.sub)
-                            Text(n(duty?.residentNight)).font(.system(size: 20, weight: .bold)).foregroundColor(Moim.ink)
-                        }
-                    }
-                    Text("외래").font(.system(size: 10)).foregroundColor(Moim.sub).padding(.top, 4)
-                    let names = [duty?.residentOutpatient1, duty?.residentOutpatient2].compactMap { $0?.nilIfEmpty }
-                    Text(names.isEmpty ? "미지정" : names.joined(separator: ", "))
-                        .font(.system(size: 18, weight: .bold)).foregroundColor(Moim.ink)
-                }
-                Spacer()
-                Button(action: onClose) {
-                    Text("확인").frame(maxWidth: .infinity).padding(.vertical, 12)
-                        .background(Moim.accent).foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-            }
-            .padding(20)
-            .navigationTitle("오늘 당직")
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
 }
 
 private struct EditDayWrapper: Identifiable {

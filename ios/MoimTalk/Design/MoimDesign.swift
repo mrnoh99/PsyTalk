@@ -331,12 +331,8 @@ func dutyTodayPreview(_ duty: WardDuty?, offDay: Bool) -> String {
     return "\(prof)  ·  낮 \(dutyResidentDisplay(duty?.residentDay))  ·  당직 \(dutyResidentDisplay(duty?.residentNight))  ·  외래 \(dutyOutpatientDisplay(duty))"
 }
 
-func wardDutyTodayCardColors(_ tone: WardDutyTone) -> (Color, Color) {
-    switch tone {
-    case .publicHoliday: return (Color(hex: 0xF6F0EB), Color(hex: 0xE8DDD4))
-    case .weekend: return (Color(hex: 0xF3F1F8), Color(hex: 0xE4E0EC))
-    case .weekday: return (Moim.accent.opacity(0.12), Moim.accent.opacity(0.35))
-    }
+func wardDutyTodayCardColors() -> (Color, Color) {
+    (Moim.accent.opacity(0.12), Moim.accent.opacity(0.35))
 }
 
 // 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실

@@ -163,28 +163,26 @@ private struct WardDutyPane: View {
     private func todayDutyQuickButton(proxy: ScrollViewProxy) -> some View {
         let today = CalDate.today()
         let duty = vm.wardTodayDuty
-        let tone = wardDutyTone(today)
         let dow = ["일", "월", "화", "수", "목", "금", "토"][CalDate.cal.component(.weekday, from: today) - 1]
         let m = CalDate.cal.component(.month, from: today)
         let d = CalDate.cal.component(.day, from: today)
         let off = isWardDutyOffDay(today)
         let preview = dutyTodayPreview(duty, offDay: off)
-        let colors = wardDutyTodayCardColors(tone)
-        let titleColor: Color = tone == .weekday ? Moim.accent : Color(hex: 0x6D5E58)
+        let colors = wardDutyTodayCardColors()
         return Button {
             scrollToToday(proxy)
         } label: {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("오늘 당직").font(.system(size: 14, weight: .heavy)).foregroundColor(titleColor)
+                    Text("오늘 당직").font(.system(size: 16, weight: .heavy)).foregroundColor(Moim.accent)
                     Spacer()
-                    Text("\(m)/\(d) (\(dow))").font(.system(size: 11)).foregroundColor(Moim.sub)
+                    Text("\(m)/\(d) (\(dow))").font(.system(size: 12)).foregroundColor(Moim.sub)
                 }
                 Text(preview)
-                    .font(.system(size: 12, weight: .semibold)).foregroundColor(Moim.ink)
-                    .lineLimit(3)
+                    .font(.system(size: 15, weight: .semibold)).foregroundColor(Moim.ink)
+                    .lineLimit(4)
             }
-            .padding(.horizontal, 14).padding(.vertical, 12)
+            .padding(.horizontal, 14).padding(.vertical, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(colors.0)
             .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -224,9 +222,7 @@ private struct WardDutyPane: View {
         let bg: Color
         let border: Color
         switch tone {
-        case .publicHoliday:
-            bg = Color(hex: 0xF6F0EB); border = Color(hex: 0xE8DDD4)
-        case .weekend:
+        case .publicHoliday, .weekend:
             bg = Color(hex: 0xF3F1F8); border = Color(hex: 0xE4E0EC)
         case .weekday:
             bg = Moim.white; border = Moim.line

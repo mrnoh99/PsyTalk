@@ -132,7 +132,6 @@ fun WardDutyPane(vm: MoimViewModel, modifier: Modifier = Modifier) {
         TodayDutyQuickButton(
             today = today,
             duty = vm.wardTodayDuty,
-            tone = wardDutyTone(today),
             offDay = isWardDutyOffDay(today),
             onClick = {
                 vm.loadWardTodayDuty()
@@ -192,7 +191,6 @@ fun WardDutyPane(vm: MoimViewModel, modifier: Modifier = Modifier) {
 private fun TodayDutyQuickButton(
     today: LocalDate,
     duty: WardDuty?,
-    tone: WardDutyTone,
     offDay: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -202,8 +200,7 @@ private fun TodayDutyQuickButton(
         duty?.profDay, duty?.residentDay, duty?.residentNight,
         duty?.residentOutpatient1, duty?.residentOutpatient2, offDay,
     )
-    val (bg, border) = wardDutyTodayCardColors(tone)
-    val titleColor = if (tone == WardDutyTone.WEEKDAY) MoimAccent else Color(0xFF6D5E58)
+    val (bg, border) = wardDutyTodayCardColors()
 
     Box(
         modifier = modifier
@@ -212,16 +209,16 @@ private fun TodayDutyQuickButton(
             .background(bg, RoundedCornerShape(12.dp))
             .border(1.dp, border, RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 14.dp, vertical = 14.dp),
     ) {
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("오늘 당직", fontSize = 14.sp, fontWeight = FontWeight.ExtraBold, color = titleColor)
+                Text("오늘 당직", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = MoimAccent)
                 Spacer(Modifier.weight(1f))
-                Text("${today.monthValue}/${today.dayOfMonth} ($dow)", fontSize = 11.sp, color = MoimSub)
+                Text("${today.monthValue}/${today.dayOfMonth} ($dow)", fontSize = 12.sp, color = MoimSub)
             }
-            Spacer(Modifier.height(6.dp))
-            Text(preview, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MoimInk, maxLines = 3)
+            Spacer(Modifier.height(8.dp))
+            Text(preview, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = MoimInk, lineHeight = 21.sp, maxLines = 4)
         }
     }
 }

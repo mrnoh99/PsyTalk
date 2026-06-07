@@ -461,6 +461,7 @@ class MoimViewModel : ViewModel() {
     // ── 당직표 ──
     var wardDuties by mutableStateOf<Map<String, com.example.moimtalk.data.WardDuty>>(emptyMap())
     var wardDutyMonth by mutableStateOf<java.time.YearMonth?>(null)
+    var wardTodayDuty by mutableStateOf<com.example.moimtalk.data.WardDuty?>(null)
 
     fun loadWardStatus() {
         viewModelScope.launch {
@@ -489,19 +490,30 @@ class MoimViewModel : ViewModel() {
 
     fun refreshWardDutiesQuiet() {
         wardDutyMonth?.let { loadWardDuties(it) }
+        loadWardTodayDuty()
+    }
+
+    fun loadWardTodayDuty() {
+        viewModelScope.launch {
+            try {
+                val key = java.time.LocalDate.now(java.time.ZoneId.of("Asia/Seoul")).toString()
+                wardTodayDuty = MoimRepository.wardDuties(key, key).firstOrNull()
+            } catch (_: Exception) { }
+        }
     }
 
     fun saveWardDuty(
         dutyDate: String,
         profDay: String,
+        residentDay: String,
         residentNight: String,
-        isHoliday: Boolean,
         onDone: () -> Unit,
     ) {
         viewModelScope.launch {
             try {
-                MoimRepository.upsertWardDuty(dutyDate, profDay, residentNight, isHoliday)
+                MoimRepository.upsertWardDuty(dutyDate, profDay, residentDay, residentNight)
                 wardDutyMonth?.let { loadWardDuties(it) }
+                loadWardTodayDuty()
                 onDone()
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "당직표 저장")

@@ -321,9 +321,30 @@ fun canEditWard(profile: Profile?): Boolean {
     return isAdminRole(profile.role) || profile.memberType in listOf("교실", "의국", "간호사")
 }
 
-/** 당직표 휴일 강조 — 토·일 또는 DB is_holiday */
-fun isWardDutyHoliday(date: java.time.LocalDate, isHolidayFlag: Boolean): Boolean =
-    isHolidayFlag || date.dayOfWeek == java.time.DayOfWeek.SATURDAY || date.dayOfWeek == java.time.DayOfWeek.SUNDAY
+enum class WardDutyTone { WEEKDAY, WEEKEND, PUBLIC_HOLIDAY }
+
+/** 당직표 날짜 톤 — 평일 / 주말 / 대한민국 공휴일 */
+fun wardDutyTone(date: java.time.LocalDate): WardDutyTone = when {
+    com.example.moimtalk.data.KrHolidays.isPublicHoliday(date) -> WardDutyTone.PUBLIC_HOLIDAY
+    date.dayOfWeek == java.time.DayOfWeek.SATURDAY || date.dayOfWeek == java.time.DayOfWeek.SUNDAY -> WardDutyTone.WEEKEND
+    else -> WardDutyTone.WEEKDAY
+}
+
+/** 당직표 행 배경·테두리 (차이는 있되 과하지 않게) */
+fun wardDutyRowColors(tone: WardDutyTone, isToday: Boolean): Pair<Color, Color> {
+    val (bg, border) = when (tone) {
+        WardDutyTone.PUBLIC_HOLIDAY -> Color(0xFFF6F0EB) to Color(0xFFE8DDD4)
+        WardDutyTone.WEEKEND -> Color(0xFFF3F1F8) to Color(0xFFE4E0EC)
+        WardDutyTone.WEEKDAY -> MoimWhite to MoimLine
+    }
+    return if (isToday) bg to MoimAccent else bg to border
+}
+
+/** 승인·활성 회원 중 직군 필터 (당직 선택용) */
+fun dutyMembersByType(profiles: Map<String, Profile>, memberType: String): List<Profile> =
+    profiles.values
+        .filter { it.memberType == memberType && it.approved && !it.withdrawn }
+        .sortedBy { it.name }
 
 /** 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실 */
 fun canDeleteEvent(profile: Profile?, event: CalendarEvent): Boolean {

@@ -514,16 +514,16 @@ object MoimRepository {
     suspend fun upsertWardDuty(
         dutyDate: String,
         profDay: String,
+        residentDay: String,
         residentNight: String,
-        isHoliday: Boolean,
     ) = withFreshSession {
         val uid = currentUserId() ?: error("Not logged in")
         val nowIso = java.time.OffsetDateTime.now().toString()
         val row = WardDutyUpsert(
             dutyDate = dutyDate,
             profDay = profDay,
+            residentDay = residentDay,
             residentNight = residentNight,
-            isHoliday = isHoliday,
             updatedBy = uid,
             updatedAt = nowIso,
         )

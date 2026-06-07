@@ -346,6 +346,7 @@ struct WardStatusUpdate: Encodable {
 struct WardDuty: Codable, Identifiable {
     var dutyDate: String
     var profDay: String = ""
+    var residentDay: String = ""
     var residentNight: String = ""
     var isHoliday: Bool = false
 
@@ -354,6 +355,7 @@ struct WardDuty: Codable, Identifiable {
     enum CodingKeys: String, CodingKey {
         case dutyDate = "duty_date"
         case profDay = "prof_day"
+        case residentDay = "resident_day"
         case residentNight = "resident_night"
         case isHoliday = "is_holiday"
     }
@@ -362,16 +364,16 @@ struct WardDuty: Codable, Identifiable {
 struct WardDutyUpsert: Encodable {
     let dutyDate: String
     let profDay: String
+    let residentDay: String
     let residentNight: String
-    let isHoliday: Bool
     var updatedBy: String?
     let updatedAt: String
 
     enum CodingKeys: String, CodingKey {
         case dutyDate = "duty_date"
         case profDay = "prof_day"
+        case residentDay = "resident_day"
         case residentNight = "resident_night"
-        case isHoliday = "is_holiday"
         case updatedBy = "updated_by"
         case updatedAt = "updated_at"
     }

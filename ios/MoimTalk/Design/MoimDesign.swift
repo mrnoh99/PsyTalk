@@ -273,10 +273,19 @@ func canPostInRoom(_ profile: Profile?, _ room: Room) -> Bool {
     return room.postPolicy != "restricted"
 }
 
-/// 당직표 휴일 강조 — 토·일 또는 DB is_holiday
-func isWardDutyHoliday(_ date: Date, isHolidayFlag: Bool) -> Bool {
-    let wd = CalDate.cal.component(.weekday, from: date)  // 일=1 … 토=7
-    return isHolidayFlag || wd == 1 || wd == 7
+enum WardDutyTone { case weekday, weekend, publicHoliday }
+
+func wardDutyTone(_ date: Date) -> WardDutyTone {
+    if KrHolidays.isPublicHoliday(date) { return .publicHoliday }
+    let wd = CalDate.cal.component(.weekday, from: date)
+    if wd == 1 || wd == 7 { return .weekend }
+    return .weekday
+}
+
+func dutyMembersByType(_ profiles: [String: Profile], memberType: String) -> [Profile] {
+    profiles.values
+        .filter { $0.memberType == memberType && $0.approved && !$0.withdrawn }
+        .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
 }
 
 // ward 편집 권한: 관리자 또는 직군 교실·의국·간호사("병동")

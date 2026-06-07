@@ -407,6 +407,7 @@ final class MoimViewModel: ObservableObject {
     // ── 당직표 ──
     @Published var wardDuties: [String: WardDuty] = [:]
     @Published var wardDutyMonth: Date?
+    @Published var wardTodayDuty: WardDuty?
 
     func loadWardStatus() {
         Task {
@@ -438,13 +439,27 @@ final class MoimViewModel: ObservableObject {
 
     func refreshWardDutiesQuiet() {
         if let m = wardDutyMonth { loadWardDuties(month: m) }
+        loadWardTodayDuty()
     }
 
-    func saveWardDuty(dutyDate: String, profDay: String, residentNight: String, isHoliday: Bool, onDone: @escaping () -> Void) {
+    func loadWardTodayDuty() {
         Task {
             do {
-                try await MoimRepository.upsertWardDuty(dutyDate: dutyDate, profDay: profDay, residentNight: residentNight, isHoliday: isHoliday)
+                let fmt = DateFormatter()
+                fmt.dateFormat = "yyyy-MM-dd"
+                fmt.timeZone = CalDate.kst
+                let key = fmt.string(from: CalDate.today())
+                wardTodayDuty = try await MoimRepository.wardDuties(from: key, to: key).first
+            } catch { }
+        }
+    }
+
+    func saveWardDuty(dutyDate: String, profDay: String, residentDay: String, residentNight: String, onDone: @escaping () -> Void) {
+        Task {
+            do {
+                try await MoimRepository.upsertWardDuty(dutyDate: dutyDate, profDay: profDay, residentDay: residentDay, residentNight: residentNight)
                 if let m = wardDutyMonth { loadWardDuties(month: m) }
+                loadWardTodayDuty()
                 onDone()
             } catch { self.error = "당직표 저장: \(error.localizedDescription)" }
         }

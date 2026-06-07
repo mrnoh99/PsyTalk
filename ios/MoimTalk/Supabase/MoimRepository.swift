@@ -470,12 +470,12 @@ enum MoimRepository {
             .execute().value
     }
 
-    static func upsertWardDuty(dutyDate: String, profDay: String, residentNight: String, isHoliday: Bool) async throws {
+    static func upsertWardDuty(dutyDate: String, profDay: String, residentDay: String, residentNight: String) async throws {
         try await withFreshSession {
             guard let uid = currentUserId() else { throw AppError.notLoggedIn }
             let now = ISO8601DateFormatter().string(from: Date())
             let payload = WardDutyUpsert(
-                dutyDate: dutyDate, profDay: profDay, residentNight: residentNight, isHoliday: isHoliday,
+                dutyDate: dutyDate, profDay: profDay, residentDay: residentDay, residentNight: residentNight,
                 updatedBy: uid, updatedAt: now
             )
             let existing = try await wardDuties(from: dutyDate, to: dutyDate)

@@ -6,6 +6,7 @@
 CREATE TABLE IF NOT EXISTS public.ward_duty (
   duty_date date PRIMARY KEY,
   prof_day text NOT NULL DEFAULT '',
+  resident_day text NOT NULL DEFAULT '',
   resident_night text NOT NULL DEFAULT '',
   is_holiday boolean NOT NULL DEFAULT false,
   updated_at timestamptz NOT NULL DEFAULT now(),

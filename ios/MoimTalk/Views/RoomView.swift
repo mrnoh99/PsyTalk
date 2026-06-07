@@ -229,7 +229,10 @@ struct ChatView: View {
                                             vm.attachmentUrls[url] ?? (url.hasPrefix("http") ? url : nil)
                                         },
                                         onDelete: { deleteTarget = m },
-                                        sender: vm.profilesById[m.senderId]
+                                        sender: vm.profilesById[m.senderId],
+                                        reactions: vm.reactions.filter { $0.messageId == m.id },
+                                        myUserId: vm.myProfile?.id ?? "",
+                                        onReact: { e in vm.toggleReaction(m.id, e) }
                                     )
                                     .id(m.id)
                                 } else {
@@ -605,6 +608,9 @@ struct NoticePostCard: View {
     var attachUrl: String? = nil
     var onDelete: () -> Void = {}
     var sender: Profile? = nil
+    var reactions: [Reaction] = []
+    var myUserId: String = ""
+    var onReact: (String) -> Void = { _ in }
 
     private var authorLine: String {
         let mt = sender?.memberType ?? ""
@@ -613,6 +619,11 @@ struct NoticePostCard: View {
 
     private var caption: String? {
         message.content?.trimmingCharacters(in: .whitespacesAndNewlines).flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    private func copyNoticeText() {
+        guard let txt = caption else { return }
+        UIPasteboard.general.string = txt
     }
 
     var body: some View {
@@ -631,10 +642,30 @@ struct NoticePostCard: View {
                     .padding(.top, 6)
                 Divider().background(Moim.line).padding(.vertical, 14)
                 noticeBody
+                if !reactions.isEmpty {
+                    let grouped = Dictionary(grouping: reactions, by: { $0.emoji })
+                    HStack(spacing: 4) {
+                        ForEach(grouped.keys.sorted(), id: \.self) { emoji in
+                            let list = grouped[emoji] ?? []
+                            let mineReacted = list.contains { $0.userId == myUserId }
+                            Button { onReact(emoji) } label: {
+                                HStack(spacing: 3) {
+                                    Text(emoji).font(.system(size: 12))
+                                    if list.count > 1 { Text("\(list.count)").font(.system(size: 11)).foregroundColor(Moim.sub) }
+                                }
+                                .padding(.horizontal, 7).padding(.vertical, 2)
+                                .background(mineReacted ? Moim.accent.opacity(0.20) : Moim.bg)
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.top, 6)
+                }
                 HStack(spacing: 16) {
                     Spacer()
-                    if let txt = message.content, !txt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Button { UIPasteboard.general.string = txt } label: {
+                    if caption != nil {
+                        Button(action: copyNoticeText) {
                             Text("📋 복사").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.accent)
                         }
                         .buttonStyle(.plain)
@@ -654,6 +685,17 @@ struct NoticePostCard: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(RoundedRectangle(cornerRadius: 16).stroke(Moim.line, lineWidth: 1))
             .shadow(color: Color.black.opacity(0.06), radius: 8, x: 0, y: 2)
+            .contextMenu {
+                ForEach(REACTION_EMOJIS, id: \.self) { e in
+                    Button(e) { onReact(e) }
+                }
+                if caption != nil {
+                    Divider()
+                    Button { copyNoticeText() } label: {
+                        Label("복사", systemImage: "doc.on.doc")
+                    }
+                }
+            }
             Spacer(minLength: 0)
         }
         .padding(.vertical, 6)
@@ -665,6 +707,7 @@ struct NoticePostCard: View {
                 .font(.system(size: 15))
                 .foregroundColor(Moim.ink)
                 .lineSpacing(6)
+                .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
         if message.type == "image", message.attachmentUrl != nil {
@@ -678,6 +721,7 @@ struct NoticePostCard: View {
                 .font(.system(size: 15))
                 .foregroundColor(Moim.ink)
                 .lineSpacing(6)
+                .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }

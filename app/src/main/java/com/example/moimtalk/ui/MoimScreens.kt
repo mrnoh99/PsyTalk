@@ -2,12 +2,14 @@ package com.example.moimtalk.ui
 
 import android.content.Context
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -1470,6 +1472,9 @@ private fun ChatPane(
                         mine = isMine(m),
                         attachUrl = attachUrl,
                         onDelete = { deleteTarget = m },
+                        reactions = reactions.filter { it.messageId == m.id },
+                        myUserId = myUserId,
+                        onReact = { e -> onReact(m, e) },
                     )
                 }
             }
@@ -1517,6 +1522,51 @@ private fun DateDivider(text: String) {
 
 private val NOTICE_ACCENT = Color(0xFFB5651D)
 
+private fun noticeCopyText(m: Message): String? =
+    m.content?.trim()?.takeIf { it.isNotEmpty() }
+
+@Composable
+private fun NoticeBodyText(text: String) {
+    SelectionContainer {
+        Text(
+            text,
+            color = MoimInk,
+            fontSize = 15.sp,
+            lineHeight = 24.sp,
+        )
+    }
+}
+
+@Composable
+private fun ReactionChipsRow(
+    reactions: List<Reaction>,
+    myUserId: String,
+    onReact: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (reactions.isEmpty()) return
+    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        reactions.groupBy { it.emoji }.forEach { (emoji, list) ->
+            val mineReacted = list.any { it.userId == myUserId }
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (mineReacted) MoimAccent.copy(alpha = 0.20f) else MoimBg)
+                    .clickable { onReact(emoji) }
+                    .padding(horizontal = 7.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(emoji, fontSize = 12.sp)
+                if (list.size > 1) {
+                    Spacer(Modifier.width(3.dp))
+                    Text("${list.size}", fontSize = 11.sp, color = MoimSub)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun NoticePostCard(
     m: Message,
@@ -1525,12 +1575,17 @@ private fun NoticePostCard(
     mine: Boolean,
     attachUrl: (String) -> String?,
     onDelete: () -> Unit,
+    reactions: List<Reaction> = emptyList(),
+    myUserId: String = "",
+    onReact: (String) -> Unit = {},
 ) {
+    val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val clipboard = LocalClipboardManager.current
     val path = m.attachmentUrl
     val resolved = path?.let { p -> attachUrl(p) ?: if (p.startsWith("http")) p else null }
-    val caption = m.content?.trim()?.takeIf { it.isNotEmpty() }
+    val caption = noticeCopyText(m)
+    var actionMenuOpen by remember(m.id) { mutableStateOf(false) }
     val authorLine = buildString {
         append(senderName)
         sender?.memberType?.takeIf { it.isNotBlank() }?.let { append(" · $it") }
@@ -1542,6 +1597,7 @@ private fun NoticePostCard(
             .padding(vertical = 6.dp),
         contentAlignment = Alignment.Center,
     ) {
+        Box {
         Column(
             modifier = Modifier
                 .fillMaxWidth(0.94f)
@@ -1549,6 +1605,7 @@ private fun NoticePostCard(
                 .clip(RoundedCornerShape(16.dp))
                 .background(MoimWhite)
                 .border(1.dp, MoimLine, RoundedCornerShape(16.dp))
+                .combinedClickable(onClick = {}, onLongClick = { actionMenuOpen = true })
                 .padding(horizontal = 20.dp, vertical = 18.dp),
         ) {
             Box(
@@ -1570,12 +1627,7 @@ private fun NoticePostCard(
             HorizontalDivider(color = MoimLine)
             Spacer(Modifier.height(14.dp))
             if (caption != null) {
-                Text(
-                    caption,
-                    color = MoimInk,
-                    fontSize = 15.sp,
-                    lineHeight = 24.sp,
-                )
+                NoticeBodyText(caption)
             }
             when {
                 m.type == "image" && path != null -> {
@@ -1617,27 +1669,56 @@ private fun NoticePostCard(
                         )
                     }
                 }
-                caption == null -> Text(
-                    m.content.orEmpty(),
-                    color = MoimInk,
-                    fontSize = 15.sp,
-                    lineHeight = 24.sp,
-                )
+                caption == null -> NoticeBodyText(m.content.orEmpty())
             }
+            ReactionChipsRow(
+                reactions = reactions,
+                myUserId = myUserId,
+                onReact = onReact,
+                modifier = Modifier.padding(top = 6.dp),
+            )
             Row(
                 modifier = Modifier.align(Alignment.End).padding(top = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                m.content?.takeIf { it.isNotBlank() }?.let { txt ->
+                caption?.let { txt ->
                     Text(
                         "📋 복사", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimAccent,
-                        modifier = Modifier.clickable { clipboard.setText(AnnotatedString(txt)) },
+                        modifier = Modifier.clickable {
+                            clipboard.setText(AnnotatedString(txt))
+                            Toast.makeText(context, "복사되었습니다", Toast.LENGTH_SHORT).show()
+                        },
                     )
                 }
                 if (mine) {
                     Text(
                         "🗑 삭제", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimAdmin,
                         modifier = Modifier.clickable { onDelete() },
+                    )
+                }
+            }
+        }
+            DropdownMenu(expanded = actionMenuOpen, onDismissRequest = { actionMenuOpen = false }) {
+                Row(modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)) {
+                    REACTION_EMOJIS.forEach { e ->
+                        Text(
+                            e, fontSize = 20.sp,
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable { onReact(e); actionMenuOpen = false }
+                                .padding(6.dp),
+                        )
+                    }
+                }
+                if (caption != null) {
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("복사") },
+                        onClick = {
+                            clipboard.setText(AnnotatedString(caption))
+                            Toast.makeText(context, "복사되었습니다", Toast.LENGTH_SHORT).show()
+                            actionMenuOpen = false
+                        },
                     )
                 }
             }
@@ -1843,28 +1924,12 @@ fun MessageBubble(
                     }
                 }
             }
-            // 이모지 리액션 칩 (탭하면 내 리액션 토글)
-            if (reactions.isNotEmpty()) {
-                Row(modifier = Modifier.padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    reactions.groupBy { it.emoji }.forEach { (emoji, list) ->
-                        val mineReacted = list.any { it.userId == myUserId }
-                        Row(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (mineReacted) MoimAccent.copy(alpha = 0.20f) else MoimBg)
-                                .clickable { onReact(emoji) }
-                                .padding(horizontal = 7.dp, vertical = 2.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(emoji, fontSize = 12.sp)
-                            if (list.size > 1) {
-                                Spacer(Modifier.width(3.dp))
-                                Text("${list.size}", fontSize = 11.sp, color = MoimSub)
-                            }
-                        }
-                    }
-                }
-            }
+            ReactionChipsRow(
+                reactions = reactions,
+                myUserId = myUserId,
+                onReact = onReact,
+                modifier = Modifier.padding(top = 3.dp),
+            )
         }
         if (!mine) {
             Text(fmtMsgTime(m.createdAt), fontSize = 10.sp, color = MoimSub,

@@ -85,7 +85,25 @@
   /* 채팅: grid로 msgs 높이 고정(Chrome flex 스크롤 버그 회피) */
   #pane-chat.pane.on{display:grid;grid-template-rows:minmax(0,1fr) auto;overflow:hidden}
   .msgs{grid-row:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:14px 12px;background:var(--bg);scrollbar-gutter:stable}
-  .inputbar,.readonly{grid-row:2;flex-shrink:0}
+  .chat-foot{grid-row:2;display:flex;flex-direction:column;flex-shrink:0}
+  .reply-bar{display:flex;align-items:center;gap:8px;padding:7px 12px;background:var(--surface);border-top:1px solid var(--line);font-size:12px}
+  .reply-bar .preview{flex:1;min-width:0;color:var(--sub);overflow:hidden}
+  .reply-bar .preview b{color:var(--accent);font-size:11px;font-weight:700;display:block;margin-bottom:2px}
+  .reply-bar .preview span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reply-quote{padding:6px 8px;background:var(--bg);border-radius:6px;margin-bottom:6px;font-size:11px;color:var(--sub);max-width:260px;line-height:1.35}
+  .reply-quote b{font-size:10.5px;font-weight:700;display:block;margin-bottom:2px;color:var(--sub)}
+  .reply-quote span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .reaction-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:3px}
+  .react-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:12px;background:var(--bg);font-size:12px;cursor:pointer;border:none;font-family:inherit;color:var(--ink)}
+  .react-chip.mine{background:rgba(30,136,229,.2)}
+  .notice-card .reaction-chips{margin-top:8px}
+  .notice-body,.bubble-text{user-select:text;-webkit-user-select:text}
+  .msg-menu{position:fixed;z-index:90;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:6px 4px;min-width:180px}
+  .msg-menu .emoji-row{display:flex;gap:2px;justify-content:center;padding:4px 6px 8px;flex-wrap:wrap}
+  .msg-menu .emoji-row span{font-size:22px;cursor:pointer;padding:4px 6px;border-radius:8px;line-height:1}
+  .msg-menu .emoji-row span:hover,.msg-menu .emoji-row span:active{background:var(--bg)}
+  .msg-menu .mi{padding:10px 14px;font-size:14px;font-weight:600;cursor:pointer;border-radius:10px;color:var(--ink)}
+  .msg-menu .mi:hover,.msg-menu .mi:active{background:var(--bg)}
   .mrow{display:flex;gap:8px;max-width:86%;margin-top:9px}
   .mrow.me{margin-left:auto;flex-direction:row-reverse}
   .mrow.you{margin-right:auto}
@@ -322,19 +340,25 @@
       <div class="tab" data-t="cal" onclick="tab('cal')">📅 캘린더</div></div>
     <div class="pane on" id="pane-chat">
       <div class="msgs" id="msgs"></div>
-      <div class="inputbar" id="inputbar">
-        <div class="attpreview hidden" id="attachPreview"></div>
-        <button class="plus" id="plusBtn" onclick="toggleAttachMenu(event)">＋</button>
-        <input id="msgInput" placeholder="메시지 입력" onkeydown="onMsgKeydown(event)" onfocus="scrollMsgsToBottom()">
-        <textarea id="msgInputNotice" placeholder="공지 내용 입력 (줄바꿈 가능)" onfocus="scrollMsgsToBottom()"></textarea>
-        <button class="send" onclick="sendMsg()">➤</button>
-        <input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="onAttachPicked(this,'image')">
-        <input type="file" id="chatFileInput" style="display:none" onchange="onAttachPicked(this,'file')">
-        <div class="attachmenu" id="attachMenu">
-          <div class="ami" onclick="pickAttach('image')">📷 사진</div>
-          <div class="ami" onclick="pickAttach('file')">📎 파일</div>
-        </div></div>
-      <div class="readonly hidden" id="readonlyBar">🔒 공지 전용 방 · 관리자만 작성</div>
+      <div class="chat-foot" id="chatFoot">
+        <div class="reply-bar hidden" id="replyBar">
+          <div class="preview" id="replyPreview"></div>
+          <span onclick="clearReply()" style="cursor:pointer;color:var(--admin);font-weight:800;padding:4px 8px">✕</span>
+        </div>
+        <div class="inputbar" id="inputbar">
+          <div class="attpreview hidden" id="attachPreview"></div>
+          <button class="plus" id="plusBtn" onclick="toggleAttachMenu(event)">＋</button>
+          <input id="msgInput" placeholder="메시지 입력" onkeydown="onMsgKeydown(event)" onfocus="scrollMsgsToBottom()">
+          <textarea id="msgInputNotice" placeholder="공지 내용 입력 (줄바꿈 가능)" onfocus="scrollMsgsToBottom()"></textarea>
+          <button class="send" onclick="sendMsg()">➤</button>
+          <input type="file" id="chatImgInput" accept="image/*" style="display:none" onchange="onAttachPicked(this,'image')">
+          <input type="file" id="chatFileInput" style="display:none" onchange="onAttachPicked(this,'file')">
+          <div class="attachmenu" id="attachMenu">
+            <div class="ami" onclick="pickAttach('image')">📷 사진</div>
+            <div class="ami" onclick="pickAttach('file')">📎 파일</div>
+          </div></div>
+        <div class="readonly hidden" id="readonlyBar">🔒 공지 전용 방 · 관리자만 작성</div>
+      </div>
     </div>
     <div class="pane" id="pane-files"><div class="files" id="fileList"></div></div>
     <div class="pane" id="pane-cal"><div class="cal" id="calBody"></div></div>
@@ -474,6 +498,9 @@
     <img id="imgViewerImg" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px" alt="사진">
   </div>
 
+  <!-- 메시지·공지 길게누르기 메뉴 (이모지·복사·답장) -->
+  <div class="msg-menu hidden" id="msgMenu"></div>
+
 </div>
 
 <script>
@@ -545,6 +572,8 @@ function storageObjectKey(roomId,fileName){
 
 /* ====== 상태 ====== */
 let me=null, rooms=[], myRoomIds=new Set(), profilesById={}, active=null, msgs=[], events=[], files=[], wardText="", wardUpdated=null;
+let reactions=[], replyTarget=null; // 이모지 리액션·답장 대상
+const REACTION_EMOJIS=['👍','❤️','😂','😮','😢','👏'];
 let roomSlideActive=false; // 슬라이드 진입 애니 중 layoutChat 지연(떨림 방지)
 let roomListScrollTop=0;   // 방 목록 스크롤 — 방 진입·재렌더 후 복원
 let unreadByRoom={}, unreadByMsg={}, lastMsgByRoom={};  // #1 안읽은 수, #2 메시지별 안읽은 수, 방별 마지막 메시지
@@ -1021,6 +1050,7 @@ async function setRoomRealtime(roomId){
   realtimeRoom=sb.channel('moim-room-'+roomId);
   realtimeRoom
     .on('postgres_changes',{event:'*',schema:'public',table:'messages',filter},debouncedRefreshRoom)
+    .on('postgres_changes',{event:'*',schema:'public',table:'message_reactions'},debouncedRefreshRoom)
     .on('postgres_changes',{event:'*',schema:'public',table:'calendar_events',filter},debouncedRefreshRoom)
     .on('postgres_changes',{event:'*',schema:'public',table:'room_files',filter},debouncedRefreshRoom)
     .subscribe((status)=>{if(status==='CHANNEL_ERROR')console.warn('realtime room',status);});
@@ -1514,6 +1544,7 @@ async function openRoom(id){
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
   document.getElementById('readonlyBar').classList.toggle('hidden',allow);
   setNoticeComposeMode(!!(active&&noticeTopRoom()&&noticeTopRoom().id===active.id));
+  clearReply();
   if(!roomSlideActive){layoutChat();scrollMsgsToBottom();}
 }
 // 상단 바 개설자·참여자 이름 나열 — 개설자 먼저, 나머지 이름순. DM·구성원없음은 숨김. (넘치면 CSS ellipsis)
@@ -1532,7 +1563,7 @@ async function renderTopBarMembers(r){
   if(!names.length)return;
   el.textContent=names.join(', '); el.style.display='';
 }
-async function closeRoom(){clearAttach();active=null;await setRoomRealtime(null);await slideCloseOverlay(document.getElementById('roomScreen'));const el=document.getElementById('roomList');if(el)el.scrollTop=roomListScrollTop;loadUnreadCounts();loadLastMessages();}
+async function closeRoom(){clearAttach();clearReply();active=null;reactions=[];await setRoomRealtime(null);await slideCloseOverlay(document.getElementById('roomScreen'));const el=document.getElementById('roomList');if(el)el.scrollTop=roomListScrollTop;loadUnreadCounts();loadLastMessages();}
 /* ====== 1:1 대화 스와이프 삭제 (왼쪽으로 밀어 확인 후 본인 참여만 제거) ====== */
 let dmStartX=null,dmEl=null,dmDx=0,dmSwiped=false;
 function dmSwipeStart(e){const t=e.touches&&e.touches[0];if(!t)return;dmStartX=t.clientX;dmEl=e.currentTarget;dmDx=0;dmSwiped=false;}
@@ -1664,8 +1695,18 @@ function tab(t){
   if(t==='files')renderFiles();if(t==='cal')renderCal();}
 
 /* ====== 채팅 ====== */
-async function loadMsgs(){const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:true});msgs=data||[];renderMsgs();
-  if(active){await markRead(active.id);loadMsgUnread();loadUnreadCounts();}}
+async function loadReactions(){
+  if(!active){reactions=[];return;}
+  const {data}=await sb.rpc('moim_room_reactions',{p_room:active.id});
+  reactions=data||[];
+}
+async function loadMsgs(){
+  const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:true});
+  msgs=data||[];
+  await loadReactions();
+  renderMsgs();
+  if(active){await markRead(active.id);loadMsgUnread();loadUnreadCounts();}
+}
 /** 채팅 msgs 높이 — offsetHeight 기준(슬라이드 transform 중 getBoundingClientRect 떨림 방지) */
 function layoutChat(){
   const screen=document.getElementById('roomScreen');
@@ -1673,10 +1714,8 @@ function layoutChat(){
   const el=document.getElementById('msgs');
   if(!screen||!pane||!el||screen.classList.contains('hidden')||!pane.classList.contains('on'))return;
   if(roomSlideActive)return;
-  const bar=document.getElementById('inputbar');
-  const ro=document.getElementById('readonlyBar');
-  const foot=bar&&!bar.classList.contains('hidden')?bar:(ro&&!ro.classList.contains('hidden')?ro:null);
-  const footH=foot?foot.offsetHeight:0;
+  const footWrap=document.getElementById('chatFoot');
+  const footH=footWrap?footWrap.offsetHeight:0;
   const hdr=screen.querySelector('.hdr');
   const tabs=screen.querySelector('#roomTabs');
   let chromeH=(hdr?.offsetHeight||0)+footH;
@@ -1723,14 +1762,16 @@ function noticePostHtml(m,who,mine){
   if(cap) body+=`<div class="notice-body">${esc(cap)}</div>`;
   body+=noticeAttachmentHtml(m);
   if(!body) body=`<div class="notice-body"></div>`;
+  const chips=reactionChipsHtml(m.id);
   const copy=cap?`<span onclick="copyNotice('${m.id}')" style="cursor:pointer;font-size:12px;font-weight:700;color:var(--accent)">📋 복사</span>`:'';
   const del=mine?`<span onclick="delMsg('${m.id}')" style="cursor:pointer;font-size:12px;font-weight:700;color:var(--admin)">🗑 삭제</span>`:'';
   const footer=(copy||del)?`<div style="display:flex;gap:16px;justify-content:flex-end;margin-top:10px">${copy}${del}</div>`:'';
-  return `<div class="notice-post"><article class="notice-card">
+  const touch=`ontouchstart="msgTouchStart(event,'${m.id}',true)" ontouchend="msgTouchEnd(event)" ontouchmove="msgTouchCancel()" oncontextmenu="openMsgMenu(event,'${m.id}',true);return false;"`;
+  return `<div class="notice-post"><article class="notice-card" data-msgid="${m.id}" ${touch}>
     <div class="notice-accent"></div>
     <p class="notice-time">${fmtDetailTime(m.created_at)}</p>
     <p class="notice-author">${author}</p>
-    <hr class="notice-hr">${body}${footer}</article></div>`;
+    <hr class="notice-hr">${body}${chips}${footer}</article></div>`;
 }
 // 과 전체공지 복사 (https 면 Clipboard API, 아니면 폴백)
 function copyNotice(id){
@@ -1744,6 +1785,87 @@ function copyTextFallback(t){
   ta.style.position='fixed'; ta.style.top='-1000px'; ta.style.opacity='0';
   document.body.appendChild(ta); ta.focus(); ta.select();
   try{document.execCommand('copy');}catch(e){} ta.remove();
+}
+function msgById(id){return msgs.find(x=>x.id===id);}
+function replyQuotePreview(m){
+  const cap=(m.content||'').trim();
+  return cap||(m.type==='image'?'사진':m.type==='file'?'파일':'');
+}
+function replyQuoteHtml(m){
+  if(!m.reply_to)return '';
+  const orig=msgById(m.reply_to); if(!orig)return '';
+  const who=profilesById[orig.sender_id]||{};
+  return `<div class="reply-quote"><b>${esc(who.name||'?')}에게</b><span>${esc(replyQuotePreview(orig))}</span></div>`;
+}
+function reactionsFor(msgId){return reactions.filter(r=>r.message_id===msgId);}
+function reactionChipsHtml(msgId){
+  const list=reactionsFor(msgId); if(!list.length)return '';
+  const grouped={};
+  list.forEach(r=>{(grouped[r.emoji]=grouped[r.emoji]||[]).push(r);});
+  return `<div class="reaction-chips">${Object.keys(grouped).sort().map(emoji=>{
+    const arr=grouped[emoji];
+    const mine=arr.some(r=>r.user_id===me.id);
+    return `<button type="button" class="react-chip${mine?' mine':''}" onclick="toggleReaction('${msgId}','${emoji}')">${emoji}${arr.length>1?' '+arr.length:''}</button>`;
+  }).join('')}</div>`;
+}
+async function toggleReaction(messageId,emoji){
+  const mine=reactions.filter(r=>r.message_id===messageId&&r.user_id===me.id&&r.emoji===emoji);
+  if(mine.length){
+    const {error}=await sb.from('message_reactions').delete().eq('message_id',messageId).eq('user_id',me.id).eq('emoji',emoji);
+    if(error){alert('리액션 취소 실패: '+error.message);return;}
+  } else {
+    const {error}=await sb.from('message_reactions').insert({message_id:messageId,user_id:me.id,emoji});
+    if(error){alert('리액션 실패: '+error.message);return;}
+  }
+  await loadReactions(); renderMsgs();
+  closeMsgMenu();
+}
+function setReply(m){replyTarget=m;renderReplyBar();}
+function clearReply(){replyTarget=null;renderReplyBar();}
+function renderReplyBar(){
+  const bar=document.getElementById('replyBar'); if(!bar)return;
+  if(!replyTarget||isNoticeRoom()){bar.classList.add('hidden');return;}
+  const who=profilesById[replyTarget.sender_id]||{};
+  document.getElementById('replyPreview').innerHTML=
+    `<b>↩ ${esc(who.name||'?')} 에게 답장</b><span>${esc(replyQuotePreview(replyTarget))}</span>`;
+  bar.classList.remove('hidden'); layoutChat();
+}
+let msgTouchTimer=null;
+function msgTouchStart(e,id,isNotice){
+  if(e.touches&&e.touches.length>1)return;
+  msgTouchTimer=setTimeout(()=>{openMsgMenu(e,id,isNotice);msgTouchTimer=null;},500);
+}
+function msgTouchEnd(){if(msgTouchTimer){clearTimeout(msgTouchTimer);msgTouchTimer=null;}}
+function msgTouchCancel(){if(msgTouchTimer){clearTimeout(msgTouchTimer);msgTouchTimer=null;}}
+function closeMsgMenu(){const m=document.getElementById('msgMenu');if(m)m.classList.add('hidden');}
+function openMsgMenu(e,msgId,isNotice){
+  e.preventDefault(); e.stopPropagation();
+  const list=isNoticeRoom()?mergeNoticeMsgs(msgs):msgs;
+  const msg=list.find(x=>x.id===msgId)||msgById(msgId); if(!msg)return;
+  const cap=(msg.content||'').trim();
+  const menu=document.getElementById('msgMenu');
+  let h=`<div class="emoji-row">${REACTION_EMOJIS.map(em=>`<span onclick="pickMenuReact('${msgId}','${em}')">${em}</span>`).join('')}</div>`;
+  if(cap) h+=`<div class="mi" onclick="pickMenuCopy('${msgId}')">복사</div>`;
+  if(!isNotice&&!isNoticeRoom()) h+=`<div class="mi" onclick="pickMenuReply('${msgId}')">답장</div>`;
+  menu.innerHTML=h; menu.classList.remove('hidden');
+  const cx=e.clientX||(e.touches&&e.touches[0]&&e.touches[0].clientX)||(e.changedTouches&&e.changedTouches[0]&&e.changedTouches[0].clientX)||120;
+  const cy=e.clientY||(e.touches&&e.touches[0]&&e.touches[0].clientY)||(e.changedTouches&&e.changedTouches[0]&&e.changedTouches[0].clientY)||120;
+  menu.style.left=Math.min(Math.max(8,cx-90),window.innerWidth-200)+'px';
+  menu.style.top=Math.min(Math.max(8,cy-20),window.innerHeight-160)+'px';
+}
+function pickMenuReact(id,em){toggleReaction(id,em);}
+function pickMenuCopy(id){copyNotice(id);closeMsgMenu();}
+function pickMenuReply(id){const m=msgById(id);if(m)setReply(m);closeMsgMenu();activeMsgInput()?.focus();}
+document.addEventListener('click',e=>{const m=document.getElementById('msgMenu');if(m&&!m.classList.contains('hidden')&&!e.target.closest('#msgMenu'))closeMsgMenu();});
+function bubbleBlockHtml(m){
+  const quote=replyQuoteHtml(m);
+  const chips=reactionChipsHtml(m.id);
+  const touch=`ontouchstart="msgTouchStart(event,'${m.id}')" ontouchend="msgTouchEnd(event)" ontouchmove="msgTouchCancel()" oncontextmenu="openMsgMenu(event,'${m.id}');return false;"`;
+  if(m.type==='image'&&m.attachment_url)
+    return `${quote}<img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진" ${touch}>${chips}`;
+  if(m.type==='file'&&m.attachment_url)
+    return `${quote}<a class="bfile" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}" ${touch}>📎 <span>${esc(m.attachment_name||'파일')}</span></a>${chips}`;
+  return `${quote}<div class="bubble bubble-text" data-msgid="${m.id}" ${touch}>${esc(m.content||'')}</div>${chips}`;
 }
 function renderMsgs(){
   const el=document.getElementById('msgs');
@@ -1764,7 +1886,7 @@ function renderMsgs(){
     const avStyle=personAvatarStyle(who), avText=who.avatar_url?'':ini(who.name);
     const avClick=who.avatar_url?` onclick="openImageView('${esc(who.avatar_url)}')" title="사진 보기" style="cursor:pointer;${avStyle}"`:` style="${avStyle}"`;
     html+=`<div class="mrow ${mine?'me':'you'}">${!mine?`<div class="mav"${avClick}>${avText}</div>`:''}
-    <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleHtml(m)}</div><span class="mtime">${fmtMsgTime(m.created_at)}</span>${un}${del}</div>`;
+    <div class="col">${!mine?`<span class="name">${esc(who.name||'?')}</span>`:''}${bubbleBlockHtml(m)}</div><span class="mtime">${fmtMsgTime(m.created_at)}</span>${un}${del}</div>`;
   });
   el.innerHTML=html;
   scrollMsgsToBottom();
@@ -1779,6 +1901,7 @@ function activeMsgInput(){return isNoticeRoom()?document.getElementById('msgInpu
 function setNoticeComposeMode(on){
   const bar=document.getElementById('inputbar');
   if(bar)bar.classList.toggle('notice-compose',on);
+  if(on)clearReply();
   if(!on){const ta=document.getElementById('msgInputNotice');if(ta)ta.value='';}
 }
 // 보내기(➤): 첨부가 대기 중이면 첨부를 보내고, 텍스트가 있으면 텍스트도 보낸다
@@ -1799,20 +1922,18 @@ async function sendMsg(){
     await loadMsgs();
     return;
   }
-  if(t){i.value='';const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:t});
-    if(error){alert('전송 실패: '+error.message);return;}}
+  if(t){
+    i.value='';
+    const payload={room_id:active.id,sender_id:me.id,content:t};
+    if(replyTarget&&!isNoticeRoom())payload.reply_to=replyTarget.id;
+    clearReply();
+    const {error}=await sb.from('messages').insert(payload);
+    if(error){alert('전송 실패: '+error.message);return;}
+  }
   await loadMsgs();
 }
 
 /* ====== 카톡식 + 첨부(사진/파일) — 공개 room-files 버킷, 선택 후 ➤ 로 전송 ====== */
-// 첨부는 누구나 다운로드 가능한 공개 URL 로 저장(BUCKET='room-files').
-function bubbleHtml(m){
-  if(m.type==='image'&&m.attachment_url)
-    return `<img class="bimg" src="${esc(m.attachment_url)}" onclick="openImageView(this.src)" alt="사진">`;
-  if(m.type==='file'&&m.attachment_url)
-    return `<a class="bfile" href="${esc(m.attachment_url)}" target="_blank" rel="noopener" download="${esc(m.attachment_name||'')}">📎 <span>${esc(m.attachment_name||'파일')}</span></a>`;
-  return `<div class="bubble">${esc(m.content||'')}</div>`;
-}
 function resolveAttachments(){/* 공개 URL 이라 별도 처리 불필요 */}
 function toggleAttachMenu(e){if(e)e.stopPropagation();document.getElementById('attachMenu').classList.toggle('on');}
 function pickAttach(kind){document.getElementById('attachMenu').classList.remove('on');document.getElementById(kind==='image'?'chatImgInput':'chatFileInput').click();}

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -20,6 +21,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -139,7 +144,7 @@ fun WardDutyPane(vm: MoimViewModel, modifier: Modifier = Modifier) {
             state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             items(days, key = { it.toString() }) { date ->
                 val key = date.toString()
@@ -239,7 +244,7 @@ private fun WardDutyDayRow(
             .clip(RoundedCornerShape(12.dp))
             .background(bg, RoundedCornerShape(12.dp))
             .border(1.dp, border, RoundedCornerShape(12.dp))
-            .padding(horizontal = 14.dp, vertical = 12.dp),
+            .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
@@ -261,9 +266,9 @@ private fun WardDutyDayRow(
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
         Text(dutyProfDisplay(duty?.profDay), fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 24.sp)
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(6.dp))
         if (offDay) {
             Text("당직", fontSize = 10.sp, color = MoimSub)
             Text(dutyResidentDisplay(duty?.residentNight), fontSize = 17.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 22.sp)
@@ -327,23 +332,23 @@ private fun WardDutyEditDialog(
             Text(title, fontSize = 17.sp, fontWeight = FontWeight.Bold, color = MoimInk)
             Spacer(Modifier.height(14.dp))
             Text("교원 당직 (교실 · 1인)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
-            DutyMemberSelect(members = faculty, selected = prof, onSelect = { prof = it })
+            DutyMemberPicker(members = faculty, selected = prof, onSelect = { prof = it })
             Spacer(Modifier.height(10.dp))
             Text("전공의 (의국)", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MoimSub)
             if (offDay) {
                 Text("당직 (1인)", fontSize = 10.sp, color = MoimSub)
-                DutyMemberSelect(members = residents, selected = resNight, onSelect = { resNight = it })
+                DutyMemberPicker(members = residents, selected = resNight, onSelect = { resNight = it })
             } else {
                 Text("낮당직 (1인)", fontSize = 10.sp, color = MoimSub)
-                DutyMemberSelect(members = residents, selected = resDay, onSelect = { resDay = it })
+                DutyMemberPicker(members = residents, selected = resDay, onSelect = { resDay = it })
                 Spacer(Modifier.height(8.dp))
                 Text("당직 (1인)", fontSize = 10.sp, color = MoimSub)
-                DutyMemberSelect(members = residents, selected = resNight, onSelect = { resNight = it })
+                DutyMemberPicker(members = residents, selected = resNight, onSelect = { resNight = it })
                 Spacer(Modifier.height(8.dp))
                 Text("외래 (최대 2인)", fontSize = 10.sp, color = MoimSub)
-                DutyMemberSelect(members = residents, selected = out1, onSelect = { out1 = it })
+                DutyMemberPicker(members = residents, selected = out1, onSelect = { out1 = it })
                 Spacer(Modifier.height(6.dp))
-                DutyMemberSelect(members = residents, selected = out2, onSelect = { out2 = it })
+                DutyMemberPicker(members = residents, selected = out2, onSelect = { out2 = it })
             }
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -362,40 +367,45 @@ private fun WardDutyEditDialog(
     }
 }
 
-/** Dialog 안에서도 동작하는 탭 선택 목록 (ExposedDropdownMenu 는 Dialog 에서 터치 불가) */
+/** 필드 탭 시 이름 목록 — DropdownMenu(별도 Popup)로 Dialog 에서도 동작 */
 @Composable
-private fun DutyMemberSelect(members: List<Profile>, selected: String, onSelect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        DutyMemberSelectRow(label = "— (없음)", selected = selected.isBlank(), onClick = { onSelect("") })
-        members.forEach { member ->
-            DutyMemberSelectRow(
-                label = member.name,
-                selected = selected == member.name,
-                onClick = { onSelect(member.name) },
-            )
-        }
-    }
-}
+private fun DutyMemberPicker(members: List<Profile>, selected: String, onSelect: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    val options = remember(members) { listOf("") + members.map { it.name } }
+    val label = selected.ifBlank { "선택" }
 
-@Composable
-private fun DutyMemberSelectRow(label: String, selected: Boolean, onClick: () -> Unit) {
-    val bg = if (selected) MoimAccent.copy(alpha = 0.14f) else MoimWhite
-    val border = if (selected) MoimAccent else MoimLine
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg, RoundedCornerShape(8.dp))
-            .border(1.dp, border, RoundedCornerShape(8.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            label,
-            fontSize = 14.sp,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) MoimAccent else MoimInk,
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = label,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = true },
+            trailingIcon = {
+                Box(Modifier.clickable { expanded = !expanded }) {
+                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                }
+            },
+            shape = RoundedCornerShape(11.dp),
+            colors = moimOutlinedTextFieldColors(),
         )
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            modifier = Modifier
+                .fillMaxWidth(0.88f)
+                .heightIn(max = 280.dp),
+        ) {
+            options.forEach { name ->
+                DropdownMenuItem(
+                    text = { Text(if (name.isBlank()) "— (없음)" else name) },
+                    onClick = {
+                        onSelect(name)
+                        expanded = false
+                    },
+                )
+            }
+        }
     }
 }

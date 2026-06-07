@@ -122,7 +122,7 @@ private struct WardDutyPane: View {
                     todayDutyQuickButton(proxy: proxy)
                         .padding(.horizontal, 16)
                     ScrollView {
-                        LazyVStack(spacing: 8) {
+                        LazyVStack(spacing: 6) {
                             ForEach(daysInMonth, id: \.self) { day in
                                 dutyRow(day).id(dateKey(day))
                             }
@@ -234,7 +234,7 @@ private struct WardDutyPane: View {
         } ?? false
         let canEdit = canEditWardDuty(vm.myProfile)
 
-        return VStack(alignment: .leading, spacing: 8) {
+        return VStack(alignment: .leading, spacing: 6) {
             HStack {
                 HStack(spacing: 4) {
                     Text(label).font(.system(size: 14, weight: .bold))
@@ -281,7 +281,7 @@ private struct WardDutyPane: View {
                 }
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, 12)
+        .padding(.horizontal, 12).padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(colors.0)
         .clipShape(RoundedRectangle(cornerRadius: 12))

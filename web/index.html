@@ -212,6 +212,10 @@
   .wardseg{display:flex;gap:8px;padding:10px 16px;background:var(--paper)}
   .wardseg button{flex:1;padding:10px 0;border:1px solid var(--line);border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;background:var(--surface);color:var(--sub)}
   .wardseg button.on{background:var(--yellow);color:var(--ink);border-color:var(--yellow)}
+  .wardbody.duty-mode{display:flex;flex-direction:column;overflow:hidden;min-height:0}
+  .duty-pane{display:flex;flex-direction:column;flex:1;min-height:0;background:var(--bg)}
+  .duty-fixed{flex-shrink:0;background:var(--bg)}
+  .duty-scroll{flex:1;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch}
   .dutynav{display:flex;align-items:center;justify-content:space-between;padding:8px 16px}
   .dutynav b{font-size:16px}
   .dutynav .narr{font-size:20px;color:var(--sub);cursor:pointer;padding:0 8px;user-select:none}
@@ -223,21 +227,23 @@
   .today-duty-detail .tdn{font-size:22px;font-weight:800;color:var(--ink);margin:4px 0 14px}
   .today-duty-detail .tdg{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
   .today-duty-detail .tdg .dsn{font-size:20px;font-weight:800;color:var(--ink)}
-  .dutylist{padding:8px 16px 16px;display:flex;flex-direction:column;gap:8px}
-  .dutyrow{border-radius:12px;border:1px solid var(--line);padding:12px 14px;background:var(--surface)}
+  .dutylist{padding:6px 16px 12px;display:flex;flex-direction:column;gap:6px}
+  .dutyrow{border-radius:12px;border:1px solid var(--line);padding:8px 12px;background:var(--surface)}
   .dutyrow.today{border-color:var(--accent)}
   .dutyrow.weekend,.dutyrow.pubhol{background:var(--duty-off-bg);border-color:var(--duty-off-border)}
-  .dutyrow .dtop{display:flex;align-items:center;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+  .dutyrow .dtop{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
   .dutyrow .dtop b{font-size:14px;color:var(--ink)}
   .dutyrow.weekend .dtop b,.dutyrow.pubhol .dtop b{color:var(--duty-off-ink)}
   .dutyrow .dtoday{font-size:11px;font-weight:800;color:var(--accent)}
   .dutyrow .dtone{font-size:10px;font-weight:800;color:var(--duty-off-badge);margin-left:auto}
   .dutyrow .dedit{font-size:13px;font-weight:800;color:var(--accent);background:none;border:none;cursor:pointer;padding:0}
   .dutyrow .dlbl{font-size:11px;font-weight:800;color:var(--sub);margin-bottom:2px}
-  .dutyrow .dname{font-size:18px;font-weight:800;color:var(--ink);line-height:1.3;margin-bottom:8px}
+  .dutyrow .dname{font-size:18px;font-weight:800;color:var(--ink);line-height:1.3;margin-bottom:6px}
   .dutyrow .dresgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
   .dutyrow .dresgrid .dsl{font-size:10px;color:var(--sub);margin-bottom:2px}
   .dutyrow .dresgrid .dsn{font-size:17px;font-weight:800;color:var(--ink);line-height:1.3}
+  .dutyrow .dsl{font-size:10px;color:var(--sub);margin-bottom:2px}
+  .dutyrow .dsn{font-size:17px;font-weight:800;color:var(--ink);line-height:1.3}
   /* 과 전체공지 — 가운데 정렬 게시 카드 */
   .notice-post{width:94%;max-width:400px;margin:12px auto 18px}
   .notice-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
@@ -2648,7 +2654,7 @@ function scrollToTodayDuty(){
   dutyMonth=new Date(t.getFullYear(),t.getMonth(),1);
   loadWard().then(()=>{
     const key=dutyDateKey(t.getFullYear(),t.getMonth()+1,t.getDate());
-    const el=document.querySelector(`.dutyrow[data-date="${key}"]`);
+    const el=document.querySelector(`.duty-scroll .dutyrow[data-date="${key}"]`);
     el?.scrollIntoView({behavior:'smooth',block:'center'});
   });
 }
@@ -2671,9 +2677,10 @@ function dutyViewHtml(){
   const dow=['일','월','화','수','목','금','토'];
   const t=new Date();
   const tdow=['일','월','화','수','목','금','토'][t.getDay()];
-  let h=`<div class="dutynav"><span class="narr" onclick="dutyShiftMonth(-1)">‹</span><b>${b.y}년 ${b.m}월</b><span class="narr" onclick="dutyShiftMonth(1)">›</span></div>`;
+  let h=`<div class="duty-pane"><div class="duty-fixed">`;
+  h+=`<div class="dutynav"><span class="narr" onclick="dutyShiftMonth(-1)">‹</span><b>${b.y}년 ${b.m}월</b><span class="narr" onclick="dutyShiftMonth(1)">›</span></div>`;
   h+=`<button type="button" class="today-duty-btn" onclick="scrollToTodayDuty()"><span class="tdt">오늘 당직</span><span class="tdm">${t.getMonth()+1}/${t.getDate()} (${tdow})</span>`;
-  h+=`<div class="tds">${todayDutyPreview()}</div></button><div class="dutylist">`;
+  h+=`<div class="tds">${todayDutyPreview()}</div></button></div><div class="duty-scroll"><div class="dutylist">`;
   for(let d=1;d<=b.last;d++){
     const key=dutyDateKey(b.y,b.m,d);
     const row=dutyByDate[key]||{};
@@ -2692,14 +2699,14 @@ function dutyViewHtml(){
     h+=`<div class="${cls}" data-date="${key}"><div class="dtop"><b>${label}</b>${isToday?'<span class="dtoday">오늘</span>':''}${toneLbl?`<span class="dtone">${toneLbl}</span>`:''}${editBtn}</div>`;
     h+=`<div class="dname">${dutyProfDisplay(row.prof_day)}</div>`;
     if(off){
-      h+=`<div class="dsl">당직</div><div class="dsn" style="font-size:17px;font-weight:800">${dutyResidentDisplay(row.resident_night)}</div></div>`;
+      h+=`<div class="dsl">당직</div><div class="dsn">${dutyResidentDisplay(row.resident_night)}</div></div>`;
     }else{
       h+=`<div class="dresgrid"><div><div class="dsl">낮</div><div class="dsn">${dutyResidentDisplay(row.resident_day)}</div></div>`;
       h+=`<div><div class="dsl">당직</div><div class="dsn">${dutyResidentDisplay(row.resident_night)}</div></div>`;
       h+=`<div><div class="dsl">외래</div><div class="dsn" style="font-size:14px">${esc(outpatientLabel(row))}</div></div></div></div>`;
     }
   }
-  h+=`</div>`;
+  h+=`</div></div></div>`;
   return h;
 }
 function openDutyEdit(dateKey){
@@ -2760,9 +2767,13 @@ function renderWard(editing){
   editBtn.textContent='편집';
   editBtn.style.display=(wardTab==='beds'&&!editing&&canEditWard())?'inline':'none';
   if(wardTab==='duty'){
+    el.className='wardbody duty-mode';
+    el.style.overflowY='hidden';
     el.innerHTML=dutyViewHtml();
     return;
   }
+  el.className='wardbody';
+  el.style.overflowY='auto';
   if(editing){
     el.innerHTML=`<textarea class="wardedit" id="wardDraft">${esc(wardText)}</textarea>
       <button class="primary" onclick="wardSave()">게시</button>

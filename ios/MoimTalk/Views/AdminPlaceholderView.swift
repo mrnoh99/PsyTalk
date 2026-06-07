@@ -128,6 +128,20 @@ struct AdminPlaceholderView: View {
     private var membersContent: some View {
         VStack(alignment: .leading, spacing: 13) {
             card(title: "👥 회원 관리 · \(members.count)명 · 관리자 지위 지정 / 계정 비활성화") {
+                Button {
+                    MemberCsvExport.share(profiles: Array(vm.profilesById.values))
+                } label: {
+                    Text("📥 회원 명단 엑셀 다운로드 (앱 배포용)")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Moim.accent)
+                        .frame(maxWidth: .infinity)
+                        .padding(11)
+                        .background(Moim.white)
+                        .overlay(RoundedRectangle(cornerRadius: 11).stroke(Moim.line, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 11))
+                }
+                .buttonStyle(.plain)
+                .padding(.bottom, 12)
                 // 이름순 / 직종별 정렬 토글
                 HStack(spacing: 7) {
                     memSortButton("이름순", "name")

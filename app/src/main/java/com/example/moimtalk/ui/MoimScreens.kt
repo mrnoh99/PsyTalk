@@ -406,15 +406,31 @@ private fun MemberManageTab(vm: MoimViewModel, collator: java.text.Collator) {
     // 비활성(탈퇴) 회원 — 복구 대상
     val withdrawn = vm.profilesById.values.filter { it.role != "superadmin" && it.withdrawn }
         .sortedWith(Comparator { a, b -> collator.compare(a.name, b.name) })
+    val context = LocalContext.current
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         item {
+            Text("관리자 지위 지정 / 계정 비활성화. (전체관리자 제외)", fontSize = 12.sp, color = MoimSub)
+            Spacer(Modifier.height(10.dp))
+            Text(
+                "📥 회원 명단 엑셀 다운로드 (앱 배포용)",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = MoimAccent,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(11.dp))
+                    .border(1.dp, MoimLine, RoundedCornerShape(11.dp))
+                    .background(MoimWhite)
+                    .clickable { MemberCsvExport.share(context, vm.profilesById.values) }
+                    .padding(11.dp),
+            )
+            Spacer(Modifier.height(12.dp))
             Row(modifier = Modifier.padding(bottom = 10.dp)) {
                 SortChip("가나다순", !byType) { byType = false }
                 Spacer(Modifier.width(8.dp))
                 SortChip("직군별", byType) { byType = true }
             }
-            Text("관리자 지위 지정 / 계정 비활성화. (전체관리자 제외)", fontSize = 12.sp, color = MoimSub)
-            Spacer(Modifier.height(12.dp))
         }
         if (members.isEmpty()) {
             item { Text("승인된 회원이 없습니다.", fontSize = 13.sp, color = MoimSub) }

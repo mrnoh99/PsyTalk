@@ -48,6 +48,7 @@ data class Profile(
     @SerialName("avatar_url") val avatarUrl: String? = null,
     val color: String? = null,        // 프로필 아바타 색상(hex), null=직군 기본색
     @SerialName("created_at") val createdAt: String? = null,
+    @SerialName("phone_updated_at") val phoneUpdatedAt: String? = null,
 )
 
 @Serializable

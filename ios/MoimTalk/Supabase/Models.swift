@@ -19,6 +19,8 @@ struct Profile: Codable, Identifiable, Hashable {
     var color: String?            // 프로필 아바타 색상(hex)
     var deviceType: String?       // iphone | android (앱 설치용)
     var deviceEmail: String?      // 앱 설치용 연결 이메일
+    var createdAt: String?        // 가입일
+    var phoneUpdatedAt: String?   // 전화번호 최종 변경일
 
     enum CodingKeys: String, CodingKey {
         case id, name, role, approved, withdrawn, phone, intro, email, color
@@ -26,6 +28,8 @@ struct Profile: Codable, Identifiable, Hashable {
         case avatarUrl = "avatar_url"
         case deviceType = "device_type"
         case deviceEmail = "device_email"
+        case createdAt = "created_at"
+        case phoneUpdatedAt = "phone_updated_at"
     }
 }
 

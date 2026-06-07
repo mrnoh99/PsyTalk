@@ -239,7 +239,7 @@
   .attachmenu.on{display:flex}
   .ami{padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;border-radius:10px;white-space:nowrap}
   .ami:active,.ami:hover{background:var(--bg)}
-  .attpreview{position:absolute;left:0;right:0;bottom:100%;background:var(--paper);border-top:1px solid var(--line);padding:8px 12px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
+  .attpreview{flex-shrink:0;background:var(--surface);border-top:1px solid var(--line);padding:9px 12px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
   .attpreview.hidden{display:none}
   .readonly{padding:14px;padding-bottom:calc(14px + constant(safe-area-inset-bottom));padding-bottom:calc(14px + env(safe-area-inset-bottom));background:#f3ede3;border-top:1px solid var(--line);text-align:center;font-size:12.5px;color:var(--sub);font-weight:600}
   .files,.cal{padding:13px}
@@ -282,7 +282,7 @@
   .evdoc-att:hover{background:#f3efe9}
   .evdoc-link{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:10px 14px;background:#eef2f8;color:var(--group);border-radius:10px;font-size:13px;font-weight:700;text-decoration:none}
   .ev-detail-edit{width:100%;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:700;background:var(--accent);color:#fff;cursor:pointer;margin-top:12px}
-  .evkept{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;background:#f3efe9;border-radius:8px;padding:6px 10px;margin-bottom:5px}
+  .evkept{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-bottom:5px}
   .evkeptx{color:#c0392b;font-weight:800;cursor:pointer;padding:0 4px}
   .wday{display:flex;gap:10px;padding:9px 6px;border-bottom:1px solid rgba(220,213,204,.5)}
   .wday.wtoday{background:var(--hl);border-radius:11px}.wdate{width:42px;text-align:center;flex-shrink:0}
@@ -500,8 +500,8 @@
           <div class="preview" id="replyPreview"></div>
           <span class="reply-close" onclick="clearReply()">✕</span>
         </div>
+        <div class="attpreview hidden" id="attachPreview"></div>
         <div class="inputbar" id="inputbar">
-          <div class="attpreview hidden" id="attachPreview"></div>
           <button class="plus" id="plusBtn" onclick="toggleAttachMenu(event)">＋</button>
           <input id="msgInput" placeholder="메시지 입력" onkeydown="onMsgKeydown(event)" onfocus="scrollMsgsToBottom()">
           <textarea id="msgInputNotice" placeholder="공지 내용 입력 (줄바꿈 가능)" onfocus="scrollMsgsToBottom()"></textarea>
@@ -2325,7 +2325,8 @@ function renderAttachPreview(){
   const el=document.getElementById('attachPreview');if(!el)return;
   if(!pendingAttach){el.classList.add('hidden');el.innerHTML='';return;}
   const {file,kind}=pendingAttach;
-  el.innerHTML=`<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${kind==='image'?'🖼':'📎'} ${esc(file.name)}</span>`+
+  el.innerHTML=`<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${kind==='image'?'🖼':'📎'} <b>${esc(file.name)}</b></span>`+
+    `<span style="color:var(--work);font-weight:700;font-size:12px;white-space:nowrap">첨부됨 · ➤ 전송</span>`+
     `<span onclick="clearAttach()" style="cursor:pointer;color:var(--admin);font-weight:800;padding:2px 8px">✕</span>`;
   el.classList.remove('hidden');
 }

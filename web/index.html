@@ -1981,11 +1981,14 @@ async function loadReactions(){
   reactions=data||[];
 }
 async function loadMsgs(){
+  const markP=active?markRead(active.id):Promise.resolve();   // 메시지 로드와 병렬로 읽음 기록
   const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:true});
   msgs=data||[];
-  await loadReactions();
+  await markP;                                                // 안읽은수 계산 전에 내 읽음 반영(나 제외)
+  // 리액션·메시지별 안읽은수를 렌더 전에 함께 확보 → 안읽은 숫자가 늦게 뜨지 않고 한 번에 표시
+  await Promise.all([loadReactions(), active?loadMsgUnread():Promise.resolve()]);
   renderMsgs();
-  if(active){await markRead(active.id);loadMsgUnread();loadUnreadCounts();}
+  loadUnreadCounts();                                         // 방목록 배지(백그라운드)
 }
 /** 채팅 msgs 높이 — offsetHeight 기준(슬라이드 transform 중 getBoundingClientRect 떨림 방지) */
 function layoutChat(){

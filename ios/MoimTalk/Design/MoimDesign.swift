@@ -80,6 +80,15 @@ func noticeTopRoom(_ rooms: [Room]) -> Room? {
         .min { $0.sortOrder < $1.sortOrder }
 }
 
+func isNoticeTopRoom(_ room: Room, _ rooms: [Room]) -> Bool {
+    noticeTopRoom(rooms)?.id == room.id
+}
+
+/// 방 헤더에 구성원 이름 줄 표시 — 모임방 등만(과 전체공지·DM 제외)
+func showRoomHeaderMembers(_ room: Room, _ rooms: [Room]) -> Bool {
+    room.category != "direct" && !isNoticeTopRoom(room, rooms)
+}
+
 /// 방 구성원 id 정렬 — 개설자(createdBy) 맨 앞, 나머지 가나다순
 func orderedRoomMemberIds(_ room: Room, memberIds: [String], profiles: [String: Profile]) -> [String] {
     let creator = room.createdBy
@@ -272,9 +281,6 @@ func dayKey(_ createdAt: String?) -> String {
 func fmtPublishTime(_ createdAt: String?) -> String {
     guard let iso = createdAt else { return "" }
     return CalDate.detailTimeLabel(iso)
-}
-func isNoticeTopRoom(_ room: Room, rooms: [Room]) -> Bool {
-    noticeTopRoom(rooms)?.id == room.id
 }
 /// 과 전체공지 — 텍스트+첨부가 연속으로 온 경우 한 카드로 합침 (기존 분리 전송 호환)
 func mergeNoticeMessages(_ messages: [Message]) -> [Message] {

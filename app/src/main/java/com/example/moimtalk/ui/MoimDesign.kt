@@ -337,6 +337,10 @@ fun fmtPublishTime(createdAt: String?): String = runCatching {
 fun isNoticeTopRoom(room: Room, rooms: List<Room>): Boolean =
     noticeTopRoom(rooms)?.id == room.id
 
+/** 방 헤더에 구성원 이름 줄 표시 — 모임방 등만(과 전체공지·DM 제외) */
+fun showRoomHeaderMembers(room: Room, rooms: List<Room>): Boolean =
+    room.category != "direct" && !isNoticeTopRoom(room, rooms)
+
 /** 과 전체공지 — 텍스트+첨부가 연속으로 온 경우 한 카드로 합침 (기존 분리 전송 호환) */
 fun mergeNoticeMessages(messages: List<Message>): List<Message> {
     if (messages.isEmpty()) return messages

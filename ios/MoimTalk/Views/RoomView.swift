@@ -53,7 +53,7 @@ struct RoomView: View {
         .task(id: liveRoom.id) {
             tab = isNoticeTopRoom(liveRoom, vm.rooms) ? "chat"
                 : (opensWeekCalendar(liveRoom) ? "cal" : "chat")
-            if !isDM { vm.loadRoomMembers(liveRoom.id) }
+            if !isDM, showRoomHeaderMembers(liveRoom, vm.rooms) { vm.loadRoomMembers(liveRoom.id) }
         }
     }
 
@@ -66,8 +66,8 @@ struct RoomView: View {
                     .foregroundColor(Moim.ink)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                // 개설자·참여자 이름 나열 (작은 글씨, 넘치면 ... — DM 제외)
-                if !isDM, vm.memberListRoomId == liveRoom.id {
+                // 개설자·참여자 이름 나열 (모임방 등 — DM·과 전체공지 제외)
+                if !isDM, showRoomHeaderMembers(liveRoom, vm.rooms), vm.memberListRoomId == liveRoom.id {
                     let line = roomMemberNames(liveRoom, memberIds: vm.roomMemberIds, profiles: vm.profilesById).joined(separator: ", ")
                     if !line.isEmpty {
                         Text(line)

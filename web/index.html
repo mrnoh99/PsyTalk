@@ -1586,6 +1586,7 @@ async function renderTopBarMembers(r){
   const el=document.getElementById('roomMembers'); if(!el)return;
   el.textContent=''; el.style.display='none';
   if(!r||r.category==='direct')return;
+  const nr=noticeTopRoom(); if(nr&&nr.id===r.id)return;
   const {data}=await sb.from('room_members').select('user_id').eq('room_id',r.id);
   if(!active||active.id!==r.id)return;   // 그 사이 다른 방으로 이동했으면 무시
   const ids=(data||[]).map(m=>m.user_id);
@@ -1791,7 +1792,8 @@ function noticeAttachmentHtml(m){
 }
 function linkifyNoticeHtml(t){
   const safe=esc(t);
-  return safe.replace(/(https?:\/\/[^\s&lt;&gt;&quot;']+)/g,'<a class="notice-link" href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+  // ※ 정규식에 &lt; 를 쓰면 글자 l·t 도 제외되어 URL 이 중간에서 끊김
+  return safe.replace(/(https?:\/\/[^\s<>"']+)/g,'<a class="notice-link" href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
 }
 function noticePostHtml(m,who,mine){
   const author=(who.name||'?')+(who.member_type?' · '+esc(who.member_type):'');

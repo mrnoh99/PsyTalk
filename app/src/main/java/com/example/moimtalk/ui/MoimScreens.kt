@@ -1077,7 +1077,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
 
     // 상단 바에 개설자·참여자 이름을 나열하기 위해 방 구성원 로드 (DM 제외)
     LaunchedEffect(liveRoom.id) {
-        if (!dm) vm.loadRoomMembers(liveRoom.id)
+        if (!dm && showRoomHeaderMembers(liveRoom, vm.rooms)) vm.loadRoomMembers(liveRoom.id)
         tab = when {
             isNoticeTopRoom(liveRoom, vm.rooms) -> "chat"
             opensWeekCalendar(liveRoom) -> "cal"
@@ -1170,8 +1170,8 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
-                        // 개설자·참여자 이름 나열 (작은 글씨, 넘치면 ... — DM 제외)
-                        if (!dm && vm.memberListRoomId == liveRoom.id) {
+                        // 개설자·참여자 이름 나열 (모임방 등 — DM·과 전체공지 제외)
+                        if (!dm && showRoomHeaderMembers(liveRoom, vm.rooms) && vm.memberListRoomId == liveRoom.id) {
                             val memberLine = roomMemberNames(liveRoom, vm.roomMemberIds, vm.profilesById).joinToString(", ")
                             if (memberLine.isNotBlank()) {
                                 Text(

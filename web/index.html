@@ -43,6 +43,7 @@
     --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
     --safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);
     --ios-safe-top:0px;--ios-safe-bottom:0px;
+    --hint:#6e6e6e;
   }
   html.light{
     /* ☀️ 라이트 모드 */
@@ -51,12 +52,13 @@
     --me:#ffe45c;--line:#e0e0e0;--line-on:#9e9e9e;--admin:#d32f2f;
     --duty-off-bg:#f3f1f8;--duty-off-border:#e4e0ec;--duty-off-ink:#6d5e58;--duty-off-badge:#8a7e96;
     --duty-today-bg:rgba(25,118,210,.12);--duty-today-border:rgba(25,118,210,.35);
+    --hint:#a8a8a8;
   }
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   /* 폼 입력 — 다크/라이트 테마 글자·배경 동기화 */
   input:not([type=file]):not([type=checkbox]):not([type=radio]),
   textarea,select{color:var(--ink);background:var(--surface)}
-  input::placeholder,textarea::placeholder{color:var(--sub);opacity:1}
+  input::placeholder,textarea::placeholder{color:var(--hint);opacity:1}
   input:-webkit-autofill,input:-webkit-autofill:hover,input:-webkit-autofill:focus,
   textarea:-webkit-autofill,textarea:-webkit-autofill:hover,textarea:-webkit-autofill:focus{
     -webkit-text-fill-color:var(--ink);caret-color:var(--ink);

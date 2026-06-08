@@ -71,23 +71,6 @@ struct RoomView: View {
             guard isBugReportRoom(liveRoom) else { return }
             input = vm.replyTarget != nil ? "" : bugReportDraftFor(role: vm.myProfile?.role)
         }
-        // Android RoomScreen 의 AvatarAdjustDialog 와 동일 — 시트 밖에서 사진 조절
-        .fullScreenCover(isPresented: Binding(
-            get: { iconAdjustImage != nil },
-            set: { if !$0 { iconAdjustImage = nil } }
-        )) {
-            if let img = iconAdjustImage {
-                AvatarAdjustView(
-                    sourceImage: img,
-                    onDismiss: { iconAdjustImage = nil },
-                    onConfirm: { data in
-                        editIconData = data
-                        editIconCleared = false
-                        iconAdjustImage = nil
-                    }
-                )
-            }
-        }
     }
 
     private var topBar: some View {
@@ -152,8 +135,7 @@ struct RoomView: View {
                         adjustSourceImage: $iconAdjustImage,
                         existingIconUrl: editIconCleared ? nil : liveRoom.iconUrl,
                         onClear: { editIconData = nil; editIconCleared = true },
-                        onPhotoConfirmed: { editIconCleared = false },
-                        directPhoto: true   // 시트 안에서는 자르기 화면이 안 떠서 web 방식(즉시 미리보기) 사용
+                        onPhotoConfirmed: { editIconCleared = false }
                     )
                     Spacer()
                 }
@@ -168,6 +150,23 @@ struct RoomView: View {
                             showRename = false
                         }
                     }
+                }
+            }
+            // 사진 선택 후 자르기/편집 화면 — 시트 '안'에 붙여야 시트 위로 표시됨
+            .fullScreenCover(isPresented: Binding(
+                get: { iconAdjustImage != nil },
+                set: { if !$0 { iconAdjustImage = nil } }
+            )) {
+                if let img = iconAdjustImage {
+                    AvatarAdjustView(
+                        sourceImage: img,
+                        onDismiss: { iconAdjustImage = nil },
+                        onConfirm: { data in
+                            editIconData = data
+                            editIconCleared = false
+                            iconAdjustImage = nil
+                        }
+                    )
                 }
             }
         }

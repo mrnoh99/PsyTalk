@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Supabase
 
 // =====================================================================
 //  ViewModel — Android MoimViewModel 과 동일 상태/로직
@@ -7,7 +8,7 @@ import SwiftUI
 @MainActor
 final class MoimViewModel: ObservableObject {
 
-    @Published var loggedIn: Bool = MoimRepository.currentUserId() != nil
+    @Published var loggedIn: Bool = MoimRepository.hasValidSession()
     @Published var myProfile: Profile?
     @Published var rooms: [Room] = []
     @Published var messages: [Message] = []
@@ -64,9 +65,53 @@ final class MoimViewModel: ObservableObject {
     private var openRoomTask: Task<Void, Never>?
     private var messagePollTask: Task<Void, Never>?
     private var foregroundRefreshTask: Task<Void, Never>?
+    private var authListenerTask: Task<Void, Never>?
+
     init() {
-        if MoimRepository.currentUserId() != nil {
+        if MoimRepository.hasValidSession() {
             bindRealtime()
+        }
+        startAuthListener()
+    }
+
+    /// supabase-swift emitLocalSessionAsInitialSession — 만료·로그아웃 시 loggedIn 동기화
+    private func startAuthListener() {
+        authListenerTask?.cancel()
+        authListenerTask = Task { [weak self] in
+            for await (event, session) in supabase.auth.authStateChanges {
+                guard let self else { return }
+                await self.handleAuthChange(event: event, session: session)
+            }
+        }
+    }
+
+    private func handleAuthChange(event: AuthChangeEvent, session: Session?) {
+        switch event {
+        case .initialSession:
+            if let session, !session.isExpired {
+                loggedIn = true
+                if myProfile == nil {
+                    bindRealtime()
+                    loadRooms()
+                }
+            } else if session == nil {
+                loggedIn = false
+            }
+        case .signedIn, .tokenRefreshed:
+            guard let session, !session.isExpired else { return }
+            let wasLoggedIn = loggedIn
+            loggedIn = true
+            if !wasLoggedIn {
+                bindRealtime()
+                loadRooms()
+            }
+        case .signedOut:
+            stopMessagePolling()
+            loggedIn = false
+            rooms = []
+            myProfile = nil
+        default:
+            break
         }
     }
 

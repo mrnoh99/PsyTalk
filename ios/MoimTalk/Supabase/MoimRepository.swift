@@ -13,6 +13,12 @@ enum MoimRepository {
         supabase.auth.currentUser?.id.uuidString.lowercased()
     }
 
+    /// 저장된 세션이 있고 만료되지 않았을 때만 로그인 상태
+    static func hasValidSession() -> Bool {
+        guard let session = supabase.auth.currentSession else { return false }
+        return !session.isExpired
+    }
+
     static func currentUserEmail() -> String? {
         supabase.auth.currentUser?.email
     }

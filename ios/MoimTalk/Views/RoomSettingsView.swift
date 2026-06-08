@@ -1,6 +1,6 @@
 import SwiftUI
 
-// 모임방 설정 — 회원 내보내기 + 모임방 삭제 (생성자/관리자만)
+// 모임방 설정 — 구성원 초대·제거 + 모임방 삭제 (web #smodal 과 동일: 위 참여 / 아래 초대)
 struct RoomSettingsView: View {
     @ObservedObject var vm: MoimViewModel
     let room: Room
@@ -8,43 +8,71 @@ struct RoomSettingsView: View {
     let onDeleted: () -> Void
 
     @State private var confirmDelete = false
-    @State private var kickTarget: String?
-    @State private var showInvite = false
+    @State private var confirmRemove: Profile?
 
-    // 방 삭제는 개설자 또는 전체관리자만
     private var canDelete: Bool {
         room.createdBy == MoimRepository.currentUserId() || vm.isSuperAdmin
+    }
+
+    /// 본인 제외 · 승인 · 미탈퇴 · 미참여 (web renderInviteList)
+    private var inviteCandidates: [Profile] {
+        let memberIds = Set(vm.roomMemberIds)
+        return vm.profilesById.values
+            .filter {
+                $0.id != MoimRepository.currentUserId()
+                    && $0.approved != false
+                    && $0.withdrawn != true
+                    && !memberIds.contains($0.id)
+            }
+            .sorted { $0.name < $1.name }
     }
 
     var body: some View {
         NavigationView {
             List {
-                Section {
-                    Button {
-                        showInvite = true
-                    } label: {
-                        Label("구성원 초대", systemImage: "person.badge.plus")
-                    }
-                }
-
-                Section(header: Text("참여 회원 (\(vm.roomMemberIds.count)명)")) {
+                Section(header: Text("참여 회원 (제거)")) {
                     if !vm.roomMembersLoaded {
                         Text("회원 정보를 불러오는 중…").font(.system(size: 13)).foregroundColor(Moim.sub)
                     } else if vm.roomMemberIds.isEmpty {
-                        Text("참여 구성원이 없습니다. 위에서 초대하세요.").font(.system(size: 13)).foregroundColor(Moim.sub)
+                        Text("참여 구성원이 없습니다. 아래에서 초대하세요.").font(.system(size: 13)).foregroundColor(Moim.sub)
                     }
                     ForEach(orderedRoomMemberIds(room, memberIds: vm.roomMemberIds, profiles: vm.profilesById), id: \.self) { uid in
                         let isCreator = uid == room.createdBy
                         let isMe = uid == MoimRepository.currentUserId()
-                        HStack {
-                            Text(vm.name(of: uid) + (isCreator ? " (개설자)" : (isMe ? " (나)" : "")))
-                                .font(.system(size: 15, weight: .semibold)).foregroundColor(Moim.ink)
+                        let tag = isCreator ? " (개설자)" : (isMe ? " (나)" : "")
+                        HStack(alignment: .center, spacing: 10) {
+                            if let p = vm.profilesById[uid] {
+                                roomMemberInfo(p, nameSuffix: tag)
+                            } else {
+                                Text(vm.name(of: uid) + tag)
+                                    .font(.system(size: 14, weight: .semibold)).foregroundColor(Moim.ink)
+                            }
                             Spacer()
                             if !isCreator {
-                                Button("내보내기") { kickTarget = uid }
-                                    .font(.system(size: 13)).foregroundColor(Moim.admin)
+                                Button("제거") {
+                                    if let p = vm.profilesById[uid] { confirmRemove = p }
+                                }
+                                .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.admin)
                             }
                         }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                Section(header: Text("구성원 초대")) {
+                    if !vm.roomMembersLoaded {
+                        Text("회원 정보를 불러오는 중…").font(.system(size: 13)).foregroundColor(Moim.sub)
+                    } else if inviteCandidates.isEmpty {
+                        Text("초대할 수 있는 회원가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub)
+                    }
+                    ForEach(inviteCandidates) { p in
+                        HStack(alignment: .center, spacing: 10) {
+                            roomMemberInfo(p)
+                            Spacer()
+                            Button("초대") { vm.inviteRoomMember(roomId: room.id, userId: p.id) }
+                                .font(.system(size: 13, weight: .bold)).foregroundColor(catColor("work"))
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
 
@@ -65,27 +93,33 @@ struct RoomSettingsView: View {
                     Button("닫기") { onClose() }
                 }
             }
-            // 모임방 삭제 확인
             .confirmationDialog("'\(room.name)' 모임방을 삭제할까요?\n채팅·일정·자료가 모두 삭제되며 되돌릴 수 없습니다.",
                                 isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("삭제", role: .destructive) { vm.deleteRoom(room) { onDeleted() } }
                 Button("취소", role: .cancel) {}
             }
-            // 회원 내보내기 확인
-            .confirmationDialog("'\(kickTarget.map { vm.name(of: $0) } ?? "")' 님을 내보낼까요?",
-                                isPresented: Binding(get: { kickTarget != nil },
-                                                     set: { if !$0 { kickTarget = nil } }),
+            .confirmationDialog("'\(confirmRemove?.name ?? "")' 님을 이 모임방에서 제거할까요?",
+                                isPresented: Binding(get: { confirmRemove != nil },
+                                                     set: { if !$0 { confirmRemove = nil } }),
                                 titleVisibility: .visible) {
-                Button("내보내기", role: .destructive) {
-                    if let uid = kickTarget { vm.removeRoomMember(roomId: room.id, userId: uid) }
-                    kickTarget = nil
+                Button("구성원 제거", role: .destructive) {
+                    if let p = confirmRemove { vm.removeRoomMember(roomId: room.id, userId: p.id) }
+                    confirmRemove = nil
                 }
-                Button("취소", role: .cancel) { kickTarget = nil }
-            }
-            .sheet(isPresented: $showInvite) {
-                RoomMemberPicker(vm: vm, room: room, mode: .invite) { showInvite = false }
+                Button("취소", role: .cancel) { confirmRemove = nil }
             }
         }
-        .onAppear { vm.loadRoomMembers(room.id) }
+        .onAppear {
+            vm.loadRoomMembers(room.id)
+            vm.loadProfiles()
+        }
+    }
+
+    @ViewBuilder
+    private func roomMemberInfo(_ p: Profile, nameSuffix: String = "") -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(p.name + nameSuffix).font(.system(size: 14, weight: .semibold)).foregroundColor(Moim.ink)
+            MemberTypeIntroLines(profile: p)
+        }
     }
 }

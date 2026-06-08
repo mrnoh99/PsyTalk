@@ -126,9 +126,19 @@ struct RootView: View {
                 vm.pendingOpenRoom = nil
             }
         }
-        .onAppear { if vm.loggedIn { vm.loadRooms() } }
+        .onAppear {
+            if vm.loggedIn {
+                vm.loadRooms()
+                vm.startRoomListPolling()
+            }
+        }
         .onChange(of: vm.loggedIn) { newValue in
-            if newValue { vm.loadRooms() }
+            if newValue {
+                vm.loadRooms()
+                vm.startRoomListPolling()
+            } else {
+                vm.stopRoomListPolling()
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
             if vm.loggedIn { vm.refreshOnForeground() }

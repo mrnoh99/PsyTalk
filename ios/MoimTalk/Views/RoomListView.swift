@@ -42,6 +42,17 @@ struct PersonAvatarView: View {
     }
 }
 
+// 직군·자기소개 — 구성원 초대·모임방 만들기 등에서 작은 글씨로
+struct MemberTypeIntroLines: View {
+    let profile: Profile
+    var body: some View {
+        Text(profile.memberType).font(.system(size: 11)).foregroundColor(Moim.sub)
+        if let intro = profile.intro, !intro.isEmpty {
+            Text(intro).font(.system(size: 11)).foregroundColor(Moim.sub).lineLimit(1)
+        }
+    }
+}
+
 // 회원 검색·관리 행의 연락처 줄 — 이메일·전화번호를 작은 글씨로 (있는 것만)
 struct MemberContactLines: View {
     let profile: Profile

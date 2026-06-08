@@ -2706,6 +2706,23 @@ private fun MemberSearchTab(vm: MoimViewModel, onOpenRoom: (Room) -> Unit) {
     }
 }
 
+// 직군·자기소개 — 모임방 설정·만들기 등에서 작은 글씨로 (iOS MemberTypeIntroLines)
+@Composable
+private fun MemberTypeIntroLines(p: Profile) {
+    Text(p.memberType, fontSize = 11.sp, color = MoimSub)
+    if (!p.intro.isNullOrBlank()) {
+        Text(p.intro, fontSize = 11.sp, color = MoimSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+@Composable
+private fun RoomMemberInfo(p: Profile, nameSuffix: String = "", modifier: Modifier = Modifier) {
+    Column(modifier) {
+        Text(p.name + nameSuffix, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MoimInk)
+        MemberTypeIntroLines(p)
+    }
+}
+
 // 회원 검색·관리 행의 연락처 줄 — 이메일·전화번호를 작은 글씨로 (있는 것만)
 @Composable
 private fun MemberContactLines(p: Profile) {
@@ -2927,20 +2944,25 @@ fun RoomSettingsDialog(
         )
     }
 
-    // 회원 내보내기 확인
+    // 구성원 제거 확인
     kickTarget?.let { uid ->
         AlertDialog(
             onDismissRequest = { kickTarget = null },
-            title = { Text("회원 내보내기") },
-            text = { Text("‘${vm.nameOf(uid)}’ 님을 이 모임방에서 내보낼까요?") },
+            title = { Text("구성원 제거") },
+            text = { Text("‘${vm.nameOf(uid)}’ 님을 이 모임방에서 제거할까요?") },
             confirmButton = {
                 TextButton(onClick = {
                     vm.removeRoomMember(room.id, uid)
                     kickTarget = null
-                }) { Text("내보내기", color = MoimAdmin, fontWeight = FontWeight.Bold) }
+                }) { Text("구성원 제거", color = MoimAdmin, fontWeight = FontWeight.Bold) }
             },
             dismissButton = { TextButton(onClick = { kickTarget = null }) { Text("취소") } }
         )
+    }
+
+    LaunchedEffect(room.id) {
+        vm.loadRoomMembers(room.id)
+        vm.reloadProfiles()
     }
 
     AlertDialog(
@@ -2950,7 +2972,7 @@ fun RoomSettingsDialog(
             Column(modifier = Modifier
                 .heightIn(max = 380.dp)
                 .verticalScroll(rememberScrollState())) {
-                Text("참여 회원 (${memberIds.size}명)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+                Text("참여 회원 (제거)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
                 Spacer(Modifier.height(8.dp))
                 if (!vm.roomMembersLoaded) {
                     Text("회원 정보를 불러오는 중…", fontSize = 13.sp, color = MoimSub)
@@ -2960,40 +2982,53 @@ fun RoomSettingsDialog(
                 orderedRoomMemberIds(room, memberIds, vm.profilesById).forEach { uid ->
                     val isCreator = uid == room.createdBy
                     val isMe = uid == MoimRepository.currentUserId()
+                    val tag = when {
+                        isCreator -> " (개설자)"
+                        isMe -> " (나)"
+                        else -> ""
+                    }
+                    val p = vm.profilesById[uid]
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            vm.nameOf(uid) + when {
-                                isCreator -> " (개설자)"
-                                isMe -> " (나)"
-                                else -> ""
-                            },
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MoimInk,
-                            modifier = Modifier.weight(1f)
-                        )
-                        // 개설자는 내보낼 수 없음
+                        if (p != null) {
+                            RoomMemberInfo(p, nameSuffix = tag, modifier = Modifier.weight(1f))
+                        } else {
+                            Text(
+                                vm.nameOf(uid) + tag,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MoimInk,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                         if (!isCreator) {
                             TextButton(onClick = { kickTarget = uid }) {
-                                Text("내보내기", fontSize = 13.sp, color = MoimAdmin)
+                                Text("제거", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAdmin)
                             }
                         }
                     }
                 }
 
-                // 구성원 초대 — 아직 참여하지 않은 승인 회원
-                val candidates = vm.otherProfiles().filter { it.id !in memberIds }
+                val candidates = vm.profilesById.values
+                    .filter {
+                        it.id != MoimRepository.currentUserId()
+                            && it.approved != false
+                            && it.withdrawn != true
+                            && it.id !in memberIds
+                    }
+                    .sortedBy { it.name }
                 Spacer(Modifier.height(14.dp))
                 HorizontalDivider(color = MoimLine)
                 Spacer(Modifier.height(12.dp))
                 Text("구성원 초대", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
                 Spacer(Modifier.height(8.dp))
-                if (candidates.isEmpty()) {
+                if (!vm.roomMembersLoaded) {
+                    Text("회원 정보를 불러오는 중…", fontSize = 13.sp, color = MoimSub)
+                } else if (candidates.isEmpty()) {
                     Text("초대할 수 있는 회원가 없습니다.", fontSize = 13.sp, color = MoimSub)
                 }
                 candidates.forEach { p ->
@@ -3001,9 +3036,9 @@ fun RoomSettingsDialog(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("${p.name} · ${p.memberType}", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = MoimInk, modifier = Modifier.weight(1f))
+                        RoomMemberInfo(p, modifier = Modifier.weight(1f))
                         TextButton(onClick = { vm.inviteRoomMember(room.id, p.id) }) {
-                            Text("초대", fontSize = 13.sp, color = catColor("work"))
+                            Text("초대", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = catColor("work"))
                         }
                     }
                 }
@@ -3125,14 +3160,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                             Text(p.name.take(3), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                         Spacer(Modifier.width(10.dp))
-                        Text(p.name, fontSize = 13.5.sp, fontWeight = FontWeight.SemiBold, color = MoimInk, modifier = Modifier.weight(1f))
-                        Text(
-                            p.memberType,
-                            fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White,
-                            modifier = Modifier
-                                .background(typeColor(p.memberType), RoundedCornerShape(5.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                        RoomMemberInfo(p, modifier = Modifier.weight(1f))
                         Spacer(Modifier.width(8.dp))
                         Text(if (on) "✓" else "○", color = moimToggleText(on, MoimAccent, MoimLine), fontWeight = FontWeight.Bold)
                     }

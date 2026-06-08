@@ -6,7 +6,7 @@ import Supabase
 final class MoimRealtimeSync {
     static let shared = MoimRealtimeSync()
 
-    private let debounceNs: UInt64 = 250_000_000
+    private let debounceNs: UInt64 = 100_000_000
     private let reconnectNs: UInt64 = 2_000_000_000
     private var globalChannel: RealtimeChannelV2?
     private var roomChannel: RealtimeChannelV2?

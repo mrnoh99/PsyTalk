@@ -52,11 +52,11 @@ struct CreateRoomView: View {
                                     .font(.system(size: 11, weight: .bold)).foregroundColor(.white)
                                     .frame(width: 32, height: 32)
                                     .background(typeColor(p.memberType)).clipShape(RoundedRectangle(cornerRadius: 10))
-                                Text(p.name).font(.system(size: 13.5, weight: .semibold)).foregroundColor(Moim.ink)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(p.name).font(.system(size: 13.5, weight: .semibold)).foregroundColor(Moim.ink)
+                                    MemberTypeIntroLines(profile: p)
+                                }
                                 Spacer()
-                                Text(p.memberType).font(.system(size: 9, weight: .bold)).foregroundColor(.white)
-                                    .padding(.horizontal, 6).padding(.vertical, 2)
-                                    .background(typeColor(p.memberType)).clipShape(RoundedRectangle(cornerRadius: 5))
                                 Text(on ? "✓" : "○").foregroundColor(moimToggleText(selected: on, lightOn: Moim.accent, lightOff: Moim.line)).fontWeight(.bold)
                             }
                             .padding(10)

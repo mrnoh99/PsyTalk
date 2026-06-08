@@ -64,12 +64,14 @@ final class MoimViewModel: ObservableObject {
     private var roomLoadGeneration: UInt64 = 0
     private var openRoomTask: Task<Void, Never>?
     private var messagePollTask: Task<Void, Never>?
+    private var roomListPollTask: Task<Void, Never>?
     private var foregroundRefreshTask: Task<Void, Never>?
     private var authListenerTask: Task<Void, Never>?
 
     init() {
         if MoimRepository.hasValidSession() {
             bindRealtime()
+            startRoomListPolling()
         }
         startAuthListener()
     }
@@ -93,6 +95,7 @@ final class MoimViewModel: ObservableObject {
                 if myProfile == nil {
                     bindRealtime()
                     loadRooms()
+                    startRoomListPolling()
                 }
             } else if session == nil {
                 loggedIn = false
@@ -104,9 +107,11 @@ final class MoimViewModel: ObservableObject {
             if !wasLoggedIn {
                 bindRealtime()
                 loadRooms()
+                startRoomListPolling()
             }
         case .signedOut:
             stopMessagePolling()
+            stopRoomListPolling()
             loggedIn = false
             rooms = []
             myProfile = nil
@@ -147,9 +152,16 @@ final class MoimViewModel: ObservableObject {
     }
 
     private func loadRoomsFromRealtime() async {
+        await reloadRoomListQuiet(includeProfile: true)
+    }
+
+    /// rooms·myRoomIds·미리보기 — Realtime·폴링 공용 (Android refetchRoomsQuiet 와 동일)
+    private func reloadRoomListQuiet(includeProfile: Bool = false) async {
         do {
-            myProfile = try await MoimRepository.myProfile()
+            if includeProfile { myProfile = try await MoimRepository.myProfile() }
             rooms = try await MoimRepository.rooms()
+            if let ids = try? await MoimRepository.myRoomIds() { myRoomIds = Set(ids) }
+            loadRoomMemberCounts()
             unreadByRoom = (try? await MoimRepository.unreadCounts()) ?? unreadByRoom
             lastMsgByRoom = (try? await MoimRepository.roomLastMessages()) ?? lastMsgByRoom
         } catch { /* 조용히 재시도 — 다음 이벤트에서 갱신 */ }
@@ -213,6 +225,23 @@ final class MoimViewModel: ObservableObject {
         messagePollTask = nil
     }
 
+    /// Realtime 보조 — 12초마다 방 목록·myRoomIds 재조회 (Android startRoomListPolling 와 동일)
+    func startRoomListPolling() {
+        roomListPollTask?.cancel()
+        roomListPollTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 12_000_000_000)
+                guard !Task.isCancelled, loggedIn else { return }
+                await reloadRoomListQuiet()
+            }
+        }
+    }
+
+    func stopRoomListPolling() {
+        roomListPollTask?.cancel()
+        roomListPollTask = nil
+    }
+
     func login(idInput: String, password: String) {
         Task {
             loading = true; error = nil
@@ -231,6 +260,7 @@ final class MoimViewModel: ObservableObject {
                 }
                 loggedIn = true
                 bindRealtime()
+                startRoomListPolling()
             } catch {
                 loggedIn = false
                 try? await MoimRepository.signOut()
@@ -242,6 +272,7 @@ final class MoimViewModel: ObservableObject {
 
     func logout() {
         stopMessagePolling()
+        stopRoomListPolling()
         Task {
             await MoimRealtimeSync.shared.stop()
             try? await MoimRepository.signOut()
@@ -581,8 +612,13 @@ final class MoimViewModel: ObservableObject {
         }
         Task {
             do {
-                _ = try await MoimRepository.createRoom(name: trimmed, memberIds: memberIds, color: color, iconData: iconData, iconName: iconName)
+                let roomId = try await MoimRepository.createRoom(name: trimmed, memberIds: memberIds, color: color, iconData: iconData, iconName: iconName)
                 rooms = try await MoimRepository.rooms()
+                if let ids = try? await MoimRepository.myRoomIds() { myRoomIds = Set(ids) }
+                else { myRoomIds.insert(roomId) }
+                loadRoomMemberCounts()
+                loadUnreadCounts()
+                loadLastMessages()
                 onDone()
             } catch { reportError("방 만들기", error, friendly: friendlyError) }
         }
@@ -626,6 +662,7 @@ final class MoimViewModel: ObservableObject {
     }
 
     private func onRoomMembersChangedOnly() async {
+        if let ids = try? await MoimRepository.myRoomIds() { myRoomIds = Set(ids) }
         if let rid = memberListRoomId { loadRoomMembers(rid) }
         loadRoomMemberCounts()
     }

@@ -10,6 +10,8 @@ struct LoginView: View {
     @State private var phone = ""
     @State private var intro = ""
     @State private var memberType = "의국"
+    @State private var deviceType = ""        // iphone | android (가입 필수)
+    @State private var deviceEmail = ""       // 앱 설치용 연결 이메일
     private let memberTypes = ["교실", "의국", "심리실", "연구실", "PA", "간호사", "SW", "보조원", "생명사랑", "비서", "의국동문", "심리실 동문", "기타"]
 
     var body: some View {
@@ -68,6 +70,25 @@ struct LoginView: View {
                         }
                     }
                 }
+                Spacer().frame(height: 12)
+                Text("사용 핸드폰 종류 (필수)").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
+                HStack(spacing: 8) {
+                    ForEach([("iphone", "🍎 아이폰"), ("android", "🤖 안드로이드")], id: \.0) { k, label in
+                        let on = deviceType == k
+                        Text(label).font(.system(size: 13, weight: .bold))
+                            .foregroundColor(on ? .white : Moim.ink)
+                            .frame(maxWidth: .infinity).padding(.vertical, 10)
+                            .background(on ? Moim.accent : Moim.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .onTapGesture { deviceType = k }
+                    }
+                }
+                Spacer().frame(height: 12)
+                Text("앱 설치용 연결 이메일 (애플ID/구글계정)").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
+                TextField("앱 설치용 이메일", text: $deviceEmail)
+                    .textInputAutocapitalization(.never)
+                    .keyboardType(.emailAddress)
+                    .textFieldStyle(.roundedBorder)
             }
 
             if let err = vm.error {
@@ -82,9 +103,11 @@ struct LoginView: View {
             Spacer().frame(height: 22)
             Button {
                 if signup {
+                    if deviceType.isEmpty { vm.error = "사용 핸드폰 종류(아이폰/안드로이드)를 선택하세요"; return }
                     vm.signUp(email: email.trimmingCharacters(in: .whitespaces), password: pw,
                               name: name.trimmingCharacters(in: .whitespaces), memberType: memberType,
-                              phone: phone.trimmingCharacters(in: .whitespaces), intro: intro.trimmingCharacters(in: .whitespaces))
+                              phone: phone.trimmingCharacters(in: .whitespaces), intro: intro.trimmingCharacters(in: .whitespaces),
+                              deviceType: deviceType, deviceEmail: deviceEmail.trimmingCharacters(in: .whitespaces))
                 } else {
                     vm.login(idInput: email.trimmingCharacters(in: .whitespaces), password: pw)
                 }

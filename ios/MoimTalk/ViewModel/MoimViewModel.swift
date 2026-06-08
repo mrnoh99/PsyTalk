@@ -38,11 +38,11 @@ final class MoimViewModel: ObservableObject {
     // 관리자 콘솔 회원 관리 정렬
     @Published var memAdminSort: String = "name"       // name | type
 
-    func signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String) {
+    func signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String, deviceType: String, deviceEmail: String) {
         Task {
             loading = true; error = nil; notice = nil
             do {
-                try await MoimRepository.signUp(email: email, password: password, name: name, memberType: memberType, phone: phone, intro: intro)
+                try await MoimRepository.signUp(email: email, password: password, name: name, memberType: memberType, phone: phone, intro: intro, deviceType: deviceType, deviceEmail: deviceEmail)
                 if MoimRepository.currentUserId() != nil {
                     myProfile = try await MoimRepository.myProfile()
                     rooms = try await MoimRepository.rooms()

@@ -26,11 +26,12 @@ enum MoimRepository {
     }
 
     /// 회원가입: 이름·직군·핸드폰·소개를 메타데이터로 전달 → 트리거가 profiles 생성/보강
-    static func signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String) async throws {
+    static func signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String, deviceType: String, deviceEmail: String) async throws {
         try await supabase.auth.signUp(
             email: email, password: password,
             data: ["name": .string(name), "member_type": .string(memberType),
-                   "phone": .string(phone), "intro": .string(intro)]
+                   "phone": .string(phone), "intro": .string(intro),
+                   "device_type": .string(deviceType), "device_email": .string(deviceEmail)]
         )
     }
 

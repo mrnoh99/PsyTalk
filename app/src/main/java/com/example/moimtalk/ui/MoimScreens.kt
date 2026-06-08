@@ -91,6 +91,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.moimtalk.MoimViewModel
@@ -116,6 +117,8 @@ fun LoginScreen(vm: MoimViewModel) {
     var phone by remember { mutableStateOf("") }
     var intro by remember { mutableStateOf("") }
     var memberType by remember { mutableStateOf("의국") }
+    var deviceType by remember { mutableStateOf("") }   // iphone | android (가입 필수)
+    var deviceEmail by remember { mutableStateOf("") }  // 앱 설치용 연결 이메일
     val memberTypes = listOf("교실", "의국", "심리실", "연구실", "PA", "간호사", "SW", "보조원", "생명사랑", "비서", "의국동문", "심리실 동문", "기타")
 
     Column(
@@ -225,6 +228,33 @@ fun LoginScreen(vm: MoimViewModel) {
                     )
                 }
             }
+            Spacer(Modifier.height(12.dp))
+            Text("사용 핸드폰 종류 (필수)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(6.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf("iphone" to "🍎 아이폰", "android" to "🤖 안드로이드").forEach { (k, label) ->
+                    val on = deviceType == k
+                    Text(
+                        label, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        color = if (on) Color.White else MoimInk,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { deviceType = k }
+                            .background(if (on) MoimAccent else MoimWhite)
+                            .padding(vertical = 10.dp)
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Text("앱 설치용 연결 이메일 (애플ID/구글계정)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = deviceEmail, onValueChange = { deviceEmail = it }, singleLine = true,
+                placeholder = { Text("앱 설치용 이메일") },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
         vm.error?.let { err ->
             Spacer(Modifier.height(10.dp))
@@ -237,8 +267,10 @@ fun LoginScreen(vm: MoimViewModel) {
         Spacer(Modifier.height(22.dp))
         Button(
             onClick = {
-                if (signup) vm.signUp(email.trim(), pw, name.trim(), memberType, phone.trim(), intro.trim())
-                else vm.login(email.trim(), pw)
+                if (signup) {
+                    if (deviceType.isBlank()) { vm.error = "사용 핸드폰 종류(아이폰/안드로이드)를 선택하세요"; return@Button }
+                    vm.signUp(email.trim(), pw, name.trim(), memberType, phone.trim(), intro.trim(), deviceType, deviceEmail.trim())
+                } else vm.login(email.trim(), pw)
             },
             enabled = !vm.loading && (!signup || (pw.isNotEmpty() && pw == pwConfirm)),
             colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
@@ -1819,6 +1851,9 @@ private fun ReplyQuoteInBubble(
 }
 
 @OptIn(ExperimentalFoundationApi::class)
+// 긴 메시지: 이 길이 초과 시 말풍선에서 잘라 보여주고 '전체보기'로 전문 표시 (web 과 동일)
+private const val MSG_TRUNC = 400
+
 @Composable
 fun MessageBubble(
     m: Message, mine: Boolean, senderName: String,
@@ -1833,7 +1868,25 @@ fun MessageBubble(
 ) {
     // 텍스트 메시지 길게 누르기 → 카톡식 메뉴(복사·답장 + 이모지 리액션)
     var copyMenuOpen by remember(m.id) { mutableStateOf(false) }
+    var showFullMsg by remember(m.id) { mutableStateOf(false) }   // 긴 메시지 전체보기
     val clipboard = LocalClipboardManager.current
+    if (showFullMsg) {
+        AlertDialog(
+            onDismissRequest = { showFullMsg = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    clipboard.setText(AnnotatedString(m.content.orEmpty())); showFullMsg = false
+                }) { Text("복사") }
+            },
+            dismissButton = { TextButton(onClick = { showFullMsg = false }) { Text("닫기") } },
+            title = { Text("전체 내용") },
+            text = {
+                Box(modifier = Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                    Text(m.content.orEmpty(), fontSize = 15.sp, lineHeight = 22.sp)
+                }
+            },
+        )
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1963,7 +2016,22 @@ fun MessageBubble(
                                 ReplyQuoteInBubble(repliedMessage, repliedName, mine)
                                 Spacer(Modifier.height(6.dp))
                             }
-                            Text(m.content.orEmpty(), color = bubbleTextColor, fontSize = 14.5.sp, lineHeight = 20.sp)
+                            val fullText = m.content.orEmpty()
+                            val isLong = fullText.length > MSG_TRUNC
+                            Text(
+                                if (isLong) fullText.take(MSG_TRUNC) + "…" else fullText,
+                                color = bubbleTextColor, fontSize = 14.5.sp, lineHeight = 20.sp,
+                            )
+                            if (isLong) {
+                                Text(
+                                    "전체보기", color = if (mine) Color.White else MoimAccent,
+                                    fontSize = 12.sp, fontWeight = FontWeight.Bold,
+                                    textDecoration = TextDecoration.Underline,
+                                    modifier = Modifier
+                                        .padding(top = 4.dp)
+                                        .clickable { showFullMsg = true },
+                                )
+                            }
                         }
                     }
                     DropdownMenu(expanded = copyMenuOpen, onDismissRequest = { copyMenuOpen = false }) {

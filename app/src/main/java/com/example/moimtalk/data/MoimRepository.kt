@@ -69,7 +69,7 @@ object MoimRepository {
     }
 
     /** 회원가입: 이름·직군·핸드폰·소개를 메타데이터로 전달 → 트리거가 profiles 생성/보강 */
-    suspend fun signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String) {
+    suspend fun signUp(email: String, password: String, name: String, memberType: String, phone: String, intro: String, deviceType: String, deviceEmail: String) {
         supabase.auth.signUpWith(Email) {
             this.email = email
             this.password = password
@@ -78,6 +78,8 @@ object MoimRepository {
                 put("member_type", memberType)
                 put("phone", phone)
                 put("intro", intro)
+                put("device_type", deviceType)
+                put("device_email", deviceEmail)
             }
         }
     }

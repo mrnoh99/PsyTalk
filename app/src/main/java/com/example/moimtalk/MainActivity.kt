@@ -201,11 +201,11 @@ class MoimViewModel : ViewModel() {
         }
     }
 
-    fun signUp(email: String, pw: String, name: String, memberType: String, phone: String, intro: String) {
+    fun signUp(email: String, pw: String, name: String, memberType: String, phone: String, intro: String, deviceType: String, deviceEmail: String) {
         viewModelScope.launch {
             loading = true; error = null; notice = null
             try {
-                MoimRepository.signUp(email, pw, name, memberType, phone, intro)
+                MoimRepository.signUp(email, pw, name, memberType, phone, intro, deviceType, deviceEmail)
                 if (MoimRepository.currentUserId() != null) {
                     myProfile = MoimRepository.myProfile()
                     rooms = MoimRepository.rooms()

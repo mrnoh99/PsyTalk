@@ -141,8 +141,9 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 30. `message_reactions.sql` — **메시지 답장 + 이모지 리액션**(카톡식 길게누르기): `messages.reply_to`(답장 대상) +
     `message_reactions`(message·user·emoji 유일) + `moim_room_reactions(room)`(방 리액션 일괄). 말풍선 길게누르면
     이모지 리액션 + 복사·선택복사·답장 메뉴. **Android·iOS만**(웹은 리액션 DB 공유). 리액션은 메시지 폴링과 함께 재조회.
-31. `signup_device.sql` — **(웹 가입) 사용 핸드폰 종류 + 앱 설치용 연결 이메일**: `profiles.device_type`('iphone'|'android')·
-    `profiles.device_email`. **웹 가입 폼에서만** 수집(필수), 메타데이터 → profiles 채움(moim_fill_signup_extra 갱신).
+31. `signup_device.sql` — **(가입) 사용 핸드폰 종류 + 앱 설치용 연결 이메일**: `profiles.device_type`('iphone'|'android')·
+    `profiles.device_email`. **세 플랫폼(web·iOS·Android) 가입 폼**에서 핸드폰 종류 필수 선택·설치용 이메일 입력,
+    메타데이터(device_type·device_email) → profiles 채움(moim_fill_signup_extra 갱신).
     전체관리자 콘솔 '회원 관리'의 **📥 회원 명단 엑셀(CSV) 다운로드**로 내보내 TestFlight/내부테스터 초대에 사용.
 32. `profile_phone_edit.sql` — **내 정보에서 핸드폰 종류·앱 설치용 이메일 변경**(세 플랫폼) + 전화번호 최종변경일:
     전화번호는 **읽기 전용**, `device_type`(아이폰/안드로이드)·`device_email`만 본인이 변경. `moim_update_my_profile`

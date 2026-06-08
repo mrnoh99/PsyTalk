@@ -485,6 +485,9 @@ struct MessageBubble: View {
     var onReply: () -> Void = {}
     var repliedMessage: Message? = nil
     var repliedName: String? = nil
+    @State private var showFullMsg = false   // 긴 메시지 전체보기 (web 과 동일)
+
+    private static let msgTrunc = 400
 
     private var unreadText: some View {
         Text(unread > 99 ? "99+" : "\(unread)")
@@ -585,9 +588,18 @@ struct MessageBubble: View {
                         if let r = repliedMessage {
                             ReplyQuoteInBubble(repliedMessage: r, repliedName: repliedName, mine: mine)
                         }
-                        Text(message.content ?? "")
+                        let fullText = message.content ?? ""
+                        let isLong = fullText.count > Self.msgTrunc
+                        Text(isLong ? String(fullText.prefix(Self.msgTrunc)) + "…" : fullText)
                             .font(.system(size: 14.5))
                             .foregroundColor(mine ? .white : Moim.ink)
+                        if isLong {
+                            Text("전체보기")
+                                .font(.system(size: 12, weight: .bold))
+                                .underline()
+                                .foregroundColor(mine ? .white : Moim.accent)
+                                .onTapGesture { showFullMsg = true }
+                        }
                     }
                     .padding(.horizontal, 12).padding(.vertical, 9)
                     .background(mine ? Moim.accent : Moim.youBubble)
@@ -603,6 +615,9 @@ struct MessageBubble: View {
                         Button { onReply() } label: {
                             Label("답장", systemImage: "arrowshape.turn.up.left")
                         }
+                    }
+                    .sheet(isPresented: $showFullMsg) {
+                        FullMessageView(text: message.content ?? "")
                     }
                 }
                 // 이모지 리액션 칩 (탭하면 내 리액션 토글)
@@ -629,6 +644,34 @@ struct MessageBubble: View {
             if !mine { timeText }
             if !mine && unread > 0 { unreadText }
             if !mine { Spacer(minLength: 40) }
+        }
+    }
+}
+
+// 긴 메시지 전체보기 (web 의 openFullMsg 와 동일)
+struct FullMessageView: View {
+    let text: String
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                Text(text)
+                    .font(.system(size: 15))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+                    .padding(16)
+            }
+            .background(Moim.paper.ignoresSafeArea())
+            .navigationTitle("전체 내용")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("복사") { UIPasteboard.general.string = text }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("닫기") { dismiss() }
+                }
+            }
         }
     }
 }

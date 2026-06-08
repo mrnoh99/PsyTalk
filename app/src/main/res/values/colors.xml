@@ -7,5 +7,6 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="brand_orange">#FFF28500</color>
+    <!-- 앱 아이콘(적응형) 배경 — web 아이콘보다 살짝 밝게(iOS/Android 구별용) -->
+    <color name="brand_orange">#FFF47B01</color>
 </resources>

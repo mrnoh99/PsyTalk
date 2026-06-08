@@ -27,7 +27,8 @@ import kotlinx.coroutines.launch
  */
 object MoimRealtimeSync {
 
-    private const val DEBOUNCE_MS = 250L
+    private const val DEBOUNCE_MS = 100L
+    private const val MESSAGES_DEBOUNCE_MS = 100L
 
     private var roomsFlowJob: Job? = null
     private var globalChannel: RealtimeChannel? = null
@@ -38,6 +39,7 @@ object MoimRealtimeSync {
     private val roomJobs = mutableListOf<Job>()
     private var roomListDebounce: Job? = null
     private var profilesDebounce: Job? = null
+    private var messagesDebounce: Job? = null
     private var roomDebounce: Job? = null
     private var roomListener: (suspend (String) -> Unit)? = null
     private var activeRoomId: String? = null
@@ -49,6 +51,7 @@ object MoimRealtimeSync {
     private var onRoomMembersChanged: (suspend () -> Unit)? = null
     private var onProfilesChanged: (suspend () -> Unit)? = null
     private var onWardChanged: (suspend () -> Unit)? = null
+    private var onMessagesChanged: (suspend () -> Unit)? = null
 
     fun start(
         scope: CoroutineScope,
@@ -57,6 +60,7 @@ object MoimRealtimeSync {
         onRoomMembersChanged: suspend () -> Unit,
         onProfilesChanged: suspend () -> Unit,
         onWardChanged: suspend () -> Unit,
+        onMessagesChanged: suspend () -> Unit,
         onActiveRoomChanged: suspend (String) -> Unit,
     ) {
         this.onRoomsList = onRoomsList
@@ -64,6 +68,7 @@ object MoimRealtimeSync {
         this.onRoomMembersChanged = onRoomMembersChanged
         this.onProfilesChanged = onProfilesChanged
         this.onWardChanged = onWardChanged
+        this.onMessagesChanged = onMessagesChanged
         this.roomListener = onActiveRoomChanged
         stopping = false
 
@@ -105,6 +110,9 @@ object MoimRealtimeSync {
             val wardDutyFlow = ch.postgresChangeFlow<PostgresAction>(schema = "public") {
                 table = "ward_duty"
             }
+            val messagesFlow = ch.postgresChangeFlow<PostgresAction>(schema = "public") {
+                table = "messages"
+            }
             ch.subscribe(blockUntilSubscribed = true)
             globalChannel = ch
             globalJobs.clear()
@@ -119,6 +127,9 @@ object MoimRealtimeSync {
             )
             globalJobs.add(
                 wardDutyFlow.onEach { onWardChanged?.invoke() }.launchIn(this),
+            )
+            globalJobs.add(
+                messagesFlow.onEach { scheduleMessages(scope) }.launchIn(this),
             )
             scheduleRoomListRefetch(scope, immediate = true)
         }
@@ -192,6 +203,7 @@ object MoimRealtimeSync {
             onRoomMembersChanged = null
             onProfilesChanged = null
             onWardChanged = null
+            onMessagesChanged = null
             stopping = false
         }
     }
@@ -203,6 +215,8 @@ object MoimRealtimeSync {
         roomListDebounce = null
         profilesDebounce?.cancel()
         profilesDebounce = null
+        messagesDebounce?.cancel()
+        messagesDebounce = null
         val ch = globalChannel
         globalChannel = null
         if (ch != null) {
@@ -249,6 +263,16 @@ object MoimRealtimeSync {
         profilesDebounce = scope.launch {
             delay(DEBOUNCE_MS)
             onProfilesChanged?.invoke()
+        }
+    }
+
+    /** 전역 messages — 닫혀 있는 방의 안읽음·미리보기 (iOS loadUnreadFromRealtime) */
+    private fun scheduleMessages(scope: CoroutineScope) {
+        if (stopping) return
+        messagesDebounce?.cancel()
+        messagesDebounce = scope.launch {
+            delay(MESSAGES_DEBOUNCE_MS)
+            onMessagesChanged?.invoke()
         }
     }
 

@@ -1267,10 +1267,11 @@ let cpick=new Set(), editEventId=null, pendingFile=null;
 let createColor='#4a6fa5', createIconFile=null, createIconPreview=null;
 let editColor=null, editIconFile=null, editIconPreview=null, editIconCleared=false;
 let realtimeGlobal=null, realtimeRoom=null;
+let roomListPollTimer=null, activeRoomPollTimer=null;
 
 function debounce(fn,ms=400){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);};}
 const debouncedLoadRooms=debounce(()=>loadRooms(),400);
-const debouncedLoadUnread=debounce(()=>{loadUnreadCounts();loadLastMessages();},600);
+const debouncedLoadUnread=debounce(()=>{loadUnreadCounts();loadLastMessages();},400);
 const debouncedRoomMembers=debounce(()=>{if(document.getElementById('smodal').classList.contains('on'))loadRoomMembersUI();},400);
 const debouncedRefreshRoom=debounce(async()=>{
   if(!active)return;
@@ -1283,6 +1284,23 @@ const debouncedRefreshRoom=debounce(async()=>{
 const debouncedLoadWard=debounce(()=>{
   if(!document.getElementById('wardScreen').classList.contains('hidden'))loadWard();
 },400);
+const debouncedRestartRealtime=debounce(()=>{if(me)startRealtime();},2000);
+function startRoomListPolling(){
+  stopRoomListPolling();
+  if(!me)return;
+  roomListPollTimer=setInterval(()=>{if(me)loadRooms();},12000);
+}
+function stopRoomListPolling(){
+  if(roomListPollTimer){clearInterval(roomListPollTimer);roomListPollTimer=null;}
+}
+function startActiveRoomPolling(){
+  stopActiveRoomPolling();
+  if(!active)return;
+  activeRoomPollTimer=setInterval(()=>{if(active)debouncedRefreshRoom();},3000);
+}
+function stopActiveRoomPolling(){
+  if(activeRoomPollTimer){clearInterval(activeRoomPollTimer);activeRoomPollTimer=null;}
+}
 const debouncedReloadProfiles=debounce(async()=>{
   if(!me)return;
   try{
@@ -1303,8 +1321,13 @@ function startRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'profiles'},debouncedReloadProfiles)
     .on('postgres_changes',{event:'*',schema:'public',table:'ward_status'},debouncedLoadWard)
     .on('postgres_changes',{event:'*',schema:'public',table:'ward_duty'},debouncedLoadWard)
-    .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},debouncedLoadUnread)
-    .subscribe((status)=>{if(status==='CHANNEL_ERROR')console.warn('realtime global',status);});
+    .on('postgres_changes',{event:'*',schema:'public',table:'messages'},debouncedLoadUnread)
+    .subscribe((status)=>{
+      if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+        console.warn('realtime global',status);
+        debouncedRestartRealtime();
+      }
+    });
 }
 async function setRoomRealtime(roomId){
   if(realtimeRoom){
@@ -1319,9 +1342,16 @@ async function setRoomRealtime(roomId){
     .on('postgres_changes',{event:'*',schema:'public',table:'message_reactions'},debouncedRefreshRoom)
     .on('postgres_changes',{event:'*',schema:'public',table:'calendar_events',filter},debouncedRefreshRoom)
     .on('postgres_changes',{event:'*',schema:'public',table:'room_files',filter},debouncedRefreshRoom)
-    .subscribe((status)=>{if(status==='CHANNEL_ERROR')console.warn('realtime room',status);});
+    .subscribe((status)=>{
+      if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){
+        console.warn('realtime room',status);
+        if(active)setRoomRealtime(active.id);
+      }
+    });
 }
 function stopRealtime(){
+  stopRoomListPolling();
+  stopActiveRoomPolling();
   if(realtimeGlobal){sb.removeChannel(realtimeGlobal);realtimeGlobal=null;}
   setRoomRealtime(null);
 }
@@ -1606,6 +1636,7 @@ async function loadApp(){
   profilesById={};(profs||[]).forEach(p=>profilesById[p.id]=p);
   await loadRooms();
   startRealtime();
+  startRoomListPolling();
   show('listScreen');
 }
 async function loadRooms(){
@@ -1839,6 +1870,7 @@ async function openRoom(id){
   },{once:true});
   await setRoomRealtime(id);
   await Promise.all([loadMsgs(),loadEvents(),loadFiles()]);
+  startActiveRoomPolling();
   tab(isNotice?'chat':(isDefault&&opensWeekCal(active)?'cal':'chat'));
   const allow=canPost(active);
   document.getElementById('inputbar').classList.toggle('hidden',!allow);
@@ -1870,7 +1902,7 @@ async function renderTopBarMembers(r){
   if(!names.length)return;
   el.textContent=names.join(', '); el.style.display='';
 }
-async function closeRoom(){clearAttach();clearReply();active=null;reactions=[];await setRoomRealtime(null);await slideCloseOverlay(document.getElementById('roomScreen'));const el=document.getElementById('roomList');if(el)el.scrollTop=roomListScrollTop;loadUnreadCounts();loadLastMessages();}
+async function closeRoom(){clearAttach();clearReply();stopActiveRoomPolling();active=null;reactions=[];await setRoomRealtime(null);await slideCloseOverlay(document.getElementById('roomScreen'));const el=document.getElementById('roomList');if(el)el.scrollTop=roomListScrollTop;loadUnreadCounts();loadLastMessages();}
 /* ====== 1:1 대화 스와이프 삭제 (왼쪽으로 밀어 확인 후 본인 참여만 제거) ====== */
 let dmStartX=null,dmEl=null,dmDx=0,dmSwiped=false;
 function dmSwipeStart(e){const t=e.touches&&e.touches[0];if(!t)return;dmStartX=t.clientX;dmEl=e.currentTarget;dmDx=0;dmSwiped=false;}
@@ -2351,6 +2383,7 @@ async function sendMsg(){
     if(!ok)return;
     i.value='';autoGrowMsg(i);
     await loadMsgs();
+    debouncedLoadUnread();
     scrollMsgsToBottom();   // 보내면 최근으로 복귀
     return;
   }
@@ -2363,6 +2396,7 @@ async function sendMsg(){
     if(error){alert('전송 실패: '+error.message);return;}
   }
   await loadMsgs();
+  debouncedLoadUnread();
   scrollMsgsToBottom();   // 보내면 최근으로 복귀
 }
 
@@ -3070,7 +3104,12 @@ window.addEventListener('resize',()=>{applyIosStandaloneSafeArea();fitSoon();});
 document.addEventListener('visibilitychange',()=>{
   if(document.visibilityState==='visible'&&me){
     ensureFreshSession().catch(()=>{});
+    loadRooms();
+    debouncedLoadUnread();
     debouncedReloadProfiles();
+    if(active)debouncedRefreshRoom();
+    startRealtime();
+    startRoomListPolling();
   }
 });
 

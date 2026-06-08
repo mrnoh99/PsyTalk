@@ -203,6 +203,7 @@ final class MoimViewModel: ObservableObject {
         await loadRoomData(roomId, generation: gen)
         guard !Task.isCancelled, activeRoom == roomId, gen == roomLoadGeneration else { return }
         resolveAttachments()
+        await loadUnreadFromRealtime()
     }
 
     /// Realtime 보조 — 열린 방 메시지·일정·자료 3초 폴링 (WS 누락 방지, Android 와 동일)
@@ -346,6 +347,8 @@ final class MoimViewModel: ObservableObject {
         activeRoom = nil
         Task { await MoimRealtimeSync.shared.setActiveRoom(nil) }
         messages = []; events = []; files = []
+        loadUnreadCounts()
+        loadLastMessages()
     }
 
     func send(_ text: String) {
@@ -356,6 +359,7 @@ final class MoimViewModel: ObservableObject {
             do {
                 try await MoimRepository.sendMessage(roomId: rid, text: text, replyTo: replyId)
                 messages = try await MoimRepository.messages(roomId: rid)
+                await loadUnreadFromRealtime()
             } catch { reportError("전송", error) }
         }
     }
@@ -435,6 +439,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.sendAttachment(roomId: rid, fileName: fileName, data: data, type: type, caption: caption)
                 messages = try await MoimRepository.messages(roomId: rid)
                 resolveAttachments()
+                await loadUnreadFromRealtime()
             } catch { reportError("첨부 전송", error) }
         }
     }

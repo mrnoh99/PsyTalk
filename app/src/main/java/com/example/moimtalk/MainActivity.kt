@@ -105,9 +105,19 @@ class MoimViewModel : ViewModel() {
             onRoomMembersChanged = { onRoomMembersChangedOnly() },
             onProfilesChanged = { reloadProfiles() },
             onWardChanged = { loadWardStatus(); refreshWardDutiesQuiet() },
+            onMessagesChanged = { refreshListPreviewQuiet() },
             onActiveRoomChanged = { rid -> refreshActiveRoom(rid) },
         )
         reloadProfiles()
+    }
+
+    /** 전역 messages 변경 — 안읽음·마지막 메시지 미리보기 (iOS loadUnreadFromRealtime) */
+    private suspend fun refreshListPreviewQuiet() {
+        try {
+            unreadByRoom = MoimRepository.unreadCounts()
+            lastMsgByRoom = MoimRepository.roomLastMessages()
+        } catch (_: Exception) {
+        }
     }
 
     /** room_members 변경 등 RLS 재조회용 (오류 팝업 없음) */
@@ -199,6 +209,7 @@ class MoimViewModel : ViewModel() {
             }
             loadRoomData(roomId)
             markActiveRead()
+            refreshListPreviewQuiet()
         }
     }
 
@@ -344,6 +355,8 @@ class MoimViewModel : ViewModel() {
         replyTarget = null
         events = emptyList()
         files = emptyList()
+        loadUnreadCounts()
+        loadLastMessages()
     }
 
     // ── 캘린더 ──
@@ -610,6 +623,9 @@ class MoimViewModel : ViewModel() {
                 MoimRepository.createRoom(trimmed, memberIds, color, iconBytes, iconName)
                 rooms = MoimRepository.rooms()
                 myRoomIds = try { MoimRepository.myRoomIds().toSet() } catch (_: Exception) { myRoomIds }
+                loadRoomMemberCounts()
+                loadUnreadCounts()
+                loadLastMessages()
                 onDone()
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "방 만들기")
@@ -846,6 +862,7 @@ class MoimViewModel : ViewModel() {
             try {
                 MoimRepository.sendMessage(rid, text, replyId)
                 messages = MoimRepository.messages(rid)
+                refreshListPreviewQuiet()
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "전송")
             }
@@ -930,6 +947,7 @@ class MoimViewModel : ViewModel() {
             try {
                 MoimRepository.sendAttachment(rid, fileName, bytes, type, caption)
                 messages = MoimRepository.messages(rid)
+                refreshListPreviewQuiet()
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "첨부 전송")
             }

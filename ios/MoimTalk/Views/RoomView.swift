@@ -348,7 +348,7 @@ struct ChatView: View {
                     }
                     .padding(.horizontal, 12).padding(.top, 8)
                 }
-                HStack(alignment: multilineCompose ? .bottom : .center, spacing: 8) {
+                HStack(alignment: .bottom, spacing: 8) {
                     Menu {
                         Button { pickPhoto = true } label: { Label("사진", systemImage: "photo") }
                         Button { pickFile = true } label: { Label("파일", systemImage: "paperclip") }
@@ -365,7 +365,9 @@ struct ChatView: View {
                             .lineLimit(3...8)
                             .textFieldStyle(.roundedBorder)
                     } else {
-                        TextField("메시지 입력", text: $input)
+                        // web 처럼 Enter = 줄바꿈, 전송은 ↑ 버튼. axis:.vertical 로 자동 확장.
+                        TextField("메시지 입력", text: $input, axis: .vertical)
+                            .lineLimit(1...8)
                             .textFieldStyle(.roundedBorder)
                     }
                     Button {

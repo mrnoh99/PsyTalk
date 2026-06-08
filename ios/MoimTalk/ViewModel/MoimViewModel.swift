@@ -54,13 +54,16 @@ final class MoimViewModel: ObservableObject {
                 } else {
                     notice = "가입이 접수되었습니다. 전체관리자 승인 후 로그인하여 이용할 수 있습니다."
                 }
-            } catch { self.error = "회원가입: \(error.localizedDescription)" }
+            } catch { reportError("회원가입", error) }
             loading = false
         }
     }
 
     private var activeRoom: String?
+    private var roomLoadGeneration: UInt64 = 0
+    private var openRoomTask: Task<Void, Never>?
     private var messagePollTask: Task<Void, Never>?
+    private var foregroundRefreshTask: Task<Void, Never>?
     init() {
         if MoimRepository.currentUserId() != nil {
             bindRealtime()
@@ -83,14 +86,17 @@ final class MoimViewModel: ObservableObject {
         await loadProfilesFromRealtime()
     }
 
-    /// 앱 복귀·다른 클라이언트 변경 반영
+    /// 앱 복귀·다른 클라이언트 변경 반영 (사진 선택기 등 잠깐 나갔다 올 때도 호출됨)
     func refreshOnForeground() {
         guard loggedIn else { return }
         loadRooms()
-        Task {
+        foregroundRefreshTask?.cancel()
+        foregroundRefreshTask = Task {
             await MoimRepository.ensureFreshSession()
+            guard !Task.isCancelled else { return }
             await rebindRealtime()
-            if let rid = activeRoom { await refreshActiveRoom(rid) }
+            guard !Task.isCancelled, let rid = activeRoom else { return }
+            await refreshActiveRoom(rid)
         }
     }
 
@@ -122,11 +128,15 @@ final class MoimViewModel: ObservableObject {
     }
 
     private func refreshActiveRoom(_ roomId: String) async {
-        guard activeRoom == roomId else { return }
-        do { messages = try await MoimRepository.messages(roomId: roomId) } catch { }
+        guard !Task.isCancelled, activeRoom == roomId else { return }
+        let gen = roomLoadGeneration
+        do { messages = try await MoimRepository.messages(roomId: roomId) }
+        catch { guard !isBenignCancellation(error) else { return } }
+        guard !Task.isCancelled, activeRoom == roomId, gen == roomLoadGeneration else { return }
         reactions = (try? await MoimRepository.roomReactions(roomId: roomId)) ?? []
         markActiveRead()
-        await loadRoomData(roomId)
+        await loadRoomData(roomId, generation: gen)
+        guard !Task.isCancelled, activeRoom == roomId, gen == roomLoadGeneration else { return }
         resolveAttachments()
     }
 
@@ -171,7 +181,7 @@ final class MoimViewModel: ObservableObject {
             } catch {
                 loggedIn = false
                 try? await MoimRepository.signOut()
-                self.error = "로그인: \(error.localizedDescription)"
+                reportError("로그인", error)
             }
             loading = false
         }
@@ -203,36 +213,51 @@ final class MoimViewModel: ObservableObject {
                 loadRoomPins()
                 await loadProfilesFromRealtime()
             } catch {
-                self.error = "데이터 불러오기: \(error.localizedDescription)"
+                reportError("데이터 불러오기", error)
             }
         }
     }
 
     func openRoom(_ room: Room) {
+        openRoomTask?.cancel()
+        stopMessagePolling()
+        roomLoadGeneration &+= 1
+        let gen = roomLoadGeneration
         activeRoom = room.id
         messages = []; events = []; files = []; reactions = []; replyTarget = nil
-        Task {
+        openRoomTask = Task {
             await MoimRealtimeSync.shared.setActiveRoom(room.id)
+            guard !Task.isCancelled, activeRoom == room.id, gen == roomLoadGeneration else { return }
             do {
                 messages = try await MoimRepository.messages(roomId: room.id)
                 reactions = (try? await MoimRepository.roomReactions(roomId: room.id)) ?? []
             }
-            catch { self.error = "메시지 불러오기: \(error.localizedDescription)" }
-            await loadRoomData(room.id)
+            catch { reportError("메시지 불러오기", error) }
+            guard !Task.isCancelled, activeRoom == room.id, gen == roomLoadGeneration else { return }
+            await loadRoomData(room.id, generation: gen)
+            guard !Task.isCancelled, activeRoom == room.id, gen == roomLoadGeneration else { return }
             resolveAttachments()
             startMessagePolling()
             markActiveRead()
         }
     }
 
-    private func loadRoomData(_ roomId: String) async {
+    private func loadRoomData(_ roomId: String, generation: UInt64? = nil) async {
+        let gen = generation ?? roomLoadGeneration
+        guard !Task.isCancelled, activeRoom == roomId, gen == roomLoadGeneration else { return }
         do { events = try await MoimRepository.events(roomId: roomId) }
-        catch { self.error = "일정 불러오기: \(error.localizedDescription)" }
+        catch { reportError("일정 불러오기", error) }
+        guard !Task.isCancelled, activeRoom == roomId, gen == roomLoadGeneration else { return }
         do { files = try await MoimRepository.files(roomId: roomId) }
-        catch { self.error = "자료 불러오기: \(error.localizedDescription)" }
+        catch { reportError("자료 불러오기", error) }
     }
 
     func closeRoom() {
+        roomLoadGeneration &+= 1
+        openRoomTask?.cancel()
+        openRoomTask = nil
+        foregroundRefreshTask?.cancel()
+        foregroundRefreshTask = nil
         stopMessagePolling()
         activeRoom = nil
         Task { await MoimRealtimeSync.shared.setActiveRoom(nil) }
@@ -247,7 +272,7 @@ final class MoimViewModel: ObservableObject {
             do {
                 try await MoimRepository.sendMessage(roomId: rid, text: text, replyTo: replyId)
                 messages = try await MoimRepository.messages(roomId: rid)
-            } catch { self.error = "전송: \(error.localizedDescription)" }
+            } catch { reportError("전송", error) }
         }
     }
 
@@ -261,7 +286,7 @@ final class MoimViewModel: ObservableObject {
             do {
                 try await MoimRepository.toggleReaction(messageId: messageId, emoji: emoji)
                 reactions = (try? await MoimRepository.roomReactions(roomId: rid)) ?? reactions
-            } catch { self.error = "리액션: \(error.localizedDescription)" }
+            } catch { reportError("리액션", error) }
         }
     }
 
@@ -286,7 +311,7 @@ final class MoimViewModel: ObservableObject {
     func saveRoomPins(_ ids: [String]) {
         Task {
             do { try await MoimRepository.setRoomPins(ids); roomPins = Array(ids.prefix(5)) }
-            catch { self.error = "방 순서 저장: \(error.localizedDescription)" }
+            catch { reportError("방 순서 저장", error) }
         }
     }
 
@@ -309,7 +334,7 @@ final class MoimViewModel: ObservableObject {
             do {
                 try await MoimRepository.deleteMessage(id: id)
                 messages = try await MoimRepository.messages(roomId: rid)
-            } catch { self.error = "메시지 삭제: \(error.localizedDescription)" }
+            } catch { reportError("메시지 삭제", error) }
         }
     }
 
@@ -321,7 +346,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.sendAttachment(roomId: rid, fileName: fileName, data: data, type: type, caption: caption)
                 messages = try await MoimRepository.messages(roomId: rid)
                 resolveAttachments()
-            } catch { self.error = "첨부 전송: \(error.localizedDescription)" }
+            } catch { reportError("첨부 전송", error) }
         }
     }
 
@@ -357,7 +382,7 @@ final class MoimViewModel: ObservableObject {
                 events = try await MoimRepository.events(roomId: rid)
                 files = try await MoimRepository.files(roomId: rid)
                 onDone()
-            } catch { self.error = "일정 등록: \(error.localizedDescription)" }
+            } catch { reportError("일정 등록", error) }
         }
     }
 
@@ -367,7 +392,7 @@ final class MoimViewModel: ObservableObject {
             do {
                 try await MoimRepository.deleteEvent(id: id)
                 events = try await MoimRepository.events(roomId: rid)
-            } catch { self.error = "일정 삭제: \(error.localizedDescription)" }
+            } catch { reportError("일정 삭제", error) }
         }
     }
 
@@ -387,7 +412,7 @@ final class MoimViewModel: ObservableObject {
                 events = try await MoimRepository.events(roomId: rid)
                 files = try await MoimRepository.files(roomId: rid)
                 onDone()
-            } catch { self.error = "일정 수정: \(error.localizedDescription)" }
+            } catch { reportError("일정 수정", error) }
         }
     }
 
@@ -402,7 +427,7 @@ final class MoimViewModel: ObservableObject {
                     roomId: rid, fileName: fileName, data: data, description: description, keywords: keywords)
                 files = try await MoimRepository.files(roomId: rid)
                 onDone()
-            } catch { self.error = "자료 업로드: \(error.localizedDescription)" }
+            } catch { reportError("자료 업로드", error) }
         }
     }
 
@@ -421,7 +446,7 @@ final class MoimViewModel: ObservableObject {
                 let w = try await MoimRepository.wardStatus()
                 wardStatus = w.content
                 wardStatusUpdatedAt = w.updatedAt
-            } catch { self.error = "잔여 병실 현황 불러오기: \(error.localizedDescription)" }
+            } catch { reportError("잔여 병실 현황 불러오기", error) }
         }
     }
 
@@ -439,7 +464,7 @@ final class MoimViewModel: ObservableObject {
                 fmt.timeZone = CalDate.kst
                 let list = try await MoimRepository.wardDuties(from: fmt.string(from: start), to: fmt.string(from: end))
                 wardDuties = Dictionary(uniqueKeysWithValues: list.map { ($0.dutyDate, $0) })
-            } catch { self.error = "당직표 불러오기: \(error.localizedDescription)" }
+            } catch { reportError("당직표 불러오기", error) }
         }
     }
 
@@ -473,7 +498,7 @@ final class MoimViewModel: ObservableObject {
                 if let m = wardDutyMonth { loadWardDuties(month: m) }
                 loadWardTodayDuty()
                 onDone()
-            } catch { self.error = "당직표 저장: \(error.localizedDescription)" }
+            } catch { reportError("당직표 저장", error) }
         }
     }
 
@@ -485,7 +510,7 @@ final class MoimViewModel: ObservableObject {
                 wardStatus = w.content
                 wardStatusUpdatedAt = w.updatedAt
                 onDone()
-            } catch { self.error = "잔여 병실 현황 저장: \(error.localizedDescription)" }
+            } catch { reportError("잔여 병실 현황 저장", error) }
         }
     }
 
@@ -501,7 +526,7 @@ final class MoimViewModel: ObservableObject {
                 _ = try await MoimRepository.createRoom(name: trimmed, memberIds: memberIds, color: color, iconData: iconData, iconName: iconName)
                 rooms = try await MoimRepository.rooms()
                 onDone()
-            } catch { self.error = "방 만들기: \(friendlyError(error))" }
+            } catch { reportError("방 만들기", error, friendly: friendlyError) }
         }
     }
 
@@ -512,7 +537,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.deleteRoom(roomId: room.id)
                 rooms = try await MoimRepository.rooms()
                 onDone()
-            } catch { self.error = "모임방 삭제: \(error.localizedDescription)" }
+            } catch { reportError("모임방 삭제", error) }
         }
     }
 
@@ -536,7 +561,7 @@ final class MoimViewModel: ObservableObject {
                 roomMemberIds = try await MoimRepository.roomMemberIds(roomId: roomId)
             } catch {
                 roomMemberIds = []
-                self.error = "회원 목록: \(error.localizedDescription)"
+                reportError("회원 목록", error)
             }
             roomMembersLoaded = true
         }
@@ -554,7 +579,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.removeRoomMember(roomId: roomId, userId: userId)
                 roomMemberIds = (try? await MoimRepository.roomMemberIds(roomId: roomId)) ?? []
                 loadRoomMemberCounts()
-            } catch { self.error = "회원 내보내기: \(error.localizedDescription)" }
+            } catch { reportError("회원 내보내기", error) }
         }
     }
 
@@ -565,7 +590,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.addRoomMembers(roomId: roomId, userIds: [userId])
                 roomMemberIds = (try? await MoimRepository.roomMemberIds(roomId: roomId)) ?? []
                 loadRoomMemberCounts()
-            } catch { self.error = "구성원 초대: \(error.localizedDescription)" }
+            } catch { reportError("구성원 초대", error) }
         }
     }
 
@@ -599,7 +624,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.leaveRoom(roomId: room.id)
                 rooms = try await MoimRepository.rooms()
                 onDone()
-            } catch { self.error = "방 나가기: \(error.localizedDescription)" }
+            } catch { reportError("방 나가기", error) }
         }
     }
 
@@ -609,7 +634,7 @@ final class MoimViewModel: ObservableObject {
             do {
                 try await MoimRepository.deleteAccount()
                 logout()
-            } catch { self.error = "회원 탈퇴: \(error.localizedDescription)" }
+            } catch { reportError("회원 탈퇴", error) }
         }
     }
 
@@ -643,7 +668,7 @@ final class MoimViewModel: ObservableObject {
                 }
                 notice = "내 정보가 저장되었습니다."
                 onDone()
-            } catch { self.error = "내 정보 저장: \(error.localizedDescription)" }
+            } catch { reportError("내 정보 저장", error) }
         }
     }
 
@@ -657,7 +682,10 @@ final class MoimViewModel: ObservableObject {
             do {
                 try await MoimRepository.changePassword(newPassword)
                 onResult(true, "비밀번호가 변경되었습니다.")
-            } catch { onResult(false, "변경 실패: \(error.localizedDescription)") }
+            } catch {
+                guard !isBenignCancellation(error) else { return }
+                onResult(false, "변경 실패: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -671,8 +699,20 @@ final class MoimViewModel: ObservableObject {
                 if let room = rooms.first(where: { $0.id == rid }) {
                     pendingOpenRoom = room
                 }
-            } catch { self.error = "대화 열기: \(error.localizedDescription)" }
+            } catch { reportError("대화 열기", error) }
         }
+    }
+
+    /// 방 닫기·전환 등으로 Task 가 취소된 경우 — 사용자에게 오류로 보이지 않음
+    private func isBenignCancellation(_ error: Error) -> Bool {
+        if error is CancellationError { return true }
+        let ns = error as NSError
+        return ns.domain == NSURLErrorDomain && ns.code == NSURLErrorCancelled
+    }
+
+    private func reportError(_ prefix: String, _ error: Error, friendly: ((Error) -> String)? = nil) {
+        guard !isBenignCancellation(error) else { return }
+        self.error = "\(prefix): \(friendly?(error) ?? error.localizedDescription)"
     }
 
     /// 같은 이름 모임방 등 친화적 오류 메시지
@@ -695,7 +735,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.updateRoomName(roomId: room.id, name: trimmed)
                 rooms = try await MoimRepository.rooms()
                 onDone()
-            } catch { self.error = "방 이름 변경: \(error.localizedDescription)" }
+            } catch { reportError("방 이름 변경", error) }
         }
     }
 
@@ -707,7 +747,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.updateRoomAppearance(roomId: room.id, name: trimmed, color: color, iconData: iconData, iconName: iconName, clearIcon: clearIcon)
                 rooms = try await MoimRepository.rooms()
                 onDone()
-            } catch { self.error = "방 정보 변경: \(error.localizedDescription)" }
+            } catch { reportError("방 정보 변경", error) }
         }
     }
 
@@ -718,7 +758,7 @@ final class MoimViewModel: ObservableObject {
                 let list = try await MoimRepository.allProfiles()
                 profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                 if userId == MoimRepository.currentUserId() { myProfile = profilesById[userId] }
-            } catch { self.error = "역할 변경: \(error.localizedDescription)" }
+            } catch { reportError("역할 변경", error) }
         }
     }
 
@@ -729,7 +769,7 @@ final class MoimViewModel: ObservableObject {
                 let list = try await MoimRepository.allProfiles()
                 profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                 if userId == MoimRepository.currentUserId() { myProfile = profilesById[userId] }
-            } catch { self.error = "승인 변경: \(error.localizedDescription)" }
+            } catch { reportError("승인 변경", error) }
         }
     }
 
@@ -740,7 +780,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.approveUser(userId: userId)
                 let list = try await MoimRepository.allProfiles()
                 profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
-            } catch { self.error = "가입 승인: \(error.localizedDescription)" }
+            } catch { reportError("가입 승인", error) }
         }
     }
 
@@ -751,7 +791,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.adminWithdraw(userId: userId)
                 let list = try await MoimRepository.allProfiles()
                 profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
-            } catch { self.error = "계정 비활성화: \(error.localizedDescription)" }
+            } catch { reportError("계정 비활성화", error) }
         }
     }
 
@@ -762,7 +802,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.reactivate(userId: userId)
                 let list = try await MoimRepository.allProfiles()
                 profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
-            } catch { self.error = "계정 복구: \(error.localizedDescription)" }
+            } catch { reportError("계정 복구", error) }
         }
     }
 
@@ -775,7 +815,7 @@ final class MoimViewModel: ObservableObject {
                 let list = try await MoimRepository.allProfiles()
                 profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                 if userId == MoimRepository.currentUserId() { myProfile = profilesById[userId] }
-            } catch { self.error = "이름 변경: \(error.localizedDescription)" }
+            } catch { reportError("이름 변경", error) }
         }
     }
 
@@ -793,7 +833,7 @@ final class MoimViewModel: ObservableObject {
                 try await MoimRepository.deleteRoomFile(fileId: fileId, fileUrl: fileUrl)
                 files = try await MoimRepository.files(roomId: rid)
                 onDone()
-            } catch { self.error = "자료 삭제: \(error.localizedDescription)" }
+            } catch { reportError("자료 삭제", error) }
         }
     }
 

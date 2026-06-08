@@ -2393,7 +2393,7 @@ function renderAttachPreview(){
   if(!pendingAttach){el.classList.add('hidden');el.innerHTML='';layoutChat();return;}
   const {file,kind}=pendingAttach;
   el.innerHTML=`<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${kind==='image'?'🖼':'📎'} <b>${esc(file.name)}</b></span>`+
-    `<span style="color:var(--work);font-weight:700;font-size:12px;white-space:nowrap">첨부됨 · ➤ 전송</span>`+
+    `<span style="color:var(--work);font-weight:700;font-size:12px;white-space:nowrap">첨부됨 · ↑ 전송</span>`+
     `<span onclick="clearAttach()" style="cursor:pointer;color:var(--admin);font-weight:800;padding:2px 8px">✕</span>`;
   el.classList.remove('hidden');
   layoutChat();   // 미리보기로 chat-foot 높이가 바뀌므로 msgs 높이 재계산(가려짐/깜빡임 방지)

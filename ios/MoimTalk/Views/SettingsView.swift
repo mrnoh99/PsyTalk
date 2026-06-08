@@ -53,6 +53,7 @@ struct MyInfoTab: View {
     @State private var deviceType = ""       // iphone | android
     @State private var deviceEmail = ""      // 앱 설치용 이메일
     @State private var photoItem: PhotosPickerItem?
+    @State private var photoPickToken = 0
     @State private var pendingAdjustImage: UIImage?
     @State private var showAvatarAdjust = false
     @State private var avatarData: Data?
@@ -212,15 +213,18 @@ struct MyInfoTab: View {
             deviceType = me?.deviceType ?? ""
             deviceEmail = me?.deviceEmail ?? ""
         }
-        .onChange(of: photoItem) { _ in
-            Task {
-                guard let item = photoItem else { return }
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let ui = UIImage(data: data) {
-                    pendingAdjustImage = ui
-                    showAvatarAdjust = true
-                }
-                photoItem = nil
+        .onChange(of: photoItem) { newItem in
+            if newItem != nil { photoPickToken += 1 }
+        }
+        .task(id: photoPickToken) {
+            guard photoPickToken > 0, let item = photoItem else { return }
+            defer { photoItem = nil }
+            do {
+                guard let picked = try await item.loadTransferable(type: PickedPhoto.self) else { return }
+                pendingAdjustImage = picked.image
+                showAvatarAdjust = true
+            } catch {
+                guard !(error is CancellationError) else { return }
             }
         }
         .fullScreenCover(isPresented: $showAvatarAdjust) {

@@ -15,6 +15,7 @@ struct RoomView: View {
     @State private var editColor = ROOM_COLORS[1]
     @State private var editIconData: Data?
     @State private var editIconCleared = false
+    @State private var iconAdjustImage: UIImage?
     @State private var showSettings = false
     @State private var showLeave = false
     @State private var showDeleteRoom = false
@@ -63,11 +64,28 @@ struct RoomView: View {
             guard isBugReportRoom(liveRoom) else { return }
             input = vm.replyTarget != nil ? "" : bugReportDraftFor(role: vm.myProfile?.role)
         }
+        // Android RoomScreen 의 AvatarAdjustDialog 와 동일 — 시트 밖에서 사진 조절
+        .fullScreenCover(isPresented: Binding(
+            get: { iconAdjustImage != nil },
+            set: { if !$0 { iconAdjustImage = nil } }
+        )) {
+            if let img = iconAdjustImage {
+                AvatarAdjustView(
+                    sourceImage: img,
+                    onDismiss: { iconAdjustImage = nil },
+                    onConfirm: { data in
+                        editIconData = data
+                        editIconCleared = false
+                        iconAdjustImage = nil
+                    }
+                )
+            }
+        }
     }
 
     private var topBar: some View {
         HStack(alignment: .center, spacing: 10) {
-            Button(action: onBack) { Text("‹").font(.system(size: 25)) }
+            MoimBackButton(action: onBack)
             VStack(alignment: .leading, spacing: 2) {
                 Text(vm.roomDisplayName(liveRoom))
                     .font(.system(size: 16, weight: .bold))
@@ -86,13 +104,12 @@ struct RoomView: View {
                     }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .layoutPriority(1)
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
             if !isDM, canRenameRoom(vm.myProfile, liveRoom) {
                 Button("이름변경") {
                     renameText = liveRoom.name
                     editColor = liveRoom.color ?? ROOM_COLORS[1]
-                    editIconData = nil; editIconCleared = false
+                    editIconData = nil; editIconCleared = false; iconAdjustImage = nil
                     showRename = true
                 }
                 .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
@@ -118,13 +135,14 @@ struct RoomView: View {
         }
         .padding(.horizontal, 18).padding(.vertical, 13)
         .background(Moim.paper)
-        .sheet(isPresented: $showRename) {
+        .sheet(isPresented: $showRename, onDismiss: { iconAdjustImage = nil }) {
             NavigationView {
                 VStack(alignment: .leading, spacing: 16) {
                     TextField("방 이름", text: $renameText).textFieldStyle(.roundedBorder)
                     RoomAppearanceEditor(
                         name: renameText, color: $editColor,
                         previewData: $editIconData,
+                        adjustSourceImage: $iconAdjustImage,
                         existingIconUrl: editIconCleared ? nil : liveRoom.iconUrl,
                         onClear: { editIconData = nil; editIconCleared = true },
                         onPhotoConfirmed: { editIconCleared = false }
@@ -361,7 +379,7 @@ struct ChatView: View {
                             input = ""
                         }
                     } label: {
-                        Text("➤").font(.system(size: 14))
+                        Text("↑").font(.system(size: 19, weight: .bold))
                             .frame(width: 33, height: 33).background(Moim.yellow).clipShape(Circle())
                     }
                 }

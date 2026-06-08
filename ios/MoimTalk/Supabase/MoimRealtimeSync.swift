@@ -70,10 +70,10 @@ final class MoimRealtimeSync {
         guard let roomId, let onRoomData else { return }
 
         let channel = supabase.channel("moim-room-\(roomId)")
-        let filter = "room_id=eq.\(roomId)"
-        let msgStream = channel.postgresChange(AnyAction.self, schema: "public", table: "messages", filter: filter)
-        let calStream = channel.postgresChange(AnyAction.self, schema: "public", table: "calendar_events", filter: filter)
-        let fileStream = channel.postgresChange(AnyAction.self, schema: "public", table: "room_files", filter: filter)
+        let roomFilter: RealtimePostgresFilter = .eq("room_id", value: roomId)
+        let msgStream = channel.postgresChange(AnyAction.self, schema: "public", table: "messages", filter: roomFilter)
+        let calStream = channel.postgresChange(AnyAction.self, schema: "public", table: "calendar_events", filter: roomFilter)
+        let fileStream = channel.postgresChange(AnyAction.self, schema: "public", table: "room_files", filter: roomFilter)
         try? await channel.subscribeWithError()
         roomChannel = channel
         // messages: 즉시 갱신 (debounce 없음 — 다른 기기·웹 사진/메시지 누락 방지)

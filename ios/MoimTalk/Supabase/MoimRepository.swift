@@ -257,7 +257,7 @@ enum MoimRepository {
 
     static func ensureFreshSession() async {
         guard currentUserId() != nil else { return }
-        try? await supabase.auth.refreshSession()
+        _ = try? await supabase.auth.refreshSession()
     }
 
     // ── 채팅 ──
@@ -376,7 +376,7 @@ enum MoimRepository {
 
     /// 일정 삭제 (작성자/관리자/교실·의국·비서·심리실 — RLS 로 강제)
     static func deleteEvent(id: String) async throws {
-        try await withFreshSession {
+        _ = try await withFreshSession {
             try await supabase.from("calendar_events").delete().eq("id", value: id).execute()
         }
     }

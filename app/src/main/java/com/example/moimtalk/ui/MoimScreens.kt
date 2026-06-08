@@ -1395,7 +1395,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("➤", fontSize = 14.sp)
+                            Text("↑", fontSize = 19.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     }

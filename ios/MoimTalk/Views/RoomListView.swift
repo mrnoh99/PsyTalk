@@ -87,13 +87,14 @@ struct RoomAppearanceEditor: View {
     let name: String
     @Binding var color: String
     @Binding var previewData: Data?
+    /// 부모(RoomView·CreateRoomView)에서 AvatarAdjustView 표시 — 시트 안 fullScreenCover 는 iOS 에서 동작 안 함
+    @Binding var adjustSourceImage: UIImage?
     let existingIconUrl: String?
     let onClear: () -> Void
     var onPhotoConfirmed: (() -> Void)? = nil
 
     @State private var photoItem: PhotosPickerItem?
-    @State private var pendingAdjustImage: UIImage?
-    @State private var showAvatarAdjust = false
+    @State private var photoPickToken = 0
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -129,32 +130,17 @@ struct RoomAppearanceEditor: View {
                 }
             }
         }
-        .onChange(of: photoItem) { _ in
-            Task {
-                guard let item = photoItem else { return }
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let ui = UIImage(data: data) {
-                    pendingAdjustImage = ui
-                    showAvatarAdjust = true
-                }
-                photoItem = nil
-            }
+        .onChange(of: photoItem) { newItem in
+            if newItem != nil { photoPickToken += 1 }
         }
-        .fullScreenCover(isPresented: $showAvatarAdjust) {
-            if let img = pendingAdjustImage {
-                AvatarAdjustView(
-                    sourceImage: img,
-                    onDismiss: {
-                        showAvatarAdjust = false
-                        pendingAdjustImage = nil
-                    },
-                    onConfirm: { data in
-                        previewData = data
-                        onPhotoConfirmed?()
-                        showAvatarAdjust = false
-                        pendingAdjustImage = nil
-                    }
-                )
+        .task(id: photoPickToken) {
+            guard photoPickToken > 0, let item = photoItem else { return }
+            defer { photoItem = nil }
+            do {
+                guard let picked = try await item.loadTransferable(type: PickedPhoto.self) else { return }
+                adjustSourceImage = picked.image
+            } catch {
+                guard !(error is CancellationError) else { return }
             }
         }
     }

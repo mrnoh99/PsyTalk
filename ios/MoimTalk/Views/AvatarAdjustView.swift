@@ -1,4 +1,19 @@
 import SwiftUI
+import UniformTypeIdentifiers
+
+/// PhotosPicker → UIImage (HEIC 등 Data 직접 로드 실패 방지)
+struct PickedPhoto: Transferable {
+    let image: UIImage
+
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(importedContentType: .image) { data in
+            guard let image = UIImage(data: data) else {
+                throw NSError(domain: "PickedPhoto", code: 1)
+            }
+            return PickedPhoto(image: image)
+        }
+    }
+}
 
 // =====================================================================
 //  프로필 사진 조절 — Android AvatarAdjustDialog 미러링

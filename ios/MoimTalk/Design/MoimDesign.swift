@@ -198,6 +198,22 @@ enum MoimOverlayAnim {
     )
 }
 
+/// 대화방·설정 등 상단 ‹ 뒤로 — Web `.back`(flex-shrink:0·26px) 과 동일, 헤더 버튼 많아도 안 사라짐
+struct MoimBackButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text("‹")
+                .font(.system(size: 25))
+                .foregroundColor(Moim.ink)
+                .frame(width: 26, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .fixedSize(horizontal: true, vertical: false)
+    }
+}
+
 func catColor(_ category: String) -> Color {
     switch category {
     case "notice": return Color(hex: 0xB5651D)
@@ -491,7 +507,7 @@ func canRenameRoom(_ profile: Profile?, _ room: Room) -> Bool {
 
 func viewBadgeText(_ profile: Profile?) -> String {
     guard let p = profile else { return "정신건강의학과" }
-    if isSuperAdmin(p.role) { return "전체관리자 · 전체 방" }
+    if isSuperAdmin(p.role) { return "전체관리자" }
     if isAdminRole(p.role) { return "관리자 · 전체 방" }
     return "\(p.name)(\(p.memberType))"
 }

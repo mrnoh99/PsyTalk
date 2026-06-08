@@ -536,7 +536,7 @@ fun msgPreview(lm: LastMsg?): String {
 fun viewBadgeText(profile: Profile?): String {
     if (profile == null) return "정신건강의학과"
     return when {
-        isSuperAdmin(profile.role) -> "전체관리자 · 전체 방"
+        isSuperAdmin(profile.role) -> "전체관리자"
         isAdminRole(profile.role) -> "관리자 · 전체 방"
         else -> "${profile.name}(${profile.memberType})"
     }

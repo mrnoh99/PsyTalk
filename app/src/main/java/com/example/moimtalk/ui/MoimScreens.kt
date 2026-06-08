@@ -1354,7 +1354,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 9.dp),
-                        verticalAlignment = if (multilineCompose) Alignment.Bottom else Alignment.CenterVertically,
+                        verticalAlignment = Alignment.Bottom,
                     ) {
                         Box {
                             Box(
@@ -1402,9 +1402,9 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                     },
                                 )
                             },
-                            singleLine = !multilineCompose,
+                            singleLine = false,   // web 처럼 Enter=줄바꿈, 전송은 ↑ 버튼
                             minLines = if (multilineCompose) 3 else 1,
-                            maxLines = if (multilineCompose) 8 else 1,
+                            maxLines = 8,
                             shape = if (multilineCompose) RoundedCornerShape(14.dp) else RoundedCornerShape(20.dp),
                         )
                         Spacer(Modifier.width(8.dp))

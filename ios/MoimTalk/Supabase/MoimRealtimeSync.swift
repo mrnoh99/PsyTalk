@@ -23,6 +23,9 @@ final class MoimRealtimeSync {
     private var onProfiles: (() async -> Void)?
     private var onWard: (() async -> Void)?
     private var onRoomData: ((String) async -> Void)?
+    /// bindRealtime() 중복 호출 시 subscribe 이후 postgresChange 가 등록되는 레이스 방지
+    private var bindGeneration: UInt64 = 0
+    private var roomBindGeneration: UInt64 = 0
 
     /// 구독 시작(이미 연결 중이면 재구독 — 백그라운드 복귀·다른 클라이언트 동기화)
     func start(
@@ -32,27 +35,48 @@ final class MoimRealtimeSync {
         onWard: @escaping () async -> Void,
         onRoomData: @escaping (String) async -> Void
     ) async {
+        bindGeneration &+= 1
+        let gen = bindGeneration
+
         await stop()
+        guard gen == bindGeneration else { return }
+
         self.onRooms = onRooms
         self.onRoomMembers = onRoomMembers
         self.onProfiles = onProfiles
         self.onWard = onWard
         self.onRoomData = onRoomData
 
-        let channel = supabase.channel("moim-global")
+        // postgresChange 는 subscribe() 전에 모두 등록해야 함 (supabase-swift 2.46+)
+        let channel = await freshChannel(named: "moim-global")
         let roomsStream = channel.postgresChange(AnyAction.self, schema: "public", table: "rooms")
         let membersStream = channel.postgresChange(AnyAction.self, schema: "public", table: "room_members")
         let profilesStream = channel.postgresChange(AnyAction.self, schema: "public", table: "profiles")
         let wardStream = channel.postgresChange(AnyAction.self, schema: "public", table: "ward_status")
         let wardDutyStream = channel.postgresChange(AnyAction.self, schema: "public", table: "ward_duty")
-        try? await channel.subscribeWithError()
-        globalChannel = channel
 
         globalTasks.append(listen(roomsStream) { await self.scheduleRoomListRefresh() })
         globalTasks.append(listen(membersStream) { await self.scheduleRoomListRefresh() })
         globalTasks.append(listen(profilesStream) { await self.scheduleProfiles(onProfiles) })
         globalTasks.append(listen(wardStream) { await onWard() })
         globalTasks.append(listen(wardDutyStream) { await onWard() })
+
+        guard gen == bindGeneration else {
+            globalTasks.forEach { $0.cancel() }
+            globalTasks.removeAll()
+            await supabase.removeChannel(channel)
+            return
+        }
+
+        try? await channel.subscribeWithError()
+        guard gen == bindGeneration else {
+            globalTasks.forEach { $0.cancel() }
+            globalTasks.removeAll()
+            await supabase.removeChannel(channel)
+            return
+        }
+
+        globalChannel = channel
         watchChannelStatus(channel)
 
         // 구독 직후 1회 동기화
@@ -69,18 +93,45 @@ final class MoimRealtimeSync {
         await stopRoomChannel()
         guard let roomId, let onRoomData else { return }
 
-        let channel = supabase.channel("moim-room-\(roomId)")
+        roomBindGeneration &+= 1
+        let gen = roomBindGeneration
+
+        let channel = await freshChannel(named: "moim-room-\(roomId)")
         let roomFilter: RealtimePostgresFilter = .eq("room_id", value: roomId)
         let msgStream = channel.postgresChange(AnyAction.self, schema: "public", table: "messages", filter: roomFilter)
         let calStream = channel.postgresChange(AnyAction.self, schema: "public", table: "calendar_events", filter: roomFilter)
         let fileStream = channel.postgresChange(AnyAction.self, schema: "public", table: "room_files", filter: roomFilter)
-        try? await channel.subscribeWithError()
-        roomChannel = channel
-        // messages: 즉시 갱신 (debounce 없음 — 다른 기기·웹 사진/메시지 누락 방지)
+
         roomTasks.append(listen(msgStream) { await onRoomData(roomId) })
         roomTasks.append(listen(calStream) { await self.scheduleRoom(roomId, onRoomData) })
         roomTasks.append(listen(fileStream) { await self.scheduleRoom(roomId, onRoomData) })
+
+        guard gen == roomBindGeneration, activeRoomId == roomId else {
+            roomTasks.forEach { $0.cancel() }
+            roomTasks.removeAll()
+            await supabase.removeChannel(channel)
+            return
+        }
+
+        try? await channel.subscribeWithError()
+        guard gen == roomBindGeneration, activeRoomId == roomId else {
+            roomTasks.forEach { $0.cancel() }
+            roomTasks.removeAll()
+            await supabase.removeChannel(channel)
+            return
+        }
+
+        roomChannel = channel
         watchRoomChannelStatus(channel, roomId: roomId)
+    }
+
+    /// 캐시된 채널이 이미 subscribe 된 상태면 제거 후 새 인스턴스 반환
+    private func freshChannel(named name: String) async -> RealtimeChannelV2 {
+        let existing = supabase.channel(name)
+        if existing.status == .subscribed || existing.status == .subscribing {
+            await supabase.removeChannel(existing)
+        }
+        return supabase.channel(name)
     }
 
     private func watchRoomChannelStatus(_ channel: RealtimeChannelV2, roomId: String) {
@@ -109,6 +160,7 @@ final class MoimRealtimeSync {
     }
 
     func stop() async {
+        bindGeneration &+= 1
         onRooms = nil
         onRoomMembers = nil
         onProfiles = nil
@@ -130,6 +182,7 @@ final class MoimRealtimeSync {
     }
 
     private func stopRoomChannel() async {
+        roomBindGeneration &+= 1
         roomStatusTask?.cancel()
         roomStatusTask = nil
         roomTasks.forEach { $0.cancel() }

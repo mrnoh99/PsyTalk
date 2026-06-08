@@ -126,6 +126,7 @@ final class MoimViewModel: ObservableObject {
             onRoomMembers: { await self.onRoomMembersChangedOnly() },
             onProfiles: { await self.loadProfilesFromRealtime() },
             onWard: { await self.loadWardStatusFromRealtime() },
+            onMessage: { await self.loadUnreadFromRealtime() },
             onRoomData: { await self.refreshActiveRoom($0) }
         )
         await loadProfilesFromRealtime()
@@ -152,6 +153,13 @@ final class MoimViewModel: ObservableObject {
             unreadByRoom = (try? await MoimRepository.unreadCounts()) ?? unreadByRoom
             lastMsgByRoom = (try? await MoimRepository.roomLastMessages()) ?? lastMsgByRoom
         } catch { /* 조용히 재시도 — 다음 이벤트에서 갱신 */ }
+    }
+
+    /// 전역 messages 변경 — 닫혀 있는 방의 안읽음 배지·미리보기만 가볍게 갱신
+    /// (web debouncedLoadUnread·Android 12초 폴링과 동일한 목적, iOS 는 실시간으로)
+    private func loadUnreadFromRealtime() async {
+        unreadByRoom = (try? await MoimRepository.unreadCounts()) ?? unreadByRoom
+        lastMsgByRoom = (try? await MoimRepository.roomLastMessages()) ?? lastMsgByRoom
     }
 
     /// 가입 신청·승인 상태 등 profiles 변경 시 (관리자 가입 승인 목록·배지 갱신)

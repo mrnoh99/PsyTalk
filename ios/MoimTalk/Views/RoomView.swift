@@ -52,6 +52,13 @@ struct RoomView: View {
             }
         }
         .background(Moim.paper.ignoresSafeArea())
+        // 설정(⚙️) 시트는 이름변경 시트(showRename)와 다른 뷰에 둬야 함 —
+        // 같은 뷰에 .sheet 두 개면 iOS 에서 한쪽이 무시됨(이름변경창이 안 뜨던 원인)
+        .sheet(isPresented: $showSettings) {
+            RoomSettingsView(vm: vm, room: liveRoom,
+                             onClose: { showSettings = false },
+                             onDeleted: { showSettings = false; onBack() })
+        }
         .task(id: liveRoom.id) {
             tab = isNoticeTopRoom(liveRoom, vm.rooms) ? "chat"
                 : (opensWeekCalendar(liveRoom) ? "cal" : "chat")
@@ -175,11 +182,6 @@ struct RoomView: View {
             Button("삭제", role: .destructive) { vm.leaveRoom(liveRoom) { onBack() } }
         } message: {
             Text("이 대화를 목록에서 삭제할까요?\n상대는 그대로이며, 다시 메시지하면 이전 대화가 복구됩니다.")
-        }
-        .sheet(isPresented: $showSettings) {
-            RoomSettingsView(vm: vm, room: liveRoom,
-                             onClose: { showSettings = false },
-                             onDeleted: { showSettings = false; onBack() })
         }
     }
 
@@ -306,12 +308,14 @@ struct ChatView: View {
                 .padding(.horizontal, 12).padding(.vertical, 14)
             }
             .background(Moim.bg)
-            .ignoresSafeArea(.keyboard, edges: .bottom)   // 자동 회피 끄고 직접 제어
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 chatInputBar
                     .padding(.bottom, keyboardHeight)
                     .animation(.easeOut(duration: 0.25), value: keyboardHeight)
             }
+            // .safeAreaInset 뒤에 둬야 입력 바까지 포함해 자동 키보드 회피가 꺼짐
+            // (앞에 두면 입력 바가 자동 회피 + 수동 패딩 이중 적용 → 화면 위로 날아감)
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .onChange(of: vm.messages.count) { _ in
                 scrollToBottom(proxy, animated: true)
                 vm.resolveAttachments()

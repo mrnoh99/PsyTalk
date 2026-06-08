@@ -15,6 +15,7 @@ final class MoimRealtimeSync {
     private var roomListDebounce: Task<Void, Never>?
     private var profilesDebounce: Task<Void, Never>?
     private var roomDebounce: Task<Void, Never>?
+    private var messagesDebounce: Task<Void, Never>?
     private var roomStatusTask: Task<Void, Never>?
     private var statusTask: Task<Void, Never>?
     private var activeRoomId: String?
@@ -23,6 +24,8 @@ final class MoimRealtimeSync {
     private var onProfiles: (() async -> Void)?
     private var onWard: (() async -> Void)?
     private var onRoomData: ((String) async -> Void)?
+    /// 전역 messages 변경 — 닫혀 있는 방의 안읽음 배지·미리보기 갱신(web·Android 와 통일)
+    private var onMessage: (() async -> Void)?
     /// bindRealtime() 중복 호출 시 subscribe 이후 postgresChange 가 등록되는 레이스 방지
     private var bindGeneration: UInt64 = 0
     private var roomBindGeneration: UInt64 = 0
@@ -33,6 +36,7 @@ final class MoimRealtimeSync {
         onRoomMembers: @escaping () async -> Void,
         onProfiles: @escaping () async -> Void,
         onWard: @escaping () async -> Void,
+        onMessage: @escaping () async -> Void,
         onRoomData: @escaping (String) async -> Void
     ) async {
         bindGeneration &+= 1
@@ -45,6 +49,7 @@ final class MoimRealtimeSync {
         self.onRoomMembers = onRoomMembers
         self.onProfiles = onProfiles
         self.onWard = onWard
+        self.onMessage = onMessage
         self.onRoomData = onRoomData
 
         // postgresChange 는 subscribe() 전에 모두 등록해야 함 (supabase-swift 2.46+)
@@ -54,12 +59,14 @@ final class MoimRealtimeSync {
         let profilesStream = channel.postgresChange(AnyAction.self, schema: "public", table: "profiles")
         let wardStream = channel.postgresChange(AnyAction.self, schema: "public", table: "ward_status")
         let wardDutyStream = channel.postgresChange(AnyAction.self, schema: "public", table: "ward_duty")
+        let messagesStream = channel.postgresChange(AnyAction.self, schema: "public", table: "messages")
 
         globalTasks.append(listen(roomsStream) { await self.scheduleRoomListRefresh() })
         globalTasks.append(listen(membersStream) { await self.scheduleRoomListRefresh() })
         globalTasks.append(listen(profilesStream) { await self.scheduleProfiles(onProfiles) })
         globalTasks.append(listen(wardStream) { await onWard() })
         globalTasks.append(listen(wardDutyStream) { await onWard() })
+        globalTasks.append(listen(messagesStream) { await self.scheduleMessages() })
 
         guard gen == bindGeneration else {
             globalTasks.forEach { $0.cancel() }
@@ -165,6 +172,7 @@ final class MoimRealtimeSync {
         onRoomMembers = nil
         onProfiles = nil
         onWard = nil
+        onMessage = nil
         onRoomData = nil
         globalTasks.forEach { $0.cancel() }
         globalTasks.removeAll()
@@ -172,6 +180,8 @@ final class MoimRealtimeSync {
         roomListDebounce = nil
         profilesDebounce?.cancel()
         profilesDebounce = nil
+        messagesDebounce?.cancel()
+        messagesDebounce = nil
         statusTask?.cancel()
         statusTask = nil
         await stopRoomChannel()
@@ -217,6 +227,16 @@ final class MoimRealtimeSync {
         }
     }
 
+    /// 전역 messages 변경 — 안읽음·미리보기만 가볍게 갱신(web debouncedLoadUnread 와 동일)
+    private func scheduleMessages() async {
+        messagesDebounce?.cancel()
+        messagesDebounce = Task {
+            try? await Task.sleep(nanoseconds: debounceNs)
+            guard !Task.isCancelled else { return }
+            await onMessage?()
+        }
+    }
+
     private func scheduleRoom(_ roomId: String, _ block: @escaping (String) async -> Void) async {
         roomDebounce?.cancel()
         roomDebounce = Task {
@@ -239,12 +259,13 @@ final class MoimRealtimeSync {
     }
 
     private func reconnectIfBound() async {
-        guard let onRooms, let onRoomMembers, let onProfiles, let onWard, let onRoomData else { return }
+        guard let onRooms, let onRoomMembers, let onProfiles, let onWard, let onMessage, let onRoomData else { return }
         await start(
             onRooms: onRooms,
             onRoomMembers: onRoomMembers,
             onProfiles: onProfiles,
             onWard: onWard,
+            onMessage: onMessage,
             onRoomData: onRoomData
         )
     }

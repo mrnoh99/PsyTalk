@@ -226,6 +226,15 @@ struct ChatView: View {
     // 선택 후 ➤ 누르면 전송 (name, data, type)
     @State private var pendingAttach: (name: String, data: Data, type: String)?
     @State private var deleteTarget: Message?
+    // 키보드 높이를 직접 관측해 입력 바를 올림(자동 safeArea 회피가 첫 표시 때 어긋나는 문제 해결)
+    @State private var keyboardHeight: CGFloat = 0
+
+    private func bottomSafeInset() -> CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap { $0.windows }
+            .first { $0.isKeyWindow }?.safeAreaInsets.bottom ?? 0
+    }
 
     // 메시지 + 날짜 구분선 (날짜 바뀌면 divider 삽입) — 전체공지는 카드마다 일시 표시
     private var chatItems: [ChatRowItem] {
@@ -297,8 +306,11 @@ struct ChatView: View {
                 .padding(.horizontal, 12).padding(.vertical, 14)
             }
             .background(Moim.bg)
+            .ignoresSafeArea(.keyboard, edges: .bottom)   // 자동 회피 끄고 직접 제어
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 chatInputBar
+                    .padding(.bottom, keyboardHeight)
+                    .animation(.easeOut(duration: 0.25), value: keyboardHeight)
             }
             .onChange(of: vm.messages.count) { _ in
                 scrollToBottom(proxy, animated: true)
@@ -311,11 +323,21 @@ struct ChatView: View {
                 Button("삭제", role: .destructive) { if let t = deleteTarget { vm.deleteMessage(t.id) }; deleteTarget = nil }
                 Button("취소", role: .cancel) { deleteTarget = nil }
             }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { note in
+                if let f = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                    keyboardHeight = max(0, f.height - bottomSafeInset())
+                }
                 scrollToBottom(proxy, animated: true)
             }
-            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { note in
+                if let f = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                    let visible = f.minY < UIScreen.main.bounds.height
+                    keyboardHeight = visible ? max(0, f.height - bottomSafeInset()) : 0
+                }
                 scrollToBottom(proxy, animated: false)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+                keyboardHeight = 0
             }
         }
     }

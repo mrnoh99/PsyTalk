@@ -77,10 +77,10 @@ final class MoimViewModel: ObservableObject {
     /// supabase-swift emitLocalSessionAsInitialSession — 만료·로그아웃 시 loggedIn 동기화
     private func startAuthListener() {
         authListenerTask?.cancel()
-        authListenerTask = Task { [weak self] in
+        authListenerTask = Task { @MainActor [weak self] in
             for await (event, session) in supabase.auth.authStateChanges {
                 guard let self else { return }
-                await self.handleAuthChange(event: event, session: session)
+                handleAuthChange(event: event, session: session)
             }
         }
     }

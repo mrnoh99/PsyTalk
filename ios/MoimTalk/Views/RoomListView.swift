@@ -92,6 +92,9 @@ struct RoomAppearanceEditor: View {
     let existingIconUrl: String?
     let onClear: () -> Void
     var onPhotoConfirmed: (() -> Void)? = nil
+    /// true 면 자르기 화면 없이 선택 즉시 미리보기로 사용(web 방식). 시트(이름변경)처럼
+    /// 부모 fullScreenCover 가 가려져 안 뜨는 경우에 사용.
+    var directPhoto: Bool = false
 
     @State private var photoItem: PhotosPickerItem?
     @State private var photoPickToken = 0
@@ -138,7 +141,15 @@ struct RoomAppearanceEditor: View {
             defer { photoItem = nil }
             do {
                 guard let picked = try await item.loadTransferable(type: PickedPhoto.self) else { return }
-                adjustSourceImage = picked.image
+                if directPhoto {
+                    // web 방식: 자르기 없이 선택 즉시 미리보기 → 저장 시 업로드
+                    if let data = squareThumbnailData(picked.image) {
+                        previewData = data
+                        onPhotoConfirmed?()
+                    }
+                } else {
+                    adjustSourceImage = picked.image
+                }
             } catch {
                 guard !(error is CancellationError) else { return }
             }

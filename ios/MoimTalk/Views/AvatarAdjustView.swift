@@ -141,6 +141,21 @@ private struct AvatarAdjustCanvas: View {
     }
 }
 
+/// 자르기 없이 중앙 정사각 썸네일(web 방식: 선택 즉시 사용) — 512px JPEG
+func squareThumbnailData(_ image: UIImage, outSize: CGFloat = 512) -> Data? {
+    guard let cg = image.cgImage else { return image.jpegData(compressionQuality: 0.85) }
+    let w = CGFloat(cg.width), h = CGFloat(cg.height)
+    let side = min(w, h)
+    let scale = outSize / side
+    let drawW = w * scale, drawH = h * scale
+    let format = UIGraphicsImageRendererFormat(); format.scale = 1
+    let renderer = UIGraphicsImageRenderer(size: CGSize(width: outSize, height: outSize), format: format)
+    let result = renderer.image { _ in
+        image.draw(in: CGRect(x: (outSize - drawW) / 2, y: (outSize - drawH) / 2, width: drawW, height: drawH))
+    }
+    return result.jpegData(compressionQuality: 0.85)
+}
+
 private func exportAvatarCrop(
     image: UIImage,
     cropSize: CGFloat,

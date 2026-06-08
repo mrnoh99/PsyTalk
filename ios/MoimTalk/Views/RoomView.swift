@@ -145,7 +145,8 @@ struct RoomView: View {
                         adjustSourceImage: $iconAdjustImage,
                         existingIconUrl: editIconCleared ? nil : liveRoom.iconUrl,
                         onClear: { editIconData = nil; editIconCleared = true },
-                        onPhotoConfirmed: { editIconCleared = false }
+                        onPhotoConfirmed: { editIconCleared = false },
+                        directPhoto: true   // 시트 안에서는 자르기 화면이 안 떠서 web 방식(즉시 미리보기) 사용
                     )
                     Spacer()
                 }

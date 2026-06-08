@@ -193,11 +193,10 @@ private func exportAvatarCrop(
     let result = renderer.image { ctx in
         UIColor.black.setFill()
         ctx.fill(CGRect(x: 0, y: 0, width: outSize, height: outSize))
-        ctx.cgContext.saveGState()
-        ctx.cgContext.translateBy(x: left * ratio, y: top * ratio)
-        ctx.cgContext.scaleBy(x: totalScale * ratio, y: totalScale * ratio)
-        ctx.cgContext.draw(cg, in: CGRect(x: 0, y: 0, width: bmpW, height: bmpH))
-        ctx.cgContext.restoreGState()
+        // UIKit 의 draw(in:) 사용 — CGContext.draw(cgImage) 는 좌표계가 뒤집혀 상하 반전됨.
+        // draw(in:) 은 방향(EXIF)·좌표계를 올바르게 처리하므로 정방향으로 그려짐.
+        image.draw(in: CGRect(x: left * ratio, y: top * ratio,
+                              width: scaledW * ratio, height: scaledH * ratio))
     }
     return result.jpegData(compressionQuality: 0.9)
 }

@@ -8,7 +8,10 @@ let supabaseURLString = "https://orkbcprkfloosyttfybg.supabase.co"
 
 let supabase = SupabaseClient(
     supabaseURL: URL(string: supabaseURLString)!,
-    supabaseKey: SUPABASE_ANON_KEY
+    supabaseKey: SUPABASE_ANON_KEY,
+    options: SupabaseClientOptions(
+        auth: .init(emitLocalSessionAsInitialSession: true)
+    )
 )
 
 // anon 키 (Android 와 동일). 노출되어도 RLS 로 보호되는 공개 키.

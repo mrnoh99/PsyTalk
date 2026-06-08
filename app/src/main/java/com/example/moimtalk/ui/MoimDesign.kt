@@ -296,6 +296,18 @@ fun isAdminRole(role: String): Boolean = role == "superadmin" || role == "admin"
 
 fun isSuperAdmin(role: String): Boolean = role == "superadmin"
 
+/** 가입 승인 대기(미승인·미탈퇴, superadmin 제외) — approved 가 true 가 아니면 대기 */
+fun isSignupPending(p: Profile): Boolean =
+    p.role != "superadmin" && p.withdrawn != true && p.approved != true
+
+/** 승인된 활성 회원(superadmin 제외) */
+fun isApprovedMember(p: Profile): Boolean =
+    p.role != "superadmin" && p.withdrawn != true && p.approved == true
+
+/** 비활성(탈퇴) 회원 — 복구 대상 */
+fun isWithdrawnMember(p: Profile): Boolean =
+    p.role != "superadmin" && p.withdrawn == true
+
 /** 비서 직군: 가입 승인 + 전체공지 작성 가능(관리자에 준함) */
 fun canApprove(profile: Profile?): Boolean {
     if (profile == null) return false
@@ -427,7 +439,7 @@ fun wardDutyRowColors(tone: WardDutyTone, isToday: Boolean): Pair<Color, Color> 
 /** 승인·활성 회원 중 직군 필터 (당직 선택용) */
 fun dutyMembersByType(profiles: Map<String, Profile>, memberType: String): List<Profile> =
     profiles.values
-        .filter { it.memberType == memberType && it.approved && !it.withdrawn }
+        .filter { it.memberType == memberType && (it.approved ?: true) && it.withdrawn != true }
         .sortedBy { it.name }
 
 /** 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실 */
@@ -524,7 +536,7 @@ fun msgPreview(lm: LastMsg?): String {
 fun viewBadgeText(profile: Profile?): String {
     if (profile == null) return "정신건강의학과"
     return when {
-        isSuperAdmin(profile.role) -> "전체관리자 · 전체 방"
+        isSuperAdmin(profile.role) -> "전체관리자"
         isAdminRole(profile.role) -> "관리자 · 전체 방"
         else -> "${profile.name}(${profile.memberType})"
     }

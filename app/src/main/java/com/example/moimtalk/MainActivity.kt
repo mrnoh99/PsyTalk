@@ -107,6 +107,7 @@ class MoimViewModel : ViewModel() {
             onWardChanged = { loadWardStatus(); refreshWardDutiesQuiet() },
             onActiveRoomChanged = { rid -> refreshActiveRoom(rid) },
         )
+        reloadProfiles()
     }
 
     /** room_members 변경 등 RLS 재조회용 (오류 팝업 없음) */
@@ -243,6 +244,9 @@ class MoimViewModel : ViewModel() {
                 } catch (e: Exception) {
                     throw Exception("방 목록 조회: ${e.message}", e)
                 }
+                profilesById = runCatching {
+                    MoimRepository.allProfiles().associateBy { it.id }
+                }.getOrDefault(emptyMap())
                 loggedIn = true
                 ensureRealtime()
                 startRoomListPolling()
@@ -723,7 +727,7 @@ class MoimViewModel : ViewModel() {
         // 회원 검색에는 전체관리자도 포함(일반 회원이 전체관리자에게 메시지 가능). 본인·미승인·탈퇴만 제외.
         return profilesById.values.filter {
             it.id != MoimRepository.currentUserId() &&
-                it.approved && !it.withdrawn &&
+                it.approved == true && it.withdrawn != true &&
                 (q.isEmpty() || it.name.lowercase().contains(q))
         }
     }

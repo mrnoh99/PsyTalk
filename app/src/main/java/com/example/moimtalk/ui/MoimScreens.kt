@@ -371,6 +371,8 @@ fun AdminConsoleScreen(vm: MoimViewModel, onBack: () -> Unit) {
     var tab by remember { mutableStateOf(0) }
     val collator = remember { java.text.Collator.getInstance(java.util.Locale.KOREAN) }
 
+    LaunchedEffect(Unit) { vm.reloadProfiles() }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -402,7 +404,7 @@ fun AdminConsoleScreen(vm: MoimViewModel, onBack: () -> Unit) {
 private fun ApprovalTab(vm: MoimViewModel, collator: java.text.Collator) {
     var byType by remember { mutableStateOf(false) }
     // 신규 가입자(미승인 + 미탈퇴, 전체관리자 제외)
-    val base = vm.profilesById.values.filter { it.role != "superadmin" && !it.withdrawn && !it.approved }
+    val base = vm.profilesById.values.filter(::isSignupPending)
     val cmp: Comparator<Profile> = if (byType) Comparator { a, b ->
         val t = collator.compare(a.memberType, b.memberType); if (t != 0) t else collator.compare(a.name, b.name)
     } else Comparator { a, b -> collator.compare(a.name, b.name) }
@@ -434,7 +436,7 @@ private fun ApprovalTab(vm: MoimViewModel, collator: java.text.Collator) {
 private fun MemberManageTab(vm: MoimViewModel, collator: java.text.Collator) {
     var byType by remember { mutableStateOf(false) }
     // 승인된 회원(미탈퇴, 전체관리자 제외)
-    val base = vm.profilesById.values.filter { it.role != "superadmin" && !it.withdrawn && it.approved }
+    val base = vm.profilesById.values.filter(::isApprovedMember)
     val cmp: Comparator<Profile> = if (byType) Comparator { a, b ->
         val t = collator.compare(a.memberType, b.memberType); if (t != 0) t else collator.compare(a.name, b.name)
     } else Comparator { a, b ->
@@ -444,7 +446,7 @@ private fun MemberManageTab(vm: MoimViewModel, collator: java.text.Collator) {
     }
     val members = base.sortedWith(cmp)
     // 비활성(탈퇴) 회원 — 복구 대상
-    val withdrawn = vm.profilesById.values.filter { it.role != "superadmin" && it.withdrawn }
+    val withdrawn = vm.profilesById.values.filter(::isWithdrawnMember)
         .sortedWith(Comparator { a, b -> collator.compare(a.name, b.name) })
     val context = LocalContext.current
     LazyColumn(modifier = Modifier.fillMaxSize().padding(16.dp)) {
@@ -1425,7 +1427,7 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                                 },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("➤", fontSize = 14.sp)
+                            Text("↑", fontSize = 19.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                     }

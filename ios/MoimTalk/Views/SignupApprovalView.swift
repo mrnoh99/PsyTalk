@@ -11,8 +11,7 @@ struct SignupApprovalView: View {
 
     // 신규 가입자(미승인 + 미탈퇴, 전체관리자 제외)
     private var pending: [Profile] {
-        vm.profilesById.values
-            .filter { $0.role != "superadmin" && $0.withdrawn != true && $0.approved == false }
+        vm.profilesById.values.filter(isSignupPending)
             .sorted {
                 if byType, $0.memberType != $1.memberType { return $0.memberType < $1.memberType }
                 return $0.name < $1.name

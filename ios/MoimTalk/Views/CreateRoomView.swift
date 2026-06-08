@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 // 모임방 만들기 (카톡처럼 누구나) — 이름 + 방표식(색상·사진) + 참여 회원 선택
 struct CreateRoomView: View {
@@ -9,6 +10,7 @@ struct CreateRoomView: View {
     @State private var selected: Set<String> = []
     @State private var color = ROOM_COLORS[1]
     @State private var iconData: Data?
+    @State private var iconAdjustImage: UIImage?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -28,7 +30,9 @@ struct CreateRoomView: View {
 
                 RoomAppearanceEditor(
                     name: name, color: $color,
-                    previewData: $iconData, existingIconUrl: nil,
+                    previewData: $iconData,
+                    adjustSourceImage: $iconAdjustImage,
+                    existingIconUrl: nil,
                     onClear: { iconData = nil }
                 )
                 .padding(.bottom, 14)
@@ -82,5 +86,20 @@ struct CreateRoomView: View {
             .padding(16)
         }
         .background(Moim.paper.ignoresSafeArea())
+        .fullScreenCover(isPresented: Binding(
+            get: { iconAdjustImage != nil },
+            set: { if !$0 { iconAdjustImage = nil } }
+        )) {
+            if let img = iconAdjustImage {
+                AvatarAdjustView(
+                    sourceImage: img,
+                    onDismiss: { iconAdjustImage = nil },
+                    onConfirm: { data in
+                        iconData = data
+                        iconAdjustImage = nil
+                    }
+                )
+            }
+        }
     }
 }

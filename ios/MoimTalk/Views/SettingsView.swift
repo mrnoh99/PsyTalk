@@ -53,6 +53,7 @@ struct MyInfoTab: View {
     @State private var deviceType = ""       // iphone | android
     @State private var deviceEmail = ""      // 앱 설치용 이메일
     @State private var photoItem: PhotosPickerItem?
+    @State private var photoPickToken = 0
     @State private var pendingAdjustImage: UIImage?
     @State private var showAvatarAdjust = false
     @State private var avatarData: Data?
@@ -212,15 +213,18 @@ struct MyInfoTab: View {
             deviceType = me?.deviceType ?? ""
             deviceEmail = me?.deviceEmail ?? ""
         }
-        .onChange(of: photoItem) { _ in
-            Task {
-                guard let item = photoItem else { return }
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let ui = UIImage(data: data) {
-                    pendingAdjustImage = ui
-                    showAvatarAdjust = true
-                }
-                photoItem = nil
+        .onChange(of: photoItem) { newItem in
+            if newItem != nil { photoPickToken += 1 }
+        }
+        .task(id: photoPickToken) {
+            guard photoPickToken > 0, let item = photoItem else { return }
+            defer { photoItem = nil }
+            do {
+                guard let picked = try await item.loadTransferable(type: PickedPhoto.self) else { return }
+                pendingAdjustImage = picked.image
+                showAvatarAdjust = true
+            } catch {
+                guard !(error is CancellationError) else { return }
             }
         }
         .fullScreenCover(isPresented: $showAvatarAdjust) {
@@ -252,11 +256,10 @@ struct MyInfoTab: View {
         pwMsg = ""
         if newPw.count < 6 { pwMsgIsError = true; pwMsg = "비밀번호는 6자 이상이어야 합니다."; return }
         if newPw != newPw2 { pwMsgIsError = true; pwMsg = "비밀번호가 일치하지 않습니다."; return }
-        vm.changeMyPassword(newPw) { result in
-            switch result {
-            case .success(let m): pwMsgIsError = false; pwMsg = m; newPw = ""; newPw2 = ""
-            case .failure(let m): pwMsgIsError = true; pwMsg = m
-            }
+        vm.changeMyPassword(newPw) { ok, m in
+            pwMsgIsError = !ok
+            pwMsg = m
+            if ok { newPw = ""; newPw2 = "" }
         }
     }
 

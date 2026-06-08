@@ -13,8 +13,10 @@
 		1578EF6CB778038234AF36D6 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65B364AEB657C1C5BEE8FAB6 /* SupabaseClient.swift */; };
 		221A52FF2E0856F233729EE5 /* AdminPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA791D3357DDC85A6236355D /* AdminPlaceholderView.swift */; };
 		40BD3669E5C236982894A7A3 /* MoimTalkApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB0A1DBF9F67B1886AFC7CF5 /* MoimTalkApp.swift */; };
+		43DB1EC861921E407B2CD17D /* KrHolidays.swift in Sources */ = {isa = PBXBuildFile; fileRef = C937F0DF6E3C08939612A4F3 /* KrHolidays.swift */; };
 		48D671F7416618EC4B1610D6 /* RoomListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F7D32747C8263739AB9EC87 /* RoomListView.swift */; };
 		592CB191E822D1BFE719D30F /* FilesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C46B8FDCED34E1AC6ACE940 /* FilesView.swift */; };
+		6314425C995973B53939D1A9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F94D943109CAC010C897F48A /* SettingsView.swift */; };
 		66A372AA8458DB99401EF198 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 74F619C44F2D7ACF75D6A1EF /* Supabase */; };
 		7D5D97A4E555017A94A43B39 /* SignupApprovalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E164F2622713CCF506DDA5A /* SignupApprovalView.swift */; };
 		974287247F382BD2A5239019 /* RoomSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 38F2E8EA04ADE013469515E9 /* RoomSettingsView.swift */; };
@@ -22,21 +24,25 @@
 		AC4D14BA90342DA81A4B2B1E /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E42E0AEF7749647ADDFE498 /* Models.swift */; };
 		B9510171D37606FA467A17EC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 56102EC49F1986DF4BAD645A /* Assets.xcassets */; };
 		BAD8803DB9F4D033605BF39E /* MoimDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53C59092C198E5087DFE87D6 /* MoimDesign.swift */; };
+		C3CEEBBB8210C301AE92F308 /* AvatarAdjustView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46283BAAE3AEE4F4081CA36E /* AvatarAdjustView.swift */; };
 		CC2E432B9D8FFB59F8A5E2E2 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7587B7A6C7F09B42D62B36D1 /* LoginView.swift */; };
 		D80A76A9098AD074AA57FCE9 /* WardStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F01F129DE6E64DBFE58423E /* WardStatusView.swift */; };
 		D8974609309F8AC914FE9489 /* MoimRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C3D3AA6E1494F69BE95D8C3 /* MoimRepository.swift */; };
 		DFF4A0DF7DA3325B06965141 /* PendingApprovalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA9AAD91F9D647582FC5E77D /* PendingApprovalView.swift */; };
 		EDCBA9ABDE2D41AFED8D9E7A /* MoimViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73F51B10F9F1008922342445 /* MoimViewModel.swift */; };
 		F5F93EFC6BDFFDAE254FB71B /* RoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D706D1572849E3BC1AE1BAA /* RoomView.swift */; };
+		FAD1986FA820CA788D8F8935 /* MemberCsvExport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BA969A4C719EAEBB12CAE3F /* MemberCsvExport.swift */; };
 		FBF8BDC92B4DA1C7A504E28E /* CreateRoomView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A15A572C6232E483E7FD43C /* CreateRoomView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0BA969A4C719EAEBB12CAE3F /* MemberCsvExport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemberCsvExport.swift; sourceTree = "<group>"; };
 		1A15A572C6232E483E7FD43C /* CreateRoomView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateRoomView.swift; sourceTree = "<group>"; };
 		1C46B8FDCED34E1AC6ACE940 /* FilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesView.swift; sourceTree = "<group>"; };
 		2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		2CA9C1A636044B04FF6591FE /* EventEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditView.swift; sourceTree = "<group>"; };
 		38F2E8EA04ADE013469515E9 /* RoomSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomSettingsView.swift; sourceTree = "<group>"; };
+		46283BAAE3AEE4F4081CA36E /* AvatarAdjustView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarAdjustView.swift; sourceTree = "<group>"; };
 		4E164F2622713CCF506DDA5A /* SignupApprovalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupApprovalView.swift; sourceTree = "<group>"; };
 		53C59092C198E5087DFE87D6 /* MoimDesign.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimDesign.swift; sourceTree = "<group>"; };
 		56102EC49F1986DF4BAD645A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -51,9 +57,11 @@
 		7F7D32747C8263739AB9EC87 /* RoomListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomListView.swift; sourceTree = "<group>"; };
 		BA791D3357DDC85A6236355D /* AdminPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminPlaceholderView.swift; sourceTree = "<group>"; };
 		BB0A1DBF9F67B1886AFC7CF5 /* MoimTalkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimTalkApp.swift; sourceTree = "<group>"; };
+		C937F0DF6E3C08939612A4F3 /* KrHolidays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KrHolidays.swift; sourceTree = "<group>"; };
 		E17DE9D14FE52E794BAFCB4E /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
 		E9B260B7A2E9FBE5A4D76072 /* MoimRealtimeSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimRealtimeSync.swift; sourceTree = "<group>"; };
 		EA9AAD91F9D647582FC5E77D /* PendingApprovalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingApprovalView.swift; sourceTree = "<group>"; };
+		F94D943109CAC010C897F48A /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -109,16 +117,19 @@
 			isa = PBXGroup;
 			children = (
 				BA791D3357DDC85A6236355D /* AdminPlaceholderView.swift */,
+				46283BAAE3AEE4F4081CA36E /* AvatarAdjustView.swift */,
 				2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */,
 				1A15A572C6232E483E7FD43C /* CreateRoomView.swift */,
 				E17DE9D14FE52E794BAFCB4E /* DateUtils.swift */,
 				2CA9C1A636044B04FF6591FE /* EventEditView.swift */,
 				1C46B8FDCED34E1AC6ACE940 /* FilesView.swift */,
+				C937F0DF6E3C08939612A4F3 /* KrHolidays.swift */,
 				7587B7A6C7F09B42D62B36D1 /* LoginView.swift */,
 				EA9AAD91F9D647582FC5E77D /* PendingApprovalView.swift */,
 				7F7D32747C8263739AB9EC87 /* RoomListView.swift */,
 				38F2E8EA04ADE013469515E9 /* RoomSettingsView.swift */,
 				7D706D1572849E3BC1AE1BAA /* RoomView.swift */,
+				F94D943109CAC010C897F48A /* SettingsView.swift */,
 				4E164F2622713CCF506DDA5A /* SignupApprovalView.swift */,
 				7F01F129DE6E64DBFE58423E /* WardStatusView.swift */,
 			);
@@ -128,6 +139,7 @@
 		B4E4F570F8BF3E17B534F459 /* Design */ = {
 			isa = PBXGroup;
 			children = (
+				0BA969A4C719EAEBB12CAE3F /* MemberCsvExport.swift */,
 				53C59092C198E5087DFE87D6 /* MoimDesign.swift */,
 			);
 			path = Design;
@@ -215,12 +227,15 @@
 			buildActionMask = 2147483647;
 			files = (
 				221A52FF2E0856F233729EE5 /* AdminPlaceholderView.swift in Sources */,
+				C3CEEBBB8210C301AE92F308 /* AvatarAdjustView.swift in Sources */,
 				9CAE57F57BF265116F14F340 /* CalendarView.swift in Sources */,
 				FBF8BDC92B4DA1C7A504E28E /* CreateRoomView.swift in Sources */,
 				0DF07A068A6D8D7C6FB85920 /* DateUtils.swift in Sources */,
 				122642BEF5058304974AECFA /* EventEditView.swift in Sources */,
 				592CB191E822D1BFE719D30F /* FilesView.swift in Sources */,
+				43DB1EC861921E407B2CD17D /* KrHolidays.swift in Sources */,
 				CC2E432B9D8FFB59F8A5E2E2 /* LoginView.swift in Sources */,
+				FAD1986FA820CA788D8F8935 /* MemberCsvExport.swift in Sources */,
 				AC4D14BA90342DA81A4B2B1E /* Models.swift in Sources */,
 				BAD8803DB9F4D033605BF39E /* MoimDesign.swift in Sources */,
 				0D8C8B5ECB0A89458832F418 /* MoimRealtimeSync.swift in Sources */,
@@ -231,6 +246,7 @@
 				48D671F7416618EC4B1610D6 /* RoomListView.swift in Sources */,
 				974287247F382BD2A5239019 /* RoomSettingsView.swift in Sources */,
 				F5F93EFC6BDFFDAE254FB71B /* RoomView.swift in Sources */,
+				6314425C995973B53939D1A9 /* SettingsView.swift in Sources */,
 				7D5D97A4E555017A94A43B39 /* SignupApprovalView.swift in Sources */,
 				1578EF6CB778038234AF36D6 /* SupabaseClient.swift in Sources */,
 				D80A76A9098AD074AA57FCE9 /* WardStatusView.swift in Sources */,

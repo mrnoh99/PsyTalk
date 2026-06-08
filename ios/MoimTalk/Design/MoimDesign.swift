@@ -198,6 +198,22 @@ enum MoimOverlayAnim {
     )
 }
 
+/// 대화방·설정 등 상단 ‹ 뒤로 — Web `.back`(flex-shrink:0·26px) 과 동일, 헤더 버튼 많아도 안 사라짐
+struct MoimBackButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text("‹")
+                .font(.system(size: 25))
+                .foregroundColor(Moim.ink)
+                .frame(width: 26, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .fixedSize(horizontal: true, vertical: false)
+    }
+}
+
 func catColor(_ category: String) -> Color {
     switch category {
     case "notice": return Color(hex: 0xB5651D)
@@ -283,6 +299,16 @@ func roleLabel(_ role: String) -> String {
 func isAdminRole(_ role: String) -> Bool { role == "superadmin" || role == "admin" }
 func isSuperAdmin(_ role: String) -> Bool { role == "superadmin" }
 
+/// 가입 승인 대기(미승인·미탈퇴, superadmin 제외) — approved 가 true 가 아니면 대기
+func isSignupPending(_ p: Profile) -> Bool {
+    p.role != "superadmin" && p.withdrawn != true && p.approved != true
+}
+
+/// 승인된 활성 회원(superadmin 제외)
+func isApprovedMember(_ p: Profile) -> Bool {
+    p.role != "superadmin" && p.withdrawn != true && p.approved == true
+}
+
 /// 비서 직군: 가입 승인 + 전체공지 작성 가능(관리자에 준함)
 func canApprove(_ profile: Profile?) -> Bool {
     guard let p = profile else { return false }
@@ -306,7 +332,7 @@ func wardDutyTone(_ date: Date) -> WardDutyTone {
 
 func dutyMembersByType(_ profiles: [String: Profile], memberType: String) -> [Profile] {
     profiles.values
-        .filter { $0.memberType == memberType && $0.approved && !$0.withdrawn }
+        .filter { $0.memberType == memberType && ($0.approved ?? true) && $0.withdrawn != true }
         .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
 }
 
@@ -481,7 +507,7 @@ func canRenameRoom(_ profile: Profile?, _ room: Room) -> Bool {
 
 func viewBadgeText(_ profile: Profile?) -> String {
     guard let p = profile else { return "정신건강의학과" }
-    if isSuperAdmin(p.role) { return "전체관리자 · 전체 방" }
+    if isSuperAdmin(p.role) { return "전체관리자" }
     if isAdminRole(p.role) { return "관리자 · 전체 방" }
     return "\(p.name)(\(p.memberType))"
 }

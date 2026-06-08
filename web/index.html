@@ -776,9 +776,6 @@ async function withFreshSession(fn){
   }
   return r;
 }
-document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible'&&me) ensureFreshSession().catch(()=>{});
-});
 const BUCKET = "room-files";
 /** Storage object key — ASCII only (한글 파일명은 DB attachment_name/file_name 에만 저장) */
 function storageObjectKey(roomId,fileName){
@@ -1286,6 +1283,16 @@ const debouncedRefreshRoom=debounce(async()=>{
 const debouncedLoadWard=debounce(()=>{
   if(!document.getElementById('wardScreen').classList.contains('hidden'))loadWard();
 },400);
+const debouncedReloadProfiles=debounce(async()=>{
+  if(!me)return;
+  try{
+    await reloadProfiles();
+    const adminEl=document.getElementById('adminScreen');
+    if(adminEl&&!adminEl.classList.contains('hidden')){renderAdminTabs();renderAdmin();}
+    const listEl=document.getElementById('listScreen');
+    if(listEl&&!listEl.classList.contains('hidden'))renderRoomList();
+  }catch(e){console.warn('profiles reload',e);}
+},400);
 
 function startRealtime(){
   stopRealtime();
@@ -1293,6 +1300,7 @@ function startRealtime(){
   realtimeGlobal
     .on('postgres_changes',{event:'*',schema:'public',table:'rooms'},debouncedLoadRooms)
     .on('postgres_changes',{event:'*',schema:'public',table:'room_members'},()=>{debouncedLoadRooms();debouncedRoomMembers();})
+    .on('postgres_changes',{event:'*',schema:'public',table:'profiles'},debouncedReloadProfiles)
     .on('postgres_changes',{event:'*',schema:'public',table:'ward_status'},debouncedLoadWard)
     .on('postgres_changes',{event:'*',schema:'public',table:'ward_duty'},debouncedLoadWard)
     .on('postgres_changes',{event:'INSERT',schema:'public',table:'messages'},debouncedLoadUnread)
@@ -1668,7 +1676,14 @@ async function reloadProfiles(){
   profilesById={};(data||[]).forEach(p=>profilesById[p.id]=p);
 }
 let adminTab='approval';
-function openAdmin(){ if(!canApprove())return; adminTab='approval'; openListSlideOverlay('adminScreen'); renderAdminTabs(); renderAdmin(); }
+async function openAdmin(){
+  if(!canApprove())return;
+  adminTab='approval';
+  await reloadProfiles();
+  openListSlideOverlay('adminScreen');
+  renderAdminTabs();
+  renderAdmin();
+}
 async function closeAdmin(){ await closeListSlideOverlay('adminScreen'); }
 function renderAdminTabs(){
   const sup=me.role==='superadmin';
@@ -2378,7 +2393,7 @@ function renderAttachPreview(){
   if(!pendingAttach){el.classList.add('hidden');el.innerHTML='';layoutChat();return;}
   const {file,kind}=pendingAttach;
   el.innerHTML=`<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${kind==='image'?'🖼':'📎'} <b>${esc(file.name)}</b></span>`+
-    `<span style="color:var(--work);font-weight:700;font-size:12px;white-space:nowrap">첨부됨 · ➤ 전송</span>`+
+    `<span style="color:var(--work);font-weight:700;font-size:12px;white-space:nowrap">첨부됨 · ↑ 전송</span>`+
     `<span onclick="clearAttach()" style="cursor:pointer;color:var(--admin);font-weight:800;padding:2px 8px">✕</span>`;
   el.classList.remove('hidden');
   layoutChat();   // 미리보기로 chat-foot 높이가 바뀌므로 msgs 높이 재계산(가려짐/깜빡임 방지)
@@ -3050,6 +3065,14 @@ applyIosStandaloneSafeArea();
 fitPhoneToViewport();
 window.addEventListener('resize',()=>{applyIosStandaloneSafeArea();fitSoon();});
 // 키보드(비주얼뷰포트 resize)마다 probe reflow 돌면 떨림 → 키보드 변화엔 safe-area 재계산 안 함
+
+/* ====== 탭 복귀 시 프로필·목록 갱신 (debouncedReloadProfiles 정의 이후에 등록) ====== */
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'&&me){
+    ensureFreshSession().catch(()=>{});
+    debouncedReloadProfiles();
+  }
+});
 
 /* ====== 시작: 기존 세션 있으면 자동 로그인 ====== */
 (async()=>{

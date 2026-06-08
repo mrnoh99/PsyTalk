@@ -1,6 +1,18 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+extension UIImage {
+    /// EXIF 방향을 픽셀에 반영해 .up 으로 정규화 — cgImage 직접 그릴 때 사진이 돌아가는 문제 방지
+    func normalizedUp() -> UIImage {
+        if imageOrientation == .up { return self }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            draw(in: CGRect(origin: .zero, size: size))
+        }
+    }
+}
+
 /// PhotosPicker → UIImage (HEIC 등 Data 직접 로드 실패 방지)
 struct PickedPhoto: Transferable {
     let image: UIImage
@@ -10,7 +22,8 @@ struct PickedPhoto: Transferable {
             guard let image = UIImage(data: data) else {
                 throw NSError(domain: "PickedPhoto", code: 1)
             }
-            return PickedPhoto(image: image)
+            // 방향 정규화 후 전달 — 자르기/썸네일에서 cgImage 사용 시 회전 방지
+            return PickedPhoto(image: image.normalizedUp())
         }
     }
 }

@@ -1852,10 +1852,10 @@ private fun ReplyQuoteInBubble(
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 // 긴 메시지: 이 길이 초과 시 말풍선에서 잘라 보여주고 '전체보기'로 전문 표시 (web 과 동일)
 private const val MSG_TRUNC = 400
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MessageBubble(
     m: Message, mine: Boolean, senderName: String,

@@ -361,10 +361,15 @@ final class MoimViewModel: ObservableObject {
         Task { do { roomPins = try await MoimRepository.roomPins() } catch {} }
     }
     /// 고정 방 순서 저장 (최대 5)
-    func saveRoomPins(_ ids: [String]) {
+    func saveRoomPins(_ ids: [String], onDone: @escaping (Bool) -> Void = { _ in }) {
         Task {
-            do { try await MoimRepository.setRoomPins(ids); roomPins = Array(ids.prefix(5)) }
-            catch { reportError("방 순서 저장", error) }
+            do {
+                try await MoimRepository.setRoomPins(ids); roomPins = Array(ids.prefix(5))
+                onDone(true)
+            } catch {
+                reportError("방 순서 저장", error)
+                onDone(false)
+            }
         }
     }
 

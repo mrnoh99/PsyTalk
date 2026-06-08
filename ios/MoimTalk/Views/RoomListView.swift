@@ -583,6 +583,8 @@ struct PinOrderTab: View {
     @ObservedObject var vm: MoimViewModel
     let rooms: [Room]
     @State private var draft: [String] = []
+    @State private var saving = false
+    @State private var savedAt: Date?   // 저장 완료 표시
 
     var body: some View {
         List {
@@ -622,12 +624,32 @@ struct PinOrderTab: View {
                 }
             }
             Section {
-                Button("순서 저장") { vm.saveRoomPins(draft) }
-                    .font(.system(size: 14, weight: .bold))
+                Button {
+                    guard !saving else { return }
+                    saving = true; savedAt = nil
+                    vm.saveRoomPins(draft) { ok in
+                        saving = false
+                        if ok { savedAt = Date() }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if saving {
+                            ProgressView()
+                            Text("저장 중…").font(.system(size: 14, weight: .bold))
+                        } else if savedAt != nil {
+                            Image(systemName: "checkmark.circle.fill").foregroundColor(Moim.success)
+                            Text("저장됨").font(.system(size: 14, weight: .bold)).foregroundColor(Moim.success)
+                        } else {
+                            Text("순서 저장").font(.system(size: 14, weight: .bold))
+                        }
+                    }
+                }
+                .disabled(saving)
             }
         }
         // 항상 재정렬 가능(드래그 핸들 ☰ 표시)
         .environment(\.editMode, .constant(.active))
         .onAppear { draft = vm.roomPins.filter { id in rooms.contains { $0.id == id } } }
+        .onChange(of: draft) { _ in savedAt = nil }   // 다시 편집하면 '저장됨' 해제
     }
 }

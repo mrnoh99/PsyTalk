@@ -73,23 +73,39 @@ struct DMSwipeRow<Content: View>: View {
     @State private var offset: CGFloat = 0
 
     var body: some View {
-        ZStack(alignment: .trailing) {
-            HStack { Spacer(); Text("🗑 삭제").font(.system(size: 13, weight: .bold)).foregroundColor(.white).padding(.trailing, 24) }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Moim.admin)
-            content
-                .background(Moim.paper)
-                .offset(x: offset)
-                .gesture(
-                    DragGesture(minimumDistance: 12)
-                        .onChanged { v in if v.translation.width < 0 { offset = max(v.translation.width, -110) } }
-                        .onEnded { v in
-                            if v.translation.width < -70 { onDelete() }
-                            withAnimation(.easeOut(duration: 0.15)) { offset = 0 }
-                        }
-                )
-        }
-        .clipped()
+        content
+            .background(Moim.paper)
+            .background(alignment: .trailing) {
+                HStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    Text("🗑 삭제")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 110)
+                        .frame(maxHeight: .infinity)
+                        .background(Moim.admin)
+                }
+            }
+            .offset(x: offset)
+            .gesture(
+                DragGesture(minimumDistance: 12)
+                    .onChanged { v in if v.translation.width < 0 { offset = max(v.translation.width, -110) } }
+                    .onEnded { v in
+                        if v.translation.width < -70 { onDelete() }
+                        withAnimation(.easeOut(duration: 0.15)) { offset = 0 }
+                    }
+            )
+            .clipped()
+    }
+}
+
+// 방 목록 행 구분선 — web .room border-bottom 과 동일(행 아래 전체 너비)
+private struct RoomListRowDivider: View {
+    var body: some View {
+        Rectangle()
+            .fill(Moim.line.opacity(0.4))
+            .frame(height: 1 / UIScreen.main.scale)
+            .frame(maxWidth: .infinity)
     }
 }
 
@@ -228,12 +244,15 @@ struct RoomListView: View {
                                  subtitle: "전체관리자가 방에 배정하면\n여기에 표시됩니다.")
                     } else {
                         ForEach(listRooms) { room in
-                            if room.category == "direct" {
-                                DMSwipeRow(onDelete: { dmToDelete = room }) {
+                            VStack(spacing: 0) {
+                                if room.category == "direct" {
+                                    DMSwipeRow(onDelete: { dmToDelete = room }) {
+                                        RoomRow(vm: vm, room: room, unread: vm.unreadByRoom[room.id] ?? 0, lastMsg: vm.lastMsgByRoom[room.id], onOpen: onOpen)
+                                    }
+                                } else {
                                     RoomRow(vm: vm, room: room, unread: vm.unreadByRoom[room.id] ?? 0, lastMsg: vm.lastMsgByRoom[room.id], onOpen: onOpen)
                                 }
-                            } else {
-                                RoomRow(vm: vm, room: room, unread: vm.unreadByRoom[room.id] ?? 0, lastMsg: vm.lastMsgByRoom[room.id], onOpen: onOpen)
+                                RoomListRowDivider()
                             }
                         }
                     }
@@ -570,7 +589,6 @@ struct RoomRow: View {
             }
             .padding(.horizontal, 18).padding(.vertical, 12)
         }
-        Divider().background(Moim.line.opacity(0.4)).padding(.leading, 18)
     }
 }
 

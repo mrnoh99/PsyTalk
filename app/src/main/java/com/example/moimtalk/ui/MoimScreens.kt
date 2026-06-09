@@ -827,29 +827,32 @@ fun RoomListScreen(
                 item { EmptyBox("🔒", "아직 방이 없어요", "전체관리자가 방에 배정하면\n여기에 표시됩니다.") }
             } else {
                 items(listRooms, key = { it.id }) { room ->
-                    if (room.category == "direct") {
-                        val dismissState = rememberSwipeToDismissBoxState(
-                            confirmValueChange = { v ->
-                                if (v == SwipeToDismissBoxValue.EndToStart) dmToDelete = room
-                                false  // 실제 제거는 확인 후 leaveRoom 으로 → 항상 스냅백
+                    Column(Modifier.fillMaxWidth()) {
+                        if (room.category == "direct") {
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { v ->
+                                    if (v == SwipeToDismissBoxValue.EndToStart) dmToDelete = room
+                                    false  // 실제 제거는 확인 후 leaveRoom 으로 → 항상 스냅백
+                                }
+                            )
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                enableDismissFromStartToEnd = false,
+                                backgroundContent = {
+                                    Box(
+                                        modifier = Modifier.fillMaxSize().background(MoimAdmin).padding(end = 24.dp),
+                                        contentAlignment = Alignment.CenterEnd
+                                    ) { Text("🗑 삭제", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
+                                }
+                            ) {
+                                Box(Modifier.fillMaxWidth().background(MoimPaper)) {
+                                    RoomRow(room, vm.unreadByRoom[room.id] ?: 0, vm.lastMsgByRoom[room.id], vm.profilesById, onOpen)
+                                }
                             }
-                        )
-                        SwipeToDismissBox(
-                            state = dismissState,
-                            enableDismissFromStartToEnd = false,
-                            backgroundContent = {
-                                Box(
-                                    modifier = Modifier.fillMaxSize().background(MoimAdmin).padding(end = 24.dp),
-                                    contentAlignment = Alignment.CenterEnd
-                                ) { Text("🗑 삭제", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp) }
-                            }
-                        ) {
-                            Box(modifier = Modifier.fillMaxWidth().background(MoimPaper)) {
-                                RoomRow(room, vm.unreadByRoom[room.id] ?: 0, vm.lastMsgByRoom[room.id], vm.profilesById, onOpen)
-                            }
+                        } else {
+                            RoomRow(room, vm.unreadByRoom[room.id] ?: 0, vm.lastMsgByRoom[room.id], vm.profilesById, onOpen)
                         }
-                    } else {
-                        RoomRow(room, vm.unreadByRoom[room.id] ?: 0, vm.lastMsgByRoom[room.id], vm.profilesById, onOpen)
+                        RoomListRowDivider()
                     }
                 }
             }
@@ -1022,6 +1025,16 @@ fun PersonAvatar(profile: Profile?, sizeDp: Int, cornerDp: Int, fontSp: Double) 
     }
 }
 
+/** 방 목록 행 구분선 — web .room border-bottom 과 동일(행 아래 전체 너비) */
+@Composable
+private fun RoomListRowDivider() {
+    HorizontalDivider(
+        modifier = Modifier.fillMaxWidth(),
+        color = MoimLine.copy(alpha = 0.4f),
+        thickness = 1.dp,
+    )
+}
+
 @Composable
 fun RoomRow(
     room: Room,
@@ -1070,7 +1083,6 @@ fun RoomRow(
             if (unread > 0) UnreadBadge(unread)
         }
     }
-    HorizontalDivider(color = MoimLine.copy(alpha = 0.4f))
 }
 
 @Composable

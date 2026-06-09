@@ -28,7 +28,11 @@ function b64urlStr(str: string): string {
   return b64url(new TextEncoder().encode(str));
 }
 function pemToDer(pem: string): Uint8Array {
-  const body = pem.replace(/-----BEGIN [^-]+-----/, "").replace(/-----END [^-]+-----/, "").replace(/\s+/g, "");
+  // 헤더 제거 후 base64 문자만 남김(따옴표·공백·줄바꿈 등 잘못 들어간 문자 제거)
+  const body = pem
+    .replace(/-----BEGIN [^-]+-----/, "")
+    .replace(/-----END [^-]+-----/, "")
+    .replace(/[^A-Za-z0-9+/=]/g, "");
   const raw = atob(body);
   const der = new Uint8Array(raw.length);
   for (let i = 0; i < raw.length; i++) der[i] = raw.charCodeAt(i);
@@ -39,8 +43,8 @@ function pemToDer(pem: string): Uint8Array {
 let cachedToken: { token: string; exp: number } | null = null;
 async function getAccessToken(): Promise<string> {
   if (cachedToken && cachedToken.exp > Date.now() + 60_000) return cachedToken.token;
-  const email = Deno.env.get("GCAL_SA_EMAIL")!;
-  const pk = (Deno.env.get("GCAL_SA_PRIVATE_KEY") ?? "").replace(/\\n/g, "\n");
+  const email = (Deno.env.get("GCAL_SA_EMAIL") ?? "").trim().replace(/^["']|["']$/g, "");
+  let pk = (Deno.env.get("GCAL_SA_PRIVATE_KEY") ?? "").trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n");
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const claim = {

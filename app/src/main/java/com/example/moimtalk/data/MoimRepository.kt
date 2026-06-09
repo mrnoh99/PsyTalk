@@ -2,6 +2,7 @@ package com.example.moimtalk.data
 
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.providers.builtin.Email
+import io.github.jan.supabase.functions.functions
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -345,6 +346,11 @@ object MoimRepository {
             set("name", name)
             set("member_type", memberType)
         }) { filter { eq("id", userId) } }
+    }
+
+    /** 구글 캘린더 양방향 동기화 수동 실행 (Edge Function gcal-sync) */
+    suspend fun triggerGcalSync() {
+        supabase.functions.invoke("gcal-sync")
     }
 
     /** 회원 계정 비활성화 (전체관리자 — RPC). 글·자료 보존, 로그인·활동 차단 */

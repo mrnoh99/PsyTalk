@@ -15,6 +15,7 @@ final class MoimViewModel: ObservableObject {
     @Published var reactions: [Reaction] = []        // 활성 방 이모지 리액션
     @Published var replyTarget: Message?             // 답장 대상(작성 중)
     @Published var events: [CalendarEvent] = []
+    @Published var gcalSyncing = false   // 구글 캘린더 수동 동기화 진행중
     @Published var files: [RoomFile] = []
     @Published var profilesById: [String: Profile] = [:]
     // 채팅 첨부 path → 서명 URL 캐시 (방 구성원만 발급됨)
@@ -916,6 +917,19 @@ final class MoimViewModel: ObservableObject {
                 profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
                 if userId == MoimRepository.currentUserId() { myProfile = profilesById[userId] }
             } catch { reportError("이름 변경", error) }
+        }
+    }
+
+    /// 구글 캘린더 양방향 동기화 수동 실행 (전체관리자 전용)
+    func syncGcal() {
+        if gcalSyncing { return }
+        gcalSyncing = true
+        Task {
+            do {
+                try await MoimRepository.triggerGcalSync()
+                if let rid = activeRoom { events = try await MoimRepository.events(roomId: rid) }
+            } catch { reportError("구글 캘린더 동기화", error) }
+            gcalSyncing = false
         }
     }
 

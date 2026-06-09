@@ -396,6 +396,24 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
                     }
                     Spacer(Modifier.height(14.dp))
                 }
+                if (vm.myProfile?.role == "superadmin" && opensWeekCalendar(room)) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MoimWhite, RoundedCornerShape(12.dp))
+                            .border(1.dp, MoimLine, RoundedCornerShape(12.dp))
+                            .clickable(enabled = !vm.gcalSyncing) { vm.syncGcal() },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (vm.gcalSyncing) "🔄 동기화 중…" else "🔄 구글 캘린더 동기화",
+                            fontSize = 13.sp, fontWeight = FontWeight.Bold, color = MoimAccent,
+                        )
+                    }
+                    Spacer(Modifier.height(14.dp))
+                }
             }
 
             when (mode) {

@@ -2537,6 +2537,14 @@ async function confirmUpload(){
 
 /* ====== 캘린더 ====== */
 async function loadEvents(){const {data}=await sb.from('calendar_events').select('*').eq('room_id',active.id).order('start_at',{ascending:true});events=data||[];}
+// 구글 캘린더 양방향 동기화 수동 실행 (전체관리자 전용)
+async function syncGcal(btn){
+  const orig=btn?btn.textContent:''; if(btn){btn.textContent='🔄 동기화 중…';btn.style.pointerEvents='none';}
+  const {error}=await sb.functions.invoke('gcal-sync',{body:{}});
+  if(error){ if(btn){btn.textContent=orig;btn.style.pointerEvents='';} alert('구글 동기화 실패: '+(error.message||error)); return; }
+  await loadEvents(); await loadFiles(); renderCal();
+  alert('구글 캘린더 동기화 완료');
+}
 const evDate=e=>e.start_at?new Date(e.start_at):null;
 const sameDay=(a,b)=>a&&b&&a.toDateString()===b.toDateString();
 const fmtTime=iso=>{const d=new Date(iso);return (d.getMonth()+1)+'/'+d.getDate()+' '+d.toLocaleTimeString('ko-KR',{hour:'numeric',minute:'2-digit'});};
@@ -2638,6 +2646,8 @@ function renderCal(){
     <div class="cm ${calMode==='week'?'on':''}" onclick="calMode='week';renderCal()">주간</div>
     <div class="cm ${calMode==='month'?'on':''}" onclick="calMode='month';renderCal()">월간</div></div>`;
   if(canPost(active))h+=`<div class="addev" onclick="openEvent()">＋ 일정 추가</div>`;
+  if(me&&me.role==='superadmin'&&opensWeekCal(active))
+    h+=`<div class="addev" style="background:var(--surface);color:var(--accent);border:1px solid var(--line)" onclick="syncGcal(this)">🔄 구글 캘린더 동기화</div>`;
   if(calMode==='month'){
     const y=monthAnchor.getFullYear(),m=monthAnchor.getMonth();
     const monthEv=events.filter(e=>{const d=evDate(e);return d&&d.getFullYear()===y&&d.getMonth()===m;});

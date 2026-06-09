@@ -84,6 +84,7 @@ dependencies {
     implementation("io.github.jan-tennert.supabase:auth-kt")
     implementation("io.github.jan-tennert.supabase:realtime-kt")
     implementation("io.github.jan-tennert.supabase:storage-kt")
+    implementation("io.github.jan-tennert.supabase:functions-kt")  // gcal-sync 수동 호출
 
     // --- Ktor (Realtime WebSocket — Android 엔진은 WS 미지원, OkHttp 사용) ---
     implementation("io.ktor:ktor-client-okhttp:3.0.3")

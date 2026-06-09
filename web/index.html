@@ -615,6 +615,16 @@
     <button class="ghost" onclick="closeModal('reditmodal')">취소</button>
   </div></div>
 
+  <!-- 회원 정보(이름·직군) 변경 모달 (전체관리자 전용) -->
+  <div class="modal" id="memberEditModal"><div class="sheet">
+    <h2>회원 정보 변경</h2><p>회원의 이름과 직군을 변경합니다.</p>
+    <span class="lbl">이름</span><input class="field" id="memberEditName" placeholder="이름">
+    <span class="lbl">직군</span>
+    <select class="field" id="memberEditMtype"></select>
+    <button class="primary" onclick="saveMemberEdit()">저장</button>
+    <button class="ghost" onclick="closeModal('memberEditModal')">취소</button>
+  </div></div>
+
   <!-- ROOM SETTINGS MODAL -->
   <div class="modal" id="smodal"><div class="sheet">
     <h2>모임방 설정</h2><p>구성원을 초대·제거하거나 모임방을 삭제할 수 있습니다.</p>
@@ -1726,8 +1736,9 @@ function memberMgmtRow(p){const isAd=p.role==='admin';
     ?(dark?'background:var(--surface);color:var(--ink);border:1px solid var(--line-on)':'background:var(--accent);color:#fff;border:none')
     :(dark?'background:var(--surface);color:var(--sub);border:1px solid var(--line)':'background:var(--bg);color:var(--accent);border:none');
   const roleBtn=`<button onclick="setRole('${p.id}','${isAd?'user':'admin'}')" style="border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;${roleBtnStyle}">${isAd?'관리자 ✓':'관리자 지정'}</button>`;
+  const edit=`<button onclick="openMemberEdit('${p.id}')" style="border:1px solid var(--line);border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;background:var(--surface);color:var(--accent);margin-right:6px">✏️ 수정</button>`;
   const deact=`<button onclick="adminDeactivate('${p.id}')" style="border:none;border-radius:14px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(192,69,47,.12);color:var(--admin);margin-left:6px">계정 비활성화</button>`;
-  return adminRow(p, roleBtn+deact, `${p.member_type||''} · ${isAd?'관리자':'회원'}`);
+  return adminRow(p, edit+roleBtn+deact, `${p.member_type||''} · ${isAd?'관리자':'회원'}`);
 }
 // 회원 명단 엑셀(CSV·UTF-8 BOM, Excel 에서 바로 열림) 다운로드 — TestFlight/내부테스터 초대용
 function downloadMembersExcel(){
@@ -1782,6 +1793,27 @@ async function approveUser(id){
 async function setRole(id,role){
   const {error}=await sb.from('profiles').update({role}).eq('id',id);
   if(error){alert('역할 변경 실패: '+error.message);return;}
+  await reloadProfiles(); renderAdmin();
+}
+// 회원 이름·직군 변경 (전체관리자 전용)
+let memberEditId=null;
+function openMemberEdit(id){
+  const p=profilesById[id]; if(!p)return;
+  memberEditId=id;
+  document.getElementById('memberEditName').value=p.name||'';
+  const cur=p.member_type||MEMBER_TYPES[0];
+  document.getElementById('memberEditMtype').innerHTML=
+    MEMBER_TYPES.map(t=>`<option value="${esc(t)}"${t===cur?' selected':''}>${esc(t)}</option>`).join('');
+  document.getElementById('memberEditModal').classList.add('on');
+}
+async function saveMemberEdit(){
+  if(!memberEditId)return;
+  const name=(document.getElementById('memberEditName').value||'').trim();
+  const member_type=document.getElementById('memberEditMtype').value;
+  if(!name){alert('이름을 입력하세요.');return;}
+  const {error}=await sb.from('profiles').update({name,member_type}).eq('id',memberEditId);
+  if(error){alert('회원 정보 변경 실패: '+error.message);return;}
+  closeModal('memberEditModal'); memberEditId=null;
   await reloadProfiles(); renderAdmin();
 }
 async function adminDeactivate(id){

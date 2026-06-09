@@ -339,6 +339,14 @@ object MoimRepository {
         supabase.from("profiles").update({ set("role", role) }) { filter { eq("id", userId) } }
     }
 
+    /** 회원 이름·직군 변경 (전체관리자만 — RLS). superadmin 행은 보호 트리거가 이름을 되돌림. */
+    suspend fun updateMemberInfo(userId: String, name: String, memberType: String) {
+        supabase.from("profiles").update({
+            set("name", name)
+            set("member_type", memberType)
+        }) { filter { eq("id", userId) } }
+    }
+
     /** 회원 계정 비활성화 (전체관리자 — RPC). 글·자료 보존, 로그인·활동 차단 */
     suspend fun adminWithdraw(userId: String) {
         supabase.postgrest.rpc("moim_admin_withdraw", buildJsonObject { put("p_user", userId) })

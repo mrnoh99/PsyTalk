@@ -567,6 +567,18 @@ class MoimViewModel : ViewModel() {
         }
     }
 
+    /** 회원 이름·직군 변경 (전체관리자만 — RLS). */
+    fun updateMemberInfo(userId: String, name: String, memberType: String) {
+        viewModelScope.launch {
+            try {
+                MoimRepository.updateMemberInfo(userId, name.trim(), memberType)
+                profilesById = MoimRepository.allProfiles().associateBy { it.id }
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "회원 정보 변경")
+            }
+        }
+    }
+
     /** 회원 계정 비활성화 (전체관리자 — RPC). 글·자료 보존 */
     fun adminDeactivate(userId: String) {
         viewModelScope.launch {

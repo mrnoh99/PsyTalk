@@ -877,6 +877,20 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
+    /// 회원 이름·직군 변경 (전체관리자만 — RLS 로 강제)
+    func updateMemberInfo(_ userId: String, name: String, memberType: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        Task {
+            do {
+                try await MoimRepository.updateMemberInfo(userId: userId, name: trimmed, memberType: memberType)
+                let list = try await MoimRepository.allProfiles()
+                profilesById = Dictionary(uniqueKeysWithValues: list.map { ($0.id, $0) })
+                if userId == MoimRepository.currentUserId() { myProfile = profilesById[userId] }
+            } catch { reportError("회원 정보 변경", error) }
+        }
+    }
+
     var otherProfiles: [Profile] {
         // 본인 제외 + 승인된 회원만 (대기 중인 가입자는 방에 추가 불가)
         profilesById.values

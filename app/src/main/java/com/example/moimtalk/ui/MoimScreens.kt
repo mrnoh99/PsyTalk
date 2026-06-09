@@ -567,10 +567,59 @@ private fun ApprovalRow(p: Profile, vm: MoimViewModel) {
     }
 }
 
-// 회원 관리 행 — 관리자 지위 토글 + 계정 비활성화 (전체관리자 전용 화면)
+// 회원 정보(이름·직군) 변경 다이얼로그 — 전체관리자 전용
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MemberEditDialog(p: Profile, vm: MoimViewModel, onDismiss: () -> Unit) {
+    var name by remember { mutableStateOf(p.name) }
+    var mtype by remember { mutableStateOf(p.memberType.ifBlank { MTYPE_ORDER.first() }) }
+    var expanded by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("회원 정보 변경") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("이름") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(12.dp))
+                ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+                    OutlinedTextField(
+                        value = mtype,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("직군") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        MTYPE_ORDER.forEach { t ->
+                            DropdownMenuItem(text = { Text(t) }, onClick = { mtype = t; expanded = false })
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val nm = name.trim()
+                if (nm.isNotEmpty()) { vm.updateMemberInfo(p.id, nm, mtype); onDismiss() }
+            }) { Text("저장", fontWeight = FontWeight.Bold) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("취소") } }
+    )
+}
+
+// 회원 관리 행 — 이름·직군 수정 + 관리자 지위 토글 + 계정 비활성화 (전체관리자 전용 화면)
 @Composable
 private fun MemberManageRow(p: Profile, vm: MoimViewModel) {
     var confirmDeact by remember { mutableStateOf(false) }
+    var showEdit by remember { mutableStateOf(false) }
+    if (showEdit) MemberEditDialog(p, vm) { showEdit = false }
     if (confirmDeact) {
         AlertDialog(
             onDismissRequest = { confirmDeact = false },
@@ -595,8 +644,12 @@ private fun MemberManageRow(p: Profile, vm: MoimViewModel) {
     ) {
         PersonAvatar(p, 38, 11, 11.0)
         Spacer(Modifier.width(11.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+        Column(modifier = Modifier.weight(1f).clickable { showEdit = true }) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(p.name, fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk)
+                Spacer(Modifier.width(4.dp))
+                Text("✏️", fontSize = 10.sp, color = MoimSub)
+            }
             Text("${p.memberType} · ${roleLabel(p.role)}", fontSize = 11.5.sp, color = MoimSub)
             MemberContactLines(p)
             if (!p.intro.isNullOrBlank()) {

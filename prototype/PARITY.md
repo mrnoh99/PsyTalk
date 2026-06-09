@@ -23,6 +23,7 @@
 | 관리자 콘솔 — 3분할(가입승인·회원관리·방관리) | ➖ | ✅ 세 플랫폼 공통 | ✅ | admin=가입승인만, superadmin=전부. `admin_console.sql` |
 | 가입 승인 (신규 가입자) | ➖ | ✅ 승인 → 회원관리로 이동 | ✅ | `moim_approve_user`(관리자도 가능) |
 | 회원 관리 — 관리자 지위/계정 비활성화 | ➖ | ✅ superadmin 전용 | ✅ | 역할토글 + `moim_admin_withdraw` |
+| 회원 관리 — 이름·직군(member_type) 변경 | ➖ | ✅ superadmin 전용 | ✅ | 회원 행 → 수정(이름+직군 선택). 직접 `profiles` UPDATE(`admin_roles.sql` RLS). superadmin 본인은 보호 트리거로 이름 고정 |
 | 회원 검색·관리·가입승인 행에 이메일·전화번호·소개 표시 | ➖ | ✅ 작은 글씨 노출 | ✅ | 세 플랫폼 공통, `member_contact_email.sql`(profiles.email 동기화) |
 | 방 열었을 때 상단 바에 개설자·참여자 이름 나열 | ➖ | ✅ 작은 글씨, 넘치면 … | ✅ | 세 플랫폼 공통, 개설자 먼저+이름순, DM 제외 |
 | 1:1 대화 스와이프 삭제 (내 목록에서만) | ➖ | ✅ 왼쪽 스와이프 → 확인 | ✅ | 본인 room_members 만 제거(상대·이력 보존, 재오픈 복구). iOS=DragGesture, Android=SwipeToDismissBox, 웹=touch swipe |

@@ -12,9 +12,7 @@ struct AdminPlaceholderView: View {
     var initialTab: AdminConsoleTab = .approval
 
     @State private var tab: AdminConsoleTab = .approval
-    @State private var showRename = false
-    @State private var renameText = ""
-    @State private var renameTargetId = ""
+    @State private var editTarget: Profile?
     @State private var deactivateTarget: Profile?
     @State private var reactivateTarget: Profile?
 
@@ -92,12 +90,11 @@ struct AdminPlaceholderView: View {
         }
         .background(Moim.paper.ignoresSafeArea())
         .onAppear { tab = initialTab; vm.loadProfiles() }
-        .alert("이름 변경", isPresented: $showRename) {
-            TextField("이름", text: $renameText)
-            Button("저장") { vm.setName(renameTargetId, to: renameText) }
-            Button("취소", role: .cancel) {}
-        } message: {
-            Text("새 이름을 입력하세요.")
+        .sheet(item: $editTarget) { p in
+            MemberEditSheet(profile: p) { name, mtype in
+                vm.updateMemberInfo(p.id, name: name, memberType: mtype)
+                editTarget = nil
+            } onCancel: { editTarget = nil }
         }
         .confirmationDialog(
             "‘\(deactivateTarget?.name ?? "")’ 님의 계정을 비활성화할까요?\n로그인·활동이 막히고 모든 방에서 제외됩니다.",
@@ -241,11 +238,7 @@ struct AdminPlaceholderView: View {
                 }
             }
             .contentShape(Rectangle())
-            .onTapGesture {
-                renameTargetId = p.id
-                renameText = p.name
-                showRename = true
-            }
+            .onTapGesture { editTarget = p }
             Spacer()
             Menu {
                 Button("관리자") { vm.setRole(p.id, to: "admin") }
@@ -342,5 +335,48 @@ struct RoomMemberPicker: View {
             }
         }
         .onAppear { vm.loadRoomMembers(room.id) }
+    }
+}
+
+// 회원 정보(이름·직군) 변경 시트 — 전체관리자 전용
+struct MemberEditSheet: View {
+    let profile: Profile
+    let onSave: (String, String) -> Void
+    let onCancel: () -> Void
+
+    @State private var name: String
+    @State private var memberType: String
+
+    init(profile: Profile, onSave: @escaping (String, String) -> Void, onCancel: @escaping () -> Void) {
+        self.profile = profile
+        self.onSave = onSave
+        self.onCancel = onCancel
+        _name = State(initialValue: profile.name)
+        _memberType = State(initialValue: profile.memberType.isEmpty ? (MTYPE_ORDER.first ?? "의국") : profile.memberType)
+    }
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("이름") {
+                    TextField("이름", text: $name)
+                }
+                Section("직군") {
+                    Picker("직군", selection: $memberType) {
+                        ForEach(MTYPE_ORDER, id: \.self) { t in Text(t).tag(t) }
+                    }
+                    .pickerStyle(.menu)
+                }
+            }
+            .navigationTitle("회원 정보 변경")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) { Button("취소") { onCancel() } }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") { onSave(name.trimmingCharacters(in: .whitespaces), memberType) }
+                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
     }
 }

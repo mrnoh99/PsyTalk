@@ -110,6 +110,13 @@ enum MoimRepository {
         try await supabase.from("profiles").update(["name": name]).eq("id", value: userId).execute()
     }
 
+    /// 회원 이름·직군 변경 (전체관리자만 — RLS 로 강제). superadmin 행은 보호 트리거가 이름을 되돌림.
+    static func updateMemberInfo(userId: String, name: String, memberType: String) async throws {
+        try await supabase.from("profiles")
+            .update(["name": name, "member_type": memberType])
+            .eq("id", value: userId).execute()
+    }
+
     /// 가입 승인/취소 (전체관리자만 — RLS 로 강제)
     static func setApproved(userId: String, approved: Bool) async throws {
         try await supabase.from("profiles").update(["approved": approved]).eq("id", value: userId).execute()

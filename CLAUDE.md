@@ -152,6 +152,13 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 33. `secretary_perms.sql` — **비서 직군 권한 확대**: `moim_approve_user` 를 admin/superadmin **또는 `비서`** 가
     호출 가능하도록 갱신(가입 승인). 당직표 작성은 ward_duty.sql 에서 이미 비서 허용. 전체공지 작성은
     클라이언트 `canPost`/`canApprove`(세 플랫폼)에서 비서 허용(messages INSERT 는 RLS 미강제이므로 SQL 불필요).
+34. `gcal_sync.sql` — **주간 학술활동 방 ↔ Google Calendar 양방향 동기화**(서비스 계정, last-write-wins):
+    `calendar_events` 에 `google_event_id`·`google_etag`·`gcal_updated_at` + 설정 `gcal_sync`(방↔캘린더 1:1,
+    `drive_folder_id`·`sync_token`) + 삭제 톰스톤 `gcal_deletions` + 첨부 매핑 `gcal_attachments` +
+    트리거(앱 변경 표시·삭제 톰스톤, 트랜잭션 플래그 `app.gcal_importing` 로 루프 방지) + Edge 전용 RPC(`moim_gcal_*`).
+    엔진은 Edge Function **`supabase/functions/gcal-sync/index.ts`**(SA JWT→OAuth, Calendar pull/push + Drive 첨부),
+    pg_net+pg_cron 5분 주기. **설정·배포 단계는 `docs/GCAL_SYNC_SETUP.md` 참고**(서비스 계정 생성·캘린더 공유·
+    secrets·확장 활성화·`google_calendar_id` 입력). 일정 생성/수정/삭제는 트리거가 자동 export(클라이언트 무변경).
 
 > (선택) `seed_dummy_members.sql` — 테스트용 더미 회원 8명(직군별). 운영 전 정리.
 > (선택) `seed_usage_guide.sql` — 전체공지 방에 「아주 정신 앱 사용법」 게시(superadmin 작성, 재실행 시 갱신).

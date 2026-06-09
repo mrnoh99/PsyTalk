@@ -52,6 +52,18 @@ struct CalendarView: View {
                         .padding(.bottom, 14)
                     }
 
+                    if vm.myProfile?.role == "superadmin" && opensWeekCalendar(room) {
+                        Button { vm.syncGcal() } label: {
+                            Text(vm.gcalSyncing ? "🔄 동기화 중…" : "🔄 구글 캘린더 동기화")
+                                .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
+                                .frame(maxWidth: .infinity).frame(height: 42)
+                                .background(Moim.white).clipShape(RoundedRectangle(cornerRadius: 12))
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Moim.line, lineWidth: 1))
+                        }
+                        .disabled(vm.gcalSyncing)
+                        .padding(.bottom, 14)
+                    }
+
                     switch mode {
                     case "month": monthView
                     case "week": weekView

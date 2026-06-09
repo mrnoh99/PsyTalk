@@ -81,6 +81,7 @@ class MoimViewModel : ViewModel() {
     var error by mutableStateOf<String?>(null)
     var notice by mutableStateOf<String?>(null)
     var loading by mutableStateOf(false)
+    var gcalSyncing by mutableStateOf(false)   // 구글 캘린더 수동 동기화 진행중
     // 모임방 설정(회원 관리)에서 보여줄 현재 방 회원 id 목록
     var roomMemberIds by mutableStateOf<List<String>>(emptyList())
     var roomMembersLoaded by mutableStateOf(false)
@@ -576,6 +577,23 @@ class MoimViewModel : ViewModel() {
                 profilesById = MoimRepository.allProfiles().associateBy { it.id }
             } catch (e: Exception) {
                 error = friendlySupabaseError(e, "역할 변경")
+            }
+        }
+    }
+
+    /** 구글 캘린더 양방향 동기화 수동 실행 (전체관리자 전용) */
+    fun syncGcal() {
+        if (gcalSyncing) return
+        gcalSyncing = true
+        viewModelScope.launch {
+            try {
+                MoimRepository.triggerGcalSync()
+                activeRoom?.let { events = MoimRepository.events(it) }
+                notice = "구글 캘린더 동기화 완료"
+            } catch (e: Exception) {
+                error = friendlySupabaseError(e, "구글 캘린더 동기화")
+            } finally {
+                gcalSyncing = false
             }
         }
     }

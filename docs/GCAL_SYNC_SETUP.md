@@ -71,8 +71,36 @@ supabase functions invoke gcal-sync
 
 ## 7. 자동 주기 동기화 (5분)
 
-`gcal_sync.sql` 하단 주석 블록의 `<PROJECT_REF>`, `<SERVICE_ROLE_KEY>` 를 본인 값으로
-바꿔 **주석을 풀고** 실행하면 pg_cron 이 5분마다 `gcal-sync` 를 호출합니다.
+대시보드 **SQL Editor** 에서 (`<PROJECT_REF>` 와 `<KEY>` 만 본인 값으로):
+- `<KEY>` 는 **anon 키**(공개)면 충분 — 함수가 내부에서 service_role 을 씁니다.
+
+```sql
+create extension if not exists pg_net;
+create extension if not exists pg_cron;
+do $$ begin perform cron.unschedule('moim_gcal_sync'); exception when others then null; end $$;
+select cron.schedule('moim_gcal_sync', '*/5 * * * *', $cron$
+  select net.http_post(
+    url     := 'https://<PROJECT_REF>.functions.supabase.co/gcal-sync',
+    headers := jsonb_build_object('Content-Type','application/json',
+                                  'Authorization','Bearer <KEY>'),
+    body    := '{}'::jsonb
+  );
+$cron$);
+```
+
+**즉시 1회 테스트**(5분 안 기다리고): 위 `select net.http_post(...)` 부분만 단독 실행 →
+잠시 뒤 `select last_synced_at from gcal_sync;` 가 갱신되면 정상.
+
+**진단(자동이 안 돌 때):**
+```sql
+select jobname, schedule, active from cron.job;                 -- 잡 존재?
+select status, return_message, start_time from cron.job_run_details
+  where jobid=(select jobid from cron.job where jobname='moim_gcal_sync')
+  order by start_time desc limit 5;                             -- 실행됨/성공?
+select status_code, created from net._http_response order by created desc limit 5; -- HTTP 200?
+```
+- 잡이 없으면 → 위 `cron.schedule` 가 실행 안 된 것(확장 미활성 등).
+- `status_code` 가 401 → Authorization 키 오타. 200 → 정상.
 
 ---
 

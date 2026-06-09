@@ -1309,6 +1309,13 @@ fun RoomScreen(vm: MoimViewModel, room: Room, onBack: () -> Unit) {
                             contentPadding = PaddingValues(horizontal = 6.dp),
                         ) { Text("이름변경", fontSize = 13.sp, color = MoimAccent, fontWeight = FontWeight.Bold) }
                     }
+                    if (!dm && profile?.role == "superadmin" && opensWeekCalendar(liveRoom)) {
+                        TextButton(
+                            onClick = { vm.syncGcal() },
+                            enabled = !vm.gcalSyncing,
+                            contentPadding = PaddingValues(horizontal = 6.dp),
+                        ) { Text(if (vm.gcalSyncing) "🔄…" else "🔄 동기화", fontSize = 13.sp, color = MoimAccent, fontWeight = FontWeight.Bold) }
+                    }
                     if (!dm && canManageRoom(profile, liveRoom)) {
                         TextButton(
                             onClick = {

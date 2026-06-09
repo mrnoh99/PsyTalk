@@ -283,22 +283,26 @@ NOTIFY pgrst, 'reload schema';
 -- =============================================================================
 -- 9) 자동 주기 동기화 (pg_net + pg_cron) — 5분마다 gcal-sync Edge Function 호출
 --    먼저 대시보드 Database→Extensions 에서 pg_net, pg_cron 활성화.
---    아래 <PROJECT_REF> 와 <SERVICE_ROLE_KEY> 를 본인 값으로 바꿔 실행하세요.
---    (수동 동기화는 앱의 superadmin '구글 캘린더 동기화' 버튼으로도 가능)
+--    아래 <PROJECT_REF>, <ANON_OR_SERVICE_KEY> 를 본인 값으로 바꿔 실행.
+--    Authorization 은 anon 키(공개)면 충분(함수가 내부에서 service_role 사용).
+--    (수동 동기화는 앱의 superadmin '🔄 동기화' 버튼으로도 가능)
 -- =============================================================================
--- DO $$ BEGIN PERFORM cron.unschedule('moim_gcal_sync'); EXCEPTION WHEN OTHERS THEN NULL; END $$;
--- DO $$
--- BEGIN
---   PERFORM cron.schedule('moim_gcal_sync', '*/5 * * * *', $cron$
---     SELECT net.http_post(
---       url     := 'https://<PROJECT_REF>.functions.supabase.co/gcal-sync',
---       headers := jsonb_build_object(
---                    'Content-Type','application/json',
---                    'Authorization','Bearer <SERVICE_ROLE_KEY>'),
---       body    := '{}'::jsonb
---     );
---   $cron$);
---   RAISE NOTICE 'pg_cron 등록 완료 (5분 주기 gcal-sync)';
--- EXCEPTION WHEN OTHERS THEN
---   RAISE NOTICE 'pg_net/pg_cron 미설치 → 자동 스케줄 생략. 확장 활성화 후 다시 실행하세요.';
--- END $$;
+-- create extension if not exists pg_net;
+-- create extension if not exists pg_cron;
+-- do $$ begin perform cron.unschedule('moim_gcal_sync'); exception when others then null; end $$;
+-- select cron.schedule('moim_gcal_sync', '*/5 * * * *', $cron$
+--   select net.http_post(
+--     url     := 'https://<PROJECT_REF>.functions.supabase.co/gcal-sync',
+--     headers := jsonb_build_object('Content-Type','application/json',
+--                                   'Authorization','Bearer <ANON_OR_SERVICE_KEY>'),
+--     body    := '{}'::jsonb
+--   );
+-- $cron$);
+--
+-- 즉시 1회 테스트(5분 안 기다리고): 위 select net.http_post(...) 만 단독 실행.
+-- 진단:
+--   select jobname, schedule, active from cron.job;
+--   select status, return_message, start_time from cron.job_run_details
+--     where jobid=(select jobid from cron.job where jobname='moim_gcal_sync')
+--     order by start_time desc limit 5;
+--   select status_code, created from net._http_response order by created desc limit 5;

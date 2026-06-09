@@ -104,6 +104,11 @@ struct RoomView: View {
                 }
                 .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
             }
+            if !isDM, vm.myProfile?.role == "superadmin", opensWeekCalendar(liveRoom) {
+                Button(vm.gcalSyncing ? "🔄…" : "🔄 동기화") { vm.syncGcal() }
+                    .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
+                    .disabled(vm.gcalSyncing)
+            }
             if !isDM, vm.canManageRoom(liveRoom) {
                 Button {
                     vm.loadRoomMembers(liveRoom.id)

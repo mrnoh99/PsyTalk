@@ -487,6 +487,7 @@
         <div id="roomMembers" style="font-size:11px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
       </div>
       <button id="renameBtn" class="lk" style="display:none" onclick="openRoomEdit()">이름변경</button>
+      <button id="gcalSyncBtn" class="lk" style="display:none" onclick="syncGcal(this)" title="구글 캘린더 동기화">🔄 동기화</button>
       <button id="settingsBtn" class="back" style="display:none;font-size:17px" onclick="openRoomSettings()">⚙️</button>
       <button id="leaveBtn" class="lk" style="display:none" onclick="leaveRoom()">나가기</button>
       <button id="deleteBtn" class="lk" style="display:none;color:var(--admin);font-weight:700" onclick="deleteRoom()">방삭제</button></div>
@@ -1881,6 +1882,7 @@ async function openRoom(id){
   document.getElementById('roomTitle').textContent=roomDisplayName(active);
   document.getElementById('renameBtn').style.display=(!isDM&&canRename(active))?'':'none';
   document.getElementById('settingsBtn').style.display=(!isDM&&canManage(active))?'':'none';
+  document.getElementById('gcalSyncBtn').style.display=(!isDM&&me&&me.role==='superadmin'&&opensWeekCal(active))?'':'none';
   // 본인이 만들지 않은 모임방: 나가기 (DM 은 표시 안 함)
   document.getElementById('leaveBtn').style.display=(!isDM&&active.category==='custom'&&!canManage(active))?'':'none';
   document.getElementById('deleteBtn').style.display=isDM?'':'none';   // 1:1 대화만 우상단 방삭제
@@ -2539,10 +2541,12 @@ async function confirmUpload(){
 async function loadEvents(){const {data}=await sb.from('calendar_events').select('*').eq('room_id',active.id).order('start_at',{ascending:true});events=data||[];}
 // 구글 캘린더 양방향 동기화 수동 실행 (전체관리자 전용)
 async function syncGcal(btn){
-  const orig=btn?btn.textContent:''; if(btn){btn.textContent='🔄 동기화 중…';btn.style.pointerEvents='none';}
+  const orig=btn?btn.textContent:'';
+  if(btn){btn.textContent='🔄 동기화 중…';btn.style.pointerEvents='none';}
   const {error}=await sb.functions.invoke('gcal-sync',{body:{}});
-  if(error){ if(btn){btn.textContent=orig;btn.style.pointerEvents='';} alert('구글 동기화 실패: '+(error.message||error)); return; }
-  await loadEvents(); await loadFiles(); renderCal();
+  if(btn){btn.textContent=orig;btn.style.pointerEvents='';}
+  if(error){ alert('구글 동기화 실패: '+(error.message||error)); return; }
+  if(active){ await loadEvents(); await loadFiles(); if(typeof renderCal==='function')renderCal(); }
   alert('구글 캘린더 동기화 완료');
 }
 const evDate=e=>e.start_at?new Date(e.start_at):null;
@@ -2646,8 +2650,6 @@ function renderCal(){
     <div class="cm ${calMode==='week'?'on':''}" onclick="calMode='week';renderCal()">주간</div>
     <div class="cm ${calMode==='month'?'on':''}" onclick="calMode='month';renderCal()">월간</div></div>`;
   if(canPost(active))h+=`<div class="addev" onclick="openEvent()">＋ 일정 추가</div>`;
-  if(me&&me.role==='superadmin'&&opensWeekCal(active))
-    h+=`<div class="addev" style="background:var(--surface);color:var(--accent);border:1px solid var(--line)" onclick="syncGcal(this)">🔄 구글 캘린더 동기화</div>`;
   if(calMode==='month'){
     const y=monthAnchor.getFullYear(),m=monthAnchor.getMonth();
     const monthEv=events.filter(e=>{const d=evDate(e);return d&&d.getFullYear()===y&&d.getMonth()===m;});

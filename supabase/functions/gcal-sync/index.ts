@@ -39,12 +39,26 @@ function pemToDer(pem: string): Uint8Array {
   return der;
 }
 
+// 서비스 계정 자격증명 로드: GCAL_SA_JSON(키파일 전체) 우선, 없으면 EMAIL+PRIVATE_KEY
+function loadServiceAccount(): { email: string; key: string } {
+  const raw = (Deno.env.get("GCAL_SA_JSON") ?? "").trim();
+  if (raw) {
+    const j = JSON.parse(raw);            // JSON.parse 가 \n 이스케이프를 알아서 처리
+    return { email: j.client_email, key: j.private_key };
+  }
+  return {
+    email: (Deno.env.get("GCAL_SA_EMAIL") ?? "").trim().replace(/^["']|["']$/g, ""),
+    key: (Deno.env.get("GCAL_SA_PRIVATE_KEY") ?? "").trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n"),
+  };
+}
+
 // ── 서비스 계정 → access token ───────────────────────────────────────────────
 let cachedToken: { token: string; exp: number } | null = null;
 async function getAccessToken(): Promise<string> {
   if (cachedToken && cachedToken.exp > Date.now() + 60_000) return cachedToken.token;
-  const email = (Deno.env.get("GCAL_SA_EMAIL") ?? "").trim().replace(/^["']|["']$/g, "");
-  let pk = (Deno.env.get("GCAL_SA_PRIVATE_KEY") ?? "").trim().replace(/^["']|["']$/g, "").replace(/\\n/g, "\n");
+  const sa = loadServiceAccount();
+  const email = sa.email;
+  const pk = sa.key;
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const claim = {
@@ -114,6 +128,7 @@ function keywordsFromGoogle(ev: any): string[] {
 }
 
 // ── 메인 ────────────────────────────────────────────────────────────────────
+const VERSION = "gcal-sync-v3";   // 배포 확인용 (curl 응답에 표시)
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -142,9 +157,9 @@ Deno.serve(async (req) => {
         summary.push({ room: cfg.room_id, error: String(e) });
       }
     }
-    return new Response(JSON.stringify({ ok: true, summary }), { headers: { ...CORS, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, version: VERSION, summary }), { headers: { ...CORS, "Content-Type": "application/json" } });
   } catch (e) {
-    return new Response(JSON.stringify({ ok: false, error: String(e), summary }), {
+    return new Response(JSON.stringify({ ok: false, version: VERSION, error: String(e), summary }), {
       status: 200, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }

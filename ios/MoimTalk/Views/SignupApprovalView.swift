@@ -5,9 +5,9 @@ import SwiftUI
 // · 기본 가나다순(이름) / 직군별 보기 토글
 struct SignupApprovalView: View {
     @ObservedObject var vm: MoimViewModel
+    @Binding var approveTarget: Profile?
 
     @State private var byType = false   // false=가나다순(기본), true=직군별
-    @State private var approveTarget: Profile?
 
     // 신규 가입자(미승인 + 미탈퇴, 전체관리자 제외)
     private var pending: [Profile] {
@@ -54,13 +54,6 @@ struct SignupApprovalView: View {
             } else {
                 ForEach(pending) { p in approvalRow(p) }
             }
-        }
-        // 승인 confirm
-        .confirmationDialog("‘\(approveTarget?.name ?? "")’ 님의 가입을 승인할까요?\n승인하면 앱을 바로 이용할 수 있습니다.",
-                            isPresented: Binding(get: { approveTarget != nil }, set: { if !$0 { approveTarget = nil } }),
-                            titleVisibility: .visible) {
-            Button("승인") { if let p = approveTarget { vm.approveUser(p.id) }; approveTarget = nil }
-            Button("취소", role: .cancel) { approveTarget = nil }
         }
     }
 

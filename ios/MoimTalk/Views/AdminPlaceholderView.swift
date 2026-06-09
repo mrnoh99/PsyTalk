@@ -13,6 +13,7 @@ struct AdminPlaceholderView: View {
 
     @State private var tab: AdminConsoleTab = .approval
     @State private var editTarget: Profile?
+    @State private var approveTarget: Profile?
     @State private var deactivateTarget: Profile?
     @State private var reactivateTarget: Profile?
 
@@ -76,11 +77,20 @@ struct AdminPlaceholderView: View {
                 .background(Moim.paper)
             }
 
+            if let err = vm.error {
+                Text(err)
+                    .font(.system(size: 12))
+                    .foregroundColor(Moim.admin)
+                    .padding(.horizontal, 16).padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Moim.admin.opacity(0.08))
+            }
+
             ScrollView {
                 Group {
                     switch tab {
                     case .approval:
-                        SignupApprovalView(vm: vm)
+                        SignupApprovalView(vm: vm, approveTarget: $approveTarget)
                     case .members:
                         membersContent
                     }
@@ -89,7 +99,18 @@ struct AdminPlaceholderView: View {
             }
         }
         .background(Moim.paper.ignoresSafeArea())
-        .onAppear { tab = initialTab; vm.loadProfiles() }
+        .onAppear { tab = initialTab; vm.error = nil; vm.loadProfiles() }
+        .confirmationDialog(
+            "‘\(approveTarget?.name ?? "")’ 님의 가입을 승인할까요?\n승인하면 앱을 바로 이용할 수 있습니다.",
+            isPresented: Binding(get: { approveTarget != nil }, set: { if !$0 { approveTarget = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("승인") {
+                if let p = approveTarget { vm.approveUser(p.id) }
+                approveTarget = nil
+            }
+            Button("취소", role: .cancel) { approveTarget = nil }
+        }
         .sheet(item: $editTarget) { p in
             MemberEditSheet(profile: p) { name, mtype in
                 vm.updateMemberInfo(p.id, name: name, memberType: mtype)

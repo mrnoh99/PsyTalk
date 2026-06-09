@@ -719,7 +719,7 @@ private fun EventCard(
             Box(Modifier.width(4.dp).height(56.dp).background(catColor("notice"), RoundedCornerShape(4.dp)))
             Spacer(Modifier.width(11.dp))
             Text(
-                eventPreviewText(e, vm),
+                eventPreviewText(e),
                 fontSize = 12.5.sp,
                 color = MoimInk,
                 lineHeight = 18.sp,
@@ -758,7 +758,7 @@ private fun EventCardBody(
                 Text("📍 $it", fontSize = 12.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp))
             }
             Text(
-                "👤 발표자 ${e.presenter?.takeIf { it.isNotBlank() } ?: vm.nameOf(e.ownerId)}",
+                "👤 발표자 ${eventPresenterLabel(e.presenter)}",
                 fontSize = 12.5.sp, color = MoimSub, modifier = Modifier.padding(top = 1.dp)
             )
             e.scope?.takeIf { it.isNotBlank() }?.let {
@@ -797,12 +797,12 @@ private fun EventCardBody(
     }
 }
 
-private fun eventPreviewText(e: CalendarEvent, vm: MoimViewModel): String = buildString {
+private fun eventPreviewText(e: CalendarEvent): String = buildString {
     appendLine(e.title)
     append("📅 ${timeLabel(e.startAt)}")
     e.place?.takeIf { it.isNotBlank() }?.let { append(" · 📍 $it") }
     append('\n')
-    appendLine("👤 발표자 ${e.presenter?.takeIf { it.isNotBlank() } ?: vm.nameOf(e.ownerId)}")
+    appendLine("👤 발표자 ${eventPresenterLabel(e.presenter)}")
     e.scope?.takeIf { it.isNotBlank() }?.let { appendLine("참석 $it") }
     e.description?.takeIf { it.isNotBlank() }?.let { append(it) }
     val atts = e.attachmentPairs()
@@ -860,10 +860,7 @@ private fun EventDetailDocument(
         Spacer(Modifier.height(10.dp))
         EventDocRow("일시", detailTimeLabel(event.startAt))
         event.place?.takeIf { it.isNotBlank() }?.let { EventDocRow("장소", it) }
-        EventDocRow(
-            "발표자",
-            event.presenter?.takeIf { it.isNotBlank() } ?: vm.nameOf(event.ownerId),
-        )
+        EventDocRow("발표자", eventPresenterLabel(event.presenter))
         event.scope?.takeIf { it.isNotBlank() }?.let { EventDocRow("참석", it) }
         event.description?.takeIf { it.isNotBlank() }?.let { desc ->
             Spacer(Modifier.height(10.dp))

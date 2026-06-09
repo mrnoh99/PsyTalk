@@ -291,7 +291,7 @@ struct EventCard: View {
         if compact {
             HStack(alignment: .top, spacing: 11) {
                 RoundedRectangle(cornerRadius: 4).fill(catColor("notice")).frame(width: 4, height: 56)
-                Text(eventPreviewText(event, ownerName: vm.name(of: event.ownerId)))
+                Text(eventPreviewText(event))
                     .font(.system(size: 12.5))
                     .foregroundColor(Moim.ink)
                     .lineSpacing(3)
@@ -308,10 +308,10 @@ struct EventCard: View {
     }
 }
 
-private func eventPreviewText(_ event: CalendarEvent, ownerName: String) -> String {
+private func eventPreviewText(_ event: CalendarEvent) -> String {
     var lines: [String] = [event.title, "📅 \(CalDate.timeLabel(event.startAt))"]
     if let p = event.place, !p.isEmpty { lines[1] += " · 📍 \(p)" }
-    lines.append("👤 발표자 \((event.presenter?.isEmpty == false) ? event.presenter! : ownerName)")
+    lines.append("👤 발표자 \(eventPresenterLabel(event.presenter))")
     if let s = event.scope, !s.isEmpty { lines.append("참석 \(s)") }
     if let d = event.description, !d.isEmpty { lines.append(d) }
     let atts = event.attachmentList
@@ -335,7 +335,7 @@ struct EventCardBody: View {
                 Text(event.title).font(.system(size: 15, weight: .bold)).foregroundColor(Moim.ink)
                 Text("📅 \(CalDate.timeLabel(event.startAt))").font(.system(size: 12.5)).foregroundColor(Moim.ink).padding(.top, 2)
                 if let p = event.place, !p.isEmpty { Text("📍 \(p)").font(.system(size: 12.5)).foregroundColor(Moim.sub) }
-                Text("👤 발표자 \((event.presenter?.isEmpty == false) ? event.presenter! : vm.name(of: event.ownerId))")
+                Text("👤 발표자 \(eventPresenterLabel(event.presenter))")
                     .font(.system(size: 12.5)).foregroundColor(Moim.sub)
                 if let s = event.scope, !s.isEmpty { Text("참석 \(s)").font(.system(size: 11.5)).foregroundColor(Moim.sub) }
                 if let d = event.description, !d.isEmpty { Text(d).font(.system(size: 11.5)).foregroundColor(Moim.sub) }
@@ -390,7 +390,7 @@ struct EventDetailDocument: View {
             Divider().background(Moim.line).padding(.vertical, 14)
             EventDocRow(label: "일시", value: CalDate.detailTimeLabel(event.startAt))
             if let p = event.place, !p.isEmpty { EventDocRow(label: "장소", value: p) }
-            EventDocRow(label: "발표자", value: (event.presenter?.isEmpty == false) ? event.presenter! : vm.name(of: event.ownerId))
+            EventDocRow(label: "발표자", value: eventPresenterLabel(event.presenter))
             if let s = event.scope, !s.isEmpty { EventDocRow(label: "참석", value: s) }
             if let d = event.description, !d.isEmpty {
                 Divider().background(Moim.line).padding(.vertical, 14)

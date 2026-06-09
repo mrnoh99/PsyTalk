@@ -874,9 +874,10 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
-    /// 가입 승인 (관리자·전체관리자 — RPC)
+    /// 가입 승인 (관리자·전체관리자·비서 — RPC)
     func approveUser(_ userId: String) {
         Task {
+            error = nil
             do {
                 try await MoimRepository.approveUser(userId: userId)
                 let list = try await MoimRepository.allProfiles()

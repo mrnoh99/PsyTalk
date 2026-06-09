@@ -117,6 +117,12 @@ func opensWeekCalendar(_ room: Room) -> Bool {
     room.category != "custom" && room.category != "direct" && !isBugReportRoom(room) && room.defaultView == "week"
 }
 
+/// 일정 발표자 표시 — 미입력 시 작성자로 대체하지 않음
+func eventPresenterLabel(_ presenter: String?) -> String {
+    let s = presenter?.trimmingCharacters(in: .whitespaces) ?? ""
+    return s.isEmpty ? "미정" : s
+}
+
 /// 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)·BugReport 제외.
 func noticeTopRoom(_ rooms: [Room]) -> Room? {
     rooms.filter { $0.category != "custom" && $0.category != "direct" && !isBugReportRoom($0) && $0.defaultView != "week" }

@@ -2557,6 +2557,9 @@ function evAtts(e){
   if(e.attachment_url) return [{n:e.attachment_name||'첨부파일',u:e.attachment_url}];
   return [];
 }
+function eventPresenterLabel(p){
+  return (p&&p.trim())?p:'미정';
+}
 function fmtDetailTime(iso){
   const d=new Date(iso);
   const dow=['일','월','화','수','목','금','토'][d.getDay()];
@@ -2565,7 +2568,7 @@ function fmtDetailTime(iso){
 }
 function evDetailHtml(e){
   const c=(CAT[active.category]||CAT.custom).c;
-  const presenter=(e.presenter&&e.presenter.trim())?esc(e.presenter):esc(nameOf(e.owner_id));
+  const presenter=esc(eventPresenterLabel(e.presenter));
   let h=`<article class="evdoc"><div class="evdoc-accent" style="background:${c}"></div>`;
   h+=`<h3 class="evdoc-title">${esc(e.title)}</h3><hr class="evdoc-hr">`;
   h+=`<dl class="evdoc-meta">`;
@@ -2591,7 +2594,7 @@ function evDetailHtml(e){
 }
 function evCardBody(e,extra=''){
   const c=(CAT[active.category]||CAT.custom).c;
-  const presenter=(e.presenter&&e.presenter.trim())?esc(e.presenter):esc(nameOf(e.owner_id));
+  const presenter=esc(eventPresenterLabel(e.presenter));
   return `<div class="evbar" style="background:${c}"></div><div class="evb"><b>${esc(e.title)}</b>
     <div class="evmeta">📅 ${fmtTime(e.start_at)}${e.place?' · 📍'+esc(e.place):''}<br>
     👤 발표자 ${presenter}<br>
@@ -2611,7 +2614,7 @@ function evCard(e,compact){
 }
 function evPreviewText(e){
   const lines=[e.title,'📅 '+fmtTime(e.start_at)+(e.place?' · 📍'+e.place:'')];
-  lines.push('👤 발표자 '+(e.presenter&&e.presenter.trim()?e.presenter:nameOf(e.owner_id)));
+  lines.push('👤 발표자 '+eventPresenterLabel(e.presenter));
   if(e.scope)lines.push('참석: '+e.scope);
   if(e.description)lines.push(e.description);
   const atts=evAtts(e);

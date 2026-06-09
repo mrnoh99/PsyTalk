@@ -254,6 +254,10 @@ fun effectiveMsgUnread(roomId: String, count: Int, role: String?): Int =
 fun opensWeekCalendar(room: Room): Boolean =
     room.category != "custom" && room.category != "direct" && !isBugReportRoom(room) && room.defaultView == "week"
 
+/** 일정 발표자 표시 — 미입력 시 작성자로 대체하지 않음 */
+fun eventPresenterLabel(presenter: String?): String =
+    presenter?.trim()?.takeIf { it.isNotBlank() } ?: "미정"
+
 /** 과 전체공지 방 = 항상 방 목록 맨 위 고정(핀·정렬 변경 불가). 모임·DM·주간(week)·BugReport 제외. */
 fun noticeTopRoom(rooms: List<Room>): Room? =
     rooms.filter { it.category != "custom" && it.category != "direct" && !isBugReportRoom(it) && it.defaultView != "week" }

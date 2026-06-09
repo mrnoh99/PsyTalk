@@ -110,7 +110,16 @@ function keywordsFromGoogle(ev: any): string[] {
 }
 
 // ── 메인 ────────────────────────────────────────────────────────────────────
-Deno.serve(async (_req) => {
+const CORS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+Deno.serve(async (req) => {
+  // 브라우저(웹 앱) 사전요청(preflight) 처리
+  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -129,10 +138,10 @@ Deno.serve(async (_req) => {
         summary.push({ room: cfg.room_id, error: String(e) });
       }
     }
-    return new Response(JSON.stringify({ ok: true, summary }), { headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, summary }), { headers: { ...CORS, "Content-Type": "application/json" } });
   } catch (e) {
     return new Response(JSON.stringify({ ok: false, error: String(e), summary }), {
-      status: 200, headers: { "Content-Type": "application/json" },
+      status: 200, headers: { ...CORS, "Content-Type": "application/json" },
     });
   }
 });

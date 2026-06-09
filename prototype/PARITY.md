@@ -20,6 +20,7 @@
 | `default_view='week'` 방 → 열면 캘린더 주간 목록 | ✅ 자동 | ✅ (탭 초기값 = cal) | ✅ | 2026-06 수정 반영 |
 | 자료실 — 날짜순/키워드별, 캘린더 첨부 집계, 파일명+설명 | ✅ | ✅ `FilesPane` | ✅ | |
 | 파일 스토리지 | 🔲 (alert 목업) | ✅ Supabase Storage `room-files` | ✅ | 앱이 실제 업로드 |
+| 주간 학술활동 ↔ Google Calendar 양방향 동기화 | ➖ | ✅ 서버(Edge Function) 공통 | ✅ | 서비스 계정·last-write-wins·첨부(Drive). `gcal_sync.sql`+`functions/gcal-sync`. 설정=`docs/GCAL_SYNC_SETUP.md`. 일정 생성/수정/삭제는 DB 트리거가 자동 export(클라이언트 무변경) |
 | 관리자 콘솔 — 3분할(가입승인·회원관리·방관리) | ➖ | ✅ 세 플랫폼 공통 | ✅ | admin=가입승인만, superadmin=전부. `admin_console.sql` |
 | 가입 승인 (신규 가입자) | ➖ | ✅ 승인 → 회원관리로 이동 | ✅ | `moim_approve_user`(관리자도 가능) |
 | 회원 관리 — 관리자 지위/계정 비활성화 | ➖ | ✅ superadmin 전용 | ✅ | 역할토글 + `moim_admin_withdraw` |

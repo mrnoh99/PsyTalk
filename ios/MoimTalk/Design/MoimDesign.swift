@@ -415,6 +415,12 @@ func wardDutyRowColors(_ tone: WardDutyTone, isToday: Bool) -> (Color, Color) {
     return (pair.0, todayBorder)
 }
 
+/// 구글 캘린더 수동 동기화 버튼: 직군 교실·의국·비서·심리실·생명사랑
+func canSyncGcal(_ profile: Profile?) -> Bool {
+    guard let p = profile else { return false }
+    return ["교실", "의국", "비서", "심리실", "생명사랑"].contains(p.memberType)
+}
+
 // 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 func canDeleteEvent(_ profile: Profile?, _ event: CalendarEvent) -> Bool {
     guard let p = profile else { return false }

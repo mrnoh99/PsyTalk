@@ -104,7 +104,7 @@ struct RoomView: View {
                 }
                 .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
             }
-            if !isDM, vm.myProfile?.role == "superadmin", opensWeekCalendar(liveRoom) {
+            if !isDM, canSyncGcal(vm.myProfile), opensWeekCalendar(liveRoom) {
                 Button(vm.gcalSyncing ? "🔄…" : "🔄 동기화") { vm.syncGcal() }
                     .font(.system(size: 13, weight: .bold)).foregroundColor(Moim.accent)
                     .disabled(vm.gcalSyncing)

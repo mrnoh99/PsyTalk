@@ -446,6 +446,12 @@ fun dutyMembersByType(profiles: Map<String, Profile>, memberType: String): List<
         .filter { it.memberType == memberType && (it.approved ?: true) && it.withdrawn != true }
         .sortedBy { it.name }
 
+/** 구글 캘린더 수동 동기화 버튼: 직군 교실·의국·비서·심리실·생명사랑 */
+fun canSyncGcal(profile: Profile?): Boolean {
+    if (profile == null) return false
+    return profile.memberType in listOf("교실", "의국", "비서", "심리실", "생명사랑")
+}
+
 /** 일정 삭제 권한: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실 */
 fun canDeleteEvent(profile: Profile?, event: CalendarEvent): Boolean {
     if (profile == null) return false

@@ -1427,6 +1427,7 @@ const outpatientLabel=row=>{
 };
 // 일정 삭제: 작성자 본인 / 관리자 / 직군 교실·의국·비서·심리실
 const canDeleteEvent=ev=>!!me&&((ev&&ev.owner_id===me.id)||isAdmin()||['교실','의국','비서','심리실'].includes(me.member_type));
+const canSyncGcal=()=>!!me&&['교실','의국','비서','심리실','생명사랑'].includes(me.member_type);
 function show(id){['login','pending','reset','listScreen','roomScreen','wardScreen','adminScreen','settingsScreen','createRoomScreen'].forEach(s=>document.getElementById(s).classList.toggle('hidden',s!==id));layoutChat();}
 const LIST_SLIDE_OVERLAYS=['roomScreen','wardScreen','adminScreen','settingsScreen','createRoomScreen','evDetailModal'];
 function openListOverlay(id){
@@ -1882,7 +1883,7 @@ async function openRoom(id){
   document.getElementById('roomTitle').textContent=roomDisplayName(active);
   document.getElementById('renameBtn').style.display=(!isDM&&canRename(active))?'':'none';
   document.getElementById('settingsBtn').style.display=(!isDM&&canManage(active))?'':'none';
-  document.getElementById('gcalSyncBtn').style.display=(!isDM&&me&&me.role==='superadmin'&&opensWeekCal(active))?'':'none';
+  document.getElementById('gcalSyncBtn').style.display=(!isDM&&canSyncGcal()&&opensWeekCal(active))?'':'none';
   // 본인이 만들지 않은 모임방: 나가기 (DM 은 표시 안 함)
   document.getElementById('leaveBtn').style.display=(!isDM&&active.category==='custom'&&!canManage(active))?'':'none';
   document.getElementById('deleteBtn').style.display=isDM?'':'none';   // 1:1 대화만 우상단 방삭제

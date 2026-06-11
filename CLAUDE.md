@@ -195,6 +195,9 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 멀티 방 게시 · `room_writers` 연동(예정)
 (안 읽음 배지 ✅ · 메시지별 안읽은 수 ✅ · 캘린더 이동/복귀 ✅)
 
-## 푸시 알림 (OneSignal) — **현재 미사용**
-- 앱(iOS·Android)에서 OneSignal 연동은 **제외**됨. 새 메시지는 Realtime·앱 내 안읽음 배지로 확인.
-- 나중에 도입 시: `supabase/functions/notify-message` + **`docs/PUSH_SETUP.md`** 참고.
+## 푸시 알림 (OneSignal)
+- **웹(web/): OneSignal 웹 푸시 연동됨** — `web/index.html` 의 `ONESIGNAL_APP_ID` 입력 +
+  `web/OneSignalSDKWorker.js`(서비스워커) + OneSignal 웹 플랫폼 설정 + Database Webhook 으로 동작.
+  로그인 시 `OneSignal.login(me.id)` → 백엔드 `notify-message`(external_id 타깃)가 그대로 발송.
+  데스크톱·안드로이드 크롬 = 앱 닫아도 수신, **iOS 는 홈 화면 추가(PWA)+16.4↑** 만. 설정: **`docs/PUSH_SETUP.md` [웹 푸시 설정]**.
+- **iOS·Android 네이티브 앱**의 OneSignal 연동은 아직 **미사용**(Realtime·안읽음 배지로 확인). 도입 시 `docs/PUSH_SETUP.md` 참고.

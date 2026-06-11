@@ -773,6 +773,7 @@ async function ensureFreshSession(){
 }
 async function authFailAndLogin(){
   closeModal('emodal'); closeEventDetail(true);
+  oneSignalLogout();
   await sb.auth.signOut().catch(()=>{});
   me=null; show('login');
   alert('로그인이 만료되었습니다. 다시 로그인해 주세요.');
@@ -1576,7 +1577,7 @@ async function submitAuth(){
     await loadApp();
   }
 }
-async function doLogout(){if(!await uiConfirm('로그아웃 할까요?','로그아웃'))return;stopRealtime();await sb.auth.signOut();me=null;show('login');}
+async function doLogout(){if(!await uiConfirm('로그아웃 할까요?','로그아웃'))return;oneSignalLogout();stopRealtime();await sb.auth.signOut();me=null;show('login');}
 
 /* ====== 비밀번호 재설정 (이메일 셀프서비스) ====== */
 async function forgotPassword(){
@@ -1633,6 +1634,40 @@ async function deleteAccount(){
   stopRealtime();await sb.auth.signOut();location.reload();
 }
 
+/* ====== 웹 푸시 알림 (OneSignal) — ONESIGNAL_APP_ID 설정 시에만 동작 ======
+   백엔드 notify-message 함수가 external_id(=회원 id)로 푸시하므로,
+   웹에서는 OneSignal.login(me.id) 만 하면 폰 앱과 동일하게 알림을 받는다.
+   App ID 를 비워두면 전체 비활성(앱 기존 동작에 영향 없음). 설정: docs/PUSH_SETUP.md */
+const ONESIGNAL_APP_ID = "";   // ← OneSignal 대시보드의 App ID 붙여넣기 (비우면 비활성)
+function initOneSignal(){
+  if(!ONESIGNAL_APP_ID) return;
+  if(!('serviceWorker' in navigator) || location.protocol==='file:') return;
+  window.OneSignalDeferred=window.OneSignalDeferred||[];
+  const s=document.createElement('script');
+  s.src='https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'; s.defer=true;
+  document.head.appendChild(s);
+  const scope=location.pathname.replace(/[^/]*$/,'');   // 예: /PsyTalk/ (서브경로 호스팅 대응)
+  window.OneSignalDeferred.push(async function(OneSignal){
+    try{
+      await OneSignal.init({ appId:ONESIGNAL_APP_ID, serviceWorkerPath:'OneSignalSDKWorker.js', serviceWorkerParam:{ scope } });
+      if(me&&me.id) oneSignalLogin(me.id);
+    }catch(_){}
+  });
+}
+function oneSignalLogin(userId){
+  if(!ONESIGNAL_APP_ID||!userId) return;
+  window.OneSignalDeferred=window.OneSignalDeferred||[];
+  window.OneSignalDeferred.push(async function(OneSignal){
+    try{ await OneSignal.login(userId); await OneSignal.Notifications.requestPermission(); }catch(_){}
+  });
+}
+function oneSignalLogout(){
+  if(!ONESIGNAL_APP_ID) return;
+  window.OneSignalDeferred=window.OneSignalDeferred||[];
+  window.OneSignalDeferred.push(async function(OneSignal){ try{ await OneSignal.logout(); }catch(_){} });
+}
+initOneSignal();
+
 async function loadApp(){
   const {data:{user}}=await sb.auth.getUser();
   if(!user){show('login');return;}
@@ -1649,6 +1684,7 @@ async function loadApp(){
   startRealtime();
   startRoomListPolling();
   show('listScreen');
+  oneSignalLogin(me.id);   // 웹 푸시: 이 회원 id 로 OneSignal 구독 연결
 }
 async function loadRooms(){
   const {data}=await sb.from('rooms').select('*').order('sort_order',{ascending:true});

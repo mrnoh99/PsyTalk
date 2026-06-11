@@ -1,6 +1,30 @@
 # 푸시 알림 설정 (OneSignal) — 새 메시지 알림
 
-> **현재 상태:** iOS·Android 앱에서 OneSignal 연동은 **사용하지 않습니다**. 아래는 나중에 푸시를 도입할 때 참고용입니다.
+> **현재 상태:** iOS·Android **네이티브 앱**의 OneSignal 연동은 아직 미사용(아래 1~4는 참고용).
+> **웹 앱(web/)** 은 OneSignal **웹 푸시** 연동이 들어가 있어, 아래 **[웹 푸시 설정]** 만 하면 바로 동작합니다.
+
+---
+
+## [웹 푸시 설정] — web/ (GitHub Pages: https://mrnoh99.github.io/PsyTalk/)
+
+웹은 코드가 이미 준비돼 있고(`web/index.html` + `web/OneSignalSDKWorker.js`), App ID 입력 + OneSignal 웹 플랫폼 설정 + 아래 공통 5)번(함수·웹훅)만 하면 됩니다.
+
+1. **OneSignal 앱**에 **Web** 플랫폼 추가(아래 1번에서 만든 앱에). "Typical Site"
+   - **Site URL:** `https://mrnoh99.github.io/PsyTalk/`
+   - **Default icon** 업로드(선택). (구독 프롬프트는 기본값으로 충분)
+2. **App ID 입력:** `web/index.html` 상단 `const ONESIGNAL_APP_ID = "";` 에 OneSignal **App ID** 붙여넣기 → 커밋/배포(Pages 자동 배포).
+3. **서비스워커:** `web/OneSignalSDKWorker.js` 가 이미 있어 `…/PsyTalk/OneSignalSDKWorker.js` 로 서빙됨(추가 작업 없음). 코드가 서브경로(`/PsyTalk/`) scope 를 자동 적용.
+4. 아래 **5) Supabase 함수+웹훅** 을 설정(웹·앱 공통, 한 번만).
+5. **동작 조건**
+   - 데스크톱 Chrome/Edge/Firefox, 안드로이드 Chrome: 로그인 후 알림 허용하면 **앱을 닫아도** 수신.
+   - **iOS/iPadOS: Safari 에서 '홈 화면에 추가'(PWA 설치) + iOS 16.4↑** 인 경우에만 수신(일반 사파리 탭 불가).
+   - 같은 회원으로 폰 앱·웹을 함께 써도 OK(external_id 공유).
+
+> 웹은 OneSignal 외 추가 빌드가 없습니다. App ID 만 비워두면 전체 비활성(기존 동작 영향 없음).
+
+---
+
+## (참고) iOS·Android 네이티브 앱 푸시 — 아직 미사용
 
 Supabase Edge Function `notify-message` 는 저장소에 남아 있습니다. 앱 연동을 다시 넣은 뒤 **아래 외부 설정**을 하면 알림이 동작합니다.
 구조: 앱이 OneSignal에 등록(external_id = Supabase 사용자 id) → 새 메시지 INSERT 시 Supabase

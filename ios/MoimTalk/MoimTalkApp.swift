@@ -3,7 +3,7 @@ import UIKit
 
 @main
 struct MoimTalkApp: App {
-    init() {}
+    init() { Push.start() }   // OneSignal 푸시 초기화 (appId 비면 무시)
     var body: some Scene {
         WindowGroup { RootView() }
     }

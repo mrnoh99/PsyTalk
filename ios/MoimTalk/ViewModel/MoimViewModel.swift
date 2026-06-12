@@ -93,6 +93,7 @@ final class MoimViewModel: ObservableObject {
         case .initialSession:
             if let session, !session.isExpired {
                 loggedIn = true
+                if let uid = MoimRepository.currentUserId() { Push.login(uid, requestPermission: false) }  // 세션복원 구독 재연결
                 if myProfile == nil {
                     bindRealtime()
                     loadRooms()
@@ -263,6 +264,7 @@ final class MoimViewModel: ObservableObject {
                 loggedIn = true
                 bindRealtime()
                 startRoomListPolling()
+                if let uid = MoimRepository.currentUserId() { Push.login(uid) }   // 푸시 구독 연결
             } catch {
                 loggedIn = false
                 try? await MoimRepository.signOut()
@@ -275,6 +277,7 @@ final class MoimViewModel: ObservableObject {
     func logout() {
         stopMessagePolling()
         stopRoomListPolling()
+        Push.logout()   // 푸시 구독 해제
         Task {
             await MoimRealtimeSync.shared.stop()
             try? await MoimRepository.signOut()

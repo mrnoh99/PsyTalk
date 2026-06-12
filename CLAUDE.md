@@ -200,4 +200,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
   `web/OneSignalSDKWorker.js`(서비스워커) + OneSignal 웹 플랫폼 설정 + Database Webhook 으로 동작.
   로그인 시 `OneSignal.login(me.id)` → 백엔드 `notify-message`(external_id 타깃)가 그대로 발송.
   데스크톱·안드로이드 크롬 = 앱 닫아도 수신, **iOS 는 홈 화면 추가(PWA)+16.4↑** 만. 설정: **`docs/PUSH_SETUP.md` [웹 푸시 설정]**.
-- **iOS·Android 네이티브 앱**의 OneSignal 연동은 아직 **미사용**(Realtime·안읽음 배지로 확인). 도입 시 `docs/PUSH_SETUP.md` 참고.
+- **iOS·Android 네이티브 앱: OneSignal 연동 코드 완료** — Android `Push.kt`(+`com.onesignal:OneSignal` 의존성·`MoimApp` 초기화),
+  iOS `Push.swift`(+project.yml OneSignal 패키지·`aps-environment` 엔타이틀먼트·`MoimTalkApp` 초기화). 로그인/세션복원 시
+  `OneSignal.login(회원id)`+권한요청, 로그아웃 시 logout. App ID 는 세 플랫폼 상수(`4e52339e-…`).
+  **남은 외부 설정**(OneSignal 에 APNs(.p8)/FCM 서비스계정 업로드 + Supabase notify-message 배포·웹훅)은 `docs/PUSH_SETUP.md`.
+  Android 는 google-services.json 불필요(OneSignal 5.x). iOS 는 Apple Developer(APNs) 필요.

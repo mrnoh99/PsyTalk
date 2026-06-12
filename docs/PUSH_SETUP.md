@@ -1,7 +1,9 @@
 # 푸시 알림 설정 (OneSignal) — 새 메시지 알림
 
-> **현재 상태:** iOS·Android **네이티브 앱**의 OneSignal 연동은 아직 미사용(아래 1~4는 참고용).
-> **웹 앱(web/)** 은 OneSignal **웹 푸시** 연동이 들어가 있어, 아래 **[웹 푸시 설정]** 만 하면 바로 동작합니다.
+> **현재 상태:** 웹·iOS·Android **모두 코드 연동 완료**. App ID 는 코드에 박혀 있고
+> (`web/index.html`·`Push.kt`·`Push.swift` = `4e52339e-…`), 아래 **외부 설정**(OneSignal 플랫폼 + Supabase 함수·웹훅)만 하면 동작합니다.
+> - 웹: **[웹 푸시 설정]**
+> - 네이티브: **[iOS]**, **[Android]**
 
 ---
 
@@ -43,24 +45,27 @@ Database Webhook → Edge Function `notify-message` → OneSignal REST API로 �
      OneSignal에 업로드. (OneSignal Android는 내부적으로 FCM 사용)
 3. OneSignal **App ID** 와 **REST API Key** 복사 (Settings → Keys & IDs).
 
-## 2) 앱에 App ID 넣기
-- **Android**: 프로젝트 루트 `local.properties` 에 `onesignal.app.id=...` 추가 (`local.properties.example` 참고)
-- **iOS**: `ios/MoimTalk/Push.swift` 의 `oneSignalAppId = "ONESIGNAL_APP_ID"` 교체
-- Android FCM: Firebase `google-services.json` → `app/google-services.json`
+## 2) App ID — 이미 코드에 반영됨
+- App ID(`4e52339e-…`)는 `Push.kt`(Android)·`Push.swift`(iOS)·`web/index.html` 에 상수로 들어가 있습니다.
+- 다른 OneSignal 앱을 쓰려면 그 세 곳의 상수만 바꾸면 됩니다.
 
-## 3) iOS 빌드 설정 (Xcode)
-1. `cd ios && xcodegen generate` (OneSignal 패키지가 project.yml에 추가돼 있음)
-2. Xcode에서 Target **MoimTalk → Signing & Capabilities**:
-   - **+ Capability → Push Notifications** 추가
-   - **+ Capability → Background Modes → Remote notifications** 체크
-   - Signing에 본인 Apple Developer 팀 선택
-3. 실기기로 빌드(푸시는 시뮬레이터 일부 제한). 첫 실행 시 알림 권한 허용.
-   - (선택) 확인 전달률을 위해 OneSignal **Notification Service Extension** 추가 가능 — 기본 알림은 위만으로 동작.
+## 3) [iOS] — 코드 구현됨 (Push.swift + project.yml)
+앱 코드(초기화·권한요청·로그인연결)는 완료. 아래만 하면 됩니다.
+1. **OneSignal에 Apple(APNs) 플랫폼 추가** — Apple Developer(유료)에서 **APNs Auth Key(.p8)** 발급
+   (Keys → + → Apple Push Notifications service) → OneSignal에 **.p8 + Key ID + Team ID + Bundle ID** 업로드.
+2. **빌드:** `cd ios && xcodegen generate` (OneSignal 패키지·`aps-environment` 엔타이틀먼트가 project.yml 에 포함됨).
+3. Xcode → Target **MoimTalk → Signing & Capabilities**:
+   - **Push Notifications** 가 엔타이틀먼트로 이미 잡혀 있음(없으면 **+ Capability → Push Notifications**).
+   - (선택) **Background Modes → Remote notifications** — 데이터 푸시·확장용. 기본 알림엔 불필요.
+   - Signing에 본인 Apple Developer 팀 선택.
+4. **실기기**로 빌드(푸시는 시뮬레이터 제한). 로그인 후 알림 허용.
 
-## 4) Android 빌드 설정
-- `app/google-services.json` (Firebase) + `local.properties` 의 `onesignal.app.id`
-- 상세: [`docs/PUBLISH_ANDROID.md`](PUBLISH_ANDROID.md)
-- Android 13+ 는 첫 실행 시 알림 권한 요청(코드에 포함됨).
+## 4) [Android] — 코드 구현됨 (Push.kt + build.gradle)
+앱 코드(SDK·초기화·권한요청·로그인연결)는 완료. **google-services.json 불필요**(OneSignal 5.x 는 FCM 자격증명을 서버에 보관).
+1. **OneSignal에 Google Android(FCM) 플랫폼 추가** — Firebase 콘솔에서 프로젝트 생성 →
+   프로젝트 설정 → 서비스 계정 → **새 비공개 키(JSON)** 발급 → OneSignal **Settings → Platforms → Google Android (FCM)** 에 업로드.
+2. Android Studio에서 그냥 빌드(의존성 `com.onesignal:OneSignal` 자동 받음).
+3. Android 13+ 는 로그인 시 알림 권한 자동 요청(코드 포함).
 
 ## 5) Supabase — 발송 함수 + 웹훅
 ```bash
@@ -88,4 +93,5 @@ supabase secrets set ONESIGNAL_APP_ID=여기에-App-ID ONESIGNAL_REST_API_KEY=�
 ## 참고
 - 알림 대상은 **그 방 구성원(보낸이 제외)** — 기본방=승인 전원, 모임방=구성원.
 - 본인이 보낸 메시지는 본인에게 안 옴.
-- 앱 코드(권한 요청·로그인 연결·로그아웃 해제)는 이미 구현됨. App ID만 넣으면 됨.
+- 웹·iOS·Android **모두 앱 코드 구현 완료**(초기화·권한요청·로그인 연결·로그아웃 해제). 남은 건 위 외부 설정뿐.
+- 세 플랫폼이 같은 OneSignal 앱(같은 App ID)·같은 `external_id`(회원 id)를 쓰므로, 한 회원이 폰·웹 어디서 받든 동일하게 동작.

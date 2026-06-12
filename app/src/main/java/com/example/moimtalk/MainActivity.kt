@@ -226,6 +226,7 @@ class MoimViewModel : ViewModel() {
                     loggedIn = true
                     ensureRealtime()
                     startRoomListPolling()
+                    MoimRepository.currentUserId()?.let { Push.login(it) }   // 푸시 구독 연결
                 } else {
                     notice = "가입이 접수되었습니다. 전체관리자 승인 후 로그인하여 이용할 수 있습니다."
                 }
@@ -262,6 +263,7 @@ class MoimViewModel : ViewModel() {
                 loggedIn = true
                 ensureRealtime()
                 startRoomListPolling()
+                MoimRepository.currentUserId()?.let { Push.login(it) }   // 푸시 구독 연결
             } catch (e: Exception) {
                 loggedIn = false
                 try {
@@ -277,6 +279,7 @@ class MoimViewModel : ViewModel() {
     fun logout() {
         stopRoomListPolling()
         MoimRealtimeSync.stop(viewModelScope)
+        Push.logout()   // 푸시 구독 해제
         viewModelScope.launch {
             try {
                 MoimRepository.signOut()
@@ -293,6 +296,7 @@ class MoimViewModel : ViewModel() {
             try {
                 MoimRepository.ensureAuthReady()
                 if (MoimRepository.currentUserId() == null) return@launch
+                MoimRepository.currentUserId()?.let { Push.login(it, requestPerm = false) }  // 세션복원 시 구독 재연결
                 myProfile = MoimRepository.myProfile()
                 rooms = MoimRepository.rooms()
                 myRoomIds = try { MoimRepository.myRoomIds().toSet() } catch (_: Exception) { myRoomIds }

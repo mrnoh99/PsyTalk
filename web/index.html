@@ -1639,7 +1639,7 @@ async function deleteAccount(){
    백엔드 notify-message 함수가 external_id(=회원 id)로 푸시하므로,
    웹에서는 OneSignal.login(me.id) 만 하면 폰 앱과 동일하게 알림을 받는다.
    App ID 를 비워두면 전체 비활성(앱 기존 동작에 영향 없음). 설정: docs/PUSH_SETUP.md */
-const ONESIGNAL_APP_ID = "";   // ← OneSignal 대시보드의 App ID 붙여넣기 (비우면 비활성)
+const ONESIGNAL_APP_ID = "4e52339e-a96e-4eeb-bdd9-3a11ce2f9f18";   // ← OneSignal 대시보드의 App ID (비우면 비활성)
 function initOneSignal(){
   if(!ONESIGNAL_APP_ID) return;
   if(!('serviceWorker' in navigator) || location.protocol==='file:') return;

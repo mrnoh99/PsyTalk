@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="description" content="아주 정신 — 알림(푸시) 받기 설정 안내">
+<meta name="application-name" content="아주 정신">
+<meta name="apple-mobile-web-app-title" content="아주 정신">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#121212">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<title>아주 정신 — 알림 받기 설정</title>
+<style>
+  :root{
+    --bg:#161616;--paper:#121212;--surface:#1e1e1e;--ink:#fff;--sub:#bdbdbd;
+    --accent:#1e88e5;--line:#2c2c2c;--admin:#f44336;
+    --notice:#b5651d;--orange:#ea7317;--week:#4a6fa5;--work:#2e7d32;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+  }
+  html.light{
+    --bg:#ececec;--paper:#fff;--surface:#f5f5f5;--ink:#212121;--sub:#757575;
+    --accent:#1976d2;--line:#e0e0e0;--admin:#d32f2f;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans KR",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.65;
+    padding:calc(12px + var(--safe-top)) 16px calc(28px + var(--safe-bottom));
+    font-size:16px;-webkit-text-size-adjust:100%;
+  }
+  .top{
+    position:sticky;top:0;z-index:10;
+    margin:-12px -16px 16px;padding:calc(10px + var(--safe-top)) 16px 10px;
+    background:var(--paper);border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .top h1{font-size:17px;font-weight:800;letter-spacing:-.2px}
+  .top a{font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;padding:8px 10px;border-radius:8px;background:var(--surface)}
+  .hero{
+    background:linear-gradient(135deg,var(--accent),#155fa0);
+    border-radius:16px;padding:20px 18px;margin-bottom:18px;color:#fff;
+  }
+  .hero h2{font-size:22px;font-weight:800;margin-bottom:8px;line-height:1.3}
+  .hero p{font-size:14.5px;opacity:.92;line-height:1.55}
+  .toc{
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;
+    padding:14px 16px;margin-bottom:20px;
+  }
+  .toc b{display:block;font-size:13px;color:var(--sub);margin-bottom:10px;letter-spacing:.3px}
+  .toc a{
+    display:block;padding:10px 4px;color:var(--accent);font-weight:700;font-size:15px;
+    text-decoration:none;border-bottom:1px solid var(--line);
+  }
+  .toc a:last-child{border-bottom:none}
+  section{
+    background:var(--paper);border:1px solid var(--line);border-radius:14px;
+    padding:18px 16px;margin-bottom:14px;
+  }
+  section h3{
+    font-size:18px;font-weight:800;margin-bottom:12px;padding-bottom:10px;
+    border-bottom:2px solid var(--accent);line-height:1.35;
+  }
+  section h4{font-size:15px;font-weight:800;margin:14px 0 8px;color:var(--ink)}
+  section p,section li{font-size:15.5px;color:var(--ink)}
+  section ul,section ol{padding-left:1.2em;margin:8px 0 4px}
+  section li{margin:6px 0}
+  section li::marker{color:var(--accent)}
+  .tip{
+    background:var(--surface);border-left:4px solid var(--accent);
+    border-radius:0 10px 10px 0;padding:12px 14px;margin:12px 0;font-size:14.5px;color:var(--sub);
+  }
+  .warn{
+    background:var(--surface);border-left:4px solid var(--admin);
+    border-radius:0 10px 10px 0;padding:12px 14px;margin:12px 0;font-size:14.5px;color:var(--ink);
+  }
+  .foot{text-align:center;padding:24px 8px;font-size:13px;color:var(--sub)}
+  .theme-btn{
+    border:1px solid var(--line);background:var(--surface);color:var(--ink);
+    border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;
+  }
+  @media (min-width:600px){
+    body{max-width:520px;margin:0 auto;padding-left:20px;padding-right:20px}
+    .top{margin-left:-20px;margin-right:-20px;padding-left:20px;padding-right:20px}
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>알림 받기 설정</h1>
+  <div style="display:flex;gap:6px;align-items:center">
+    <button type="button" class="theme-btn" id="themeBtn" aria-label="테마 전환">🌙</button>
+    <a href="index.html">앱 열기</a>
+  </div>
+</header>
+
+<div class="hero">
+  <h2>새 메시지 알림 받기</h2>
+  <p>알림을 켜두면 앱(브라우저)을 닫아둬도 새 메시지가 오면 알려줍니다. 본인 기기에서 <b>한 번만</b> 설정하면 됩니다.</p>
+</div>
+
+<nav class="toc" aria-label="목차">
+  <b>내 기기 선택</b>
+  <a href="#common">✅ 공통 — 먼저 이렇게</a>
+  <a href="#iphone">🍎 아이폰 · 아이패드</a>
+  <a href="#android">🤖 안드로이드폰</a>
+  <a href="#pc">💻 PC 크롬 · 엣지</a>
+  <a href="#mac-safari">💻 맥 사파리</a>
+  <a href="#blocked">🔧 ‘차단’ 눌렀을 때 다시 켜기</a>
+  <a href="#check">🔔 잘 되는지 확인</a>
+</nav>
+
+<section id="common">
+  <h3>✅ 공통 — 먼저 이렇게</h3>
+  <ol>
+    <li>웹앱( <strong>aumcpsy</strong> 주소 / 홈 화면 아이콘 )을 열고 <strong>로그인</strong>합니다.</li>
+    <li>로그인 직후 <strong>「알림을 표시하시겠습니까?」</strong> 가 뜨면 <strong>「허용」</strong> 을 누릅니다.</li>
+  </ol>
+  <div class="tip">처음 한 번만 허용하면 됩니다. 창을 닫아도 알림은 옵니다. 받을 기기마다 한 번씩 허용하세요.</div>
+  <div class="warn">프롬프트가 <b>안 뜨거나 실수로 닫았다면</b> — 아래에서 내 기기에 맞는 방법으로 켜세요.</div>
+</section>
+
+<section id="iphone">
+  <h3>🍎 아이폰 · 아이패드</h3>
+  <p><b>아이폰은 ‘홈 화면에 추가(설치)’ 를 해야만 알림이 됩니다.</b> (iOS 16.4 이상, Safari 사용)</p>
+  <h4>1) 홈 화면에 추가</h4>
+  <ol>
+    <li><strong>Safari</strong>(크롬 ✗)로 사이트를 엽니다.</li>
+    <li>아래 <strong>공유 버튼</strong>(□ 위로 화살표 ↑) → <strong>「홈 화면에 추가」</strong> → <strong>「추가」</strong>.</li>
+  </ol>
+  <h4>2) 알림 켜기</h4>
+  <ol>
+    <li>바탕화면에 생긴 <strong>아주 정신 아이콘</strong>으로 앱을 엽니다. (Safari 탭 말고 아이콘!)</li>
+    <li>로그인 → <strong>「허용」</strong>.</li>
+  </ol>
+  <h4>안 떴거나 차단했다면</h4>
+  <ol>
+    <li>아이폰 <strong>설정 앱</strong> 열기 → <strong>알림</strong>.</li>
+    <li>목록에서 <strong>아주 정신</strong> 찾기 → <strong>「알림 허용」</strong> 켜기.</li>
+  </ol>
+  <div class="warn">사파리 탭에서 그냥 보면 알림이 <b>안 옵니다</b>. 반드시 홈 화면 아이콘으로 설치해서 여세요.</div>
+</section>
+
+<section id="android">
+  <h3>🤖 안드로이드폰 (Chrome)</h3>
+  <ol>
+    <li><strong>Chrome</strong>으로 사이트를 열고 로그인 → <strong>「허용」</strong>.</li>
+    <li>(권장) 메뉴(⋮) → <strong>「홈 화면에 추가 / 앱 설치」</strong> 로 설치해두면 앱처럼 편합니다.</li>
+  </ol>
+  <h4>차단했다면</h4>
+  <ol>
+    <li>주소창 왼쪽 <strong>자물쇠🔒</strong>(또는 ⓘ) → <strong>권한 / 사이트 설정</strong>.</li>
+    <li><strong>알림</strong> → <strong>허용</strong> 으로 변경 → 페이지 새로고침.</li>
+  </ol>
+</section>
+
+<section id="pc">
+  <h3>💻 PC 크롬 · 엣지 (윈도우/맥)</h3>
+  <ol>
+    <li>사이트를 열고 로그인 → 화면 위쪽 <strong>「알림 허용」</strong> 팝업에서 <strong>허용</strong>.</li>
+  </ol>
+  <h4>차단했거나 팝업이 없으면</h4>
+  <ol>
+    <li>주소창 <strong>맨 왼쪽 아이콘</strong>(자물쇠🔒/슬라이더) 클릭.</li>
+    <li><strong>알림</strong> 을 <strong>허용</strong> 으로 변경 → <strong>새로고침</strong>(Ctrl/Cmd+Shift+R).</li>
+  </ol>
+  <div class="tip">크롬 주소창에 <code>chrome://settings/content/notifications</code> 입력 → ‘차단’ 목록에서 이 사이트를 ‘허용’으로 옮겨도 됩니다.</div>
+</section>
+
+<section id="mac-safari">
+  <h3>💻 맥 사파리 (Safari)</h3>
+  <ol>
+    <li>사이트를 열고 로그인 → <strong>「허용」</strong>.</li>
+  </ol>
+  <h4>차단했다면</h4>
+  <ol>
+    <li>상단 메뉴 <strong>Safari → 설정(Settings)</strong> → <strong>웹사이트</strong> 탭.</li>
+    <li>왼쪽 <strong>알림</strong> 선택 → 이 사이트를 <strong>허용</strong>.</li>
+    <li>추가로 맥 <strong>시스템 설정 → 알림 → Safari</strong> 가 켜져 있어야 합니다.</li>
+  </ol>
+</section>
+
+<section id="blocked">
+  <h3>🔧 ‘차단’을 눌렀을 때 — 다시 켜기 요약</h3>
+  <ul>
+    <li><b>아이폰:</b> 설정 앱 → 알림 → 아주 정신 → 허용</li>
+    <li><b>안드로이드:</b> 주소창 🔒 → 알림 → 허용</li>
+    <li><b>PC 크롬/엣지:</b> 주소창 🔒 → 알림 → 허용 → 새로고침</li>
+    <li><b>맥 사파리:</b> Safari 설정 → 웹사이트 → 알림 → 허용 (+ 시스템 설정 알림)</li>
+  </ul>
+  <div class="tip">한 번 ‘차단’하면 팝업이 다시 안 뜹니다. 위처럼 <b>수동으로 허용</b>으로 바꿔야 합니다.</div>
+</section>
+
+<section id="check">
+  <h3>🔔 잘 되는지 확인</h3>
+  <ul>
+    <li>알림을 허용한 뒤, <strong>다른 사람</strong>이 내가 있는 방에 메시지를 보내면 알림이 옵니다.</li>
+    <li><b>내가 보낸 메시지는 나에게 알림이 오지 않습니다.</b> (정상)</li>
+    <li>앱(브라우저)을 <b>닫아둬도</b> 알림이 옵니다.</li>
+    <li>받을 기기/브라우저마다 <b>각각</b> 한 번씩 허용해야 합니다.</li>
+  </ul>
+  <div class="warn">그래도 안 오면 전체관리자에게 알려주세요. (기기 종류·브라우저·‘알림 허용’ 상태를 함께 알려주시면 빠릅니다.)</div>
+</section>
+
+<p class="foot">아주 정신 · 아주대학교병원 정신건강의학과<br><a href="index.html" style="color:var(--accent)">웹 앱으로 돌아가기</a></p>
+
+<script>
+(function(){
+  const KEY='moim-guide-theme';
+  const btn=document.getElementById('themeBtn');
+  function apply(light){
+    document.documentElement.classList.toggle('light',light);
+    btn.textContent=light?'☀️':'🌙';
+    try{localStorage.setItem(KEY,light?'light':'dark');}catch(e){}
+  }
+  let light=false;
+  try{light=localStorage.getItem(KEY)==='light';}catch(e){}
+  apply(light);
+  btn.addEventListener('click',()=>apply(!document.documentElement.classList.contains('light')));
+})();
+</script>
+</body>
+</html>

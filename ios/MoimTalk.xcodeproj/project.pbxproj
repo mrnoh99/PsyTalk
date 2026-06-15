@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0D8C8B5ECB0A89458832F418 /* MoimRealtimeSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9B260B7A2E9FBE5A4D76072 /* MoimRealtimeSync.swift */; };
 		0DF07A068A6D8D7C6FB85920 /* DateUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = E17DE9D14FE52E794BAFCB4E /* DateUtils.swift */; };
+		0F00500938EC7F652D73CCA6 /* OneSignalFramework in Frameworks */ = {isa = PBXBuildFile; productRef = F9BD290E996DA61F670A77FF /* OneSignalFramework */; };
 		122642BEF5058304974AECFA /* EventEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CA9C1A636044B04FF6591FE /* EventEditView.swift */; };
 		1578EF6CB778038234AF36D6 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65B364AEB657C1C5BEE8FAB6 /* SupabaseClient.swift */; };
 		221A52FF2E0856F233729EE5 /* AdminPlaceholderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA791D3357DDC85A6236355D /* AdminPlaceholderView.swift */; };
@@ -23,6 +24,7 @@
 		9CAE57F57BF265116F14F340 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */; };
 		AC4D14BA90342DA81A4B2B1E /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E42E0AEF7749647ADDFE498 /* Models.swift */; };
 		B9510171D37606FA467A17EC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 56102EC49F1986DF4BAD645A /* Assets.xcassets */; };
+		B9C3DEF180EDDDA9C26F14B2 /* Push.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFA3582CD153350811B5579E /* Push.swift */; };
 		BAD8803DB9F4D033605BF39E /* MoimDesign.swift in Sources */ = {isa = PBXBuildFile; fileRef = 53C59092C198E5087DFE87D6 /* MoimDesign.swift */; };
 		C3CEEBBB8210C301AE92F308 /* AvatarAdjustView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46283BAAE3AEE4F4081CA36E /* AvatarAdjustView.swift */; };
 		CC2E432B9D8FFB59F8A5E2E2 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7587B7A6C7F09B42D62B36D1 /* LoginView.swift */; };
@@ -41,6 +43,7 @@
 		1C46B8FDCED34E1AC6ACE940 /* FilesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesView.swift; sourceTree = "<group>"; };
 		2ADA7A9789560AF4AFFABA18 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		2CA9C1A636044B04FF6591FE /* EventEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventEditView.swift; sourceTree = "<group>"; };
+		31C7C27D08162CA0CBA76C7B /* MoimTalk.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = MoimTalk.entitlements; sourceTree = "<group>"; };
 		38F2E8EA04ADE013469515E9 /* RoomSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoomSettingsView.swift; sourceTree = "<group>"; };
 		46283BAAE3AEE4F4081CA36E /* AvatarAdjustView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarAdjustView.swift; sourceTree = "<group>"; };
 		4E164F2622713CCF506DDA5A /* SignupApprovalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignupApprovalView.swift; sourceTree = "<group>"; };
@@ -58,6 +61,7 @@
 		BA791D3357DDC85A6236355D /* AdminPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminPlaceholderView.swift; sourceTree = "<group>"; };
 		BB0A1DBF9F67B1886AFC7CF5 /* MoimTalkApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimTalkApp.swift; sourceTree = "<group>"; };
 		C937F0DF6E3C08939612A4F3 /* KrHolidays.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KrHolidays.swift; sourceTree = "<group>"; };
+		DFA3582CD153350811B5579E /* Push.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Push.swift; sourceTree = "<group>"; };
 		E17DE9D14FE52E794BAFCB4E /* DateUtils.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateUtils.swift; sourceTree = "<group>"; };
 		E9B260B7A2E9FBE5A4D76072 /* MoimRealtimeSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MoimRealtimeSync.swift; sourceTree = "<group>"; };
 		EA9AAD91F9D647582FC5E77D /* PendingApprovalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PendingApprovalView.swift; sourceTree = "<group>"; };
@@ -70,6 +74,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				66A372AA8458DB99401EF198 /* Supabase in Frameworks */,
+				0F00500938EC7F652D73CCA6 /* OneSignalFramework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -88,7 +93,9 @@
 			isa = PBXGroup;
 			children = (
 				56102EC49F1986DF4BAD645A /* Assets.xcassets */,
+				31C7C27D08162CA0CBA76C7B /* MoimTalk.entitlements */,
 				BB0A1DBF9F67B1886AFC7CF5 /* MoimTalkApp.swift */,
+				DFA3582CD153350811B5579E /* Push.swift */,
 				B4E4F570F8BF3E17B534F459 /* Design */,
 				F0D43BCE38E3A72ABB6B8D62 /* Supabase */,
 				9B05C28E6C22C4E8AD69E786 /* ViewModel */,
@@ -174,6 +181,7 @@
 			name = MoimTalk;
 			packageProductDependencies = (
 				74F619C44F2D7ACF75D6A1EF /* Supabase */,
+				F9BD290E996DA61F670A77FF /* OneSignalFramework */,
 			);
 			productName = MoimTalk;
 			productReference = 77AF8F071B3C5AC6410D6389 /* MoimTalk.app */;
@@ -198,6 +206,7 @@
 			mainGroup = A1D7B2BF494DE1CCAB90B550;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				EA39A35A7D349435EED7A4F6 /* XCRemoteSwiftPackageReference "OneSignal-XCFramework" */,
 				C90FE215FEC2230F13F3A348 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -243,6 +252,7 @@
 				40BD3669E5C236982894A7A3 /* MoimTalkApp.swift in Sources */,
 				EDCBA9ABDE2D41AFED8D9E7A /* MoimViewModel.swift in Sources */,
 				DFF4A0DF7DA3325B06965141 /* PendingApprovalView.swift in Sources */,
+				B9C3DEF180EDDDA9C26F14B2 /* Push.swift in Sources */,
 				48D671F7416618EC4B1610D6 /* RoomListView.swift in Sources */,
 				974287247F382BD2A5239019 /* RoomSettingsView.swift in Sources */,
 				F5F93EFC6BDFFDAE254FB71B /* RoomView.swift in Sources */,
@@ -316,6 +326,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MoimTalk/MoimTalk.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9AWEB9NYHH;
@@ -403,6 +414,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = MoimTalk/MoimTalk.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 9AWEB9NYHH;
@@ -455,6 +467,14 @@
 				minimumVersion = 2.0.0;
 			};
 		};
+		EA39A35A7D349435EED7A4F6 /* XCRemoteSwiftPackageReference "OneSignal-XCFramework" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/OneSignal/OneSignal-XCFramework";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -462,6 +482,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C90FE215FEC2230F13F3A348 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Supabase;
+		};
+		F9BD290E996DA61F670A77FF /* OneSignalFramework */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EA39A35A7D349435EED7A4F6 /* XCRemoteSwiftPackageReference "OneSignal-XCFramework" */;
+			productName = OneSignalFramework;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

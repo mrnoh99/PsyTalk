@@ -11,7 +11,7 @@ packages:
     url: https://github.com/supabase/supabase-swift
     from: "2.0.0"
   OneSignal:
-    url: https://github.com/OneSignal/OneSignal-iOS-SDK
+    url: https://github.com/OneSignal/OneSignal-XCFramework
     from: "5.0.0"
 targets:
   MoimTalk:

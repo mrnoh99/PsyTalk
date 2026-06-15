@@ -2,7 +2,7 @@
 # MoimTalk.xcodeproj 가 생성됩니다. (수동 Xcode 설정은 README.md 참고)
 name: MoimTalk
 options:
-  bundleIdPrefix: com.example.moimtalk
+  bundleIdPrefix: com.mrnoh99
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
@@ -30,7 +30,7 @@ targets:
         product: OneSignalFramework
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.moimtalk
+        PRODUCT_BUNDLE_IDENTIFIER: com.mrnoh99.psytalk
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait

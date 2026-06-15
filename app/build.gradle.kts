@@ -10,6 +10,9 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+// Android Studio가 :app 서브프로젝트에서 prepareKotlinBuildScriptModel 을 찾지 못할 때 동기화 실패 방지
+tasks.register("prepareKotlinBuildScriptModel") {}
+
 val keystoreProperties = Properties().apply {
     val f = rootProject.file("keystore.properties")
     if (f.exists()) load(FileInputStream(f))

@@ -13,6 +13,8 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.zIndex
@@ -1592,6 +1594,7 @@ private fun ChatPane(
         )
     }
     val listState = rememberLazyListState()
+    val focusManager = LocalFocusManager.current
     val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
     val lastIndex = if (messages.isEmpty()) 1 else messages.size
 
@@ -1605,6 +1608,8 @@ private fun ChatPane(
         state = listState,
         modifier = modifier
             .fillMaxSize()
+            // 빈 곳 탭하면 키보드 내리기 (메시지 말풍선 자체 탭/길게누르기는 그대로 동작)
+            .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
             .padding(horizontal = 12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
         contentPadding = PaddingValues(bottom = 8.dp),

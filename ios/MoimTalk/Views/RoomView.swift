@@ -312,6 +312,11 @@ struct ChatView: View {
                 .padding(.horizontal, 12).padding(.vertical, 14)
             }
             .background(Moim.bg)
+            // 키보드 내리기 (iOS 는 시스템 back 이 없어 명시적으로 처리) — 드래그/빈곳 탭으로 닫기
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture {
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 chatInputBar
                     .padding(.bottom, keyboardHeight)
@@ -325,6 +330,10 @@ struct ChatView: View {
                 vm.resolveAttachments()
             }
             .onAppear { vm.resolveAttachments() }
+            .onDisappear {
+                // 방을 나가면 키보드 내려가도록 포커스 해제 (재입장 시 키보드 떠 있던 문제 방지)
+                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+            }
             .confirmationDialog("이 메시지를 삭제할까요?",
                                 isPresented: Binding(get: { deleteTarget != nil }, set: { if !$0 { deleteTarget = nil } }),
                                 titleVisibility: .visible) {

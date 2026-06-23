@@ -352,8 +352,12 @@ enum MoimRepository {
         guard let uid = currentUserId() else { throw AppError.notLoggedIn }
         let url = try await uploadToStorage(roomId: roomId, fileName: fileName, data: data)
         let cap = caption?.trimmingCharacters(in: .whitespacesAndNewlines)
+        // 이미지 확장자면 어느 버튼(사진/파일)으로 올렸든 사진으로 인라인 표시
+        let ext = (fileName as NSString).pathExtension.lowercased()
+        let imageExts: Set<String> = ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp"]
+        let effType = (type == "image" || imageExts.contains(ext)) ? "image" : type
         let payload = MessageInsert(
-            roomId: roomId, senderId: uid, content: cap.flatMap { $0.isEmpty ? nil : $0 }, type: type,
+            roomId: roomId, senderId: uid, content: cap.flatMap { $0.isEmpty ? nil : $0 }, type: effType,
             attachmentUrl: url, attachmentName: fileName
         )
         try await supabase.from("messages").insert(payload).execute()

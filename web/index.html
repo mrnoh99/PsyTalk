@@ -2518,7 +2518,10 @@ async function sendPendingAttach(caption){
   if(upErr){alert('업로드 실패: '+upErr.message);return false;}
   const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
   const cap=(caption||'').trim();
-  const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:cap||null,type:kind,attachment_url:url,attachment_name:file.name});
+  // 이미지 파일이면 어느 버튼(사진/파일)으로 올렸든 사진으로 인라인 표시
+  const isImg=/^image\//.test(file.type||'')||/\.(jpe?g|png|gif|webp|heic|heif|bmp)$/i.test(file.name);
+  const effType=isImg?'image':kind;
+  const {error}=await sb.from('messages').insert({room_id:active.id,sender_id:me.id,content:cap||null,type:effType,attachment_url:url,attachment_name:file.name});
   if(error){alert('전송 실패: '+error.message);return false;}
   clearAttach();return true;
 }

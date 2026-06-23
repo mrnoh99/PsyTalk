@@ -18,6 +18,7 @@ object MoimRepository {
 
     private const val FILES_BUCKET = "room-files"
     private const val CHAT_BUCKET = "chat-files"   // 채팅 첨부(비공개·방 구성원만)
+    private val IMAGE_EXTS = setOf("jpg", "jpeg", "png", "gif", "webp", "heic", "heif", "bmp")
 
     fun currentUserId(): String? =
         supabase.auth.currentSessionOrNull()?.user?.id
@@ -283,9 +284,12 @@ object MoimRepository {
     suspend fun sendAttachment(roomId: String, fileName: String, bytes: ByteArray, type: String, caption: String? = null) {
         val uid = currentUserId() ?: error("Not logged in")
         val url = uploadToStorage(roomId, fileName, bytes)
+        // 이미지 확장자면 어느 버튼(사진/파일)으로 올렸든 사진으로 인라인 표시
+        val ext = fileName.substringAfterLast('.', "").lowercase()
+        val effType = if (type == "image" || ext in IMAGE_EXTS) "image" else type
         supabase.from("messages").insert(
             MessageInsert(
-                roomId = roomId, senderId = uid, content = caption?.trim()?.takeIf { it.isNotEmpty() }, type = type,
+                roomId = roomId, senderId = uid, content = caption?.trim()?.takeIf { it.isNotEmpty() }, type = effType,
                 attachmentUrl = url, attachmentName = fileName,
             )
         )

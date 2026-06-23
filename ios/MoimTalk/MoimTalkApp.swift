@@ -39,6 +39,8 @@ struct RootView: View {
     }
 
     private func closeRoomOverlay() {
+        // 방을 나갈 때(뒤로가기·나가기·삭제 등 모든 경로) 키보드 먼저 내림
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
         withAnimation(MoimOverlayAnim.anim) { showRoomOverlay = false }
         vm.closeRoom()
         openedRoom = nil

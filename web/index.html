@@ -595,7 +595,9 @@
         <button class="lk" id="cIconClear" style="display:none;color:var(--admin)" onclick="clearCreateIcon()">제거</button>
         <input type="file" id="cIconInput" accept="image/*" style="display:none" onchange="onCreateIconPicked(this)">
       </div>
-      <span class="lbl">회원 선택</span><div id="cpickList"></div>
+      <span class="lbl">회원 선택</span>
+      <input class="field" id="crSearch" placeholder="🔍 이름·직군으로 검색" oninput="renderCrPick()" style="margin-bottom:8px">
+      <div id="cpickList"></div>
       <button class="primary" onclick="createRoom()" style="margin-top:16px">방 만들기</button>
     </div>
   </section>
@@ -3109,16 +3111,24 @@ async function wardSave(){
 /* ====== 모임방 만들기 ====== */
 function openCreate(){
   cpick=new Set();document.getElementById('newRoomName').value='';
+  const cs=document.getElementById('crSearch'); if(cs)cs.value='';
   createColor=ROOM_COLORS[1];createIconFile=null;createIconPreview=null;
   renderSwatches('cColors',createColor,'pickCreateColor');renderCreateIconPreview();
-  // 본인 제외 + 승인된 회원만 (대기 중인 가입자는 방에 추가 불가)
-  const others=Object.values(profilesById).filter(p=>p.id!==me.id&&p.approved!==false&&!p.withdrawn).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-  document.getElementById('cpickList').innerHTML=others.length?others.map(p=>`
-    <div class="pick" data-id="${p.id}" onclick="toggleC('${p.id}')">
-      <div class="av" style="background:${tcolor(p.member_type)}">${ini(p.name)}</div>
-      <span class="pn">${esc(p.name)}</span><span class="chk" style="visibility:hidden">✓</span></div>`).join('')
-    :'<p style="color:var(--sub);font-size:13px">표시할 회원가 없습니다.</p>';
+  renderCrPick();
   openListSlideOverlay('createRoomScreen');
+}
+function renderCrPick(){
+  const q=(document.getElementById('crSearch')?.value||'').trim().toLowerCase();
+  // 본인 제외 + 승인된 회원만 (대기 중인 가입자는 방에 추가 불가)
+  let others=Object.values(profilesById).filter(p=>p.id!==me.id&&p.approved!==false&&!p.withdrawn);
+  if(q)others=others.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.member_type||'').toLowerCase().includes(q));
+  others.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+  document.getElementById('cpickList').innerHTML=others.length?others.map(p=>{
+    const sel=cpick.has(p.id);
+    return `<div class="pick${sel?' sel':''}" data-id="${p.id}" onclick="toggleC('${p.id}')">
+      <div class="av" style="background:${tcolor(p.member_type)}">${ini(p.name)}</div>
+      <span class="pn">${esc(p.name)}</span><span class="chk" style="visibility:${sel?'visible':'hidden'}">✓</span></div>`;}).join('')
+    :'<p style="color:var(--sub);font-size:13px">표시할 회원가 없습니다.</p>';
 }
 async function closeCreateRoom(){ await closeListSlideOverlay('createRoomScreen'); }
 function toggleC(id){cpick.has(id)?cpick.delete(id):cpick.add(id);

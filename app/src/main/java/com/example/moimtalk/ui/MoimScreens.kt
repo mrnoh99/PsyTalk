@@ -3153,7 +3153,13 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
     val iconPicker = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
         if (uri != null) pendingIconAdjustUri = uri
     }
-    val people = vm.otherProfiles()
+    val allPeople = vm.otherProfiles()
+    var search by remember { mutableStateOf("") }
+    val people = if (search.isBlank()) allPeople
+        else allPeople.filter {
+            it.name.contains(search.trim(), ignoreCase = true) ||
+                it.memberType.contains(search.trim(), ignoreCase = true)
+        }
 
     pendingIconAdjustUri?.let { uri ->
         AvatarAdjustDialog(
@@ -3204,6 +3210,15 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
             )
             Spacer(Modifier.height(14.dp))
             Text("참여 회원 선택", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = MoimSub)
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = search,
+                onValueChange = { search = it },
+                colors = moimOutlinedTextFieldColors(),
+                placeholder = { Text("🔍 이름·직군으로 검색") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Spacer(Modifier.height(8.dp))
             LazyColumn(modifier = Modifier.weight(1f)) {
                 if (people.isEmpty()) {

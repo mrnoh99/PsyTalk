@@ -7,6 +7,7 @@ struct CreateRoomView: View {
     let onBack: () -> Void
 
     @State private var name = ""
+    @State private var search = ""
     @State private var selected: Set<String> = []
     @State private var color = ROOM_COLORS[1]
     @State private var iconData: Data?
@@ -40,8 +41,14 @@ struct CreateRoomView: View {
                 Text("참여 회원 선택").font(.system(size: 12, weight: .bold)).foregroundColor(Moim.sub)
                     .padding(.bottom, 8)
 
+                TextField("🔍 이름·직군으로 검색", text: $search)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.bottom, 8)
+
                 ScrollView {
-                    let people = vm.otherProfiles
+                    let q = search.trimmingCharacters(in: .whitespaces)
+                    let people = q.isEmpty ? vm.otherProfiles
+                        : vm.otherProfiles.filter { $0.name.localizedCaseInsensitiveContains(q) || $0.memberType.localizedCaseInsensitiveContains(q) }
                     if people.isEmpty {
                         Text("표시할 회원가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub).padding(8)
                     } else {

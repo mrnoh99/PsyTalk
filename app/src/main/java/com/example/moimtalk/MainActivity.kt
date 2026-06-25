@@ -17,6 +17,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.background
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
@@ -1087,6 +1089,13 @@ fun App(vm: MoimViewModel = viewModel()) {
         }
     }
 
+    // 상태바(시계 등)와 겹치지 않도록 루트에 상태바 인셋 적용 (Android 15+ edge-to-edge 강제 대응)
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MoimTheme.palette.paper)
+            .statusBarsPadding()
+    ) {
     when {
         !vm.loggedIn -> LoginScreen(vm)
         // 기본값 불승인: approved 가 true 가 아니면(false·미설정) 승인 대기
@@ -1138,6 +1147,7 @@ fun App(vm: MoimViewModel = viewModel()) {
                 WardStatusScreen(vm = vm, onBack = { showWard = false })
             }
         }
+    }
     }
 
     // 전역 오류 표시 (등록/수정/업로드 실패 원인이 보이도록)

@@ -6,6 +6,7 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
@@ -362,6 +363,9 @@ fun CalendarPane(vm: MoimViewModel, room: Room, canPost: Boolean, modifier: Modi
         showEventDetail = true
     }
     val compactEvents = opensWeekCalendar(room)
+
+    // 일정 상세가 열려 있으면 BACK 은 방이 아니라 상세만 닫음 (가장 안쪽 핸들러 우선)
+    BackHandler(enabled = showEventDetail) { showEventDetail = false }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(modifier = Modifier.fillMaxSize().padding(13.dp)) {

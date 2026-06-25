@@ -2800,6 +2800,35 @@ private fun RoomMemberInfo(p: Profile, nameSuffix: String = "", modifier: Modifi
     }
 }
 
+// 모임방 만들기 회원 선택 행 (가나다순/직군별 공용)
+@Composable
+private fun CreateMemberRow(p: Profile, on: Boolean, onToggle: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 7.dp)
+            .clip(RoundedCornerShape(11.dp))
+            .clickable { onToggle() }
+            .background(moimToggleBg(on, MoimHl))
+            .then(if (MoimTheme.dark && on) Modifier.border(1.dp, moimToggleBorder(true), RoundedCornerShape(11.dp)) else Modifier)
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(typeColor(p.memberType), RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(p.name.take(3), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.width(10.dp))
+        RoomMemberInfo(p, modifier = Modifier.weight(1f))
+        Spacer(Modifier.width(8.dp))
+        Text(if (on) "✓" else "○", color = moimToggleText(on, MoimAccent, MoimLine), fontWeight = FontWeight.Bold)
+    }
+}
+
 // 회원 검색·관리 행의 연락처 줄 — 이메일·전화번호를 작은 글씨로 (있는 것만)
 @Composable
 private fun MemberContactLines(p: Profile) {
@@ -3155,6 +3184,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
     }
     val allPeople = vm.otherProfiles()
     var search by remember { mutableStateOf("") }
+    var byType by remember { mutableStateOf(false) }
     val people = if (search.isBlank()) allPeople
         else allPeople.filter {
             it.name.contains(search.trim(), ignoreCase = true) ||
@@ -3220,6 +3250,13 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
+            Row {
+                SortChip("가나다순", !byType) { byType = false }
+                Spacer(Modifier.width(8.dp))
+                SortChip("직군별", byType) { byType = true }
+            }
+            Spacer(Modifier.height(8.dp))
+            val toggle: (String) -> Unit = { id -> selected = if (selected.contains(id)) selected - id else selected + id }
             LazyColumn(modifier = Modifier.weight(1f)) {
                 if (people.isEmpty()) {
                     item {
@@ -3229,33 +3266,16 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                             modifier = Modifier.padding(8.dp)
                         )
                     }
-                }
-                items(people) { p ->
-                    val on = selected.contains(p.id)
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 7.dp)
-                            .clip(RoundedCornerShape(11.dp))
-                            .clickable { selected = if (on) selected - p.id else selected + p.id }
-                            .background(moimToggleBg(on, MoimHl))
-                            .then(if (MoimTheme.dark && on) Modifier.border(1.dp, moimToggleBorder(true), RoundedCornerShape(11.dp)) else Modifier)
-                            .padding(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .background(typeColor(p.memberType), RoundedCornerShape(10.dp)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(p.name.take(3), color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(Modifier.width(10.dp))
-                        RoomMemberInfo(p, modifier = Modifier.weight(1f))
-                        Spacer(Modifier.width(8.dp))
-                        Text(if (on) "✓" else "○", color = moimToggleText(on, MoimAccent, MoimLine), fontWeight = FontWeight.Bold)
+                } else if (byType) {
+                    val groups = people.groupBy { it.memberType }
+                    val order = MTYPE_ORDER.filter { groups.containsKey(it) } + groups.keys.filter { it !in MTYPE_ORDER }
+                    order.forEach { t ->
+                        val g = groups[t] ?: return@forEach
+                        item { Text("$t · ${g.size}명", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = typeColor(t), modifier = Modifier.padding(top = 4.dp, bottom = 6.dp)) }
+                        items(g, key = { it.id }) { p -> CreateMemberRow(p, selected.contains(p.id)) { toggle(p.id) } }
                     }
+                } else {
+                    items(people, key = { it.id }) { p -> CreateMemberRow(p, selected.contains(p.id)) { toggle(p.id) } }
                 }
             }
             Spacer(Modifier.height(10.dp))

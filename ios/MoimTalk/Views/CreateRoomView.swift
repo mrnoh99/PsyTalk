@@ -8,10 +8,47 @@ struct CreateRoomView: View {
 
     @State private var name = ""
     @State private var search = ""
+    @State private var byType = false
     @State private var selected: Set<String> = []
     @State private var color = ROOM_COLORS[1]
     @State private var iconData: Data?
     @State private var iconAdjustImage: UIImage?
+
+    @ViewBuilder private func sortBtn(_ title: String, _ type: Bool) -> some View {
+        let on = byType == type
+        Button { byType = type } label: {
+            Text(title)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(moimToggleText(selected: on, lightOn: .white, lightOff: Moim.accent))
+                .padding(.horizontal, 12).padding(.vertical, 5)
+                .background(moimToggleBg(selected: on, lightOn: Moim.accent, lightOff: Moim.bg))
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder private func memberRow(_ p: Profile) -> some View {
+        let on = selected.contains(p.id)
+        HStack(spacing: 10) {
+            Text(String(p.name.prefix(3)))
+                .font(.system(size: 11, weight: .bold)).foregroundColor(.white)
+                .frame(width: 32, height: 32)
+                .background(typeColor(p.memberType)).clipShape(RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 2) {
+                Text(p.name).font(.system(size: 13.5, weight: .semibold)).foregroundColor(Moim.ink)
+                MemberTypeIntroLines(profile: p)
+            }
+            Spacer()
+            Text(on ? "✓" : "○").foregroundColor(moimToggleText(selected: on, lightOn: Moim.accent, lightOff: Moim.line)).fontWeight(.bold)
+        }
+        .padding(10)
+        .background(moimToggleBg(selected: on, lightOn: Moim.hl))
+        .overlay(RoundedRectangle(cornerRadius: 11).stroke(ThemeManager.shared.dark && on ? moimToggleBorder(selected: true) : Color.clear, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 11))
+        .padding(.bottom, 7)
+        .contentShape(Rectangle())
+        .onTapGesture { if on { selected.remove(p.id) } else { selected.insert(p.id) } }
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,37 +82,33 @@ struct CreateRoomView: View {
                     .textFieldStyle(.roundedBorder)
                     .padding(.bottom, 8)
 
+                HStack(spacing: 7) {
+                    sortBtn("가나다순", false)
+                    sortBtn("직군별", true)
+                    Spacer()
+                }
+                .padding(.bottom, 8)
+
                 ScrollView {
                     let q = search.trimmingCharacters(in: .whitespaces)
                     let people = q.isEmpty ? vm.otherProfiles
                         : vm.otherProfiles.filter { $0.name.localizedCaseInsensitiveContains(q) || $0.memberType.localizedCaseInsensitiveContains(q) }
                     if people.isEmpty {
                         Text("표시할 회원가 없습니다.").font(.system(size: 13)).foregroundColor(Moim.sub).padding(8)
-                    } else {
-                        ForEach(people) { p in
-                            let on = selected.contains(p.id)
-                            HStack(spacing: 10) {
-                                Text(String(p.name.prefix(3)))
-                                    .font(.system(size: 11, weight: .bold)).foregroundColor(.white)
-                                    .frame(width: 32, height: 32)
-                                    .background(typeColor(p.memberType)).clipShape(RoundedRectangle(cornerRadius: 10))
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(p.name).font(.system(size: 13.5, weight: .semibold)).foregroundColor(Moim.ink)
-                                    MemberTypeIntroLines(profile: p)
-                                }
+                    } else if byType {
+                        let groups = Dictionary(grouping: people) { $0.memberType.isEmpty ? "기타" : $0.memberType }
+                        let order = MTYPE_ORDER.filter { groups[$0] != nil } + groups.keys.filter { !MTYPE_ORDER.contains($0) }.sorted()
+                        ForEach(order, id: \.self) { t in
+                            HStack {
+                                Text("\(t) · \(groups[t]?.count ?? 0)명")
+                                    .font(.system(size: 11, weight: .bold)).foregroundColor(typeColor(t))
                                 Spacer()
-                                Text(on ? "✓" : "○").foregroundColor(moimToggleText(selected: on, lightOn: Moim.accent, lightOff: Moim.line)).fontWeight(.bold)
                             }
-                            .padding(10)
-                            .background(moimToggleBg(selected: on, lightOn: Moim.hl))
-                            .overlay(RoundedRectangle(cornerRadius: 11).stroke(ThemeManager.shared.dark && on ? moimToggleBorder(selected: true) : Color.clear, lineWidth: 1))
-                            .clipShape(RoundedRectangle(cornerRadius: 11))
-                            .padding(.bottom, 7)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                if on { selected.remove(p.id) } else { selected.insert(p.id) }
-                            }
+                            .padding(.top, 6).padding(.bottom, 2)
+                            ForEach(groups[t] ?? []) { p in memberRow(p) }
                         }
+                    } else {
+                        ForEach(people) { p in memberRow(p) }
                     }
                 }
 

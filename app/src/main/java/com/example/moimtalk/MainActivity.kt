@@ -4,6 +4,7 @@ import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInHorizontally
@@ -1086,6 +1087,17 @@ fun App(vm: MoimViewModel = viewModel()) {
         if (vm.rooms.none { it.id == id }) {
             vm.closeRoom()
             openedRoom = null
+        }
+    }
+
+    // 시스템 BACK: 열린 화면을 먼저 닫고, 방 목록(최상위)에서만 앱 종료(기본 동작)
+    BackHandler(enabled = showWard || openedRoom != null || showCreateRoom || showApprovals || showSettings) {
+        when {
+            showWard -> showWard = false
+            openedRoom != null -> { vm.closeRoom(); openedRoom = null }
+            showCreateRoom -> showCreateRoom = false
+            showApprovals -> showApprovals = false
+            showSettings -> showSettings = false
         }
     }
 

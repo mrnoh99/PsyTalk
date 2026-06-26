@@ -85,7 +85,6 @@ struct CreateRoomView: View {
                 TextField("🔍 이름·직군으로 검색", text: $search)
                     .textFieldStyle(.roundedBorder)
                     .focused($searchFocused)
-                    .submitLabel(.done)
                     .onSubmit { searchFocused = false }
                     .padding(.bottom, 8)
 
@@ -136,6 +135,8 @@ struct CreateRoomView: View {
             .padding(16)
         }
         .background(Moim.paper.ignoresSafeArea())
+        // 빈 곳/목록 등 다른 곳을 탭하면 키보드 내림 (텍스트필드 탭은 그대로 포커스됨)
+        .onTapGesture { searchFocused = false }
         .fullScreenCover(isPresented: Binding(
             get: { iconAdjustImage != nil },
             set: { if !$0 { iconAdjustImage = nil } }

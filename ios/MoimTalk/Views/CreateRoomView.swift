@@ -111,11 +111,11 @@ struct CreateRoomView: View {
                         ForEach(people) { p in memberRow(p) }
                     }
                 }
-                // 검색 입력 중 빈 곳 탭/드래그하면 키보드 내림
+                // 검색 입력 중 목록 탭/드래그하면 키보드 내림 (ScrollView 의 onTapGesture 는 불안정 → simultaneousGesture 사용)
                 .scrollDismissesKeyboard(.interactively)
-                .onTapGesture {
+                .simultaneousGesture(TapGesture().onEnded {
                     UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                }
+                })
 
                 Button {
                     let nm = name.trimmingCharacters(in: .whitespaces)

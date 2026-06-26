@@ -15,6 +15,7 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.zIndex
@@ -3186,6 +3187,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
     var search by remember { mutableStateOf("") }
     var byType by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     val people = if (search.isBlank()) allPeople
         else allPeople.filter {
             it.name.contains(search.trim(), ignoreCase = true) ||
@@ -3221,6 +3223,8 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .padding(pad)
                 .fillMaxSize()
+                // 화면 빈 곳/목록 등 다른 곳 탭하면 키보드 내림
+                .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus(); keyboardController?.hide() }) }
                 .padding(16.dp)
         ) {
             OutlinedTextField(
@@ -3257,13 +3261,11 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
                 SortChip("직군별", byType) { byType = true }
             }
             Spacer(Modifier.height(8.dp))
-            val toggle: (String) -> Unit = { id -> selected = if (selected.contains(id)) selected - id else selected + id }
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    // 빈 곳 탭하면 검색 키보드 내림 (회원 행 탭/스크롤은 그대로)
-                    .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
-            ) {
+            val toggle: (String) -> Unit = { id ->
+                focusManager.clearFocus(); keyboardController?.hide()
+                selected = if (selected.contains(id)) selected - id else selected + id
+            }
+            LazyColumn(modifier = Modifier.weight(1f)) {
                 if (people.isEmpty()) {
                     item {
                         Text(

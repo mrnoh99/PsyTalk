@@ -13,10 +13,11 @@ struct CreateRoomView: View {
     @State private var color = ROOM_COLORS[1]
     @State private var iconData: Data?
     @State private var iconAdjustImage: UIImage?
+    @FocusState private var searchFocused: Bool
 
     @ViewBuilder private func sortBtn(_ title: String, _ type: Bool) -> some View {
         let on = byType == type
-        Button { byType = type } label: {
+        Button { byType = type; searchFocused = false } label: {
             Text(title)
                 .font(.system(size: 11, weight: .bold))
                 .foregroundColor(moimToggleText(selected: on, lightOn: .white, lightOff: Moim.accent))
@@ -47,7 +48,10 @@ struct CreateRoomView: View {
         .clipShape(RoundedRectangle(cornerRadius: 11))
         .padding(.bottom, 7)
         .contentShape(Rectangle())
-        .onTapGesture { if on { selected.remove(p.id) } else { selected.insert(p.id) } }
+        .onTapGesture {
+            searchFocused = false   // 회원 탭 = 다른 곳 터치 → 키보드 내림
+            if on { selected.remove(p.id) } else { selected.insert(p.id) }
+        }
     }
 
     var body: some View {
@@ -80,6 +84,9 @@ struct CreateRoomView: View {
 
                 TextField("🔍 이름·직군으로 검색", text: $search)
                     .textFieldStyle(.roundedBorder)
+                    .focused($searchFocused)
+                    .submitLabel(.done)
+                    .onSubmit { searchFocused = false }
                     .padding(.bottom, 8)
 
                 HStack(spacing: 7) {
@@ -111,11 +118,9 @@ struct CreateRoomView: View {
                         ForEach(people) { p in memberRow(p) }
                     }
                 }
-                // 검색 입력 중 목록 탭/드래그하면 키보드 내림 (ScrollView 의 onTapGesture 는 불안정 → simultaneousGesture 사용)
+                // 검색 입력 중 목록 탭/드래그하면 키보드 내림 (@FocusState 로 확실히 해제)
                 .scrollDismissesKeyboard(.interactively)
-                .simultaneousGesture(TapGesture().onEnded {
-                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-                })
+                .simultaneousGesture(TapGesture().onEnded { searchFocused = false })
 
                 Button {
                     let nm = name.trimmingCharacters(in: .whitespaces)

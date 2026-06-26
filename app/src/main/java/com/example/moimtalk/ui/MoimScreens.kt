@@ -3185,6 +3185,7 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
     val allPeople = vm.otherProfiles()
     var search by remember { mutableStateOf("") }
     var byType by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
     val people = if (search.isBlank()) allPeople
         else allPeople.filter {
             it.name.contains(search.trim(), ignoreCase = true) ||
@@ -3257,7 +3258,12 @@ fun CreateRoomScreen(vm: MoimViewModel, onBack: () -> Unit) {
             }
             Spacer(Modifier.height(8.dp))
             val toggle: (String) -> Unit = { id -> selected = if (selected.contains(id)) selected - id else selected + id }
-            LazyColumn(modifier = Modifier.weight(1f)) {
+            LazyColumn(
+                modifier = Modifier
+                    .weight(1f)
+                    // 빈 곳 탭하면 검색 키보드 내림 (회원 행 탭/스크롤은 그대로)
+                    .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
+            ) {
                 if (people.isEmpty()) {
                     item {
                         Text(

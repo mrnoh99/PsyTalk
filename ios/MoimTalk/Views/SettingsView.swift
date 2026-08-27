@@ -202,6 +202,15 @@ struct MyInfoTab: View {
                         .font(.system(size: 14, weight: .bold)).foregroundColor(Moim.admin)
                     Spacer()
                 }
+
+                VStack(spacing: 2) {
+                    Text("Developed by JaiSung NOH MD 2026")
+                    Text("아주 정신 v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "") (\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""))")
+                }
+                .font(.system(size: 11))
+                .foregroundColor(Moim.sub)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 20)
             }
             .padding(16)
         }

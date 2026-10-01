@@ -39,6 +39,6 @@ targets:
         INFOPLIST_KEY_CFBundleDisplayName: 아주 정신
         INFOPLIST_KEY_CFBundleName: 아주 정신
         MARKETING_VERSION: "1.2"
-        CURRENT_PROJECT_VERSION: "2"
+        CURRENT_PROJECT_VERSION: "4"
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"

@@ -202,7 +202,7 @@ final class MoimViewModel: ObservableObject {
         guard !Task.isCancelled, activeRoom == roomId, gen == roomLoadGeneration else { return }
         reactions = (try? await MoimRepository.roomReactions(roomId: roomId)) ?? []
         markActiveRead()
-        await loadRoomData(roomId, generation: gen)
+        await loadRoomData(roomId, generation: gen, quiet: true)
         guard !Task.isCancelled, activeRoom == roomId, gen == roomLoadGeneration else { return }
         resolveAttachments()
         await loadUnreadFromRealtime()
@@ -331,14 +331,15 @@ final class MoimViewModel: ObservableObject {
         }
     }
 
-    private func loadRoomData(_ roomId: String, generation: UInt64? = nil) async {
+    /// quiet=true: 3초 폴링·Realtime 갱신 — 일시적 네트워크 오류마다 경고창이 반복되지 않도록 조용히 무시
+    private func loadRoomData(_ roomId: String, generation: UInt64? = nil, quiet: Bool = false) async {
         let gen = generation ?? roomLoadGeneration
         guard !Task.isCancelled, activeRoom == roomId, gen == roomLoadGeneration else { return }
         do { events = try await MoimRepository.events(roomId: roomId) }
-        catch { reportError("일정 불러오기", error) }
+        catch { if !quiet { reportError("일정 불러오기", error) } }
         guard !Task.isCancelled, activeRoom == roomId, gen == roomLoadGeneration else { return }
         do { files = try await MoimRepository.files(roomId: roomId) }
-        catch { reportError("자료 불러오기", error) }
+        catch { if !quiet { reportError("자료 불러오기", error) } }
     }
 
     func closeRoom() {

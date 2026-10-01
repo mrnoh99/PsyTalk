@@ -1,7 +1,7 @@
 # 아주 정신 iOS (SwiftUI)
 
 Android 앱(`/app`)과 **동일한 형식·논리**의 iOS 버전입니다.
-**같은 Supabase 백엔드**(Auth/Postgres/Storage)와 **같은 도메인 규칙**(회원 8직군·기본 12방·
+**같은 Supabase 백엔드**(Auth/Postgres/Storage)와 **같은 도메인 규칙**(회원 13직군·기본 2방·
 권한·캘린더/자료실)을 공유합니다. 스펙은 루트 [`CLAUDE.md`](../CLAUDE.md)·[`docs/`](../docs)·
 [`prototype/`](../prototype) 참고.
 
@@ -31,8 +31,8 @@ open MoimTalk.xcodeproj
 의존성(supabase-swift)은 `project.yml` 에 선언돼 있어 Xcode가 자동으로 받습니다.
 
 ### B. 수동 설정
-1. Xcode → New Project → iOS App (SwiftUI), 이름 `MoimTalk`, Bundle ID `com.example.moimtalk`
-2. File → Add Package Dependencies → `https://github.com/supabase/supabase-swift` (2.0.0+)
+1. Xcode → New Project → iOS App (SwiftUI), 이름 `MoimTalk`, Bundle ID `com.mrnoh99.psytalk`
+2. File → Add Package Dependencies → `https://github.com/supabase/supabase-swift` (2.0.0+), `https://github.com/OneSignal/OneSignal-XCFramework` (5.0.0+, 제품 `OneSignalFramework`)
 3. `MoimTalk/` 아래 Swift 파일들을 프로젝트에 추가
 4. 빌드·실행
 
@@ -46,3 +46,7 @@ open MoimTalk.xcodeproj
 - Supabase URL/anon 키는 `Supabase/SupabaseClient.swift` 에 Android와 동일하게 들어 있습니다.
 - supabase-swift 버전에 따라 Storage `upload` 시그니처가 다를 수 있어, 빌드 에러 시
   `MoimRepository.swift` 의 `uploadToStorage` 만 설치된 버전에 맞춰 조정하세요.
+
+## 버전 올릴 때
+- `project.yml` 과 커밋된 `MoimTalk.xcodeproj/project.pbxproj` 의 `MARKETING_VERSION`·`CURRENT_PROJECT_VERSION`
+  을 **함께** 올리세요(xcodegen 없이 .xcodeproj 를 바로 열면 pbxproj 값이 쓰입니다). TestFlight 는 같은 빌드 번호 재업로드 불가.

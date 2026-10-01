@@ -1599,7 +1599,8 @@ private fun ChatPane(
     val imeBottom = WindowInsets.ime.getBottom(LocalDensity.current)
     val lastIndex = if (messages.isEmpty()) 1 else messages.size
 
-    LaunchedEffect(messages.size, imeBottom) {
+    // size 대신 마지막 id — 1000건 상한에서 새 메시지가 와도 개수가 같을 수 있음
+    LaunchedEffect(messages.lastOrNull()?.id, imeBottom) {
         if (lastIndex >= 0) {
             listState.animateScrollToItem(lastIndex)
         }

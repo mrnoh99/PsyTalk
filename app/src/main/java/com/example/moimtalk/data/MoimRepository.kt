@@ -208,11 +208,13 @@ object MoimRepository {
         }
     }
 
+    /** 최근 메시지 최대 1000건 (PostgREST max-rows 기본 1000 — 오래된 순으로 받으면 1000건 초과 시 최신 메시지가 잘림) */
     suspend fun messages(roomId: String): List<Message> =
         supabase.from("messages").select {
             filter { eq("room_id", roomId) }
-            order("created_at", Order.ASCENDING)
-        }.decodeList()
+            order("created_at", Order.DESCENDING)
+            limit(1000)
+        }.decodeList<Message>().reversed()
 
     /** 본인이 쓴 메시지(텍스트/사진/파일) 삭제. RLS 로 본인·관리자만 허용 */
     suspend fun deleteMessage(id: String) {

@@ -172,6 +172,8 @@ prototype/index.html           # HTML 목업(기준), PARITY.md(대조표)
 - **빌드 한계:** 이 클라우드 환경엔 **Android SDK/Gradle가 없어 빌드·실행 검증 불가**.
   코드는 기존 패턴(Supabase-kt 3.3.0, Compose BOM 2024.12)을 따라 작성하고,
   실제 빌드·실행은 사용자가 Android Studio에서 확인.
+- **CI:** `.github/workflows/ci.yml` — PR·main 푸시마다 **iOS(macOS, 시뮬레이터·서명 없음)·Android(assembleDebug)** 빌드 검증.
+  클라우드에서 빌드 못 하는 대신 PR 을 열어 CI 녹색 확인 후 main 머지.
 - **리소스 파일명:** `res/drawable` 등은 **소문자·숫자·언더스코어만** (예: `aumc_psy_logo.png`)
 - **현황 표:** 새 기능 추가/구현 시 `docs/아주정신_요구사항.md`의 구현 현황과 `prototype/PARITY.md`를 함께 갱신
 

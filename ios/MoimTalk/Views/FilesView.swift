@@ -87,10 +87,10 @@ struct FilesView: View {
         }
         .fileImporter(isPresented: $showImporter, allowedContentTypes: [.item]) { result in
             if case .success(let url) = result {
-                if url.startAccessingSecurityScopedResource() {
-                    defer { url.stopAccessingSecurityScopedResource() }
-                    if let data = try? Data(contentsOf: url) { pending = (url.lastPathComponent, data) }
-                }
+                // 보안 범위 접근이 false 여도(앱 내부 사본 등) 읽기는 시도 — RoomView 첨부와 동일
+                let access = url.startAccessingSecurityScopedResource()
+                defer { if access { url.stopAccessingSecurityScopedResource() } }
+                if let data = try? Data(contentsOf: url) { pending = (url.lastPathComponent, data) }
             }
         }
         .sheet(isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } })) {

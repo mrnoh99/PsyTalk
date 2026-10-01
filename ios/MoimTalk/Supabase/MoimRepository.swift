@@ -283,10 +283,12 @@ enum MoimRepository {
     }
 
     // ── 채팅 ──
+    /// 최근 메시지 최대 1000건 (PostgREST max-rows 기본 1000 — 오래된 순으로 받으면 1000건 초과 시 최신 메시지가 잘림)
     static func messages(roomId: String) async throws -> [Message] {
-        try await supabase.from("messages")
+        let rows: [Message] = try await supabase.from("messages")
             .select().eq("room_id", value: roomId)
-            .order("created_at", ascending: true).execute().value
+            .order("created_at", ascending: false).limit(1000).execute().value
+        return rows.reversed()
     }
 
     /// 본인이 쓴 메시지(텍스트/사진/파일) 삭제. RLS 로 본인·관리자만 허용

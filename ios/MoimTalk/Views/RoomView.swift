@@ -325,7 +325,8 @@ struct ChatView: View {
             // .safeAreaInset 뒤에 둬야 입력 바까지 포함해 자동 키보드 회피가 꺼짐
             // (앞에 두면 입력 바가 자동 회피 + 수동 패딩 이중 적용 → 화면 위로 날아감)
             .ignoresSafeArea(.keyboard, edges: .bottom)
-            .onChange(of: vm.messages.count) { _ in
+            // count 대신 마지막 id — 1000건 상한에서 새 메시지가 와도 개수가 같을 수 있음
+            .onChange(of: vm.messages.last?.id) { _ in
                 scrollToBottom(proxy, animated: true)
                 vm.resolveAttachments()
             }
@@ -411,7 +412,7 @@ struct ChatView: View {
                             .textFieldStyle(.roundedBorder)
                     }
                     Button {
-                        let t = input.trimmingCharacters(in: .whitespaces)
+                        let t = input.trimmingCharacters(in: .whitespacesAndNewlines)
                         if let p = pendingAttach {
                             vm.sendAttachment(fileName: p.name, data: p.data, type: p.type, caption: t.isEmpty ? nil : t)
                             pendingAttach = nil
@@ -432,7 +433,9 @@ struct ChatView: View {
             .onChange(of: photoItem) { newItem in
                 guard let newItem else { return }
                 Task {
-                    if let data = try? await newItem.loadTransferable(type: Data.self) {
+                    // 아이폰 원본은 HEIC 라 웹·안드로이드에서 안 보일 수 있음 → JPEG 로 변환해 전송
+                    if let picked = try? await newItem.loadTransferable(type: PickedPhoto.self),
+                       let data = picked.image.jpegData(compressionQuality: 0.85) {
                         pendingAttach = (name: "photo_\(Int(Date().timeIntervalSince1970)).jpg", data: data, type: "image")
                     }
                     photoItem = nil

@@ -2118,8 +2118,9 @@ async function loadReactions(){
 }
 async function loadMsgs(){
   const markP=active?markRead(active.id):Promise.resolve();   // 메시지 로드와 병렬로 읽음 기록
-  const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:true});
-  msgs=data||[];
+  // 최신 1000건(PostgREST max-rows 1000 — 오래된 순 조회 시 1000건 초과 방에서 최신 메시지가 잘림) → 시간순으로 뒤집기
+  const {data}=await sb.from('messages').select('*').eq('room_id',active.id).order('created_at',{ascending:false}).limit(1000);
+  msgs=(data||[]).reverse();
   await markP;                                                // 안읽은수 계산 전에 내 읽음 반영(나 제외)
   // 리액션·메시지별 안읽은수를 렌더 전에 함께 확보 → 안읽은 숫자가 늦게 뜨지 않고 한 번에 표시
   await Promise.all([loadReactions(), active?loadMsgUnread():Promise.resolve()]);

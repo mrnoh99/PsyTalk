@@ -136,6 +136,7 @@ private struct WardDutyPane: View {
     @State private var editResNight = ""
     @State private var editOut1 = ""
     @State private var editOut2 = ""
+    @State private var editOff: Set<String> = []   // Off(구 외래) 여러 명 선택
     var body: some View {
         VStack(spacing: 0) {
             HStack {
@@ -284,6 +285,8 @@ private struct WardDutyPane: View {
                         editResNight = duty?.residentNight ?? ""
                         editOut1 = duty?.residentOutpatient1 ?? ""
                         editOut2 = duty?.residentOutpatient2 ?? ""
+                        editOff = Set(((duty?.residentOutpatient1 ?? "") + "," + (duty?.residentOutpatient2 ?? ""))
+                            .split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty })
                         editDate = day
                     }
                     .font(.system(size: 13, weight: .bold))
@@ -305,7 +308,7 @@ private struct WardDutyPane: View {
                         Text(dutyResidentDisplay(duty?.residentNight)).font(.system(size: 16, weight: .bold)).foregroundColor(Moim.ink)
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("외래").font(.system(size: 10)).foregroundColor(Moim.sub)
+                        Text("Off").font(.system(size: 10)).foregroundColor(Moim.sub)
                         Text(dutyOutpatientDisplay(duty)).font(.system(size: 14, weight: .bold)).foregroundColor(Moim.ink).lineLimit(2)
                     }
                 }
@@ -355,14 +358,18 @@ private struct WardDutyPane: View {
                                 Text(n.isEmpty ? "— (없음)" : n).tag(n)
                             }
                         }
-                        Picker("외래 1", selection: $editOut1) {
-                            ForEach(residentNames, id: \.self) { n in
-                                Text(n.isEmpty ? "— (없음)" : n).tag(n)
-                            }
-                        }
-                        Picker("외래 2", selection: $editOut2) {
-                            ForEach(residentNames, id: \.self) { n in
-                                Text(n.isEmpty ? "— (없음)" : n).tag(n)
+                        Text("Off (여러 명)").font(.caption).foregroundColor(.secondary)
+                        ForEach(residentNames.filter { !$0.isEmpty }, id: \.self) { n in
+                            Button {
+                                if editOff.contains(n) { editOff.remove(n) } else { editOff.insert(n) }
+                            } label: {
+                                HStack {
+                                    Text(n).foregroundColor(.primary)
+                                    Spacer()
+                                    if editOff.contains(n) {
+                                        Image(systemName: "checkmark").foregroundColor(.accentColor)
+                                    }
+                                }
                             }
                         }
                     }
@@ -378,8 +385,8 @@ private struct WardDutyPane: View {
                     Button("저장") {
                         let key = dateKey(day)
                         let dayDuty = off ? "" : editResDay
-                        let o1 = off ? "" : editOut1
-                        let o2 = off ? "" : editOut2
+                        let o1 = off ? "" : editOff.sorted().joined(separator: ", ")
+                        let o2 = ""
                         vm.saveWardDuty(dutyDate: key, profDay: editProf, residentDay: dayDuty, residentNight: editResNight,
                                         residentOutpatient1: o1, residentOutpatient2: o2) { editDate = nil }
                     }

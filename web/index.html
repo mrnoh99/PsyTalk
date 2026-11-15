@@ -543,7 +543,7 @@
       <div><div class="dsl" style="font-size:10px;color:var(--sub)">낮당직</div><div class="dsn" id="todayDutyDay">—</div></div>
       <div><div class="dsl" style="font-size:10px;color:var(--sub)">당직</div><div class="dsn" id="todayDutyNight">—</div></div>
     </div>
-    <div id="todayDutyOutWrap" style="display:none"><span class="lbl">외래</span><div class="tdn" id="todayDutyOut" style="font-size:18px">—</div></div>
+    <div id="todayDutyOutWrap" style="display:none"><span class="lbl">Off</span><div class="tdn" id="todayDutyOut" style="font-size:18px">—</div></div>
     <div id="todayDutyHolOnly" style="display:none"><span class="lbl">당직</span><div class="tdn" id="todayDutyHolNight">—</div></div>
     <button type="button" class="primary" onclick="closeModal('todayDutyModal')">확인</button>
   </div></div>
@@ -554,8 +554,8 @@
     <div id="dutyWeekdayFields">
       <span class="lbl">전공의 낮당직 (의국 · 1인)</span><select class="field" id="dutyResDay"></select>
       <span class="lbl">전공의 당직 (의국 · 1인)</span><select class="field" id="dutyResNight"></select>
-      <span class="lbl">외래 (의국 · 최대 2인)</span><select class="field" id="dutyOut1"></select>
-      <select class="field" id="dutyOut2"></select>
+      <span class="lbl">Off (의국 · 여러 명)</span>
+      <div class="field" id="dutyOffList" style="max-height:170px;overflow:auto;display:flex;flex-direction:column;gap:2px;padding:6px"></div>
     </div>
     <div id="dutyHolidayFields" style="display:none">
       <span class="lbl">전공의 당직 (의국 · 1인)</span><select class="field" id="dutyResNightHol"></select>
@@ -2970,7 +2970,7 @@ function todayDutyPreview(){
   const y=t.getFullYear(), m=t.getMonth()+1, d=t.getDate();
   const prof=dutyProfDisplay(row.prof_day);
   if(isDutyOffDay(y,m,d)) return `${prof}  ·  당직 ${dutyResidentDisplay(row.resident_night)}`;
-  return `${prof}  ·  낮 ${dutyResidentDisplay(row.resident_day)}  ·  당직 ${dutyResidentDisplay(row.resident_night)}  ·  외래 ${esc(outpatientLabel(row))}`;
+  return `${prof}  ·  낮 ${dutyResidentDisplay(row.resident_day)}  ·  당직 ${dutyResidentDisplay(row.resident_night)}  ·  Off ${esc(outpatientLabel(row))}`;
 }
 function scrollToTodayDuty(){
   const t=new Date();
@@ -3026,7 +3026,7 @@ function dutyViewHtml(){
     }else{
       h+=`<div class="dresgrid"><div><div class="dsl">낮</div><div class="dsn">${dutyResidentDisplay(row.resident_day)}</div></div>`;
       h+=`<div><div class="dsl">당직</div><div class="dsn">${dutyResidentDisplay(row.resident_night)}</div></div>`;
-      h+=`<div><div class="dsl">외래</div><div class="dsn" style="font-size:14px">${esc(outpatientLabel(row))}</div></div></div></div>`;
+      h+=`<div><div class="dsl">Off</div><div class="dsn" style="font-size:14px">${esc(outpatientLabel(row))}</div></div></div></div>`;
     }
   }
   h+=`</div></div></div>`;
@@ -3052,10 +3052,19 @@ function openDutyEdit(dateKey){
   }else{
     fillDutySelect(document.getElementById('dutyResDay'),row.resident_day||'',residents);
     fillDutySelect(document.getElementById('dutyResNight'),row.resident_night||'',residents);
-    fillDutySelect(document.getElementById('dutyOut1'),row.resident_outpatient_1||'',residents);
-    fillDutySelect(document.getElementById('dutyOut2'),row.resident_outpatient_2||'',residents);
+    fillDutyOff(residents,[row.resident_outpatient_1,row.resident_outpatient_2].filter(Boolean).join(', '));
   }
   document.getElementById('dutyModal').classList.add('on');
+}
+// Off(구 외래) 멀티선택 — 체크박스 목록 렌더/수집. 저장은 resident_outpatient_1 에 콤마로.
+function fillDutyOff(names,current){
+  const sel=new Set(String(current||'').split(',').map(s=>s.trim()).filter(Boolean));
+  const el=document.getElementById('dutyOffList');if(!el)return;
+  el.innerHTML=names.length?names.map(n=>`<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;font-size:14px;cursor:pointer"><input type="checkbox" value="${esc(n)}" ${sel.has(n)?'checked':''}> ${esc(n)}</label>`).join('')
+    :'<span style="color:var(--sub);font-size:13px">의국 회원이 없습니다.</span>';
+}
+function getDutyOff(){
+  return [...document.querySelectorAll('#dutyOffList input:checked')].map(c=>c.value).join(', ');
 }
 async function saveDuty(){
   if(!dutyEditDate)return;
@@ -3064,10 +3073,9 @@ async function saveDuty(){
   const prof=document.getElementById('dutyProf').value.trim();
   const resDay=off?'':document.getElementById('dutyResDay').value.trim();
   const resNight=off?document.getElementById('dutyResNightHol').value.trim():document.getElementById('dutyResNight').value.trim();
-  const out1=off?'':document.getElementById('dutyOut1').value.trim();
-  const out2=off?'':document.getElementById('dutyOut2').value.trim();
+  const offNames=off?'':getDutyOff();
   const payload={duty_date:dutyEditDate,prof_day:prof,resident_day:resDay,resident_night:resNight,
-    resident_outpatient_1:out1,resident_outpatient_2:out2,updated_by:me.id,updated_at:new Date().toISOString()};
+    resident_outpatient_1:offNames,resident_outpatient_2:'',updated_by:me.id,updated_at:new Date().toISOString()};
   const existing=dutyByDate[dutyEditDate];
   let error;
   if(existing){

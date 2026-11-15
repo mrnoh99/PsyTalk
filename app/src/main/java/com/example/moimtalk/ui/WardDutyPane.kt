@@ -326,7 +326,7 @@ private fun WardDutyDayRow(
                     Text(dutyResidentDisplay(duty?.residentNight), fontSize = 16.sp, fontWeight = FontWeight.Bold, color = MoimInk)
                 }
                 Column(Modifier.weight(1f)) {
-                    Text("외래", fontSize = 10.sp, color = MoimSub)
+                    Text("Off", fontSize = 10.sp, color = MoimSub)
                     Text(
                         dutyOutpatientDisplay(duty?.residentOutpatient1, duty?.residentOutpatient2),
                         fontSize = 14.sp, fontWeight = FontWeight.Bold, color = MoimInk, lineHeight = 18.sp,
@@ -354,8 +354,13 @@ private fun WardDutyEditDialog(
     var prof by remember { mutableStateOf(initialProf) }
     var resDay by remember { mutableStateOf(initialResidentDay) }
     var resNight by remember { mutableStateOf(initialResidentNight) }
-    var out1 by remember { mutableStateOf(initialOutpatient1) }
-    var out2 by remember { mutableStateOf(initialOutpatient2) }
+    // Off(구 외래): 여러 명 선택 → 저장 시 resident_outpatient_1 에 콤마로 합침
+    var offSet by remember {
+        mutableStateOf(
+            (initialOutpatient1 + "," + initialOutpatient2)
+                .split(",").map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        )
+    }
     val dow = DOW_KO[date.dayOfWeek.value - 1]
     val toneLabel = TONE_LABEL[wardDutyTone(date)]
     val title = "${date.monthValue}/${date.dayOfMonth} ($dow) 당직${toneLabel?.let { " · $it" } ?: ""}"
@@ -388,10 +393,10 @@ private fun WardDutyEditDialog(
                 Text("당직 (1인)", fontSize = 10.sp, color = MoimSub)
                 DutyMemberPicker(members = residents, selected = resNight, onSelect = { resNight = it })
                 Spacer(Modifier.height(8.dp))
-                Text("외래 (최대 2인)", fontSize = 10.sp, color = MoimSub)
-                DutyMemberPicker(members = residents, selected = out1, onSelect = { out1 = it })
-                Spacer(Modifier.height(6.dp))
-                DutyMemberPicker(members = residents, selected = out2, onSelect = { out2 = it })
+                Text("Off (여러 명)", fontSize = 10.sp, color = MoimSub)
+                DutyMultiPicker(members = residents, selected = offSet, onToggle = { n ->
+                    offSet = if (offSet.contains(n)) offSet - n else offSet + n
+                })
             }
             Spacer(Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -401,10 +406,42 @@ private fun WardDutyEditDialog(
                     colors = ButtonDefaults.buttonColors(containerColor = MoimLine, contentColor = MoimInk),
                 ) { Text("취소") }
                 Button(
-                    onClick = { onSave(prof, resDay, resNight, out1, out2) },
+                    onClick = { onSave(prof, resDay, resNight, offSet.joinToString(", "), "") },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = MoimAccent),
                 ) { Text("저장") }
+            }
+        }
+    }
+}
+
+/** Off(구 외래) 여러 명 선택 — 체크 목록 */
+@Composable
+private fun DutyMultiPicker(members: List<Profile>, selected: Set<String>, onToggle: (String) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = 220.dp)
+            .verticalScroll(rememberScrollState())
+            .border(1.dp, MoimLine, RoundedCornerShape(11.dp))
+            .padding(4.dp),
+    ) {
+        if (members.isEmpty()) {
+            Text("의국 회원이 없습니다.", fontSize = 13.sp, color = MoimSub, modifier = Modifier.padding(8.dp))
+        } else {
+            members.forEach { m ->
+                val on = selected.contains(m.name)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { onToggle(m.name) }
+                        .padding(horizontal = 10.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(m.name, fontSize = 14.sp, color = MoimInk, modifier = Modifier.weight(1f))
+                    Text(if (on) "✓" else "○", color = if (on) MoimAccent else MoimLine, fontWeight = FontWeight.Bold)
+                }
             }
         }
     }

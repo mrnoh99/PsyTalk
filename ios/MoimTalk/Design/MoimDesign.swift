@@ -382,7 +382,7 @@ func dutyTodayPreview(_ duty: WardDuty?, offDay: Bool) -> String {
     if offDay {
         return "\(prof)  ·  당직 \(dutyResidentDisplay(duty?.residentNight))"
     }
-    return "\(prof)  ·  낮 \(dutyResidentDisplay(duty?.residentDay))  ·  당직 \(dutyResidentDisplay(duty?.residentNight))  ·  외래 \(dutyOutpatientDisplay(duty))"
+    return "\(prof)  ·  낮 \(dutyResidentDisplay(duty?.residentDay))  ·  당직 \(dutyResidentDisplay(duty?.residentNight))  ·  Off \(dutyOutpatientDisplay(duty))"
 }
 
 func wardDutyTodayCardColors() -> (Color, Color) {

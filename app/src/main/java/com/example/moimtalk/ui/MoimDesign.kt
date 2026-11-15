@@ -408,7 +408,7 @@ fun dutyTodayPreview(
     return if (offDay) {
         "$prof  ·  당직 ${dutyResidentDisplay(residentNight)}"
     } else {
-        "$prof  ·  낮 ${dutyResidentDisplay(residentDay)}  ·  당직 ${dutyResidentDisplay(residentNight)}  ·  외래 ${dutyOutpatientDisplay(out1, out2)}"
+        "$prof  ·  낮 ${dutyResidentDisplay(residentDay)}  ·  당직 ${dutyResidentDisplay(residentNight)}  ·  Off ${dutyOutpatientDisplay(out1, out2)}"
     }
 }
 

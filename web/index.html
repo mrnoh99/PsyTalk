@@ -234,7 +234,9 @@
   .inputbar #msgInputNotice{display:none;flex:1 1 0;min-width:0;width:0;max-width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:15px;line-height:1.55;outline:none;font-family:inherit;resize:vertical;min-height:88px;max-height:120px}
   .inputbar.notice-compose #msgInput{display:none}
   .inputbar.notice-compose #msgInputNotice{display:block}
-  .send{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:19px;font-weight:700;line-height:1;cursor:pointer;flex-shrink:0;margin-right:2px}
+  .send{background:var(--accent);color:#fff;border:none;width:36px;height:36px;border-radius:50%;font-size:19px;font-weight:700;line-height:1;cursor:pointer;flex-shrink:0;margin-right:2px;transition:margin-right .15s}
+  /* iPad: 입력 중 iPadOS 우하단 플로팅 한/영·받아쓰기 버튼이 보내기(↑)를 가리지 않게 왼쪽으로 이동 */
+  html.ipad .inputbar.kbd-open .send{margin-right:76px}
   .plus{background:none;border:1px solid var(--line);color:var(--sub);width:34px;height:34px;border-radius:50%;font-size:21px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
   .attachmenu{position:fixed;background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 22px rgba(0,0,0,.16);padding:6px;display:none;flex-direction:column;gap:2px;z-index:90}
   .attachmenu.on{display:flex}
@@ -2433,6 +2435,16 @@ function fitSoon(){}
 if(window.visualViewport){
   // 키보드로 보이는 영역이 바뀌면 메시지 영역 높이만 재계산(레이아웃만, 위치 보정 없음)
   window.visualViewport.addEventListener('resize',layoutChat);
+}
+// iPad(가로 포함): iPadOS 가 화면 우하단에 띄우는 한/영·받아쓰기 플로팅 버튼이 보내기(↑)를 가리는 문제 →
+// 입력 포커스 중에만 보내기 버튼을 왼쪽으로 옮긴다. (iPadOS 13+ 는 플랫폼이 Mac 으로 보고됨)
+if(/iPad/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1)){
+  document.documentElement.classList.add('ipad');
+  ['msgInput','msgInputNotice'].forEach(id=>{
+    const ta=document.getElementById(id); if(!ta)return;
+    ta.addEventListener('focus',()=>document.getElementById('inputbar')?.classList.add('kbd-open'));
+    ta.addEventListener('blur',()=>document.getElementById('inputbar')?.classList.remove('kbd-open'));
+  });
 }
 function isNoticeRoom(){return active&&noticeTopRoom()&&noticeTopRoom().id===active.id;}
 function activeMsgInput(){return (isNoticeRoom()||isBugReportRoom(active))?document.getElementById('msgInputNotice'):document.getElementById('msgInput');}

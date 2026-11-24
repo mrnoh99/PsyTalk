@@ -2,6 +2,7 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 import UIKit
+import GameController
 
 struct RoomView: View {
     @ObservedObject var vm: MoimViewModel
@@ -19,6 +20,8 @@ struct RoomView: View {
     @State private var showSettings = false
     @State private var showLeave = false
     @State private var showDeleteRoom = false
+    // iPad + 애플(하드웨어) 키보드 연결 시 iPadOS 가 우하단에 플로팅 한/영·받아쓰기 바를 띄워 보내기(↑)를 가림 → 감지해 버튼을 왼쪽으로
+    @State private var hwKeyboard: Bool = GCKeyboard.coalesced != nil
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
@@ -427,8 +430,12 @@ struct ChatView: View {
                     }
                 }
                 .padding(.horizontal, 12).padding(.vertical, 9)
+                // 애플 키보드 연결된 iPad: 보내기(↑)를 왼쪽으로 옮겨 iPadOS 플로팅 한영/받아쓰기 바와 겹치지 않게
+                .padding(.trailing, (hwKeyboard && UIDevice.current.userInterfaceIdiom == .pad) ? 80 : 0)
             }
             .background(Moim.paper)
+            .onReceive(NotificationCenter.default.publisher(for: .GCKeyboardDidConnect)) { _ in hwKeyboard = true }
+            .onReceive(NotificationCenter.default.publisher(for: .GCKeyboardDidDisconnect)) { _ in hwKeyboard = GCKeyboard.coalesced != nil }
             .photosPicker(isPresented: $pickPhoto, selection: $photoItem, matching: .images)
             .onChange(of: photoItem) { newItem in
                 guard let newItem else { return }

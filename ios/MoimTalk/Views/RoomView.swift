@@ -20,10 +20,6 @@ struct RoomView: View {
     @State private var showSettings = false
     @State private var showLeave = false
     @State private var showDeleteRoom = false
-    // iPad + 애플(하드웨어) 키보드 연결 시 iPadOS 가 우하단에 플로팅 한/영·받아쓰기 바를 띄워 보내기(↑)를 가림
-    // → 입력 중이면 입력바를 위로 띄워 그 바가 아래 공간에 자리잡게 함
-    @State private var hwKeyboard: Bool = GCKeyboard.coalesced != nil
-    @FocusState private var inputFocused: Bool
 
     init(vm: MoimViewModel, room: Room, onBack: @escaping () -> Void) {
         self.vm = vm; self.room = room; self.onBack = onBack
@@ -239,6 +235,9 @@ struct ChatView: View {
     @State private var deleteTarget: Message?
     // 키보드 높이를 직접 관측해 입력 바를 올림(자동 safeArea 회피가 첫 표시 때 어긋나는 문제 해결)
     @State private var keyboardHeight: CGFloat = 0
+    // iPad + 애플(하드웨어) 키보드 연결 시 iPadOS 우하단 플로팅 한/영·받아쓰기 바가 보내기를 가림 → 입력 중 카드를 위로 띄움
+    @State private var hwKeyboard: Bool = GCKeyboard.coalesced != nil
+    @FocusState private var inputFocused: Bool
 
     private func bottomSafeInset() -> CGFloat {
         UIApplication.shared.connectedScenes

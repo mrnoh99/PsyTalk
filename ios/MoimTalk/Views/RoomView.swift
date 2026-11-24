@@ -409,13 +409,15 @@ struct ChatView: View {
                             text: $input, axis: .vertical
                         )
                             .lineLimit(3...8)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(.plain)
+                            .frame(maxWidth: .infinity)
                             .focused($inputFocused)
                     } else {
                         // web 처럼 Enter = 줄바꿈, 전송은 ↑ 버튼. axis:.vertical 로 자동 확장.
                         TextField("메시지 입력", text: $input, axis: .vertical)
                             .lineLimit(1...8)
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(.plain)
+                            .frame(maxWidth: .infinity)
                             .focused($inputFocused)
                     }
                     Button {
@@ -433,12 +435,19 @@ struct ChatView: View {
                             .frame(width: 33, height: 33).background(Moim.yellow).clipShape(Circle())
                     }
                 }
-                .padding(.horizontal, 12).padding(.vertical, 9)
-                // 애플 키보드 연결된 iPad 에서 입력 중: 입력바를 위로 띄워 iPadOS 플로팅 한영/받아쓰기 바가 아래 공간에 자리잡게(보내기 가림 방지)
-                .padding(.bottom, (hwKeyboard && inputFocused && UIDevice.current.userInterfaceIdiom == .pad) ? 58 : 0)
-                .animation(.easeOut(duration: 0.18), value: inputFocused)
+                .padding(.horizontal, 12).padding(.vertical, 10)
             }
-            .background(Moim.paper)
+            // 라운드 플로팅 카드 (Claude Code 스타일): 둥근 배경 + 테두리 + 그림자 + 좌우·상하 여백, 뒤는 채팅 배경
+            .background(RoundedRectangle(cornerRadius: 22, style: .continuous).fill(Moim.paper))
+            .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(Moim.line.opacity(0.8), lineWidth: 1))
+            .shadow(color: .black.opacity(0.10), radius: 10, x: 0, y: 2)
+            .padding(.horizontal, 10)
+            .padding(.top, 6)
+            // 애플 키보드 연결된 iPad 입력 중: 카드를 위로 띄워 iPadOS 플로팅 한영/받아쓰기 바가 아래 공간에 자리잡게(보내기 가림 방지)
+            .padding(.bottom, (hwKeyboard && inputFocused && UIDevice.current.userInterfaceIdiom == .pad) ? 58 : 8)
+            .animation(.easeOut(duration: 0.18), value: inputFocused)
+            .frame(maxWidth: .infinity)
+            .background(Moim.bg)
             .onReceive(NotificationCenter.default.publisher(for: .GCKeyboardDidConnect)) { _ in hwKeyboard = true }
             .onReceive(NotificationCenter.default.publisher(for: .GCKeyboardDidDisconnect)) { _ in hwKeyboard = GCKeyboard.coalesced != nil }
             .photosPicker(isPresented: $pickPhoto, selection: $photoItem, matching: .images)
